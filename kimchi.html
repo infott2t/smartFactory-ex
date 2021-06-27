@@ -22,6 +22,10 @@
       body {
         font-size: 1em;
       }
+
+      .row_col {
+        font-size: 1em;
+      }
     }
 
     .cp {
@@ -30,6 +34,12 @@
 
     .list-group-item {
       border: none;
+    }
+
+    .row_col {
+      padding: 0px;
+
+
     }
   </style>
 </head>
@@ -70,7 +80,7 @@
                 <i class="bi bi-chevron-left text-primary"></i>
               </h4>
             </a>
-
+            <br />
             <h4>배추 김치 만들기</h4>
             <span class="badge bg-primary"> 10시 ~ 17시</span> <span class="badge bg-danger">2시간</span>
           </div>
@@ -86,11 +96,12 @@
             <br />
             <div class="container cp">
               <div class="row">
-                <div class="col-sm-3">
-                  <a id="heart_click" class="btn"><i class="bi bi-heart text-danger" id="heart"></i></a> 좋아요
+                <div class="col-4 row_col">
+                  <a id="heart_click" class="btn row_col"><i class="bi bi-heart text-danger" id="heart"
+                      style="padding-left:16px;"></i></a> 좋아요
                 </div>
-                <div class="col-sm-6">
-                  <a href="" class="btn">A 푸드 | 서울 송파구</a>
+                <div class="col-8 row_col">
+                  <a href="" class="btn row_col">A 푸드 | 서울 송파구</a>
                 </div>
               </div>
             </div>
