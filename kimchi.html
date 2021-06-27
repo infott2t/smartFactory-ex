@@ -23,6 +23,11 @@
         font-size: 1em;
       }
     }
+
+
+    .list-group-item {
+      border: none;
+    }
   </style>
 </head>
 
@@ -78,20 +83,25 @@
             <br />
             <div class="container">
               <div class="row">
-                <div class="col">
+                <div class="col-sm-6">
                   <a id="heart_click" class="btn"><i class="bi bi-heart text-danger" id="heart"></i></a> 좋아요
                 </div>
-                <div class="col">
+                <div class="col-sm-6">
                   <a href="" class="btn">A 푸드 | 서울 송파구</a>
                 </div>
               </div>
             </div>
-
-            <li class="list-group-item">
-              <i class="bi bi-calendar-check"></i> 예약하기 타임시트 <input type="week" id="week" name="week"> <button
-                id="weekbtn" class="btn btn-success btn-sm">찾기</button>&nbsp;
-            </li>
-
+            <ul class="list-group" style="padding-bottom:10px;">
+              <li class="list-group-item">
+                <i class="bi bi-calendar-check"></i> 예약하기 타임시트
+              </li>
+              <li class="list-group-item">
+                <div class="d-flex  justify-content-end">
+                  <input type="week" id="week" name="week">&nbsp; <button id="weekbtn"
+                    class="btn btn-success btn-sm">찾기</button>&nbsp;
+                </div>
+              </li>
+            </ul>
             <div class="accordion" id="accordionPanelsStayOpenExample">
               <div class="accordion-item">
                 <h2 class="accordion-header" id="panelsStayOpen-headingOne">
