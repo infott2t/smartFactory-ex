@@ -17,13 +17,27 @@
     body {
       font-family: 'Nanum Gothic', sans-serif;
     }
+    .cardFix {
+        padding: 1rem 0rem 0rem 0rem;
+    }
 
     th {
       font-weight: normal;
       background-color: #e7f1ff;
     }
 
-    @media all and (min-width:320px) and (max-width:425px) {}
+    @media all and (min-width:320px) and (max-width:425px) {
+      tr{
+        font-size: 11px;
+        height: 40px;
+        }
+        .full {
+        height: 40px;
+        }
+        input {
+        height: 25px;
+        }
+    }
 
     @media screen and (max-width: 768px) {
       body {
@@ -83,10 +97,10 @@
   </div>
 
   <div class="container">
-    <br />
+    
     <div class="row">
       <div class="card">
-        <div class="card-body">
+        <div class="card-body cardFix">
           <div class="card-subtitle mb-2 text-muted"></div>
           <div class="card-title">
             <a href="javascript:window.history.back();" style="color:black;">
