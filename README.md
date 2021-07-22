@@ -5,7 +5,9 @@
  https://infott2t.github.io/smartFactory-ex/
  
  
- 앱 시현 영상, https://youtu.be/nukNZwMnSn8
+ 
+스마트 팩토리 앱 시현 영상, https://youtu.be/nukNZwMnSn8
+
 
 한번, 이렇게 개발해보세요~.  도움이 되었으면 좋겠네요.
 
