@@ -4,8 +4,7 @@
 
  https://infott2t.github.io/smartFactory-ex/
  
- <br/><br/>
- 
+ <br/> 
 스마트 팩토리 앱 시현 영상, https://youtu.be/nukNZwMnSn8
 <br/>
 
