@@ -1560,12 +1560,12 @@
                     capturedGloves = true;
                     const slot = document.getElementById('slot-gloves');
                     slot.classList.add('has-photo');
-                    slot.innerHTML = '<img src="./images/media__1780385402815.jpg" alt="Gloves Photo">';
+                    slot.innerHTML = '<img src="./images/hygiene_gloves.png" alt="Gloves Photo">';
                 } else {
                     capturedFull = true;
                     const slot = document.getElementById('slot-full');
                     slot.classList.add('has-photo');
-                    slot.innerHTML = '<img src="./images/media__1780391849288.jpg" alt="Full Worker Photo">';
+                    slot.innerHTML = '<img src="./images/hygiene_suit.png" alt="Full Worker Photo">';
                 }
 
                 showToast("사진이 임시로 캡처되었습니다.");
@@ -1606,8 +1606,8 @@
                 userName: userName,
                 type: "hygiene",
                 status: "pending", // pending, approved, rejected
-                imageGloves: "./images/media__1780385402815.jpg",
-                imageFull: "./images/media__1780391849288.jpg",
+                imageGloves: "./images/hygiene_gloves.png",
+                imageFull: "./images/hygiene_suit.png",
                 submittedTime: new Date().toLocaleTimeString()
             };
             
