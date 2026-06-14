@@ -238,7 +238,12 @@ $(document).ready(function(){
         } else {
             $(".h-open-btn").html('<span style="font-size:13px; font-weight:bold; color:#ffffff; background-color:#03C75A; padding:4px 8px; border-radius:12px;">' + user.name + '</span>');
         }
-        if (user.name === '최현일' || user.email === 'tt2t2am1118@naver.com') {
+        if (user.name === '최현일' || 
+            user.email === 'tt2t2am1118@naver.com' || 
+            user.role === 'MANAGER' || 
+            user.email === 'manager' ||
+            (user.email && user.email.toLowerCase().includes('manager')) ||
+            (user.name && user.name.toLowerCase().includes('manager'))) {
             $("#fab-manager-console").css("display", "flex");
             $("#fab-manager-console").css("transform", "translateX(-50%)");
         }
@@ -260,20 +265,20 @@ $(document).ready(function(){
     $(".box").click(function(e){
         e.preventDefault();
         e.stopPropagation();
-        var targetHref = $(this).attr("href") || "./main-design.html";
-        checkLoginAndRedirect(targetHref);
+        var targetHref = $(this).attr("href");
+        if (targetHref && targetHref.indexOf("kimp.html") !== -1) {
+            checkLoginAndRedirect(targetHref);
+        }
     });
 
     $(".comment a").click(function(e){
         e.preventDefault();
         e.stopPropagation();
-        checkLoginAndRedirect("./main-design.html");
     });
 
-    $(".t-com").css("cursor", "pointer").click(function(e){
+    $(".t-com").click(function(e){
         e.preventDefault();
         e.stopPropagation();
-        checkLoginAndRedirect("./main-design.html");
     });
     
     // 프로필 버튼 클릭 시 로그인 페이지로 전환
