@@ -3105,25 +3105,17 @@
                     </div>
                 `;
             } else if (state.statusSubmitted) {
-                var resetBtnHtml = '';
-                if (activeStageNum === 1) {
-                    resetBtnHtml = `
+                var resetBtnHtml = `
                     <div style="margin-top: 14px; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04)); border: 1px solid rgba(0,200,83,0.25);">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                             <i class="bi bi-patch-check-fill" style="font-size: 20px; color: var(--neon-green);"></i>
-                            <span style="font-weight: 700; color: var(--neon-green); font-size: 14px;">Stage 1 공정 완료!</span>
+                            <span style="font-weight: 700; color: var(--neon-green); font-size: 14px;">Stage ${activeStageNum} 공정 완료!</span>
                         </div>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">이 생산지시서의 Stage 1 작업이 승인 완료되었습니다.<br>아래 버튼을 눌러 다음 생산지시서로 새 작업을 시작하세요.</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">이 생산지시서의 Stage ${activeStageNum} 작업이 승인 완료되었습니다.<br>아래 버튼을 눌러 다음 생산지시서로 새 작업을 시작하세요.</p>
                         <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, #00c853, #00e676); color: #000; width: 100%; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,200,83,0.3); transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(0,200,83,0.45)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,200,83,0.3)'">
                             <i class="bi bi-arrow-clockwise"></i>&nbsp; 초기화하기 · 다음 생산지시서 작업하기
                         </button>
                     </div>`;
-                } else {
-                    resetBtnHtml = `
-                    <div class="widget-area" style="margin-top: 10px;">
-                        <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, var(--neon-blue), #5c4dff); width: 100%;"><i class="bi bi-arrow-clockwise"></i> 다음 생산지시서 작업하기 (초기화)</button>
-                    </div>`;
-                }
                 step5Widget = `
                     <span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 최종 실습 정보 클라우드 전송 완료</span>
                     <span class="workflow-subtext">완료 수량: ${state.postWorkQty}포기 / 최종 무게: ${state.postWorkWeight}kg</span>
@@ -3169,13 +3161,14 @@
                                 capturedModel.completedOrders.push(capturedModel.order);
                             }
                             
-                            if (capturedStage === 1 && productionOrders[capturedModel.order]) {
-                                productionOrders[capturedModel.order].progressStatus = "생산중 (Stage1완료)";
-                                productionOrders[capturedModel.order].currentTask = 2;
-                            }
-                            if (capturedStage === 5 && capturedModel.order && productionOrders[capturedModel.order]) {
-                                productionOrders[capturedModel.order].status = "completed";
-                                productionOrders[capturedModel.order].progressStatus = "생산 완료";
+                            if (productionOrders[capturedModel.order]) {
+                                if (capturedStage === 5) {
+                                    productionOrders[capturedModel.order].status = "completed";
+                                    productionOrders[capturedModel.order].progressStatus = "생산 완료";
+                                } else {
+                                    productionOrders[capturedModel.order].progressStatus = "생산중 (Stage" + capturedStage + "완료)";
+                                    productionOrders[capturedModel.order].currentTask = capturedStage + 1;
+                                }
                             }
                             
                             saveProductionOrders();
@@ -3188,7 +3181,7 @@
                             window._completionPollingActive = false;
                             capturedState.step5Status = "none";
                             alert("매니저가 최종 공정 실습 완료 심사를 반려했습니다. 다시 확인해 주세요.");
-                            if (capturedStage === 1 && productionOrders[capturedModel.order]) {
+                            if (productionOrders[capturedModel.order]) {
                                 productionOrders[capturedModel.order].progressStatus = "투입 후 생산 중";
                                 saveProductionOrders();
                             }
@@ -3803,7 +3796,7 @@
             state.endTime = curTimeStr;
 
             // 지시서의 현재 진행 상태를 "검사 대기 중"으로 변경
-            if (activeStageNum === 1 && productionOrders[m.order]) {
+            if (productionOrders[m.order]) {
                 productionOrders[m.order].progressStatus = "검사 대기 중";
             }
             
@@ -3859,18 +3852,15 @@
                             m.completedOrders.push(m.order);
                         }
                         
-                        // 만약 Stage 1 완료인 경우, 생산지시서 상태 및 현재진행상태 최신화
-                        if (capturedStage === 1 && productionOrders[m.order]) {
-                            productionOrders[m.order].progressStatus = "생산중 (Stage1완료)";
-                            productionOrders[m.order].currentTask = 2; // 다음 스테이지
-                        }
-                        
-                        // Stage 1 완료 시: 자동 초기화하지 않고, 완료 UI를 보여준 뒤 사용자가 수동으로 초기화 버튼 클릭
-                        
-                        // 만약 마지막 Stage 5 완료인 경우, 전체 생산지시서 상태 완료 처리
-                        if (capturedStage === 5 && m.order && productionOrders[m.order]) {
-                            productionOrders[m.order].status = "completed";
-                            productionOrders[m.order].progressStatus = "생산 완료";
+                        // 생산지시서 상태 및 현재진행상태 최신화
+                        if (productionOrders[m.order]) {
+                            if (capturedStage === 5) {
+                                productionOrders[m.order].status = "completed";
+                                productionOrders[m.order].progressStatus = "생산 완료";
+                            } else {
+                                productionOrders[m.order].progressStatus = "생산중 (Stage" + capturedStage + "완료)";
+                                productionOrders[m.order].currentTask = capturedStage + 1; // 다음 스테이지
+                            }
                         }
                         
                         saveProductionOrders();
@@ -3886,7 +3876,7 @@
                         state.step5Status = "none";
                         alert("매니저가 최종 공정 실습 완료 심사를 반려했습니다. 다시 확인해 주세요.");
                         
-                        if (capturedStage === 1 && productionOrders[m.order]) {
+                        if (productionOrders[m.order]) {
                             productionOrders[m.order].progressStatus = "투입 후 생산 중";
                             saveProductionOrders();
                         }
