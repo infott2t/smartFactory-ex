@@ -3907,6 +3907,39 @@
                     alert("Stage 1이 초기화되었습니다! 새로운 생산지시서(" + nextOrderId + ")가 배정되었습니다. QR코드를 스캔하여 작업을 시작하세요.");
                 } else {
                     alert("Stage 1이 초기화되었습니다. 현재 대기 중인 생산지시서가 없습니다. 매니저에게 새 지시서 발행을 요청해 주세요.");
+                    
+                    // Add order_required request to kimp_approval_requests
+                    var requests = [];
+                    try {
+                        requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+                    } catch(e) {}
+                    
+                    var userId = sessionStorage.getItem("user-id") || "guest";
+                    var userJson = sessionStorage.getItem("user");
+                    var userName = "최수아";
+                    try { userName = JSON.parse(userJson).name || "최수아"; } catch(e) {}
+                    
+                    var exists = false;
+                    for (var i = 0; i < requests.length; i++) {
+                        if (requests[i].type === "order_required" && requests[i].userId === userId && requests[i].status === "pending") {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!exists) {
+                        requests.push({
+                            id: "req_order_req_" + Date.now(),
+                            userId: userId,
+                            userName: userName,
+                            status: "pending",
+                            type: "order_required",
+                            title: "Stage 1에 생산지시서가 필요합니다.",
+                            noPhoto: true,
+                            submittedTime: new Date().toLocaleTimeString().slice(0, 8)
+                        });
+                        localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
+                    }
                 }
                 return;
             }
