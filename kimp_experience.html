@@ -2508,7 +2508,7 @@
                 currentOrders = defaultProductionOrders;
             }
 
-            // Merge status and currentTask from local productionOrders
+            // Merge status, currentTask and progressStatus from local productionOrders
             for (var key in productionOrders) {
                 if (currentOrders[key]) {
                     if (productionOrders[key].status) {
@@ -2517,6 +2517,11 @@
                     if (productionOrders[key].currentTask !== undefined) {
                         currentOrders[key].currentTask = productionOrders[key].currentTask;
                     }
+                    if (productionOrders[key].progressStatus) {
+                        currentOrders[key].progressStatus = productionOrders[key].progressStatus;
+                    }
+                } else {
+                    currentOrders[key] = productionOrders[key];
                 }
             }
 
