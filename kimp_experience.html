@@ -3467,7 +3467,7 @@
                 weight: state.weight || 0,
                 postWorkQty: state.postWorkQty || 0,
                 submittedTime: new Date().toLocaleTimeString(),
-                imageUrl: "./images/media__1780385402815.jpg"
+                imageUrl: "./images/cabbage_scale.png"
             };
             
             var requests = [];
@@ -3546,7 +3546,7 @@
                 stageNum: activeStageNum,
                 status: "pending",
                 submittedTime: new Date().toLocaleTimeString(),
-                imageUrl: "./images/media__1780391849288.jpg"
+                imageUrl: "./images/cabbage_zone_a.png"
             };
             
             var requests = [];
@@ -3718,7 +3718,7 @@
                 weight: state.postWorkWeight || 0,
                 postWorkQty: state.postWorkQty || 0,
                 submittedTime: new Date().toLocaleTimeString(),
-                imageUrl: "./images/media__1781091605675.jpg"
+                imageUrl: "./images/cabbage_weighed.png"
             };
             
             var requests = [];
@@ -3752,6 +3752,16 @@
                         if (capturedStage === 1 && productionOrders[m.order]) {
                             productionOrders[m.order].progressStatus = "생산중 (Stage1완료)";
                             productionOrders[m.order].currentTask = 2; // 다음 스테이지
+                        }
+                        
+                        // Stage 1 완료 시 다음 지시서를 즉시 받아올 수 있도록 로컬 상태 초기화
+                        if (capturedStage === 1) {
+                            stagesModel[1].step1Done = false;
+                            stagesModel[1].order = "없음";
+                            if (tempStageStates[1]) {
+                                delete tempStageStates[1];
+                            }
+                            syncActiveOrders();
                         }
                         
                         // 만약 마지막 Stage 5 완료인 경우, 전체 생산지시서 상태 완료 처리

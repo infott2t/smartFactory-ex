@@ -3275,6 +3275,7 @@
         // ── I. 생산지시서 테이블 렌더링 ──
         function renderProductionOrdersTable() {
             let orders = Object.values(loadProductionOrders());
+            orders.sort((a, b) => b.orderId.localeCompare(a.orderId));
 
             const totalCount = document.getElementById("orders-total-count");
             if (totalCount) totalCount.textContent = `총 ${orders.length}건`;
