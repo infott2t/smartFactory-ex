@@ -3137,6 +3137,12 @@
                         <i class="bi bi-file-earmark-medical-fill" style="font-size: 28px; margin-bottom: 4px;"></i>
                         <span style="font-size: 11px; font-weight: 600;">지시서 미등록</span>
                     </div>`;
+                } else if (req.type === "hygiene") {
+                    imgHtml = `
+                    <div class="approval-img-container" style="display: flex; gap: 8px; justify-content: center; height: 120px; overflow: hidden; padding: 4px;">
+                        <img src="${req.imageGloves || './images/hygiene_gloves_heart.png'}" style="width: calc(50% - 4px); height: 100%; object-fit: cover; border-radius: 6px;" alt="Gloves">
+                        <img src="${req.imageFull || './images/hygiene_suit.png'}" style="width: calc(50% - 4px); height: 100%; object-fit: cover; border-radius: 6px;" alt="Suit">
+                    </div>`;
                 } else {
                     const src = req.imageUrl || req.photoData || "./images/media__1781091605675.jpg";
                     imgHtml = `
