@@ -246,7 +246,11 @@ $(document).ready(function(){
             (user.name && user.name.toLowerCase().includes('manager'))) {
             $("#fab-manager-console").css("display", "flex");
             $("#fab-manager-console").css("transform", "translateX(-50%)");
+        } else {
+            $("#fab-manager-console").hide();
         }
+    } else {
+        $("#fab-manager-console").hide();
     }
 
     function checkLoginAndRedirect(targetUrl) {
@@ -290,7 +294,7 @@ $(document).ready(function(){
 </script>
 
 <!-- 매니저 콘솔 플로팅 버튼 -->
-<a href="./manager.html" id="fab-manager-console" style="display: none; position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #00b894, #00d2d3); color: #fff; border: none; border-radius: 30px; padding: 12px 20px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4); display: flex; align-items: center; gap: 8px; cursor: pointer; z-index: 9999; text-decoration: none; transition: all 0.25s;">
+<a href="./manager.html" id="fab-manager-console" style="display: none; position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #00b894, #00d2d3); color: #fff; border: none; border-radius: 30px; padding: 12px 20px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4); align-items: center; gap: 8px; cursor: pointer; z-index: 9999; text-decoration: none; transition: all 0.25s;">
     <i class="bi bi-speedometer2"></i>
     <span>매니저 콘솔</span>
 </a>
