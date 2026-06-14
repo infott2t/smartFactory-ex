@@ -1,0 +1,2459 @@
+<!--
+<%@ page contentType="text/html;charset=UTF-8" language="java" isELIgnored="true" %>
+<%
+    org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
+    if (sUser != null) {
+%>
+    <script>
+        sessionStorage.setItem('user-id', '<%= sUser.getId() %>');
+        sessionStorage.setItem('user', JSON.stringify({
+            id: '<%= sUser.getId() %>',
+            name: '<%= sUser.getName() %>',
+            email: '<%= sUser.getEmail() %>',
+            picture: '<%= sUser.getPicture() != null ? sUser.getPicture() : "" %>',
+            role: '<%= sUser.getRole() %>'
+        }));
+    </script>
+<%
+    }
+%>
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maxium-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>Footer Expand</title>
+    <link href="./css/styles2.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="./css/kimp_bot.css">
+    <link rel="stylesheet" href="./css/bottom2.css">
+    <link href="./css/underCover.css" rel="stylesheet" type="text/css">
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* ── 체험하기 / 예약하기 버튼 영역 ── */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            padding: 20px 15px 10px 15px;
+        }
+        .action-buttons .btn-experience,
+        .action-buttons .btn-reserve {
+            flex: 1;
+            padding: 14px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'NotoKR', sans-serif;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.25s ease;
+        }
+        .btn-experience {
+            background: linear-gradient(135deg, #4720ca, #7b5cf5);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(71, 32, 202, 0.4);
+        }
+        .btn-experience:hover {
+            background: linear-gradient(135deg, #5a35e0, #9178f7);
+            box-shadow: 0 6px 20px rgba(71, 32, 202, 0.55);
+            transform: translateY(-2px);
+        }
+        .btn-reserve {
+            background: linear-gradient(135deg, #e85d04, #ff8c42);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(232, 93, 4, 0.4);
+        }
+        .btn-reserve:hover {
+            background: linear-gradient(135deg, #f06f1a, #ffa05c);
+            box-shadow: 0 6px 20px rgba(232, 93, 4, 0.55);
+            transform: translateY(-2px);
+        }
+        .btn-reserve:disabled {
+            background: #3a3a3a;
+            color: #777;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── 예약 모달 ── */
+        .reservation-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 2000;
+            justify-content: center;
+            align-items: flex-end;
+            animation: fadeIn 0.2s ease;
+        }
+        .reservation-overlay.show {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .reservation-modal {
+            background: #1a1a2e;
+            width: 100%;
+            max-width: 800px;
+            border-radius: 24px 24px 0 0;
+            padding: 0;
+            animation: slideUp 0.35s ease;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: #555;
+            border-radius: 2px;
+            margin: 12px auto 0 auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px 12px 20px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 17px;
+            font-family: 'NotoKR', sans-serif;
+            font-weight: 600;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+        .modal-close:hover {
+            color: #fff;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-body .section-label {
+            font-size: 13px;
+            color: #9998DC;
+            margin-bottom: 10px;
+            font-family: 'NotoKR', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .modal-body .section-label i {
+            font-size: 14px;
+        }
+
+        /* 날짜 표시 */
+        .reservation-date {
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #d8d8d8;
+            font-size: 14px;
+            font-family: 'NotoKR', sans-serif;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .reservation-date i {
+            color: #9998DC;
+            font-size: 16px;
+        }
+
+        /* 시간 슬롯 그리드 */
+        .time-slots {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .time-slot {
+            background: #16213e;
+            border: 2px solid #2a2a4a;
+            border-radius: 12px;
+            padding: 14px 12px;
+            color: #d8d8d8;
+            font-size: 14px;
+            font-family: 'NotoKR', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .time-slot .slot-time {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .time-slot .slot-label {
+            font-size: 11px;
+            color: #888;
+        }
+        .time-slot:hover {
+            border-color: #4720ca;
+            background: #1e2a4a;
+        }
+        .time-slot.selected {
+            border-color: #7b5cf5;
+            background: linear-gradient(135deg, rgba(71, 32, 202, 0.25), rgba(123, 92, 245, 0.15));
+            box-shadow: 0 0 12px rgba(71, 32, 202, 0.3);
+        }
+        .time-slot.selected .slot-time {
+            color: #b49aff;
+        }
+        .time-slot.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .time-slot.disabled .slot-label {
+            color: #ff6b6b;
+        }
+
+        /* 예약 확인 버튼 */
+        .btn-confirm-reserve {
+            width: 100%;
+            padding: 15px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'NotoKR', sans-serif;
+            cursor: pointer;
+            background: linear-gradient(135deg, #e85d04, #ff8c42);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(232, 93, 4, 0.4);
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-confirm-reserve:hover {
+            box-shadow: 0 6px 20px rgba(232, 93, 4, 0.55);
+            transform: translateY(-1px);
+        }
+        .btn-confirm-reserve:disabled {
+            background: #3a3a3a;
+            color: #777;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 체험 필요 안내 메시지 */
+        .experience-notice {
+            background: rgba(232, 93, 4, 0.1);
+            border: 1px solid rgba(232, 93, 4, 0.3);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: #ffb380;
+            font-family: 'NotoKR', sans-serif;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            line-height: 1.5;
+        }
+        .experience-notice i {
+            font-size: 16px;
+            color: #ff8c42;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* 예약 완료 화면 */
+        .reservation-success {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .reservation-success.show {
+            display: block;
+        }
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+            font-size: 28px;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 184, 148, 0.4);
+            animation: bounceIn 0.5s ease;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        .success-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            font-family: 'NotoKR', sans-serif;
+            margin-bottom: 8px;
+        }
+        .success-detail {
+            font-size: 14px;
+            color: #aaa;
+            font-family: 'NotoKR', sans-serif;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .success-detail strong {
+            color: #b49aff;
+        }
+        .btn-close-success {
+            padding: 12px 40px;
+            border: none;
+            border-radius: 10px;
+            background: #4720ca;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'NotoKR', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-close-success:hover {
+            background: #5a35e0;
+        }
+
+        /* 체험 상태 뱃지 */
+        .experience-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: 'NotoKR', sans-serif;
+            margin-left: 15px;
+            margin-bottom: 5px;
+        }
+        .experience-badge.not-done {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        .experience-badge.done {
+            background: rgba(0, 184, 148, 0.15);
+            color: #55efc4;
+            border: 1px solid rgba(0, 184, 148, 0.3);
+        }
+
+        /* 확인해보기 버튼 */
+        .btn-try-experience {
+            width: 100%;
+            padding: 13px 0;
+            border: 2px solid #00b894;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'NotoKR', sans-serif;
+            cursor: pointer;
+            background: linear-gradient(135deg, rgba(0, 184, 148, 0.15), rgba(85, 239, 196, 0.1));
+            color: #55efc4;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-try-experience:hover {
+            background: linear-gradient(135deg, rgba(0, 184, 148, 0.3), rgba(85, 239, 196, 0.2));
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* 시간 슬롯 3열 그리드 */
+        .time-slots {
+            grid-template-columns: 1fr 1fr 1fr !important;
+        }
+        .text0 i {
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+        }
+        .text0 i.bi-caret-up-fill {
+            color: rgb(0, 160, 0);
+        }
+        .text0 i.bi-caret-down-fill {
+            color: rgb(255, 107, 107);
+        }
+
+        /* ── 예약 날짜 선택 버튼 스타일 ── */
+        .date-selector-btn {
+            flex: 0 0 auto;
+            width: 76px;
+            padding: 10px 4px;
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 10px;
+            color: #d8d8d8;
+            font-size: 11px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-family: 'NotoKR', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .date-selector-btn.selected {
+            background: linear-gradient(135deg, #7b5cf5, #4720ca);
+            border-color: #7b5cf5;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(123, 92, 245, 0.4);
+        }
+        .date-selector-btn .date-num {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .date-selector-btn .date-day {
+            font-size: 9px;
+            opacity: 0.8;
+        }
+
+        /* 스크롤바 커스텀 */
+        #reservation-date-selector::-webkit-scrollbar {
+            height: 4px;
+        }
+        #reservation-date-selector::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 2px;
+        }
+        #reservation-date-selector::-webkit-scrollbar-thumb {
+            background: #2a2a4a;
+            border-radius: 2px;
+        }
+
+        /* ── 가상체험 선택 모달 ── */
+        .experience-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 5, 15, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            animation: fadeInOverlay 0.25s ease;
+        }
+        .experience-overlay.show {
+            display: flex;
+        }
+        .experience-modal {
+            background-color: #121226;
+            border: 1px solid #1e1e3f;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            padding: 24px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            font-family: 'NotoKR', 'Inter', sans-serif;
+            color: #fff;
+        }
+        .experience-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+        .experience-modal-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        
+        /* 온라인 체험 중 애니메이션 녹색 점 */
+        .online-dot-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00b894;
+            border-radius: 50%;
+            position: relative;
+        }
+        .online-dot::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid #00b894;
+            border-radius: 50%;
+            animation: pulse-dot 1.8s infinite ease-out;
+        }
+        @keyframes pulse-dot {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+        .online-text {
+            font-size: 11px;
+            font-weight: 600;
+            color: #00b894;
+        }
+
+        .guide-banner-modal {
+            background: linear-gradient(135deg, rgba(123, 92, 245, 0.15) 0%, rgba(0, 184, 148, 0.15) 100%);
+            border: 1px solid rgba(123, 92, 245, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(123, 92, 245, 0.05);
+        }
+        .guide-text-modal {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(123, 92, 245, 0.4);
+        }
+
+        .greeting-card-modal {
+            background-color: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid #7b92ff;
+            border-top: 1px solid #1e1e3f;
+            border-right: 1px solid #1e1e3f;
+            border-bottom: 1px solid #1e1e3f;
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .greeting-text-modal {
+            font-size: 12px;
+            color: #d1d1e0;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .modal-buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .btn-modal-action {
+            width: 100%;
+            height: 48px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-modal-action.primary {
+            background: linear-gradient(135deg, #7b92ff, #2b3573);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.2);
+        }
+        .btn-modal-action.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(123, 92, 245, 0.3);
+        }
+        .btn-modal-action.secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid #1e1e3f;
+            color: #fff;
+        }
+        .btn-modal-action.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .warning-box {
+            background-color: rgba(232, 93, 4, 0.08);
+            border: 1px solid rgba(232, 93, 4, 0.25);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #ff9f43;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-wrap">
+        <main class="main" style="padding-top: 0;">
+            <div class="menu-bar">
+                <i class="bi bi-chevron-left back"></i><img src="./images/k-icon.png" /><span style="cursor: pointer;" onclick="openStatusPage()">김치만들기</span><i
+                    id="work-stars" class="bi bi-star"></i>
+            </div>
+            <div class="text0">
+                <i class="bi bi-caret-up-fill"></i><span>1.3</span><span class="ratio">+0.03%</span>
+                <i class="bi bi-info-circle info-icon"
+                    style="color: white; cursor: pointer;"></i>
+            </div>
+            <div class="tab">
+                <div class="active" data-tab="0"><span>Chart</span></div>
+                <div data-tab="1"><span>Stats</span></div>
+                <div class="tab-indicator"></div>
+            </div>
+            <div class="content-tab active">
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; padding-right: 8px; font-family: 'NotoKR', sans-serif;">
+                    <button id="btn-interval-1m" onclick="changeInterval('1m')" style="background: rgba(123, 92, 245, 0.25); border: 1px solid #7b5cf5; color: white; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">1m</button>
+                    <button id="btn-interval-30m" onclick="changeInterval('30m')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #aaa; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">30m</button>
+                    <button id="btn-interval-1h" onclick="changeInterval('1h')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #aaa; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">1h</button>
+                </div>
+                <div>
+                    <canvas id="myChart"></canvas>
+                </div>
+                <div class="categories">
+                    <div><span>카테고리</span></div>
+                    <div><button>요리</button><button>김치</button><button>만들기</button></div>
+                </div>
+                <div class="categories" style="margin-top: 15px;">
+                    <div><span>작업 시간</span></div>
+                    <div><button
+                            style="border-color: #9998DC; color: #9998DC; display: flex; align-items: center; gap: 4px; background: transparent; cursor: default;"><i
+                                class="bi bi-clock"></i> 2시간 작업</button></div>
+                </div>
+
+                <!-- 체험 상태 뱃지 -->
+                <div style="margin-top: 15px;">
+                    <div class="experience-badge not-done" id="exp-badge">
+                        <i class="bi bi-exclamation-circle"></i> 체험 미완료
+                    </div>
+                </div>
+
+                <!-- 체험하기 / 예약하기 버튼 -->
+                <div class="action-buttons" style="flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 10px; width: 100%;">
+                        <button class="btn-experience" id="btn-experience" onclick="goExperience()" style="flex: 1; margin: 0;">
+                            <i class="bi bi-headset"></i> 체험하기
+                        </button>
+                        <button class="btn-reserve" id="btn-reserve" onclick="openReservation()" style="flex: 1; margin: 0;">
+                            <i class="bi bi-calendar-check"></i> 예약하기
+                        </button>
+                    </div>
+                    <button class="btn-try-experience" id="btn-helper-login" onclick="openHelperModal()" style="width: 100%; border-color: #7b5cf5; color: #b49aff; background: linear-gradient(135deg, rgba(123, 92, 245, 0.15), rgba(71, 32, 202, 0.1)); height: 48px;">
+                        <i class="bi bi-person-fill-gear"></i> 현장 헬퍼 지원 및 로그인 (김영희)
+                    </button>
+                </div>
+            </div>
+            <div class="content-tab" style="padding: 16px; font-family: 'NotoKR', sans-serif; color: #d8d8d8; max-height: 480px; overflow-y: auto;">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- 1. Simplified Job Information Card -->
+                    <div style="background: #121226; border: 1px solid #2a2a4a; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 2px;">
+                            <span style="display: flex; align-items: center; gap: 6px;">
+                                <i class="bi bi-info-circle-fill" style="color: #7b5cf5;"></i> 작업 정보
+                            </span>
+                            <span style="background: #e85d04; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">AFood</span>
+                        </div>
+                        <div style="font-size: 12px; color: #aaa; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>주소:</span>
+                                <span style="display: flex; align-items: center; gap: 6px;">
+                                    <strong style="color: #fff;" id="address-text">서울시 광진구 성수동</strong>
+                                    <button onclick="copyAddress()" style="background: rgba(123, 92, 245, 0.15); border: 1px solid rgba(123, 92, 245, 0.4); color: #b49aff; font-size: 9px; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">복사</button>
+                                </span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>작업 시작일:</span>
+                                <strong style="color: #00b894;" id="job-start-date">2024년 8월 1일 (목)</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>근무 시간:</span>
+                                <strong style="color: #fff;">오전 10:00 ~ 오후 5:00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 4px; padding-top: 6px;">
+                                <span>현재까지 참여자:</span>
+                                <strong style="color: #fff;">123명</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>평가 평점:</span>
+                                <strong style="color: #ffd700; display: flex; align-items: center; gap: 2px;">
+                                    <i class="bi bi-star-fill"></i> 4.7 / 5.0
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Guidelines & Notices Card (From Screenshot) -->
+                    <div style="background: #121226; border: 1px solid #1e1e3f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                            <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 안내 및 유의사항
+                        </div>
+                        
+                        <ul style="list-style-type: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 12px; line-height: 1.5; color: #d8d8d8; font-family: 'NotoKR', sans-serif;">
+                            <li style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #7b5cf5; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-egg-fried"></i></span>
+                                <span>요리. 배추를 절이는 작업입니다.</span>
+                            </li>
+                            <li style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ff6b6b; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-card-image"></i></span>
+                                <span>신분증, 보건증을 지참해주세요.</span>
+                            </li>
+                            <li style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ffd700; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-clock-history"></i></span>
+                                <span>2시간 단위로 예약가능합니다. 2시간 단위로 30분 쉬는 시간을 드려요.</span>
+                            </li>
+                            <li style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #55efc4; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-ticket-perforated"></i></span>
+                                <span>혜택, 당일 식권 1매 제공. 일주일간 식권 사용가능합니다.</span>
+                            </li>
+                            <li style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #9998DC; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-person-check"></i></span>
+                                <span>단정한 차림으로 입장해주세요.</span>
+                            </li>
+                            <li style="display: flex; gap: 8px; align-items: flex-start; background: rgba(0, 184, 148, 0.08); padding: 8px; border-radius: 8px; border: 1px dashed rgba(0, 184, 148, 0.3);">
+                                <span style="color: #00b894; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-calendar-event"></i></span>
+                                <span>당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊</span>
+                            </li>
+                            <li style="display: flex; gap: 8px; align-items: flex-start; background: rgba(123, 92, 245, 0.08); padding: 8px; border-radius: 8px; border: 1px dashed rgba(123, 92, 245, 0.3); margin-top: 4px;">
+                                <span style="color: #b49aff; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-gift-fill"></i></span>
+                                <span style="color: #b49aff; font-weight: bold;">처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉 </span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. 5-Task Details Card -->
+                    <div style="background: #121226; border: 1px solid #1e1e3f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                            <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 김치만들기 공정 (5-Task) 구성
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.4; color: #d8d8d8; font-family: 'NotoKR', sans-serif;">
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 1.</span>
+                                <span style="color: #fff;">배추 5단위 적재하기</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 2.</span>
+                                <span style="color: #fff;">배추 손질하기</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 3.</span>
+                                <span style="color: #fff;">배추를 절이는 작업</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 4.</span>
+                                <span style="color: #fff;">양념제조와 양념을 묻히는 작업</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 5.</span>
+                                <span style="color: #fff;">포장용기에 담는 작업</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Work Flow & Rest Notice Card -->
+                    <div style="background: #111126; border: 1px solid #1e1e3f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                            <i class="bi bi-arrow-right-circle-fill" style="color: #e85d04;"></i> 진행 순서 및 휴식 안내
+                        </div>
+                        
+                        <!-- Step Flow Diagram -->
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: #ccc; margin-top: 4px; font-family: 'NotoKR', sans-serif;">
+                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
+                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 1</div>
+                                    <div style="color: #fff;">입장<br><span style="font-size: 9px; color: #aaa;">(QR코드 출석하기)</span></div>
+                                </div>
+                                <div style="color: #7b5cf5; font-weight: bold;"><i class="bi bi-chevron-right"></i></div>
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
+                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 2</div>
+                                    <div style="color: #fff;">락커룸 입장<br><span style="font-size: 9px; color: #aaa;">번호표 받기</span></div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
+                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 3</div>
+                                    <div style="color: #fff;">작업실 이동</div>
+                                </div>
+                                <div style="color: #7b5cf5; font-weight: bold;"><i class="bi bi-chevron-right"></i></div>
+                                <div style="background: rgba(123, 92, 245, 0.1); border: 1px solid rgba(123, 92, 245, 0.2); padding: 8px; border-radius: 8px; text-align: center;">
+                                    <div style="color: #ffd700; font-weight: bold; margin-bottom: 2px;">Step 4</div>
+                                    <div style="color: #fff; font-weight: bold;">작업</div>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
+                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 5</div>
+                                    <div style="color: #fff;">락커룸</div>
+                                </div>
+                                <div style="color: #7b5cf5; font-weight: bold;"><i class="bi bi-chevron-right"></i></div>
+                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
+                                    <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 2px;">Step 6</div>
+                                    <div style="color: #fff;">퇴실</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Rest Area Notice -->
+                        <div style="margin-top: 6px; background: rgba(85, 239, 196, 0.08); border: 1px solid rgba(85, 239, 196, 0.2); border-radius: 8px; padding: 10px; font-size: 11px; color: #55efc4; line-height: 1.4; display: flex; align-items: center; gap: 6px; font-weight: bold;">
+                            <i class="bi bi-info-circle-fill" style="font-size: 14px;"></i>
+                            <span>쉴 때에는 휴식 룸을 사용해보세요.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="content">
+        <!-- Content of the page goes here -->
+    </div>
+
+    <!-- 예약/체험 모달 -->
+    <div class="reservation-overlay" id="reservation-overlay">
+        <div class="reservation-modal">
+            <div class="modal-handle"></div>
+            <div class="modal-header">
+                <h3 id="modal-title"><i class="bi bi-calendar-event" style="color: #9998DC; margin-right: 6px;"></i>예약하기</h3>
+                <button class="modal-close" onclick="closeReservation()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <!-- 예약/체험 폼 -->
+            <div class="modal-body" id="reservation-form">
+                <!-- 작업 정보 -->
+                <div class="work-info-card" style="background: #16213e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 15px; margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
+                    <div style="font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <i class="bi bi-info-circle-fill" style="color: #9998DC;"></i> 작업 정보
+                    </div>
+                    <div style="font-size: 13px; color: #d8d8d8; line-height: 1.6;">
+                        <div style="display: flex; margin-bottom: 6px;">
+                            <span style="color: #9998DC; width: 80px; flex-shrink: 0;">작업 이름:</span>
+                            <strong style="color: #fff;">김치만들기</strong>
+                        </div>
+                        <div style="display: flex; margin-bottom: 6px;">
+                            <span style="color: #9998DC; width: 80px; flex-shrink: 0;">작업장 위치:</span>
+                            <span style="color: #fff;">AFood - 1층 KimchiA</span>
+                        </div>
+                        <div style="display: flex;">
+                            <span style="color: #9998DC; width: 80px; flex-shrink: 0;">주소:</span>
+                            <span style="color: #aaa; font-size: 12px;">서울시 중구 123-456 AFood 1층 KimchiA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="experience-notice" id="experience-notice" style="display: none;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span>체험을 먼저 완료해야 예약이 가능합니다. 가상체험을 통해 작업 내용을 확인한 뒤 예약해 주세요.</span>
+                </div>
+
+                <!-- 확인해보기 버튼 (체험 모드에서만 표시) -->
+                <div id="try-experience-area" style="display: none; margin-bottom: 18px;">
+                    <div class="section-label"><i class="bi bi-phone"></i> 앱으로 미리 체험해보기</div>
+                    <button class="btn-try-experience" onclick="tryExperience()">
+                        <i class="bi bi-play-circle-fill"></i> 확인해보기
+                    </button>
+                    <div style="font-size: 11px; color: #888; margin-top: 8px; padding-left: 2px; font-family: 'NotoKR', sans-serif;">시간대를 예약하기 전에, 앱에서 미리 작업 내용을 체험해볼 수 있습니다.</div>
+                </div>
+
+                <!-- 보건증 및 신분 증명 증빙 카드 -->
+                <div id="health-certificate-status-area">
+                    <!-- JS에 의해 동적 렌더링 됩니다. -->
+                </div>
+
+                <!-- 지원 역할 선택 (초심자/경험자에 따라 동적 활성화) -->
+                <div id="role-selection-area" style="margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
+                    <!-- JS에 의해 동적 렌더링 됩니다. -->
+                </div>
+
+                <!-- 안내 및 유의사항 -->
+                <div class="modal-notice-card" style="background: #121226; border: 1px solid #1e1e3f; border-radius: 12px; padding: 15px; margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
+                    <div style="font-size: 13px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 10px;">
+                        <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 안내 및 유의사항
+                    </div>
+                    <ul style="list-style-type: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 11px; line-height: 1.4; color: #d8d8d8;">
+                        <li style="display: flex; gap: 6px; align-items: flex-start;">
+                            <span style="color: #7b5cf5; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-egg-fried"></i></span>
+                            <span>요리. 배추를 절이는 작업입니다.</span>
+                        </li>
+                        <li style="display: flex; gap: 6px; align-items: flex-start;">
+                            <span style="color: #ff6b6b; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-card-image"></i></span>
+                            <span>신분증, 보건증을 지참해주세요.</span>
+                        </li>
+                        <li style="display: flex; gap: 6px; align-items: flex-start;">
+                            <span style="color: #ffd700; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-clock-history"></i></span>
+                            <span>2시간 단위로 예약가능합니다. 2시간 단위로 30분 쉬는 시간을 드려요.</span>
+                        </li>
+                        <li style="display: flex; gap: 6px; align-items: flex-start;">
+                            <span style="color: #55efc4; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-ticket-perforated"></i></span>
+                            <span>혜택, 당일 식권 1매 제공. 일주일간 식권 사용가능합니다.</span>
+                        </li>
+                        <li style="display: flex; gap: 6px; align-items: flex-start;">
+                            <span style="color: #9998DC; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-person-check"></i></span>
+                            <span>단정한 차림으로 입장해주세요.</span>
+                        </li>
+                        <li style="display: flex; gap: 6px; align-items: flex-start; background: rgba(0, 184, 148, 0.08); padding: 6px; border-radius: 6px; border: 1px dashed rgba(0, 184, 148, 0.2);">
+                            <span style="color: #00b894; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-calendar-event"></i></span>
+                            <span>당일 날, 자리에 일이 없는 경우, 현장에서 일 접수 가능합니다. 😊</span>
+                        </li>
+                        <li style="display: flex; gap: 6px; align-items: flex-start; background: rgba(123, 92, 245, 0.08); padding: 6px; border-radius: 6px; border: 1px dashed rgba(123, 92, 245, 0.2);">
+                            <span style="color: #b49aff; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-gift-fill"></i></span>
+                            <span style="color: #b49aff; font-weight: bold;">첫 일예약 체험 보너스로 5000원을 드려요.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="section-label"><i class="bi bi-calendar3"></i> 예약 날짜 선택 (오늘부터 7일 예약 가능)</div>
+                <div id="reservation-date-selector" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px 2px; margin-bottom: 15px; -webkit-overflow-scrolling: touch;">
+                    <!-- JS에 의해 7일 날짜 버튼이 생성됩니다. -->
+                </div>
+                
+                <div style="display: none;">
+                    <span id="res-date-text">로딩 중...</span>
+                </div>
+
+                <div class="section-label"><i class="bi bi-clock-history"></i> 시간대 선택 (2시간 단위)</div>
+                <div class="time-slots-list" id="time-slots" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; font-family: 'NotoKR', sans-serif;">
+                    <!-- JS에 의해 예약 인원 한도가 표시되어 렌더링 됩니다. -->
+                </div>
+
+                <button class="btn-confirm-reserve" id="btn-confirm" onclick="confirmReservation()" disabled>
+                    <i class="bi bi-check-circle"></i> 예약 확정하기
+                </button>
+            </div>
+
+            <!-- 예약 완료 화면 -->
+            <div class="reservation-success" id="reservation-success">
+                <div class="success-icon"><i class="bi bi-check-lg"></i></div>
+                <div class="success-title">예약이 완료되었습니다!</div>
+                <div class="success-detail" id="success-detail">
+                    로딩 중...
+                </div>
+                <button class="btn-close-success" onclick="closeReservation()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 헬퍼 자격 검증 모달 -->
+    <div class="reservation-overlay" id="helper-auth-overlay">
+        <div class="reservation-modal" style="background: #0f0f26; border: 1px solid #2a2a5a; border-radius: 20px 20px 0 0;">
+            <div class="modal-handle"></div>
+            <div class="modal-header" style="border-bottom: 1px solid #1e1e3f;">
+                <h3 style="color: #fff; font-size: 16px;"><i class="bi bi-person-fill-gear" style="color: #7b5cf5; margin-right: 6px;"></i>현장 헬퍼 자격 검증</h3>
+                <button class="modal-close" onclick="closeHelperModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 20px; font-family: 'NotoKR', sans-serif;">
+                <div style="background: #141432; border: 1px solid #1e1e4a; border-radius: 12px; padding: 15px; margin-bottom: 18px;">
+                    <div style="font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                        <i class="bi bi-person-badge-fill" style="color: #7b5cf5;"></i> 지원자 정보
+                    </div>
+                    <div style="font-size: 13px; color: #d8d8d8; line-height: 1.6;">
+                        <div style="display: flex; margin-bottom: 6px;">
+                            <span style="color: #8f8fc6; width: 100px; flex-shrink: 0;">지원 이름:</span>
+                            <strong style="color: #fff;">김영희 (헬퍼 지원자)</strong>
+                        </div>
+                        <div style="display: flex; margin-bottom: 6px;">
+                            <span style="color: #8f8fc6; width: 100px; flex-shrink: 0;">지원 공정:</span>
+                            <span style="color: #fff;">김치만들기 공정</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-label" style="font-size: 13px; color: #8f8fc6; margin-bottom: 10px;"><i class="bi bi-patch-check-fill" style="color: #7b5cf5;"></i> 자격 심사 요건 확인</div>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <!-- 자격 요건 1 -->
+                    <div style="background: rgba(0, 184, 148, 0.08); border: 1px solid rgba(0, 184, 148, 0.2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 13px; font-weight: 600; color: #fff;">1. 누적 작업 경험 시간 (30시간 이상)</span>
+                            <span style="font-size: 11px; color: #aaa;">김영희 님 누적 시간: <strong style="color: #00b894;">32시간</strong></span>
+                        </div>
+                        <span style="font-size: 12px; color: #55efc4; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                            <i class="bi bi-check-circle-fill"></i> 충족
+                        </span>
+                    </div>
+
+                    <!-- 자격 요건 2 -->
+                    <div style="background: rgba(0, 184, 148, 0.08); border: 1px solid rgba(0, 184, 148, 0.2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 13px; font-weight: 600; color: #fff;">2. 헬퍼 자격 심사 시험</span>
+                            <span style="font-size: 11px; color: #aaa;">평가 심사 결과: <strong style="color: #00b894;">최종 합격 (Pass)</strong></span>
+                        </div>
+                        <span style="font-size: 12px; color: #55efc4; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                            <i class="bi bi-check-circle-fill"></i> 충족
+                        </span>
+                    </div>
+                </div>
+
+                <button class="btn-confirm-reserve" onclick="enterHelperDashboard()" style="background: linear-gradient(135deg, #7b5cf5, #4720ca); box-shadow: 0 4px 15px rgba(71, 32, 202, 0.4); width: 100%; border: none;">
+                    <i class="bi bi-shield-check"></i> 자격 검증 승인 및 헬퍼 대시보드 입장
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 가상체험 선택 모달 ── -->
+    <div class="experience-overlay" id="experience-overlay">
+        <div class="experience-modal">
+            <i class="bi bi-x" onclick="closeExperienceModeModal()" style="position: absolute; top: 14px; right: 14px; font-size: 24px; color: #76769e; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#76769e'"></i>
+            
+            <div class="experience-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="experience-modal-title">김치만들기 (가상체험관)</span>
+                    <span class="online-dot"></span>
+                </div>
+            </div>
+
+            <!-- 안내 가이드 배너 -->
+            <div class="guide-banner-modal">
+                <div class="guide-text-modal">김치 공정 가상체험을 완료하고 현장 실습 티켓을 획득해 보세요! 🥬✨</div>
+            </div>
+
+            <!-- 그리팅 카드
+            <div class="greeting-card-modal">
+                <div class="greeting-text-modal">
+                    온라인으로 체험중입니다. 김치만들기. 지금 체험하시고, 실제로 오셔서 즐겁게 일을 해보세요. 감사합니다.
+                </div>
+            </div> -->
+
+            <!-- 경고 메시지 영역 -->
+            <div class="warning-box" id="sequence-warning-msg">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>일하기전 프로세스를 먼저 체험해보세요.</span>
+            </div>
+
+            <!-- 버튼 영역 -->
+            <div class="modal-buttons-container">
+                <button class="btn-modal-action primary" onclick="goToCheckInPrep()">
+                    <i class="bi bi-door-open"></i> 일하기 전에 출근 체험하기
+                </button>
+                <button class="btn-modal-action primary" onclick="goToWorkExperience()">
+                    <i class="bi bi-clipboard-check"></i> 실제 일 체험하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-pop">
+        <div>티켓이 있으면, 참여할 수 있습니다.</div>
+        <div>가상체험을 통해서 티켓을 얻어보세요. 😀😊</div>
+        <div><input type="button" value="가상체험해서 티켓얻기" id="ticket0" /></div>
+    </div>
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/simulator.js" type="text/javascript"></script>
+
+    <script>
+        // ── 체험/예약 상태 관리 ──
+        var experienceCompleted = false;
+        var selectedSlot = null;
+        var currentModalMode = 'reserve'; // 'reserve' or 'experience'
+        var slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+
+        var selectedDateString = null; // e.g. "2026-06-01"
+
+        // 날짜 표시 업데이트 및 시드 로드
+        function updateReservationDate() {
+            seedMockReservations();
+            selectedDateString = getFormattedWeekday(0);
+            updateReservationDateText();
+        }
+
+        // 예약 DB 데이터 세팅 및 시딩 (일반 정원 3인 및 헬퍼 2인 요건 테스트용)
+        function seedMockReservations() {
+            var oldDb = getPartitionedItem('kimp_reservations_db');
+            var needsReSeed = false;
+            if (oldDb) {
+                var parsed = JSON.parse(oldDb);
+                if (parsed.length > 0 && parsed[0].role === undefined) {
+                    needsReSeed = true;
+                }
+            }
+
+            if (!oldDb || needsReSeed) {
+                var todayStr = getFormattedWeekday(0);
+                var tomorrowStr = getFormattedWeekday(1);
+                var nextDayStr = getFormattedWeekday(2);
+
+                var mockDb = [
+                    // 오늘 10시 타임 (일반 3/3명 만석, 헬퍼 0/2명 -> 일반 지원 불가능)
+                    { id: 1, userId: "leejisung", userName: "이지성", date: todayStr, slot: 0, role: "general" },
+                    { id: 2, userId: "choiwoobin", userName: "최우빈", date: todayStr, slot: 0, role: "general" },
+                    { id: 3, userId: "parksangmin", userName: "박상민", date: todayStr, slot: 0, role: "general" },
+
+                    // 오늘 13시 타임 (일반 2/3명, 헬퍼 1/2명 -> 헬퍼가 있으므로 일반 신청 가능!)
+                    { id: 4, userId: "kimsuyoung", userName: "김수영", date: todayStr, slot: 1, role: "general" },
+                    { id: 5, userId: "hanjiwon", userName: "한지원", date: todayStr, slot: 1, role: "general" },
+                    { id: 6, userId: "helper1", userName: "정우성", date: todayStr, slot: 1, role: "helper" },
+
+                    // 내일 15시 타임 (일반 0/3명, 헬퍼 0/2명 -> 헬퍼 없으므로 일반 신청 차단!)
+                    
+                    // 내일 13시 타임 (일반 1/3명, 헬퍼 2/2명 만석 -> 헬퍼 신청 불가, 일반만 가능)
+                    { id: 7, userId: "helper2", userName: "김혜수", date: tomorrowStr, slot: 1, role: "helper" },
+                    { id: 8, userId: "helper3", userName: "조진웅", date: tomorrowStr, slot: 1, role: "helper" },
+                    { id: 9, userId: "general1", userName: "이선균", date: tomorrowStr, slot: 1, role: "general" }
+                ];
+                setPartitionedItem('kimp_reservations_db', JSON.stringify(mockDb));
+            }
+        }
+
+        function getFormattedDate(daysOffset) {
+            var d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            return yyyy + '-' + mm + '-' + dd;
+        }
+
+        function getFormattedWeekday(weekdayOffset) {
+            var now = new Date();
+            var addedCount = 0;
+            var offset = 0;
+            while (true) {
+                var d = new Date();
+                d.setDate(now.getDate() + offset);
+                var day = d.getDay();
+                if (day !== 0 && day !== 6) { // Not Sunday and Not Saturday
+                    if (addedCount === weekdayOffset) {
+                        var yyyy = d.getFullYear();
+                        var mm = String(d.getMonth() + 1).padStart(2, '0');
+                        var dd = String(d.getDate()).padStart(2, '0');
+                        return yyyy + '-' + mm + '-' + dd;
+                    }
+                    addedCount++;
+                }
+                offset++;
+            }
+        }
+
+        // 7일 선택 버튼 렌더링 (토요일, 일요일 제외)
+        function renderDateSelector() {
+            var selector = document.getElementById('reservation-date-selector');
+            if (!selector) return;
+
+            var now = new Date();
+            var dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            var html = '';
+
+            var addedCount = 0;
+            var offset = 0;
+            while (addedCount < 7) {
+                var d = new Date();
+                d.setDate(now.getDate() + offset);
+
+                var dayOfWeek = d.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 토요일(6), 일요일(0) 제외
+                    var yyyy = d.getFullYear();
+                    var mm = String(d.getMonth() + 1).padStart(2, '0');
+                    var dd = String(d.getDate()).padStart(2, '0');
+                    var dateStr = yyyy + '-' + mm + '-' + dd;
+                    var dayName = dayNames[dayOfWeek];
+
+                    var isSelected = (selectedDateString === dateStr);
+
+                    html += `
+                        <div class="date-selector-btn ${isSelected ? 'selected' : ''}" data-date="${dateStr}" onclick="selectDate('${dateStr}')">
+                            <span class="date-num">${d.getDate()}일</span>
+                            <span class="date-day">${dayName}요일</span>
+                        </div>
+                    `;
+                    
+                    if (!selectedDateString && addedCount === 0) {
+                        selectedDateString = dateStr;
+                    }
+                    addedCount++;
+                }
+                offset++;
+            }
+            selector.innerHTML = html;
+            
+            updateReservationDateText();
+            renderTimeSlots();
+        }
+
+        function selectDate(dateStr) {
+            selectedDateString = dateStr;
+            var buttons = document.querySelectorAll('.date-selector-btn');
+            buttons.forEach(function(btn) {
+                if (btn.getAttribute('data-date') === dateStr) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+            updateReservationDateText();
+            selectedSlot = null; 
+            document.getElementById('btn-confirm').disabled = true;
+            renderTimeSlots();
+        }
+
+        function updateReservationDateText() {
+            var el = document.getElementById('res-date-text');
+            if (el && selectedDateString) {
+                var parts = selectedDateString.split('-');
+                var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                var dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                el.textContent = parts[0] + '년 ' + parts[1] + '월 ' + parts[2] + '일 ' + dayNames[d.getDay()];
+            }
+        }
+
+        // 시간대 슬롯 선택 렌더러 (정원 3명 제한 및 헬퍼 충족 요건 처리)
+        function renderTimeSlots() {
+            var container = document.getElementById('time-slots');
+            if (!container) return;
+
+            var db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            var userId = getPartitionedItem('kimp_logged_in_user') || 'kimtaeho';
+
+            var html = '';
+            var slotInfos = [
+                { time: '10:00 ~ 12:00', label: '오전 타임' },
+                { time: '13:00 ~ 15:00', label: '오후 첫 타임' },
+                { time: '15:00 ~ 17:00', label: '오후 둘째 타임' }
+            ];
+
+            slotInfos.forEach(function(info, idx) {
+                var slotRes = db.filter(function(r) {
+                    return r.date === selectedDateString && r.slot === idx;
+                });
+                
+                var generalRes = slotRes.filter(r => r.role === 'general' || !r.role);
+                var helperRes = slotRes.filter(r => r.role === 'helper');
+                var managerRes = slotRes.filter(r => r.role === 'manager');
+
+                var gCount = generalRes.length;
+                var hCount = helperRes.length;
+                var mCount = managerRes.length;
+
+                var isGFull = gCount >= 3;
+                var isHFull = hCount >= 2;
+                var isMFull = mCount >= 1;
+                var hasHelper = hCount > 0;
+
+                var myReservation = slotRes.find(function(r) {
+                    return r.userId === userId;
+                });
+                var isMyReservation = !!myReservation;
+                var myRole = myReservation ? (myReservation.role || 'general') : null;
+
+                var bgStyle = '#16213e';
+                var borderStyle = '#2a2a4a';
+                var cursorStyle = 'pointer';
+                var clickAttr = `onclick="selectSlot(this)"`;
+                var statusText = '';
+
+                if (isMyReservation) {
+                    bgStyle = '#112211';
+                    borderStyle = '#225522';
+                    cursorStyle = 'not-allowed';
+                    clickAttr = '';
+                    var roleText = '일반';
+                    if (myRole === 'helper') roleText = '헬퍼';
+                    else if (myRole === 'manager') roleText = '매니저';
+                    statusText = `예약 완료 (${roleText})`;
+                } else {
+                    if (selectedSlot === idx) {
+                        bgStyle = 'rgba(71, 32, 202, 0.25)';
+                        borderStyle = '#7b5cf5';
+                    }
+
+                    if (!hasHelper && selectedRole === 'general') {
+                        bgStyle = '#221111';
+                        borderStyle = '#552222';
+                        statusText = `일반 지원 불가 (헬퍼 없음), helper 0/2명, 매니저 ${mCount}/1명`;
+                    } else if (isGFull && selectedRole === 'general') {
+                        bgStyle = '#221111';
+                        borderStyle = '#552222';
+                        statusText = `일반 마감 (3/3명), helper ${hCount}/2명, 매니저 ${mCount}/1명`;
+                    } else if (isHFull && selectedRole === 'helper') {
+                        bgStyle = '#221111';
+                        borderStyle = '#552222';
+                        statusText = `일반 ${gCount}/3명, helper 마감 (2/2명), 매니저 ${mCount}/1명`;
+                    } else if (isMFull && selectedRole === 'manager') {
+                        bgStyle = '#221111';
+                        borderStyle = '#552222';
+                        statusText = `일반 ${gCount}/3명, helper ${hCount}/2명, 매니저 마감 (1/1명)`;
+                    } else {
+                        statusText = `일반 ${gCount}/3명, helper ${hCount}/2명, 매니저 ${mCount}/1명`;
+                    }
+                }
+
+                html += `
+                    <div class="time-slot" data-slot="${idx}" ${clickAttr} style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 10px; cursor: ${cursorStyle}; background: ${bgStyle}; border: 1px solid ${borderStyle}; transition: all 0.2s ease;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+                            <span class="slot-time" style="font-weight: 700; color: #fff; font-size: 13px;">${info.time}</span>
+                            <span class="slot-label" style="font-size: 10px; color: #76769e;">${info.label}</span>
+                        </div>
+                        <div style="text-align: right; display: flex; flex-direction: column; gap: 2px;">
+                            <span style="font-size: 11px; font-weight: bold; color: ${isMyReservation ? '#55efc4' : '#fff'};">${statusText}</span>
+                            ${(!hasHelper && !isMyReservation && selectedRole === 'general') ? '<span style="font-size: 9px; color: #ff6b6b; font-weight: bold;">헬퍼가 먼저 신청해야 합니다.</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 보건증 증빙 제출 정보 카드 렌더링
+        function renderHealthCertificateStatus() {
+            var area = document.getElementById('health-certificate-status-area');
+            if (!area) return;
+
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 15 };
+            
+            // 기존 보건증 정보 호환성 마이그레이션
+            if (profile.healthCertificateImage && !profile.healthCertificateStatus) {
+                profile.healthCertificateStatus = 'approved';
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+            }
+
+            if (profile.workedHours === undefined) {
+                profile.workedHours = 15;
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+            }
+
+            var status = profile.healthCertificateStatus || null;
+            var hasImage = !!profile.healthCertificateImage;
+
+            var bg = '#221111';
+            var border = '#552222';
+            var iconColor = '#ff6b6b';
+            var badgeText = '미확인 (초심자)';
+            var badgeBg = 'rgba(255,107,107,0.15)';
+            var badgeBorder = 'rgba(255,107,107,0.3)';
+
+            if (status === 'approved') {
+                bg = '#112211';
+                border = '#225522';
+                iconColor = '#55efc4';
+                badgeText = '승인 완료 (경험자)';
+                badgeBg = 'rgba(85,239,196,0.15)';
+                badgeBorder = 'rgba(85,239,196,0.3)';
+            } else if (status === 'pending') {
+                bg = '#221c11';
+                border = '#554222';
+                iconColor = '#ffb300';
+                badgeText = '심사 대기 중';
+                badgeBg = 'rgba(255,179,0,0.15)';
+                badgeBorder = 'rgba(255,179,0,0.3)';
+            }
+
+            var cardHtml = `
+                <div class="health-cert-card" style="background: ${bg}; border: 1px solid ${border}; border-radius: 12px; padding: 15px; margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
+                    <div style="font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <i class="bi bi-shield-check-fill" style="color: ${iconColor};"></i> 보건증 증빙 정보
+                        </span>
+                        <span style="font-size: 10px; padding: 2px 8px; border-radius: 20px; background: ${badgeBg}; color: ${iconColor}; border: 1px solid ${badgeBorder}; font-weight: bold;">
+                            ${badgeText}
+                        </span>
+                    </div>
+                    <div style="font-size: 11px; color: #ccc; line-height: 1.5;">
+            `;
+
+            if (status === 'approved') {
+                cardHtml += `
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; background: rgba(85,239,196,0.05); padding: 8px; border-radius: 6px; border: 1px dashed rgba(85, 239, 196, 0.2);">
+                            <i class="bi bi-file-earmark-image-fill" style="color: #55efc4; font-size: 16px;"></i>
+                            <span>등록 및 승인된 보건증: <strong>${profile.healthCertificateImage}</strong></span>
+                        </div>
+                        <button onclick="removeHealthCertificate()" style="background: rgba(255, 107, 107, 0.15); border: 1px solid rgba(255, 107, 107, 0.3); color: #ff6b6b; width: 100%; padding: 6px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold; border-style: solid;">
+                            <i class="bi bi-trash3-fill"></i> 보건증 정보 삭제 (초심자 모드로 변경)
+                        </button>
+                `;
+            } else if (status === 'pending') {
+                cardHtml += `
+                        <div style="color: #ffd27f; margin-bottom: 8px; font-weight: bold; background: rgba(255,179,0,0.05); padding: 8px; border-radius: 6px; border: 1px dashed rgba(255,179,0,0.2);">
+                            🕒 보건증 이미지가 업로드되어 관리자 심사 대기 중입니다.<br>
+                            (예상 대기 시간: 약 4시간)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                            <i class="bi bi-file-earmark-image" style="color: #ffb300; font-size: 16px;"></i>
+                            <span>대기 파일: <strong>${profile.healthCertificateImage}</strong></span>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 10px;">
+                            <button onclick="approveHealthCertificateByAdmin()" style="flex: 1; background: linear-gradient(135deg, #00b894, #55efc4); border: none; color: #fff; padding: 8px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                <i class="bi bi-check-lg"></i> [테스트] 관리자 즉시 승인
+                            </button>
+                            <button onclick="removeHealthCertificate()" style="flex: 1; background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.2); color: #ff6b6b; padding: 8px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                <i class="bi bi-x-circle"></i> 업로드 취소
+                            </button>
+                        </div>
+                `;
+            } else {
+                cardHtml += `
+                        <div style="color: #ffb3b3; margin-bottom: 8px; font-weight: bold; background: rgba(255,107,107,0.05); padding: 8px; border-radius: 6px; border: 1px dashed rgba(255,107,107,0.2);">
+                            ⚠️ 음식 조리 작업 참여를 위해 사전에 보건증 이미지를 제출해야 합니다. (제출 후 심사 대기 시간: 약 4시간)
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <label for="health-cert-file-input" style="background: linear-gradient(135deg, #7b5cf5, #4720ca); color: #fff; padding: 8px; border-radius: 8px; font-size: 11px; text-align: center; cursor: pointer; font-weight: bold; width: 100%;">
+                                <i class="bi bi-upload"></i> 보건증 증빙 파일 업로드 (대기 시간 약 4시간)
+                            </label>
+                            <input type="file" id="health-cert-file-input" style="display: none;" onchange="uploadHealthCertificate(this)">
+                        </div>
+                `;
+            }
+
+            cardHtml += `
+                    </div>
+                    <div style="font-size: 11px; color: #ccc; line-height: 1.5; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span>누적 근무 경력 시간: <strong style="color: ${profile.workedHours >= 30 ? '#55efc4' : '#ff6b6b'};">${profile.workedHours}시간</strong></span>
+                            <span style="font-size: 9px; padding: 1px 6px; border-radius: 4px; background: ${profile.workedHours >= 30 ? 'rgba(85,239,196,0.15)' : 'rgba(255,107,107,0.15)'}; color: ${profile.workedHours >= 30 ? '#55efc4' : '#ff6b6b'}; border: 1px solid ${profile.workedHours >= 30 ? 'rgba(85,239,196,0.3)' : 'rgba(255,107,107,0.3)'}; font-weight: bold;">
+                                ${profile.workedHours >= 30 ? '헬퍼 가능' : '일반 전용'}
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button onclick="setTestWorkedHours(15)" style="flex: 1; padding: 5px; font-size: 9px; border-radius: 4px; border: 1px solid ${profile.workedHours === 15 ? '#ff6b6b' : 'rgba(255,255,255,0.1)'}; background: ${profile.workedHours === 15 ? 'rgba(255,107,107,0.15)' : 'rgba(255,255,255,0.02)'}; color: ${profile.workedHours === 15 ? '#ff6b6b' : '#aaa'}; cursor: pointer; font-weight: bold;">
+                                [테스트] 15시간 (일반)
+                            </button>
+                            <button onclick="setTestWorkedHours(32)" style="flex: 1; padding: 5px; font-size: 9px; border-radius: 4px; border: 1px solid ${profile.workedHours === 32 ? '#55efc4' : 'rgba(255,255,255,0.1)'}; background: ${profile.workedHours === 32 ? 'rgba(85,239,196,0.15)' : 'rgba(255,255,255,0.02)'}; color: ${profile.workedHours === 32 ? '#55efc4' : '#aaa'}; cursor: pointer; font-weight: bold;">
+                                [테스트] 32시간 (헬퍼)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            area.innerHTML = cardHtml;
+        }
+
+        function uploadHealthCertificate(input) {
+            if (input.files && input.files[0]) {
+                var fileName = input.files[0].name;
+                var profileStr = sessionStorage.getItem('kimp_worker_profile');
+                var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+                
+                profile.healthCertificateImage = fileName;
+                profile.healthCertificateStatus = 'pending';
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+                
+                alert("보건증 파일이 업로드되었습니다. 관리자 심사 완료 후 승인됩니다 (예상 대기 시간: 약 4시간).");
+                renderHealthCertificateStatus();
+            }
+        }
+
+        function approveHealthCertificateByAdmin() {
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+            
+            if (profile.healthCertificateImage) {
+                profile.healthCertificateStatus = 'approved';
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+                alert("관리자 권한으로 보건증 심사가 승인되었습니다. 이제 예약이 가능합니다.");
+                renderHealthCertificateStatus();
+                renderRoleSelection();
+                renderTimeSlots();
+            }
+        }
+
+        function removeHealthCertificate() {
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+            
+            profile.healthCertificateImage = null;
+            profile.healthCertificateStatus = null;
+            sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+            
+            alert("등록된 보건증 정보를 삭제했습니다. 초심자 모드로 돌아갑니다.");
+            renderHealthCertificateStatus();
+            renderRoleSelection();
+            renderTimeSlots();
+        }
+
+        var selectedRole = 'general'; // Global role selection state
+
+        function renderRoleSelection() {
+            var area = document.getElementById('role-selection-area');
+            if (!area) return;
+
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 15 };
+            
+            var hours = profile.workedHours !== undefined ? profile.workedHours : 15;
+
+            var html = '';
+            if (profile.isManagerQualified) {
+                var isGen = selectedRole === 'general';
+                var isHelp = selectedRole === 'helper';
+                var isMgr = selectedRole === 'manager';
+                html = `
+                    <div class="section-label" style="display: flex; align-items: center;"><i class="bi bi-person-fill-gear"></i> 지원 내용 <i class="bi bi-info-circle role-info-icon" style="cursor: pointer; margin-left: 6px; color: #9998DC; font-size: 14px;"></i></div>
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <button type="button" id="role-btn-general" onclick="selectRole('general')" style="flex: 1; padding: 12px 6px; border-radius: 8px; border: 1px solid ${isGen ? '#7b5cf5' : 'rgba(255,255,255,0.1)'}; background: ${isGen ? 'rgba(123, 92, 245, 0.15)' : 'rgba(255,255,255,0.02)'}; color: ${isGen ? '#fff' : '#aaa'}; font-weight: bold; cursor: pointer; font-size: 11px; transition: all 0.2s ease; border-style: solid;">
+                            일반 참가자로 지원
+                        </button>
+                        <button type="button" id="role-btn-helper" onclick="selectRole('helper')" style="flex: 1; padding: 12px 6px; border-radius: 8px; border: 1px solid ${isHelp ? '#00b894' : 'rgba(255,255,255,0.1)'}; background: ${isHelp ? 'rgba(0, 184, 148, 0.15)' : 'rgba(255,255,255,0.02)'}; color: ${isHelp ? '#fff' : '#aaa'}; font-weight: bold; cursor: pointer; font-size: 11px; transition: all 0.2s ease; border-style: solid;">
+                            헬퍼로 지원
+                        </button>
+                        <button type="button" id="role-btn-manager" onclick="selectRole('manager')" style="flex: 1; padding: 12px 6px; border-radius: 8px; border: 1px solid ${isMgr ? '#ffb300' : 'rgba(255,255,255,0.1)'}; background: ${isMgr ? 'rgba(255, 179, 0, 0.15)' : 'rgba(255,255,255,0.02)'}; color: ${isMgr ? '#fff' : '#aaa'}; font-weight: bold; cursor: pointer; font-size: 11px; transition: all 0.2s ease; border-style: solid;">
+                            매니저로 지원
+                        </button>
+                    </div>
+                    <div style="font-size: 11px; color: #ffd27f; line-height: 1.4; padding: 8px; background: rgba(255, 179, 0, 0.05); border-radius: 6px; border: 1px dashed rgba(255, 179, 0, 0.2); font-weight: bold;">
+                        💡 매니저 자격 시험 및 심사 시간 역시 정식 근무로 인정되어 임금(수당)으로 100% 산정 및 지급됩니다.
+                    </div>
+                    <input type="hidden" id="selected-role" value="${selectedRole}">
+                `;
+            } else if (hours < 30) {
+                selectedRole = 'general';
+                html = `
+                    <div class="section-label" style="display: flex; align-items: center;"><i class="bi bi-person-fill"></i> 지원 내용 <i class="bi bi-info-circle role-info-icon" style="cursor: pointer; margin-left: 6px; color: #9998DC; font-size: 14px;"></i></div>
+                    <div style="background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 12px 16px; color: #fff; font-size: 13px; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>일반 참가자로 지원</span>
+                            <span style="font-size: 10px; color: #55efc4; font-weight: bold; background: rgba(85,239,196,0.15); border: 1px solid rgba(85,239,196,0.3); padding: 2px 6px; border-radius: 4px;">지원 가능</span>
+                        </div>
+                        <div style="font-size: 11px; color: #ffb380; margin-top: 4px; font-weight: bold;">
+                            💡 30시간 이상 참여하면 헬퍼로 지원할 수 있습니다.
+                        </div>
+                    </div>
+                    <input type="hidden" id="selected-role" value="general">
+                `;
+            } else {
+                var isGen = selectedRole === 'general';
+                html = `
+                    <div class="section-label" style="display: flex; align-items: center;"><i class="bi bi-person-fill-gear"></i> 지원 내용 <i class="bi bi-info-circle role-info-icon" style="cursor: pointer; margin-left: 6px; color: #9998DC; font-size: 14px;"></i></div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" id="role-btn-general" onclick="selectRole('general')" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid ${isGen ? '#7b5cf5' : 'rgba(255,255,255,0.1)'}; background: ${isGen ? 'rgba(123, 92, 245, 0.15)' : 'rgba(255,255,255,0.02)'}; color: ${isGen ? '#fff' : '#aaa'}; font-weight: bold; cursor: pointer; font-size: 12px; transition: all 0.2s ease; border-style: solid;">
+                            일반 참가자로 지원
+                        </button>
+                        <button type="button" id="role-btn-helper" onclick="selectRole('helper')" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid ${!isGen ? '#00b894' : 'rgba(255,255,255,0.1)'}; background: ${!isGen ? 'rgba(0, 184, 148, 0.15)' : 'rgba(255,255,255,0.02)'}; color: ${!isGen ? '#fff' : '#aaa'}; font-weight: bold; cursor: pointer; font-size: 12px; transition: all 0.2s ease; border-style: solid;">
+                            헬퍼로 지원
+                        </button>
+                    </div>
+                    <input type="hidden" id="selected-role" value="${selectedRole}">
+                `;
+            }
+            area.innerHTML = html;
+        }
+
+        function selectRole(role) {
+            selectedRole = role;
+            var input = document.getElementById('selected-role');
+            if (input) input.value = role;
+            
+            var btnGen = document.getElementById('role-btn-general');
+            var btnHelp = document.getElementById('role-btn-helper');
+            var btnMgr = document.getElementById('role-btn-manager');
+            if (btnGen && btnHelp) {
+                btnGen.style.border = '1px solid rgba(255,255,255,0.1)';
+                btnGen.style.background = 'rgba(255,255,255,0.02)';
+                btnGen.style.color = '#aaa';
+                
+                btnHelp.style.border = '1px solid rgba(255,255,255,0.1)';
+                btnHelp.style.background = 'rgba(255,255,255,0.02)';
+                btnHelp.style.color = '#aaa';
+                
+                if (btnMgr) {
+                    btnMgr.style.border = '1px solid rgba(255,255,255,0.1)';
+                    btnMgr.style.background = 'rgba(255,255,255,0.02)';
+                    btnMgr.style.color = '#aaa';
+                }
+
+                if (role === 'general') {
+                    btnGen.style.border = '1px solid #7b5cf5';
+                    btnGen.style.background = 'rgba(123, 92, 245, 0.15)';
+                    btnGen.style.color = '#fff';
+                } else if (role === 'helper') {
+                    btnHelp.style.border = '1px solid #00b894';
+                    btnHelp.style.background = 'rgba(0, 184, 148, 0.15)';
+                    btnHelp.style.color = '#fff';
+                } else if (role === 'manager') {
+                    if (btnMgr) {
+                        btnMgr.style.border = '1px solid #ffb300';
+                        btnMgr.style.background = 'rgba(255, 179, 0, 0.15)';
+                        btnMgr.style.color = '#fff';
+                    }
+                }
+            }
+            // Re-render slots because availability depends on helper status!
+            renderTimeSlots();
+        }
+
+        function setTestWorkedHours(hours) {
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+            profile.workedHours = hours;
+            sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+            alert("근무 경력이 " + hours + "시간으로 설정되었습니다.");
+            
+            if (hours < 30) {
+                selectedRole = 'general';
+            }
+            
+            renderHealthCertificateStatus();
+            renderRoleSelection();
+            renderTimeSlots();
+        }
+
+        // 주소 복사 기능
+        function copyAddress() {
+            var addressText = document.getElementById('address-text').textContent;
+            navigator.clipboard.writeText(addressText).then(function() {
+                alert('주소가 복사되었습니다: ' + addressText);
+            }).catch(function(err) {
+                // Fallback for older browsers
+                var textArea = document.createElement("textarea");
+                textArea.value = addressText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    alert('주소가 복사되었습니다: ' + addressText);
+                } catch (e) {
+                    console.error('복사 실패:', e);
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+
+        // 작업 시작일 고정 표시 (2024년 8월 1일)
+        function updateJobStartDate() {
+            var el = document.getElementById('job-start-date');
+            if (el) el.textContent = '2024년 8월 1일 (목)';
+        }
+
+        // 체험하기 버튼 → 모달 팝업 호출
+        function goExperience() {
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog("김치만들기 가상체험관 진입을 요청했습니다.");
+            }
+            var sessionUser = null;
+            try {
+                const userJson = sessionStorage.getItem("user");
+                if (userJson) {
+                    sessionUser = JSON.parse(userJson);
+                }
+            } catch(e) {}
+            var loggedInUser = sessionUser ? sessionUser.email : 'kimtaeho';
+            setPartitionedItem('kimp_logged_in_user', loggedInUser);
+
+            // 헬퍼인 경우 헬퍼 대시보드로 이동
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            if (profileStr) {
+                var profile = JSON.parse(profileStr);
+                if (profile.workedHours >= 30 && profile.healthCertificateStatus === 'approved') {
+                    window.location.href = "kimp_helper.html?t=" + Date.now();
+                    return;
+                }
+            }
+            openExperienceModeModal();
+        }
+
+        function openStatusPage() {
+            window.open("kimp_status.html", "_blank");
+        }
+
+        function openHelperModal() {
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog("현장 헬퍼 지원 자격 검증창을 열었습니다.");
+            }
+            var overlay = document.getElementById('helper-auth-overlay');
+            if (overlay) overlay.classList.add('show');
+        }
+
+        function closeHelperModal() {
+            var overlay = document.getElementById('helper-auth-overlay');
+            if (overlay) overlay.classList.remove('show');
+        }
+
+        function enterHelperDashboard() {
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog("현장 헬퍼 자격 검증 승인 및 헬퍼 대시보드에 입장했습니다.");
+            }
+            setPartitionedItem('kimp_logged_in_user', 'kimyounghee');
+            window.location.href = "kimp_helper.html";
+        }
+
+        // 확인해보기 버튼 → 모달 팝업 호출
+        function tryExperience() {
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            if (profileStr) {
+                var profile = JSON.parse(profileStr);
+                if (profile.workedHours >= 30 && profile.healthCertificateStatus === 'approved') {
+                    window.location.href = "kimp_helper.html?t=" + Date.now();
+                    return;
+                }
+            }
+            openExperienceModeModal();
+        }
+
+        // 가상체험 모달 제어 함수들
+        function openExperienceModeModal() {
+            var overlay = document.getElementById('experience-overlay');
+            if (overlay) {
+                var warning = document.getElementById('sequence-warning-msg');
+                if (warning) warning.style.display = 'none';
+                
+                var profileStr = sessionStorage.getItem('kimp_worker_profile');
+                var profile = profileStr ? JSON.parse(profileStr) : null;
+                var mgrBtnId = 'btn-modal-mgr-exp';
+                var mgrBtn = document.getElementById(mgrBtnId);
+                
+                if (profile && profile.isManagerQualified) {
+                    if (!mgrBtn) {
+                        var container = document.querySelector('.modal-buttons-container');
+                        if (container) {
+                            var btn = document.createElement('button');
+                            btn.id = mgrBtnId;
+                            btn.className = 'btn-modal-action primary';
+                            btn.style.background = 'linear-gradient(135deg, #ffb300, #ff8f00)';
+                            btn.style.color = '#fff';
+                            btn.style.border = 'none';
+                            btn.innerHTML = '<i class="bi bi-speedometer2"></i> 매니저로 일 체험하기';
+                            btn.onclick = function() {
+                                window.location.href = "manager.html";
+                            };
+                            container.appendChild(btn);
+                        }
+                    }
+                } else {
+                    if (mgrBtn) {
+                        mgrBtn.parentNode.removeChild(mgrBtn);
+                    }
+                }
+
+                overlay.classList.add('show');
+                
+                var main = document.querySelector('.main');
+                if (main) main.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            }
+        }
+
+        function closeExperienceModeModal() {
+            var overlay = document.getElementById('experience-overlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+                var main = document.querySelector('.main');
+                if (main) main.style.backgroundColor = 'var(--var-bg-color)';
+            }
+        }
+
+        function goToCheckInPrep() {
+            window.location.href = "kimp_virt.html?t=" + Date.now();
+        }
+
+        function goToWorkExperience() {
+            var isCheckinCompleted = getPartitionedItem('kimp_checkin_prep_completed');
+            if (isCheckinCompleted === 'true') {
+                window.location.href = "kimp_experience.html?t=" + Date.now();
+            } else {
+                var warning = document.getElementById('sequence-warning-msg');
+                if (warning) {
+                    $(warning).slideDown(200).css('display', 'flex');
+                }
+            }
+        }
+
+        $(document).ready(function() {
+            var overlay = document.getElementById('experience-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) {
+                        closeExperienceModeModal();
+                    }
+                });
+            }
+        });
+
+        // 체험 완료 상태 체크 (localStorage 기반)
+        function checkExperienceStatus() {
+            var status = getPartitionedItem('experienceCompleted');
+            if (status === 'true') {
+                experienceCompleted = true;
+                var badge = document.getElementById('exp-badge');
+                if (badge) {
+                    badge.className = 'experience-badge done';
+                    badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
+                }
+            }
+        }
+
+        // 모달 열기 (모드: 'reserve' 또는 'experience')
+        function openModal(mode) {
+            currentModalMode = mode || 'reserve';
+            
+            // 날짜 및 모의 데이터 초기화
+            seedMockReservations();
+            selectedDateString = getFormattedWeekday(0);
+            
+            var overlay = document.getElementById('reservation-overlay');
+            var form = document.getElementById('reservation-form');
+            var success = document.getElementById('reservation-success');
+            var notice = document.getElementById('experience-notice');
+            var titleEl = document.getElementById('modal-title');
+            var tryArea = document.getElementById('try-experience-area');
+
+            // 모달 타이틀 및 확인해보기 영역 설정
+            if (currentModalMode === 'experience') {
+                titleEl.innerHTML = '<i class="bi bi-headset" style="color: #9998DC; margin-right: 6px;"></i>체험하기';
+                tryArea.style.display = 'block';
+            } else {
+                titleEl.innerHTML = '<i class="bi bi-calendar-event" style="color: #9998DC; margin-right: 6px;"></i>예약하기';
+                if (!experienceCompleted) {
+                    tryArea.style.display = 'block';
+                } else {
+                    tryArea.style.display = 'none';
+                }
+            }
+
+            // 폼 초기화
+            form.style.display = 'block';
+            success.style.display = 'none';
+            selectedSlot = null;
+            selectedRole = 'general'; // 롤 리셋
+            document.getElementById('btn-confirm').disabled = true;
+
+            // 체험 미완료 시 안내
+            if (!experienceCompleted) {
+                notice.style.display = 'flex';
+            } else {
+                notice.style.display = 'none';
+            }
+
+            // 보건증 초기 세팅 및 동적 뷰 렌더링
+            if (!sessionStorage.getItem('kimp_worker_profile')) {
+                var defaultProfile = {
+                    userId: "kimtaeho",
+                    userName: "김태호",
+                    healthCertificateImage: null,
+                    healthCertificateStatus: null,
+                    workedHours: 15
+                };
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(defaultProfile));
+            }
+
+            renderHealthCertificateStatus();
+            renderRoleSelection();
+            renderDateSelector();
+
+            overlay.classList.add('show');
+        }
+
+        // 예약하기 버튼에서 호출
+        function openReservation() {
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog("김치만들기 예약하기 창을 열었습니다.");
+            }
+            openModal('reserve');
+        }
+
+        // 예약 모달 닫기
+        function closeReservation() {
+            var overlay = document.getElementById('reservation-overlay');
+            overlay.classList.remove('show');
+        }
+
+        // 타임 슬롯 선택
+        function selectSlot(el) {
+            var idx = parseInt(el.getAttribute('data-slot'));
+            selectedSlot = idx;
+            renderTimeSlots();
+
+            // 체험 완료 시에만 확정 버튼 활성화
+            var btn = document.getElementById('btn-confirm');
+            if (experienceCompleted) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        // 예약 확정 (보건증 소지 여부 및 정원 3인 마감 검증 포함)
+        function confirmReservation() {
+            if (!experienceCompleted) {
+                alert('체험을 먼저 완료해야 예약이 가능합니다.');
+                return;
+            }
+            if (selectedSlot === null) return;
+
+            // 1. 보건증 확인 검사 (파일 업로드 여부 및 심사 완료 여부)
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 15 };
+
+            if (!profile.healthCertificateImage || profile.healthCertificateStatus !== 'approved') {
+                alert("보건증을 만드셨나요? 음식조리에는 보건증이 필요합니다. 만드시고 예약부탁드림니다.");
+                return;
+            }
+
+            var db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            
+            // 2. 예약 한도 및 마감 확인
+            var slotRes = db.filter(function(r) {
+                return r.date === selectedDateString && r.slot === selectedSlot;
+            });
+
+            var generalRes = slotRes.filter(r => r.role === 'general' || !r.role);
+            var helperRes = slotRes.filter(r => r.role === 'helper');
+
+            if (selectedRole === 'general') {
+                // 헬퍼 미배치 상태에서 일반 신청 불가 검증
+                if (helperRes.length === 0) {
+                    alert("해당 시간대에 지원한 헬퍼가 없습니다. 헬퍼가 먼저 지원해야 일반 참가자 신청이 가능합니다.");
+                    return;
+                }
+                if (generalRes.length >= 3) {
+                    alert("해당 시간대는 일반 참가자 예약이 마감되었습니다.");
+                    return;
+                }
+            } else if (selectedRole === 'helper') {
+                if (helperRes.length >= 2) {
+                    alert("해당 시간대는 헬퍼 예약이 마감되었습니다.");
+                    return;
+                }
+            } else if (selectedRole === 'manager') {
+                var managerRes = slotRes.filter(r => r.role === 'manager');
+                if (managerRes.length >= 1) {
+                    alert("해당 시간대는 매니저 예약이 마감되었습니다.");
+                    return;
+                }
+            }
+
+            var isAlreadyReserved = slotRes.some(function(r) {
+                return r.userId === profile.userId;
+            });
+
+            if (isAlreadyReserved) {
+                alert("이미 해당 날짜/시간대에 예약하셨습니다.");
+                return;
+            }
+
+            // 3. 예약 추가 실행 (SQL 호환이 쉬운 평탄화 데이터 구조)
+            var newId = db.length > 0 ? Math.max.apply(null, db.map(function(r) { return r.id; })) + 1 : 1;
+            var newReservation = {
+                id: newId,
+                userId: profile.userId,
+                userName: profile.userName,
+                date: selectedDateString,
+                slot: selectedSlot,
+                role: selectedRole
+            };
+            db.push(newReservation);
+            setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
+
+            if (typeof window.addAppLog === 'function') {
+                var roleLabel = '일반';
+                if (selectedRole === 'helper') roleLabel = '헬퍼';
+                else if (selectedRole === 'manager') roleLabel = '매니저';
+                window.addAppLog("김치만들기 공정을 예약 완료했습니다. (" + selectedDateString + " " + slotLabels[selectedSlot] + " - " + roleLabel + ")");
+            }
+
+            // 4. 예약 성공 뷰 노출
+            var form = document.getElementById('reservation-form');
+            var success = document.getElementById('reservation-success');
+            var detail = document.getElementById('success-detail');
+
+            var parts = selectedDateString.split('-');
+            var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            var dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+            var dayName = dayNames[d.getDay()];
+
+            detail.innerHTML =
+                '<strong>' + parts[1] + '월 ' + parts[2] + '일 ' + dayName + '</strong><br>' +
+                '<strong>' + slotLabels[selectedSlot] + '</strong> 타임 (' + (selectedRole === 'helper' ? '헬퍼' : '일반 참가자') + ')으로<br>' +
+                '<strong>김치만들기</strong> 작업이 예약되었습니다.<br>' +
+                '<span style="font-size: 12px; color: #aaa; display: inline-block; margin-top: 8px;">' +
+                '<i class="bi bi-geo-alt-fill" style="color: #ff8c42;"></i> 위치: AFood 1층 KimchiA<br>' +
+                '주소: 서울시 중구 123-456 AFood 1층 KimchiA</span>';
+
+            form.style.display = 'none';
+            success.style.display = 'block';
+            success.classList.add('show');
+        }
+
+        // 오버레이 클릭 시 닫기
+        document.addEventListener('click', function(e) {
+            var overlay = document.getElementById('reservation-overlay');
+            if (e.target === overlay) {
+                closeReservation();
+            }
+        });
+
+        // 즐겨찾기 work-stars
+
+        //뒤로가기
+        window.addEventListener('load', function () {
+            var header = document.querySelector('.bi.bi-chevron-left.back');
+            header.addEventListener('click', function () {
+                document.location.href = "main.html";
+            });
+
+            // 체험 상태 체크
+            checkExperienceStatus();
+
+            // 작업 시작일 표시
+            updateJobStartDate();
+
+            // 가상체험 완료 후 자동 예약 모달 열기 체크
+            if (getPartitionedItem('autoOpenReservation') === 'true') {
+                removePartitionedItem('autoOpenReservation');
+                openReservation();
+            }
+        });
+        //Footer HandleBar touch
+        window.addEventListener('DOMContentLoaded', function () {
+            var footer = document.querySelector('.footer');
+            var handleBar = document.querySelector('.handle-bar');
+            if (!footer || !handleBar) return;
+            var startHeight = footer.offsetHeight;
+            var windowHeight = window.innerHeight;
+
+            var touchStartY, initialHeight, touchStartTime;
+
+            handleBar.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                var touch = e.touches[0];
+                touchStartY = touch.pageY;
+                initialHeight = footer.offsetHeight;
+                touchStartTime = Date.now(); // Touch start time
+            });
+
+            handleBar.addEventListener('touchmove', function (e) {
+                e.preventDefault();
+                var touch = e.touches[0];
+                var newY = touch.pageY;
+                var newHeight = initialHeight + (touchStartY - newY);
+
+                if (newHeight >= startHeight && newHeight <= windowHeight) {
+                    footer.style.height = newHeight + 'px';
+                }
+            });
+
+            handleBar.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                var touchEndTime = Date.now(); // Touch end time
+                var touchDuration = touchEndTime - touchStartTime; // Calculate touch duration
+                var touch = e.changedTouches[0];
+                var endY = touch.pageY;
+
+                var finalHeight = footer.offsetHeight;
+                var isExpanded = footer.classList.contains('expanded');
+
+                if ((finalHeight >= windowHeight / 2 && !isExpanded) || (finalHeight > startHeight && touchDuration < 300 && !isExpanded)) {
+                    // Expand footer if dragged more than half screen height or fast swipe up
+                    animateFooter(windowHeight);
+                } else if ((finalHeight < windowHeight && touchDuration < 300 && isExpanded) || (endY <= 50 && isExpanded)) {
+                    // Shrink footer if it's expanded and there is a fast swipe down or touch end is within top 50px of the screen
+                    animateFooter(startHeight);
+                } else {
+                    // Default action to handle normal case
+                    animateFooter(startHeight);
+                }
+            });
+
+            function animateFooter(targetHeight) {
+                var currentHeight = footer.offsetHeight;
+                var step = (targetHeight - currentHeight) / 10; // Adjust the step size as needed
+                var animationFrame;
+
+                function animationStep() {
+                    currentHeight += step;
+                    footer.style.height = currentHeight + 'px';
+
+                    if ((step > 0 && currentHeight < targetHeight) || (step < 0 && currentHeight > targetHeight)) {
+                        animationFrame = requestAnimationFrame(animationStep);
+                    } else {
+                        cancelAnimationFrame(animationFrame);
+                        footer.style.height = targetHeight + 'px';
+                        if (footer.style.height === windowHeight) {
+                            footer.classList.add('expanded');
+                        } else {
+                            footer.classList.remove('expanded');
+                        }
+                    }
+                }
+
+                animationFrame = requestAnimationFrame(animationStep);
+            }
+        });
+
+        //Footer HandleBar click
+        window.addEventListener('load', function () {
+            var footer = document.querySelector('.footer');
+            var handleBar = document.querySelector('.handle-bar');
+            if (!footer || !handleBar) return;
+            handleBar.addEventListener('click', function () {
+
+                if (footer.classList.contains('expanded')) {
+                    footer.style.height = '150px';
+                    footer.classList.remove('expanded');
+                } else {
+                    // footer.style.height = window.innerHeight + 'px';
+                    footer.style.height = 'calc( 100% - 60px)';
+                    footer.classList.add('expanded');
+                }
+            });
+        });
+        //Chart
+        window.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('myChart');
+
+            // Three timeframe datasets (1m, 30m, 1h) with appropriate dummy data
+            const datasets = {
+                '1m': {
+                    labels: ['14:51', '14:52', '14:53', '14:54', '14:55', '14:56', '14:57', '14:58', '14:59', '15:00'],
+                    data: [1.3, 0.8, 1.4, 1.8, 1.1, 1.1, 1.5, 1.6, 1.2, 1.3]
+                },
+                '30m': {
+                    labels: ['10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00'],
+                    data: [1.1, 1.4, 1.0, 1.6, 1.3, 1.2, 1.5, 1.7, 1.3, 1.4]
+                },
+                '1h': {
+                    labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
+                    data: [1.2, 1.4, 1.8, 1.3, 1.4, 1.5]
+                }
+            };
+
+            let activeInterval = '1m';
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: datasets[activeInterval].labels,
+                    datasets: [{
+                        label: '시급',
+                        data: datasets[activeInterval].data,
+                        borderWidth: 2,
+                        borderColor: '#7b5cf5',
+                        backgroundColor: 'rgba(123, 92, 245, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                color: 'white'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#CCCCCC'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    }
+                }
+            });
+            chart.canvas.parentNode.style.height = '280px';
+
+            // Global interval switching function
+            window.changeInterval = function(interval) {
+                activeInterval = interval;
+                
+                // Toggle button styles
+                ['1m', '30m', '1h'].forEach(i => {
+                    const btn = document.getElementById('btn-interval-' + i);
+                    if (btn) {
+                        if (i === interval) {
+                            btn.style.background = 'rgba(123, 92, 245, 0.25)';
+                            btn.style.borderColor = '#7b5cf5';
+                            btn.style.color = 'white';
+                        } else {
+                            btn.style.background = 'rgba(255, 255, 255, 0.05)';
+                            btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                            btn.style.color = '#aaa';
+                        }
+                    }
+                });
+
+                // Set chart data references
+                chart.data.labels = datasets[activeInterval].labels;
+                chart.data.datasets[0].data = datasets[activeInterval].data;
+                chart.update();
+            };
+
+            // Rolling simulation state
+            let currentHour = 15;
+            let currentMinute = 0;
+
+            const valueEl = document.querySelector('.text0 > span:not(.ratio)');
+            const ratioEl = document.querySelector('.text0 > span.ratio');
+            const arrowEl = document.querySelector('.text0 > i:first-child');
+
+            // 1-minute real-time interval timer (60000ms)
+            const timerId = setInterval(() => {
+                const prevValue = datasets['1m'].data[datasets['1m'].data.length - 1];
+
+                // 1. Advance time clock
+                currentMinute++;
+                if (currentMinute >= 60) {
+                    currentMinute = 0;
+                    currentHour++;
+                    if (currentHour >= 24) currentHour = 0;
+                }
+
+                // Format minute string
+                const hh = currentHour < 10 ? '0' + currentHour : currentHour;
+                const mm = currentMinute < 10 ? '0' + currentMinute : currentMinute;
+                const timeLabel = hh + ':' + mm;
+
+                // 2. Generate new fluctuating pay rate
+                const drift = (Math.random() - 0.5) * 0.35;
+                const newValue = Math.min(2.5, Math.max(0.5, parseFloat((prevValue + drift).toFixed(2))));
+
+                // 3. Update 1m (1분봉) - Every 1 minute, push new point and scroll
+                datasets['1m'].labels.push(timeLabel);
+                datasets['1m'].data.push(newValue);
+                datasets['1m'].labels.shift();
+                datasets['1m'].data.shift();
+
+                // 4. Update 30m (30분봉) - Every 30 minutes push, otherwise overwrite last item (live candle)
+                if (currentMinute % 30 === 0) {
+                    datasets['30m'].labels.push(timeLabel);
+                    datasets['30m'].data.push(newValue);
+                    datasets['30m'].labels.shift();
+                    datasets['30m'].data.shift();
+                } else {
+                    datasets['30m'].data[datasets['30m'].data.length - 1] = newValue;
+                }
+
+                // 5. Update 1h (1시간봉) - Every 60 minutes push, otherwise overwrite last item (live candle)
+                if (currentMinute === 0) {
+                    datasets['1h'].labels.push(timeLabel);
+                    datasets['1h'].data.push(newValue);
+                    if (datasets['1h'].labels.length > 8) {
+                        datasets['1h'].labels.shift();
+                        datasets['1h'].data.shift();
+                    }
+                } else {
+                    datasets['1h'].data[datasets['1h'].data.length - 1] = newValue;
+                }
+
+                // 6. Calculate percentage difference ratio
+                const diff = newValue - prevValue;
+                const pct = ((diff / prevValue) * 100).toFixed(2);
+                const pctStr = (diff >= 0 ? '+' : '') + pct + '%';
+
+                // 7. Update top text stats
+                if (valueEl) valueEl.textContent = newValue.toFixed(1);
+                if (ratioEl) {
+                    ratioEl.textContent = pctStr;
+                    if (diff >= 0) {
+                        ratioEl.style.color = '#00b894';
+                    } else {
+                        ratioEl.style.color = '#ff6b6b';
+                    }
+                }
+                if (arrowEl) {
+                    if (diff >= 0) {
+                        arrowEl.className = 'bi bi-caret-up-fill';
+                        arrowEl.style.color = '#00b894';
+                    } else {
+                        arrowEl.className = 'bi bi-caret-down-fill';
+                        arrowEl.style.color = '#ff6b6b';
+                    }
+                }
+
+                // 8. Update chart display with active timeframe datasets
+                chart.data.labels = datasets[activeInterval].labels;
+                chart.data.datasets[0].data = datasets[activeInterval].data;
+                chart.update();
+                console.log("[myChart] 1-minute real-time tick. Time: " + timeLabel + ", Value: " + newValue + ", Interval: " + activeInterval);
+
+                // 9. Stop updates at 17:00 (5:00 PM)
+                if (currentHour >= 17) {
+                    clearInterval(timerId);
+                    console.log("[myChart] 17:00 reached. Today's simulation has ended.");
+                    
+                    const noticeId = 'chart-finished-notice';
+                    if (!document.getElementById(noticeId)) {
+                        const noticeEl = document.createElement('div');
+                        noticeEl.id = noticeId;
+                        noticeEl.style.cssText = "color: #ff6b6b; font-weight: bold; font-size: 12px; margin-top: 8px; text-align: center; font-family: 'NotoKR', sans-serif;";
+                        noticeEl.textContent = "오늘 그래프 운영이 종료되었습니다.";
+                        chart.canvas.parentNode.appendChild(noticeEl);
+                    }
+                }
+
+                // Save for next step
+                prevValue = newValue;
+            }, 60000);
+        });
+        //Tab
+        window.addEventListener('load', function () {
+            const tabs = document.querySelectorAll('.tab > div[data-tab]');
+            const indicator = document.querySelector('.tab-indicator');
+            const contentTabs = document.querySelectorAll('.content-tab');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const tabIndex = tab.getAttribute('data-tab');
+                    indicator.style.transform = `translateX(${tabIndex * 100}%)`;
+
+                    contentTabs.forEach(content => content.classList.remove('active'));
+                    contentTabs[tabIndex].classList.add('active');
+
+                });
+            });
+        });
+        //Ticket Button.
+        window.addEventListener("load", function () {
+            var footer = document.querySelector('.footer');
+            var ticket = document.querySelector('.ticket');
+            var main = document.querySelector('.main');
+            var bottompop = document.querySelector('.bottom-pop');
+            var expandedSmall = document.querySelector('.expanded-small');
+            var expandedVirchual = document.querySelector('.expanded-virchual');
+
+            if (ticket && main && bottompop) {
+                ticket.addEventListener('click', function () {
+                    main.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    bottompop.style.display = "flex";
+                });
+            }
+
+            if (main && bottompop) {
+                main.addEventListener("click", function () {
+                    if (bottompop.style.display == "flex") {
+                        main.style.backgroundColor = 'var(--var-bg-color)';
+                        bottompop.style.display = "none";
+                    }
+                });
+            }
+
+            if (bottompop) {
+                $("#ticket0").click(function () {
+                    bottompop.style.display = "none";
+                    if (main) main.style.backgroundColor = 'var(--var-bg-color)';
+                    
+                    var profileStr = sessionStorage.getItem('kimp_worker_profile');
+                    if (profileStr) {
+                        var profile = JSON.parse(profileStr);
+                        if (profile.workedHours >= 30 && profile.healthCertificateStatus === 'approved') {
+                            window.location.href = "kimp_helper.html?t=" + Date.now();
+                            return;
+                        }
+                    }
+                    openExperienceModeModal();
+                });
+            }
+        });
+
+        // 정보 아이클 클릭 시 안내 푸터 슬라이드 토글
+        $(document).ready(function () {
+            $(".info-icon").click(function (e) {
+                e.stopPropagation();
+                $("#info-footer").slideDown(250);
+            });
+
+            $("#close-info-footer").click(function (e) {
+                e.stopPropagation();
+                $("#info-footer").slideUp(200);
+            });
+
+            $(document).click(function (e) {
+                if (!$(e.target).closest("#info-footer").length) {
+                    $("#info-footer").slideUp(200);
+                }
+            });
+
+            // 헬퍼 지원 정보 아이콘 클릭 (동적 바인딩)
+            $(document).on("click", ".role-info-icon", function (e) {
+                e.stopPropagation();
+                $("#role-info-footer").slideDown(250);
+            });
+
+            $(document).on("click", "#close-role-info-footer", function (e) {
+                e.stopPropagation();
+                $("#role-info-footer").slideUp(200);
+            });
+
+            $(document).click(function (e) {
+                if (!$(e.target).closest("#role-info-footer").length) {
+                    $("#role-info-footer").slideUp(200);
+                }
+            });
+        });
+    </script>
+
+    <!-- 정보 안내 푸터 (기본 숨김) -->
+    <div id="info-footer"
+        style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(7, 3, 32, 0.95); border-top: 2px solid #4720ca; padding: 15px 20px; z-index: 1000; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);">
+        <div
+            style="max-width: 800px; margin: auto; display: flex; justify-content: space-between; align-items: center; color: white;">
+            <div style="font-size: 13px; line-height: 1.5; font-family: 'NotoKR', sans-serif;">
+                <i class="bi bi-info-circle-fill" style="color: #9998DC; margin-right: 6px; font-size: 14px;"></i>
+                2026년 최저시급(10,320원) 기준, <strong>1.3배</strong> 적용 시 1시간당 <strong>13,416원</strong>의 시급이 지급됩니다.
+            </div>
+            <button id="close-info-footer"
+                style="background: none; border: none; color: #a7a7a7; cursor: pointer; font-size: 16px; padding: 0 5px; display: flex; align-items: center;"><i
+                    class="bi bi-x-lg"></i></button>
+        </div>
+    </div>
+
+    <!-- 헬퍼 지원 정보 안내 푸터 (기본 숨김) -->
+    <div id="role-info-footer"
+        style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(7, 3, 32, 0.95); border-top: 2px solid #00b894; padding: 15px 20px; z-index: 2100; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);">
+        <div
+            style="max-width: 800px; margin: auto; display: flex; justify-content: space-between; align-items: center; color: white;">
+            <div style="font-size: 13px; line-height: 1.5; font-family: 'NotoKR', sans-serif;">
+                <i class="bi bi-info-circle-fill" style="color: #00b894; margin-right: 6px; font-size: 14px;"></i>
+                30시간 이상 해당 일을 지원하는 경우 헬퍼로 참여하실 수 있습니다. 도움을 주면서 일할 수 있어요. 보너스를 추가해서 드려요.
+            </div>
+            <button id="close-role-info-footer"
+                style="background: none; border: none; color: #a7a7a7; cursor: pointer; font-size: 16px; padding: 0 5px; display: flex; align-items: center;"><i
+                    class="bi bi-x-lg"></i></button>
+        </div>
+    </div>
+</body>
+
+</html>

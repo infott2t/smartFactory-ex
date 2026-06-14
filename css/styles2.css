@@ -1,0 +1,237 @@
+:root {
+    --var-bg-color: #070320;
+    --var-bg1-color:rgb(40, 40, 40);
+    --var-bg3-color:rgb(71, 71, 71);
+    --bar-bg2-color: #231965;
+}
+ 
+@font-face {
+    font-family: 'NotoKR';
+    src: url('../font/NotoSansKR-Regular.otf') format('opentype');  
+}
+
+body {
+   
+    color: #CCCCCC;
+    margin: 0;
+    font-family: "NotoKR";
+    background: var(--var-bg-color);
+}
+
+.header-wrap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 100;
+}
+
+.header {
+    width: 100%;
+    max-width: 800px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: 0.7fr 1.3fr;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--var-bg-color);
+}
+
+.header > .h-logo > h3 {
+    margin: 0;
+    padding: 10px;
+    color: white;
+    font-size: 15px;
+    font-weight: 300;
+}
+
+.header > .h-bar {
+    justify-self: end;
+    padding-right: 10px;
+}
+
+.header > .h-bar > .h-search {
+    visibility: hidden;
+}
+
+.h-open-btn {
+    background-color: var(--var-bg-color);
+    color: white;
+    border: 1px solid var(--var-bg-color);
+    padding: 3px 6px;
+    cursor: pointer;
+}
+
+.h-open-btn.acty > i {
+    background-color: var(--var-bg3-color);
+    color: black;
+    border: 1px solid var(--var-bg3-color);
+    padding: 3px 6px;
+}
+
+.main {
+    width: 100%;
+    margin: auto;
+    max-width: 800px;
+    background-color: var(--var-bg-color);
+    color: rgb(207, 207, 207);
+    padding-top: 41px;
+    padding-bottom: 20px;
+}
+.main-inner {
+    margin-bottom: 100px;
+}
+.footer {
+    width: 100%;
+    margin: auto;
+    max-width: 800px;
+    background-color: var(--var-bg-color);
+    height: 20px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+.comment, .comment-sm {
+    margin: 0px 15px 0px 15px;
+}
+.comment {
+    display: flex;
+    justify-content: space-between;
+}
+.comment a {
+    color: #9b9b9b;
+    font-size: 14px;
+    cursor: default;
+}
+.comment > div > span > .bi.bi-stars {
+    color: yellow;
+}
+.comment > div > span > .bi.bi-fire {
+    color: rgb(231, 74, 12);
+}
+.comment-sm {
+    font-size: 14px;
+}
+.boxs {
+    padding-left: 15px;
+    padding-top: 5px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 120px;
+   
+    overflow-x: auto;
+    gap: 30px;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+.boxs::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera*/
+}
+
+.box {
+    display:flex;
+    flex-direction: column;
+    row-gap: 4px;
+    border: 1px solid var(--bar-bg2-color);
+    font-size: 15px;
+    background: var(--bar-bg2-color);
+    width: 120px;
+    border-radius: 15px;
+    padding: 10px 10px 7px 10px;
+    color: #d8d8d8;
+     
+    text-decoration: none;
+}
+.box:nth-child(1):hover {
+    background: black;
+    cursor: pointer;
+    border: 1px solid black;
+}
+.box:nth-child(1):visited {
+    background: #272727;
+    cursor: pointer;
+    border: 1px solid black;
+}
+
+ 
+.box > .up > img {
+    width: 25px;
+    height: 25px;
+}
+.box > .up {
+    display: flex;
+    column-gap: 10px;
+
+}
+.texts {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+.texts > span:nth-child(1) {
+   position: absolute;
+   top:-5px;
+   white-space: nowrap;
+}
+.texts > span:nth-child(2) {
+    position: absolute;
+    top:13px;
+    font-size: 13px;
+    color: #979797;
+}
+.box > .down {
+    display: flex;
+    column-gap: 10px;
+    justify-content: space-between;
+    padding-top: 5px;
+}
+.box > .down > div > span > i {
+    color: green;
+    padding-right: 3px;
+}
+.box > .down > div > .val {
+    font-size: 16px;
+    padding-right: 5px;
+}
+.padding-20 {
+    padding: 20px;
+   
+}
+.t-cent {
+    text-align: right;
+    font-size: 12px;
+    padding-right: 15px;
+    padding-top: 3px;
+}
+.t-com {
+    display: flex;
+   
+    align-items: center;
+    padding: 5px 15px;
+    border-bottom: 1px solid #474747;
+    justify-content: space-between;
+}
+.t-com > .left > .num {
+     padding-right: 10px;
+}
+.t-com > .right {
+    font-size: 15px;
+}
+.t-com > .right > div {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+.t-com > .right > .u > i{
+    color: green;
+    white-space: nowrap;
+    padding-right: 2px;
+}
+.t-com > .right > .d > i {
+    visibility: hidden;
+}
+.t-com > .right > .u > span {
+     white-space: nowrap;
+     justify-self: right;
+ }

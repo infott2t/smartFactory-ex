@@ -1,0 +1,417 @@
+<!--
+<%@ page contentType="text/html;charset=UTF-8" language="java" isELIgnored="true" %>
+<%
+    org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
+    if (sUser != null) {
+%>
+    <script>
+        sessionStorage.setItem("user-id", "<%= sUser.getId() %>");
+        sessionStorage.setItem("user", JSON.stringify({
+            id: "<%= sUser.getId() %>",
+            name: "<%= sUser.getName() %>",
+            email: "<%= sUser.getEmail() %>",
+            picture: "<%= sUser.getPicture() != null ? sUser.getPicture() : "" %>",
+            role: "<%= sUser.getRole() %>"
+        }));
+    </script>
+<%
+    }
+%>
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>김치만들기 - 실시간 실습 현황</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <style>
+        :root {
+            --bg-color: #0b0b16;
+            --card-bg: #121226;
+            --card-border: #1e1e3f;
+            --text-main: #ffffff;
+            --text-sub: #76769e;
+            --neon-blue: #7b92ff;
+            --amber-accent: #e85d04;
+            --neon-green: #00b894;
+            --btn-disabled: #1d1d36;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: #0b0b16;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 16px 120px 16px;
+            position: relative;
+        }
+        .time-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 16px 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .time-box { display: flex; flex-direction: column; }
+        .time-box.left { align-items: flex-start; }
+        .time-box.right { align-items: flex-end; }
+        .time-value {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--neon-blue);
+            letter-spacing: 0.5px;
+        }
+        .time-label { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+        
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 4px;
+            margin-bottom: 16px;
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-title i { color: var(--neon-green); }
+        .header-meta {
+            font-size: 12px;
+            color: var(--text-sub);
+            background: rgba(255,255,255,0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+        .section-title.timeline-title i { color: var(--neon-blue); }
+        .section-title.salary-title i { color: var(--neon-green); }
+
+        /* 급여 테이블 */
+        .salary-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .salary-item {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(123, 92, 245, 0.15);
+            color: var(--neon-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .user-icon.helper {
+            background-color: rgba(0, 184, 148, 0.15);
+            color: var(--neon-green);
+        }
+        .user-details { display: flex; flex-direction: column; gap: 2px; }
+        .user-name { font-size: 14px; font-weight: 700; color: #fff; }
+        .user-role { font-size: 10px; color: var(--text-sub); }
+        .user-salary { text-align: right; }
+        .user-salary-val { font-size: 16px; font-weight: 700; color: #fff; }
+        .user-salary-bonus { font-size: 10px; color: var(--neon-green); margin-top: 2px; }
+
+        /* 타임라인 카드 */
+        .timeline-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+        .timeline-item {
+            display: flex;
+            gap: 12px;
+            position: relative;
+            padding-bottom: 16px;
+        }
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 77px;
+            top: 24px;
+            bottom: 0;
+            width: 1px;
+            background-color: var(--card-border);
+        }
+        .timeline-item:last-child::after { display: none; }
+        
+        .timeline-time {
+            font-size: 11px;
+            color: var(--text-sub);
+            width: 55px;
+            text-align: right;
+            padding-top: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+        .timeline-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--card-border);
+            margin-top: 7px;
+            flex-shrink: 0;
+            z-index: 1;
+        }
+        .timeline-item.highlight .timeline-dot {
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+        .timeline-item.helper-log .timeline-dot {
+            background-color: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+        .timeline-item.warning-log .timeline-dot {
+            background-color: var(--amber-accent);
+            box-shadow: 0 0 8px var(--amber-accent);
+        }
+        .timeline-text {
+            font-size: 12px;
+            color: #d1d1e6;
+            line-height: 1.5;
+            flex: 1;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- ── 상단 시계 표시 ── -->
+        <div class="time-header">
+            <div class="time-box left">
+                <span class="time-value" id="current-clock">·15:04</span>
+                <span class="time-label">현재 시간 (시작: 15:00)</span>
+            </div>
+            <div class="time-box right">
+                <span class="time-value" id="remaining-clock">01:56:00</span>
+                <span class="time-label">남은 세션 시간</span>
+            </div>
+        </div>
+
+        <header class="app-header">
+            <div class="header-title">
+                <i class="bi bi-activity"></i>
+                <span>실시간 실습 현황판</span>
+            </div>
+            <span class="header-meta">김치만들기 공정</span>
+        </header>
+
+        <!-- ── 3인 실시간 급여 ── -->
+        <div class="section-title salary-title">
+            <i class="bi bi-wallet2"></i>
+            <span>참여자 실시간 누적 급여</span>
+        </div>
+
+        <div class="salary-list">
+            <!-- 김태호 (체험자) -->
+            <div class="salary-item">
+                <div class="user-info">
+                    <div class="user-icon"><i class="bi bi-person-fill"></i></div>
+                    <div class="user-details">
+                        <span class="user-name">김태호</span>
+                        <span class="user-role">가상 체험자 (본인)</span>
+                    </div>
+                </div>
+                <div class="user-salary">
+                    <span id="salary-taeho" class="user-salary-val">0 KRW</span>
+                </div>
+            </div>
+
+            <!-- 이영희 (체험자) -->
+            <div class="salary-item">
+                <div class="user-info">
+                    <div class="user-icon"><i class="bi bi-person"></i></div>
+                    <div class="user-details">
+                        <span class="user-name">이영희</span>
+                        <span class="user-role">가상 체험자</span>
+                    </div>
+                </div>
+                <div class="user-salary">
+                    <span id="salary-younghee" class="user-salary-val">0 KRW</span>
+                </div>
+            </div>
+
+            <!-- 김영희 (헬퍼) -->
+            <div class="salary-item" style="border-color: var(--neon-green);">
+                <div class="user-info">
+                    <div class="user-icon helper"><i class="bi bi-person-workspace"></i></div>
+                    <div class="user-details">
+                        <span class="user-name">김영희</span>
+                        <span class="user-role" style="color: var(--neon-green);">현장 지원 헬퍼</span>
+                    </div>
+                </div>
+                <div class="user-salary">
+                    <span id="salary-kimyounghee" class="user-salary-val" style="color: var(--neon-green);">0 KRW</span>
+                    <div id="bonus-kimyounghee" class="user-salary-bonus">보너스 수당: 0 KRW (0회)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── 실시간 타임라인 로그 ── -->
+        <div class="section-title timeline-title">
+            <i class="bi bi-clock-history"></i>
+            <span>시간순 실습 타임라인 로그</span>
+        </div>
+
+        <div id="timeline-container" class="timeline-card">
+            <!-- 동적으로 타임라인 목록이 시간순 역순(최신이 맨 위)으로 추가됩니다. -->
+        </div>
+
+    </div>
+
+    <script>
+        // 시계 동기화
+        function syncClock() {
+            var remaining = getPartitionedItem('kimp_remaining_seconds');
+            var hour = getPartitionedItem('kimp_clock_hour');
+            var minute = getPartitionedItem('kimp_clock_minute');
+            var second = getPartitionedItem('kimp_second_counter');
+
+            if (remaining !== null) {
+                var rem = parseInt(remaining);
+                var h = Math.floor(rem / 3600);
+                var m = Math.floor((rem % 3600) / 60);
+                var s = rem % 60;
+                document.getElementById('remaining-clock').textContent = 
+                    String(h).padStart(2, '0') + ':' + 
+                    String(m).padStart(2, '0') + ':' + 
+                    String(s).padStart(2, '0');
+            }
+
+            if (hour !== null && minute !== null) {
+                document.getElementById('current-clock').textContent = 
+                    '·' + String(hour).padStart(2, '0') + ':' + 
+                    String(minute).padStart(2, '0');
+            }
+        }
+
+        // 급여 동기화
+        function syncSalaries() {
+            var taeho = parseInt(getPartitionedItem('kimp_salary_taeho') || '0');
+            var younghee = parseInt(getPartitionedItem('kimp_salary_younghee') || '0');
+            var kimyounghee = parseInt(getPartitionedItem('kimp_salary_kimyounghee') || '0');
+            var helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+
+            document.getElementById('salary-taeho').textContent = taeho.toLocaleString() + ' KRW';
+            document.getElementById('salary-younghee').textContent = younghee.toLocaleString() + ' KRW';
+            document.getElementById('salary-kimyounghee').textContent = kimyounghee.toLocaleString() + ' KRW';
+            
+            var bonusCount = Math.floor(helperBonus / 500);
+            document.getElementById('bonus-kimyounghee').textContent = 
+                '보너스 수당: ' + helperBonus.toLocaleString() + ' KRW (' + bonusCount + '회)';
+        }
+
+        // 타임라인 동기화
+        function syncTimeline() {
+            var timelineStr = getPartitionedItem('kimp_session_timeline');
+            var container = document.getElementById('timeline-container');
+            if (!container) return;
+
+            if (!timelineStr) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px 0;">로그가 없습니다.</div>';
+                return;
+            }
+
+            var list = JSON.parse(timelineStr);
+            // 최신 로그가 맨 위로 오도록 역순 정렬
+            var chronological = list.slice();
+
+            var html = "";
+            chronological.forEach(function(item) {
+                // 로그 특성에 맞춰 클래스 지정
+                var logClass = "timeline-item";
+                if (item.text.indexOf("시작했습니다") !== -1) {
+                    logClass += " highlight";
+                } else if (item.text.indexOf("헬퍼") !== -1 || item.text.indexOf("보너스") !== -1) {
+                    logClass += " helper-log";
+                } else if (item.text.indexOf("도움 요청했습니다") !== -1 || item.text.indexOf("도움 요청을") !== -1) {
+                    logClass += " warning-log";
+                }
+
+                html += `
+                    <div class="${logClass}">
+                        <div class="timeline-time">${item.time}</div>
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-text">${item.text}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 이벤트 수신
+        window.addEventListener('storage', function(e) {
+            if (e.key === window.getStorageKey('kimp_remaining_seconds') || e.key === window.getStorageKey('kimp_clock_hour')) {
+                syncClock();
+            }
+            if (e.key === window.getStorageKey('kimp_salary_taeho') || e.key === window.getStorageKey('kimp_salary_younghee') || e.key === window.getStorageKey('kimp_salary_kimyounghee') || e.key === window.getStorageKey('kimp_helper_bonus')) {
+                syncSalaries();
+            }
+            if (e.key === window.getStorageKey('kimp_session_timeline')) {
+                syncTimeline();
+            }
+        });
+
+        // 초기화
+        syncClock();
+        syncSalaries();
+        syncTimeline();
+
+        // 1초마다 자동 리프레시 폴백
+        setInterval(function() {
+            syncClock();
+            syncSalaries();
+            syncTimeline();
+        }, 1000);
+    </script>
+</body>
+</html>

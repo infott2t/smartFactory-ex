@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="./nav.css">
+  <title>오늘, 일 하시는 것은 어떤가요. 좋은 하루되세요.</title>
+  <style>
+    body {
+      font-family: 'Nanum Gothic', sans-serif;
+    }
+    .cardFix {
+        padding: 1rem 0rem 0rem 0rem;
+    }
+    
+
+    th {
+      font-weight: normal;
+      background-color: #e7f1ff;
+    }
+
+    @media all and (min-width:320px) and (max-width:425px) {
+      tr{
+        font-size: 11px;
+        height: 40px;
+        }
+        .full {
+        height: 40px;
+        }
+        input {
+        height: 25px;
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+      body {
+        font-size: 1em;
+      }
+
+      .row_col {
+        font-size: 1em;
+      }
+    }
+
+    .cp {
+      padding: 0px;
+    }
+
+    .list-group-item {
+      border: none;
+    }
+
+    .row_col {
+      padding: 0px;
+
+
+    }
+
+    .nav_bottom {
+      margin-bottom: 40px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="fixed-bottom">
+    <nav class="navbar navbar-expand-lg   nav1">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">스마트 팩토리</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+          aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon" style="color:black; margin-top:5px;"><i class="bi bi-justify"></i></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="index.html">일 찾아보기</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">출근 하기</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">마이 페이지</a>
+            </li>
+
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <div class="container">
+ 
+    <div class="row">
+      <div class="card">
+        <div class="card-body cardFix">
+          <div class="card-subtitle mb-2 text-muted"></div>
+          <div class="card-title">
+            <a href="javascript:window.history.back();" style="color:black;">
+              <h4>
+                <i class="bi bi-chevron-left"></i>
+              </h4>
+            </a>
+            <br />
+            <h4>배추 김치 만들기 <small class="text-muted">음식, 요리</small></h4>
+            <span class="badge bg-primary"> 10시 ~ 17시</span> <span class="badge bg-danger">2시간</span>
+          </div>
+
+          <div class="card-subtitle mb-2 text-muted">2021년 6월 21일 부터 작업시작</div>
+          <div class="card-text">
+            <i class="bi bi-star-fill text-success"></i>
+            <i class="bi bi-star-fill text-success"></i>
+            <i class="bi bi-star-fill text-success"></i>
+            <i class="bi bi-star-fill text-success"></i>
+            <i class="bi bi-star"></i> 4.0 - <span id="heartNum">352</span>명
+            <br />
+            <br />
+            <div class="container cp">
+              <div class="row">
+                <div class="col-4 row_col">
+                  <a id="heart_click" class="btn row_col"><i class="bi bi-heart text-danger" id="heart"
+                      style="padding-left:16px;"></i> 좋아요</a>
+                </div>
+                <div class="col-8 row_col">
+                  <a href="coopinfo.html" class="btn row_col">A 푸드 | 서울 송파구</a>
+                </div>
+              </div>
+            </div>
+            <br />
+            <ul class="list-group" style="padding-bottom:10px;">
+                <li class="list-group-item">
+                   <h5 style="margin-bottom:0px;">&#x270B; 가상체험 해보세요~. </h5> 
+                </li>
+            </ul>
+            <div class="card">
+                <div class="card-header">입장하기</div>
+                <div class="card-body"> 
+                <div class="card-title"></div>
+                    <p class="card-text">입장한 후에 QR코드를 찍어주세요.</p>
+                    <a href="#" class="btn btn-success">QR코드 찍기</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">손 씻기</div>
+                <div class="card-body"> 
+                <div class="card-title"></div>
+                    <p class="card-text">손을 씻은 후, 사진을 찍어주세요.</p>
+                    <a href="#" class="btn btn-success">사진 찍기</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">야채손질</div>
+                <div class="card-body"> 
+                <div class="card-title"></div>
+                    <p class="card-text">야채 손질하는 곳으로 이동해주세요.</p>
+                    <a href="#" class="btn btn-success">이동하기</a>
+                </div>
+            </div> 
+         
+                   
+             
+            <hr/><br/>
+            
+            <ul class="list-group" style="padding-bottom:10px;">
+
+              <li class="list-group-item">
+                <h5><i class="bi bi-calendar-check"></i> 예약하기 타임시트</h5>
+              </li>
+              <li class="list-group-item">
+                <div class="d-flex  justify-content-end">
+                  <input type="week" id="week" name="week" value="2021-W28">&nbsp; <button id="find_month"
+                    class="btn btn-success btn-sm">찾기</button>&nbsp;
+                </div>
+              </li>
+            </ul>
+            <div class="accordion" id="accordionPanelsStayOpenExample">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingOne">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#panelsStayOpen-collapseOne" aria-expanded="false"
+                    aria-controls="panelsStayOpen-collapseOne">
+                    <span id="day0">7월 12일 월요일</span>
+                  </button>
+                </h2>
+                <div id="panelsStayOpen-collapseOne" class="accordion-collapse collapse collapsed"
+                  aria-labelledby="panelsStayOpen-headingOne">
+                  <div class="accordion-body">
+                    <table class="table table-sm">
+                      <!--<thead>
+                        <tr>
+                          <th style="width: 15%">시작 시간</th>
+                          <th style="width: 15%">끝 시간</th>
+                          <th style="width: 25%"> </th>
+                          <th style="width: 15%">모집 인원</th>
+                          <th style="width: 15%">예약 인원</th>
+                          <th style="width: 15%">예약하기</th>
+                        </tr>
+                      </thead> -->
+                      <tbody>
+                        <tr>
+                          <td>10:00</td>
+                          <td>12:00</td>
+                          <td>아침 작업</td>
+                          <td colspan="2">3 / 3</td>
+
+                          <td><button class="btn btn-success btn-sm disabled">예약</button></td>
+                        </tr>
+                        <tr>
+                          <td>12:00</td>
+                          <td>13:00</td>
+                          <td>점심 시간</td>
+                          <td colspan="2">-</td>
+
+                          <td></td>
+                        </tr>
+                        <tr>
+                          <td>13:00</td>
+                          <td>15:00</td>
+                          <td>오후 작업 A</td>
+                          <td colspan="2">2 / 3</td>
+                          <td><button class="btn btn-success btn-sm">예약</button></td>
+                        </tr>
+                        <tr>
+                          <td>15:00</td>
+                          <td>17:00</td>
+                          <td>오후 작업 B</td>
+                          <td colspan="2">2 / 2</td>
+                          <td><button class="btn btn-success btn-sm">예약</button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    </td>
+                    </tr>
+                    </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingTwo">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false"
+                    aria-controls="panelsStayOpen-collapseTwo">
+                    <span id="day1">7월 13일 화요일</span>
+                  </button>
+                </h2>
+                <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
+                  aria-labelledby="panelsStayOpen-headingTwo">
+                  <div class="accordion-body">
+
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingThree">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false"
+                    aria-controls="panelsStayOpen-collapseThree">
+                    <span id="day2">7월 14일 수요일</span>
+                  </button>
+                </h2>
+                <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse"
+                  aria-labelledby="panelsStayOpen-headingThree">
+                  <div class="accordion-body">
+
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingFour">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false"
+                    aria-controls="panelsStayOpen-collapseFour">
+                    <span id="day3">7월 15일 목요일</span>
+                  </button>
+                </h2>
+                <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse"
+                  aria-labelledby="panelsStayOpen-headingFour">
+                  <div class="accordion-body">
+
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="panelsStayOpen-headingFive">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#panelsStayOpen-collapseFive" aria-expanded="false"
+                    aria-controls="panelsStayOpen-collapseFive"  >
+                    <span id="day4">7월 16일 금요일</span>
+                  </button>
+                </h2>
+                <div id="panelsStayOpen-collapseFive" class="accordion-collapse collapse"
+                  aria-labelledby="panelsStayOpen-headingFive">
+                  <div class="accordion-body">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+            <br />
+            <ul class="list-style">
+              <li>요리. 배추를 절이는 작업입니다.</li>
+              <li>신분증, 보건증을 지참해주세요.</li>
+              <li>2시간 단위로 예약 가능합니다. 2시간 단위로, 15분 쉬는 시간을 드려요.</li>
+              <li>혜택, 당일 식권 1매 제공. 일주일간 식권 사용가능합니다.</li>
+              <li>단정한 차림으로 입장해주세요.</li>
+              <li>당일 날, 자리에 일이 없는 경우, 현장에서 일 접수 가능합니다. <i class="bi bi-emoji-smile"></i></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+
+
+    </div>
+
+    <br />
+
+  </div>
+  <nav class="navbar nav_bottom">
+    <div class="container-fluid">
+      <div class="navbar-text" href="#">
+        <i class="bi bi-emoji-smile"></i>
+        스마트 팩토리, UI 만들어봤습니다. 2021년 6월 21일 ~ 2021 7월 10일. <br />한번 만들어보세요~. 일하기가 더 좋아졌으면 좋겠습니다. 좋은 개발되세요~.
+        감사합니다.<br />작성자: 최현일
+        |
+        Github주소 <a href="https://github.com/infott2t/smartFactory-ex">@infott2t</a>
+      </div>
+    </div>
+  </nav>
+
+
+
+
+  <!-- Optional JavaScript; choose one of the two! -->
+  
+
+ 
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+
+  <!-- Option 2: Separate Popper and Bootstrap JS -->
+  <!--
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+    -->
+   
+
+    <script src="js/jquery-3.6.0.js"></script>
+  <script>
+  $("#heart_click").on("click", function () {
+
+if ($("#heart").hasClass("bi-heart")) {
+  $("#heart").removeClass("bi-heart").addClass("bi-heart-fill");
+  var a = Number($("#heartNum").text()) + 1;
+  $("#heartNum").text(a);
+} else {
+  $("#heart").removeClass("bi-heart-fill").addClass("bi-heart");
+  var a = Number($("#heartNum").text()) - 1;
+  $("#heartNum").text(a);
+}
+});
+
+ 
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,29 @@
+.footer-wrap2 {
+    z-index:100;
+}
+.footer2 {
+    
+    
+    left:0;
+    right: 0;
+    bottom: 0;
+    position: fixed;
+    padding: 3px 15px;
+    
+    background: #003987;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.footer2 a {
+    text-decoration: none;
+    color: white;
+    font-size: 30px;
+}
+.footer-title2 > a {
+    font-size: 30px;
+}
+
+.footer-wrap {
+ bottom: 48px;
+}

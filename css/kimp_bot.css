@@ -1,0 +1,118 @@
+.menu-bar {
+    padding-top: 8px;
+    padding-left: 9px;
+    display: flex;
+    justify-content: flex-start;
+    column-gap: 5px;
+    align-items: center;
+    padding-bottom: 8px;
+    color: white;
+    background-color: var(--var-bg-color);
+}
+
+.menu-bar>i {
+    font-size: 19px;
+    padding-right: 7px;
+
+}
+
+.menu-bar>img {
+    width: 20x;
+    height: 23px;
+}
+
+.menu-bar>i.bi.bi-star {
+    color: #CCCCCC;
+}
+
+#work-stars.bi.bi-star-fill {
+    color: yellow;
+}
+
+.text0>i {
+    font-size: 18px;
+    padding-right: 7px;
+    padding-left: 10px;
+    color: rgb(0, 160, 0);
+}
+
+.text0>span {
+    font-size: 21px;
+    font-weight: 600;
+    color: #ebebeb;
+}
+
+.text0>.ratio {
+    font-size: 15px;
+    font-weight: 100;
+    color: rgb(0, 210, 0);
+    padding-left: 5px;
+}
+
+#myChart {}
+
+.tab {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 50%);
+
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 300;
+    text-align: center;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    position: relative;
+    padding: 10px;
+    border-bottom: 1px solid rgb(41, 41, 41);
+}
+
+.tab>div {}
+
+.tab>div.active {
+    color: white;
+    font-weight: 600;
+}
+
+.tab-indicator {
+    position: absolute;
+    bottom: 0;
+    height: 1px;
+    background-color: white;
+    width: 50%;
+    transition: transform 0.3s ease;
+}
+
+.content-tab {
+    display: none;
+    min-height: 600px;
+}
+
+.content-tab.active {
+    display: block;
+}
+
+.categories {
+    margin-top: 20px;
+    margin-left: 15px;
+    font-size: 13px;
+    color: white;
+}
+
+.categories>div:nth-child(1) {
+    padding-bottom: 5px;
+}
+
+.categories>div:nth-child(2) {
+    display: flex;
+    column-gap: 8px;
+}
+
+.categories>div:nth-child(2)>button {
+    padding: 10px;
+    background-color: var(--var--bg-color);
+    color: white;
+    border: 1px solid #646464;
+    border-radius: 20px;
+    font-size: 11px;
+}

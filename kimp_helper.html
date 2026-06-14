@@ -1,0 +1,687 @@
+<!--
+<%@ page contentType="text/html;charset=UTF-8" language="java" isELIgnored="true" %>
+<%
+    org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
+    if (sUser != null) {
+%>
+    <script>
+        sessionStorage.setItem("user-id", "<%= sUser.getId() %>");
+        sessionStorage.setItem("user", JSON.stringify({
+            id: "<%= sUser.getId() %>",
+            name: "<%= sUser.getName() %>",
+            email: "<%= sUser.getEmail() %>",
+            picture: "<%= sUser.getPicture() != null ? sUser.getPicture() : "" %>",
+            role: "<%= sUser.getRole() %>"
+        }));
+    </script>
+<%
+    }
+%>
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>김치만들기 - 헬퍼 대시보드</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <style>
+        :root {
+            --bg-color: #0b0b16;
+            --card-bg: #121226;
+            --card-border: #1e1e3f;
+            --text-main: #ffffff;
+            --text-sub: #76769e;
+            --neon-blue: #7b92ff;
+            --amber-accent: #e85d04;
+            --neon-green: #00b894;
+            --btn-disabled: #1d1d36;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: #0b0b16;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 16px 120px 16px;
+            position: relative;
+        }
+        .time-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 16px 8px;
+            margin-bottom: 8px;
+        }
+        .time-box { display: flex; flex-direction: column; }
+        .time-box.left { align-items: flex-start; }
+        .time-box.right { align-items: flex-end; }
+        .time-value {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--neon-blue);
+            letter-spacing: 0.5px;
+        }
+        .time-label { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+        .salary-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .salary-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .salary-label { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+        .salary-value { font-size: 20px; font-weight: 700; color: #fff; }
+        .salary-value span { font-size: 12px; color: var(--text-sub); font-weight: 500; margin-left: 2px; }
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 4px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .header-title i { color: var(--neon-blue); }
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+        .header-meta i { color: #ffd700; }
+        
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+        .section-title i { color: var(--amber-accent); }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .card.active-card {
+            border-color: var(--amber-accent);
+            box-shadow: 0 4px 20px rgba(232, 93, 4, 0.08);
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 14px;
+        }
+        .meta-item { display: flex; flex-direction: column; gap: 4px; }
+        .meta-label { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+        .meta-value { font-size: 15px; font-weight: 600; color: #fff; }
+        
+        .btn-action {
+            background-color: var(--amber-accent);
+            border: none;
+            color: #fff;
+            padding: 12px 0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-action:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+        .btn-action:disabled {
+            background: var(--btn-disabled);
+            color: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .btn-secondary {
+            background-color: #212140;
+            border: 1px solid var(--card-border);
+            color: #fff;
+        }
+        .btn-secondary:hover { background-color: var(--neon-blue); }
+        
+        .bottom-nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            background-color: rgba(11, 11, 22, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--card-border);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            padding: 12px 0 24px 0;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-sub);
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .nav-item i { font-size: 18px; }
+        .nav-item.active { color: #fff; }
+        .nav-item.active i {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(123, 92, 245, 0.4);
+        }
+        
+        /* 헬퍼 전 전광판 스타일 */
+        .notice-banner {
+            background-color: rgba(232, 93, 4, 0.1);
+            border: 1px solid rgba(232, 93, 4, 0.25);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 13px;
+            color: #ffb380;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            animation: pulse 2s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { border-color: rgba(232, 93, 4, 0.2); }
+            100% { border-color: rgba(232, 93, 4, 0.6); }
+        }
+        .support-timer-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background: #141432;
+            border-radius: 12px;
+            border: 1px dashed var(--neon-blue);
+            margin-top: 10px;
+        }
+        .support-timer-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--neon-green);
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- ── 상단 시계 표시 ── -->
+        <div class="time-header">
+            <div class="time-box left">
+                <span class="time-value" id="current-clock">·15:04</span>
+                <span class="time-label">현재 시간</span>
+            </div>
+            <div class="time-box right">
+                <span class="time-value" id="remaining-clock">01:56:00</span>
+                <span class="time-label">남은 시간</span>
+            </div>
+        </div>
+
+        <!-- ── 급여 요약 카드 ── -->
+        <div class="salary-row">
+            <div class="salary-card">
+                <span class="salary-label">헬퍼 기본 급여</span>
+                <span class="salary-value" id="helper-base-salary-display">0<span>KRW</span></span>
+            </div>
+            <div class="salary-card">
+                <span class="salary-label">누적 헬퍼 보너스</span>
+                <span class="salary-value" id="helper-bonus-display" style="color: var(--neon-green);">0<span>KRW</span></span>
+            </div>
+            <div class="salary-card" style="grid-column: span 2; border-color: var(--neon-green);">
+                <span class="salary-label" style="color: var(--neon-green);">실시간 헬퍼 총급여 (기본+보너스)</span>
+                <span class="salary-value" id="helper-total-salary-display" style="font-size: 24px;">0<span>KRW</span></span>
+            </div>
+        </div>
+
+        <!-- ── 메인 타이틀 (김치만들기) ── -->
+        <header class="app-header">
+            <div class="header-title" onclick="openStatusPage()">
+                <i class="bi bi-person-workspace"></i>
+                <span>김치만들기 <span style="font-size: 13px; color: var(--neon-blue); font-weight: normal;">(헬퍼 모드)</span></span>
+            </div>
+            <div class="header-meta">
+                <i class="bi bi-star-fill"></i>
+                <strong>김영희 헬퍼</strong>
+            </div>
+        </header>
+
+        <!-- ── 헬퍼 관리보드 섹션 ── -->
+        <div class="section-title">
+            <i class="bi bi-telephone-inbound-fill"></i>
+            <span>실시간 지원 요청 현황</span>
+        </div>
+
+        <div id="helper-dashboard-card" class="card">
+            <!-- 동적으로 상황에 맞춰 내용이 렌더링됩니다. -->
+        </div>
+
+        <!-- 현장 공정 작업 참여하기 버튼 -->
+        <button class="btn-action" onclick="enterTaskWork()" style="margin-bottom: 24px; background: linear-gradient(135deg, #7b5cf5, #4720ca); border: none; height: 48px;">
+            <i class="bi bi-clipboard-check"></i> 현장 공정 작업 참여하기 (Task Work)
+        </button>
+
+        <!-- ── 하단 내비게이션 바 ── -->
+        <nav class="bottom-nav-bar">
+            <a href="kimp.html" class="nav-item">
+                <i class="bi bi-layout-text-window-reverse"></i>
+                <span>Floor</span>
+            </a>
+            <div class="nav-item active">
+                <i class="bi bi-person-workspace"></i>
+                <span>Helper Dashboard</span>
+            </div>
+            <div class="nav-item" onclick="alert('전체 운영 통계(Metrics)를 로드합니다.')">
+                <i class="bi bi-graph-up-arrow"></i>
+                <span>Metrics</span>
+            </div>
+            <div class="nav-item" onclick="alert('사용자 프로필 설정으로 이동합니다.')">
+                <i class="bi bi-person-circle"></i>
+                <span>Profile</span>
+            </div>
+        </nav>
+
+    </div>
+
+    <script>
+        // 전역 시계 관리 (localStorage로부터 싱크)
+        var clockHour = 15;
+        var clockMinute = 4;
+        var secondCounter = 0;
+        var remainingSeconds = 6960;
+
+        function syncClock() {
+            var h = getPartitionedItem('kimp_clock_hour');
+            var m = getPartitionedItem('kimp_clock_minute');
+            var s = getPartitionedItem('kimp_second_counter');
+            var rem = getPartitionedItem('kimp_remaining_seconds');
+            if (h !== null) clockHour = parseInt(h);
+            if (m !== null) clockMinute = parseInt(m);
+            if (s !== null) secondCounter = parseInt(s);
+            if (rem !== null) remainingSeconds = parseInt(rem);
+
+            // 클락 UI 업데이트
+            var hStr = Math.floor(remainingSeconds / 3600);
+            var mStr = Math.floor((remainingSeconds % 3600) / 60);
+            var sStr = remainingSeconds % 60;
+            document.getElementById('remaining-clock').textContent = 
+                String(hStr).padStart(2, '0') + ':' + 
+                String(mStr).padStart(2, '0') + ':' + 
+                String(sStr).padStart(2, '0');
+
+            document.getElementById('current-clock').textContent = 
+                '·' + String(clockHour).padStart(2, '0') + ':' + 
+                String(clockMinute).padStart(2, '0');
+        }
+
+        // 급여 연동
+        function syncSalary() {
+            var base = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
+            var bonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+            var total = base + bonus;
+
+            document.getElementById('helper-base-salary-display').innerHTML = base.toLocaleString() + '<span>KRW</span>';
+            document.getElementById('helper-bonus-display').innerHTML = bonus.toLocaleString() + '<span>KRW</span>';
+            document.getElementById('helper-total-salary-display').innerHTML = total.toLocaleString() + '<span>KRW</span>';
+
+            // 김영희 총급여 다시 동기화
+            setPartitionedItem('kimp_salary_kimyounghee', total);
+        }
+
+        function addTimelineLog(text) {
+            var logTime = String(clockHour).padStart(2, '0') + ':' + 
+                          String(clockMinute).padStart(2, '0') + ':' + 
+                          String(secondCounter).padStart(2, '0');
+            var timeline = JSON.parse(getPartitionedItem('kimp_session_timeline') || '[]');
+            timeline.push({ time: logTime, text: text });
+            setPartitionedItem('kimp_session_timeline', JSON.stringify(timeline));
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        // 헬퍼 기능 관련 상태 관리
+        var supportInterval = null;
+
+        function updateDashboard() {
+            var reqStr = getPartitionedItem('kimp_help_request');
+            var card = document.getElementById('helper-dashboard-card');
+            if (!card) return;
+
+            if (!reqStr) {
+                // 요청 없음 (대기 중)
+                card.className = "card";
+                card.innerHTML = `
+                    <div style="text-align: center; padding: 20px 0; color: var(--text-sub);">
+                        <i class="bi bi-hourglass-split" style="font-size: 32px; display: block; margin-bottom: 12px; color: var(--text-sub);"></i>
+                        <span style="font-size: 13px;">대기 중... (체험자의 도움 요청을 기다리고 있습니다)</span>
+                    </div>
+                `;
+                if (supportInterval) {
+                    clearInterval(supportInterval);
+                    supportInterval = null;
+                }
+                return;
+            }
+
+            var req = JSON.parse(reqStr);
+
+            if (req.status === "requested") {
+                // 요청 들어옴 (수락 전)
+                card.className = "card active-card";
+                card.innerHTML = `
+                    <div class="notice-banner">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>누군가 도움 요청을 했습니다. 해당 공정으로 이동하세요!</span>
+                    </div>
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">도움 요청자</span>
+                            <span class="meta-value">${req.requester} 님</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">요청 공정</span>
+                            <span class="meta-value" style="color: var(--neon-blue);">${req.stageName} (Stage ${req.stage})</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">작업 중인 지시서</span>
+                            <span class="meta-value">${req.order}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">요청 접수 시간</span>
+                            <span class="meta-value">${req.time}</span>
+                        </div>
+                    </div>
+                    <button class="btn-action" onclick="acceptRequest()">
+                        <i class="bi bi-check-circle-fill"></i> 현장 이동 및 지원 시작
+                    </button>
+                `;
+            } else if (req.status === "accepted") {
+                // 수락됨 (이동 중)
+                card.className = "card active-card";
+                card.innerHTML = `
+                    <div class="notice-banner" style="background: rgba(123, 92, 245, 0.1); border-color: rgba(123, 92, 245, 0.3); color: var(--neon-blue); animation: none;">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span>${req.requester}님의 공정(Stage ${req.stage})으로 신속히 이동하여 지원해 주세요.</span>
+                    </div>
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">도움 대상자</span>
+                            <span class="meta-value">${req.requester} 님</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">요청 공정</span>
+                            <span class="meta-value">${req.stageName}</span>
+                        </div>
+                    </div>
+                    <button class="btn-action" onclick="arriveAtTask()" style="background: linear-gradient(135deg, var(--neon-green), #02b667);">
+                        <i class="bi bi-pin-map-fill"></i> 도착 완료 & 도움 시작
+                    </button>
+                `;
+            } else if (req.status === "advising") {
+                // 도움 제공 중 (타이머)
+                card.className = "card active-card";
+                var min = Math.floor(req.remainingTime / 60);
+                var sec = req.remainingTime % 60;
+                var timerText = String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
+
+                card.innerHTML = `
+                    <div style="font-size: 13px; color: var(--text-sub); text-align: center;">
+                        <i class="bi bi-chat-left-heart-fill" style="color: var(--neon-green); margin-right: 4px;"></i>
+                        <strong>${req.requester}</strong> 님에게 어드바이스 지원 중...
+                    </div>
+                    <div class="support-timer-box">
+                        <span style="font-size: 11px; color: var(--text-sub); margin-bottom: 4px;">남은 도움 시간</span>
+                        <span id="support-timer-value" class="support-timer-value">${timerText}</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-action btn-secondary" onclick="extendSupportTime()" style="flex: 1;">
+                            <i class="bi bi-plus-circle-fill"></i> 시간 연장 (+5분)
+                        </button>
+                        <button class="btn-action" onclick="completeSupport()" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #02b667);">
+                            <i class="bi bi-check-circle-fill"></i> 도움 완료
+                        </button>
+                    </div>
+                `;
+                
+                // 타이머 작동 개시 (이미 동작 중이 아니면)
+                if (!supportInterval) {
+                    supportInterval = setInterval(function() {
+                        var r = getPartitionedItem('kimp_help_request');
+                        if (!r) {
+                            clearInterval(supportInterval);
+                            supportInterval = null;
+                            updateDashboard();
+                            return;
+                        }
+                        var rq = JSON.parse(r);
+                        if (rq.status !== "advising") {
+                            clearInterval(supportInterval);
+                            supportInterval = null;
+                            updateDashboard();
+                            return;
+                        }
+                        if (rq.remainingTime > 0) {
+                            rq.remainingTime--;
+                            setPartitionedItem('kimp_help_request', JSON.stringify(rq));
+                            window.dispatchEvent(new Event('storage'));
+                            
+                            // UI 직접 갱신
+                            var min_u = Math.floor(rq.remainingTime / 60);
+                            var sec_u = rq.remainingTime % 60;
+                            var timerEl = document.getElementById('support-timer-value');
+                            if (timerEl) {
+                                timerEl.textContent = String(min_u).padStart(2, '0') + ":" + String(sec_u).padStart(2, '0');
+                            }
+                        } else {
+                            // 시간 만료 자동 완료
+                            clearInterval(supportInterval);
+                            supportInterval = null;
+                            completeSupport();
+                        }
+                    }, 1000);
+                }
+            } else if (req.status === "completed") {
+                card.className = "card";
+                card.innerHTML = `
+                    <div style="text-align: center; padding: 20px 0; color: var(--text-sub);">
+                        <i class="bi bi-check-circle-fill" style="font-size: 32px; display: block; margin-bottom: 12px; color: var(--neon-green);"></i>
+                        <span style="font-size: 13px;">도움 완료! (다음 요청 대기 중)</span>
+                    </div>
+                `;
+                setTimeout(function() {
+                    removePartitionedItem('kimp_help_request');
+                    updateDashboard();
+                }, 2000);
+            }
+        }
+
+        // 도움 요청 수락
+        function acceptRequest() {
+            var reqStr = getPartitionedItem('kimp_help_request');
+            if (!reqStr) return;
+            var req = JSON.parse(reqStr);
+            req.status = "accepted";
+            setPartitionedItem('kimp_help_request', JSON.stringify(req));
+            
+            // 타임라인 로그 기록
+            addTimelineLog("김영희 헬퍼님이 김태호님의 Stage " + req.stage + " 도움 지원을 시작했습니다.");
+            
+            updateDashboard();
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        // 도착 완료 및 도움 시작
+        function arriveAtTask() {
+            var reqStr = getPartitionedItem('kimp_help_request');
+            if (!reqStr) return;
+            var req = JSON.parse(reqStr);
+            req.status = "advising";
+            req.remainingTime = 300; // 5분
+            setPartitionedItem('kimp_help_request', JSON.stringify(req));
+            
+            updateDashboard();
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        // 도움 연장 (+5분)
+        function extendSupportTime() {
+            var reqStr = getPartitionedItem('kimp_help_request');
+            if (!reqStr) return;
+            var req = JSON.parse(reqStr);
+            req.remainingTime += 300; // 5분 추가
+            setPartitionedItem('kimp_help_request', JSON.stringify(req));
+            
+            // 타임라인 로그 기록
+            addTimelineLog("김영희 헬퍼님이 Stage " + req.stage + " 도움 시간을 5분 연장했습니다.");
+            
+            updateDashboard();
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        // 도움 완료 및 500원 지급
+        function completeSupport() {
+            if (supportInterval) {
+                clearInterval(supportInterval);
+                supportInterval = null;
+            }
+            var reqStr = getPartitionedItem('kimp_help_request');
+            if (!reqStr) return;
+            var req = JSON.parse(reqStr);
+            
+            req.status = "completed";
+            setPartitionedItem('kimp_help_request', JSON.stringify(req));
+            
+            // 헬퍼 보너스 500원 즉시 가산
+            var bonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+            bonus += 500;
+            setPartitionedItem('kimp_helper_bonus', bonus);
+            
+            // 타임라인 로그 기록
+            addTimelineLog("김영희 헬퍼님이 도움을 조기 완료했습니다. (도움 완료하여 500원의 보너스를 받았습니다.)");
+            
+            syncSalary();
+            updateDashboard();
+            window.dispatchEvent(new Event('storage'));
+
+            // 도움 완료 알림창 발생
+            alert("도움 완료하여 500원을 받았습니다.");
+        }
+
+        function openStatusPage() {
+            window.open("kimp_status.html", "_blank");
+        }
+
+        function enterTaskWork() {
+            setPartitionedItem('kimp_logged_in_user', 'kimyounghee');
+            window.location.href = "kimp_experience.html?t=" + Date.now();
+        }
+
+        // 이벤트 수신
+        window.addEventListener('storage', function(e) {
+            if (e.key === window.getStorageKey('kimp_clock_hour') || e.key === window.getStorageKey('kimp_clock_minute') || e.key === window.getStorageKey('kimp_second_counter') || e.key === window.getStorageKey('kimp_remaining_seconds')) {
+                syncClock();
+            }
+            if (e.key === window.getStorageKey('kimp_helper_base_salary') || e.key === window.getStorageKey('kimp_helper_bonus')) {
+                syncSalary();
+            }
+            if (e.key === window.getStorageKey('kimp_help_request')) {
+                updateDashboard();
+            }
+        });
+
+        // 헬퍼 자동 출근 처리 (매니저 현황판 연동)
+        function checkInHelper() {
+            let progressMap = {};
+            try {
+                progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+            } catch(e) {}
+            
+            const helperId = "local-helper-kim";
+            
+            // 아직 출근 전이거나 checkInTime이 null인 경우에만 갱신
+            if (progressMap[helperId] && !progressMap[helperId].checkInTime) {
+                const now = new Date();
+                let hours = String(now.getHours()).padStart(2, '0');
+                let minutes = String(now.getMinutes()).padStart(2, '0');
+                let seconds = String(now.getSeconds()).padStart(2, '0');
+                const checkInTime = `${hours}:${minutes}:${seconds}`;
+                
+                progressMap[helperId].status = "active";
+                progressMap[helperId].checkInTime = checkInTime;
+                progressMap[helperId].location = "Task 3 (절임)";
+                progressMap[helperId].stepName = "현장 헬퍼 지원";
+                progressMap[helperId].currentStep = 6;
+                progressMap[helperId].lastActiveTime = now.toISOString();
+                
+                localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+                
+                // 헬퍼용 로컬 세션에도 반영
+                setPartitionedItem('kimp_check_in_time', checkInTime);
+            }
+        }
+
+        // 초기 구동
+        checkInHelper();
+        syncClock();
+        syncSalary();
+        updateDashboard();
+
+        // 1초 주기로 클락 재동기화
+        setInterval(function() {
+            syncClock();
+            syncSalary();
+        }, 1000);
+    </script>
+</body>
+</html>

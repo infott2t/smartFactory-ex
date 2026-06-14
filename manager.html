@@ -1,0 +1,4438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIMP 스마트팩토리 - 매니저 웹 콘솔</title>
+    <!-- Google Fonts (Outfit & Noto Sans KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Auth Guard and global helpers -->
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/simulator.js" type="text/javascript"></script>
+    <style>
+        :root {
+            --bg-primary: #f5f6fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --accent-purple: #6c5ce7;
+            --accent-purple-bg: rgba(108, 92, 231, 0.1);
+            --accent-blue: #0984e3;
+            --accent-blue-bg: rgba(9, 132, 227, 0.1);
+            --accent-green: #00b894;
+            --accent-green-bg: rgba(0, 184, 148, 0.1);
+            --accent-red: #d63031;
+            --accent-red-bg: rgba(214, 48, 49, 0.1);
+            --accent-yellow: #e1b12c;
+            --accent-yellow-bg: rgba(225, 177, 44, 0.1);
+            --border-color: #dfe6e9;
+            --sidebar-width: 280px;
+            --font-outfit: 'Outfit', 'Noto Sans KR', sans-serif;
+            --font-noto: 'Noto Sans KR', sans-serif;
+            --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+            --hover-shadow: 0 10px 35px rgba(108, 92, 231, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-noto);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── 왼쪽 사이드바 ── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand {
+            padding: 30px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-brand img {
+            width: 36px;
+            height: 36px;
+        }
+
+        .sidebar-brand h2 {
+            font-family: var(--font-outfit);
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 24px 16px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-menu-item {
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .sidebar-link:hover {
+            color: var(--accent-purple);
+            background-color: var(--accent-purple-bg);
+        }
+
+        .sidebar-link.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+        }
+
+        .sidebar-badge {
+            position: absolute;
+            right: 18px;
+            background-color: var(--accent-red);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(214, 48, 49, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(214, 48, 49, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(214, 48, 49, 0); }
+        }
+
+        .sidebar-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-color);
+            background-color: #fafbfc;
+        }
+
+        .manager-profile-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .manager-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background-color: var(--accent-purple);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .manager-info h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .manager-info p {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* ── 메인 콘텐츠 영역 ── */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 상단 네비게이션 헤더 */
+        .top-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-title-section h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-title-section p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* 출근 스위치 */
+        .clock-in-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: var(--bg-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .clock-in-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .switch-input {
+            display: none;
+        }
+
+        .switch-label {
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            background-color: #cbd5e1;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .switch-label::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .switch-input:checked + .switch-label {
+            background-color: var(--accent-green);
+        }
+
+        .switch-input:checked + .switch-label::after {
+            left: 26px;
+        }
+
+        /* 남은 시간 타이머 */
+        .shift-timer-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #2d3436, #0984e3);
+            color: #ffffff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(9, 132, 227, 0.2);
+        }
+
+        .shift-timer-box i {
+            font-size: 16px;
+            animation: spin-pulse 2s infinite linear;
+        }
+
+        @keyframes spin-pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        .shift-timer-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .shift-timer-info span:first-child {
+            font-size: 10px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .shift-timer-info span:last-child {
+            font-family: var(--font-outfit);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .top-action-btn {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .top-action-btn:hover {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+            background-color: var(--accent-purple-bg);
+        }
+
+        /* 탭별 영역 */
+        .tab-panel-container {
+            flex-grow: 1;
+            padding: 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .tab-panel {
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── 공통 카드 컴포넌트 ── */
+        .card-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .stats-card {
+            background-color: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .stats-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stats-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .stats-value {
+            font-family: var(--font-outfit);
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stats-trend {
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .stats-trend.up { color: var(--accent-green); }
+        .stats-trend.down { color: var(--accent-red); }
+        .stats-trend.neutral { color: var(--text-secondary); }
+
+        .stats-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .stats-icon-wrapper.purple { color: var(--accent-purple); background-color: var(--accent-purple-bg); }
+        .stats-icon-wrapper.blue { color: var(--accent-blue); background-color: var(--accent-blue-bg); }
+        .stats-icon-wrapper.green { color: var(--accent-green); background-color: var(--accent-green-bg); }
+        .stats-icon-wrapper.yellow { color: var(--accent-yellow); background-color: var(--accent-yellow-bg); }
+        .stats-icon-wrapper.red { color: var(--accent-red); background-color: var(--accent-red-bg); }
+
+        /* 대형 컨텐츠 카드 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section-card {
+            background-color: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--card-shadow);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 14px;
+        }
+
+        .card-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        /* ── 매니저 상태 설정 카드 ── */
+        .manager-ctrl-panel {
+            background: linear-gradient(135deg, #ffffff, #f1f5f9);
+            border: 2px solid var(--accent-purple);
+        }
+
+        .manager-status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .status-button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .status-btn-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .status-option-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .option-btn {
+            flex: 1;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-btn:hover {
+            border-color: var(--accent-purple);
+            background-color: var(--accent-purple-bg);
+        }
+
+        .option-btn.active {
+            background-color: var(--accent-purple);
+            color: #ffffff;
+            border-color: var(--accent-purple);
+            box-shadow: 0 4px 10px rgba(108, 92, 231, 0.2);
+        }
+
+        .option-btn.active-green {
+            background-color: var(--accent-green);
+            color: #ffffff;
+            border-color: var(--accent-green);
+            box-shadow: 0 4px 10px rgba(0, 184, 148, 0.2);
+        }
+
+        .task-selector-wrapper {
+            margin-top: 10px;
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .task-selector-wrapper.show {
+            display: flex;
+        }
+
+        .task-option-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .task-mini-btn {
+            flex: 1;
+            padding: 6px;
+            font-size: 11px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .task-mini-btn.active {
+            background-color: var(--accent-blue);
+            color: #ffffff;
+            border-color: var(--accent-blue);
+        }
+
+        /* ── 테이블 공통 디자인 ── */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-secondary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .console-table {
+            width: 100%;
+            min-width: 1000px;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .console-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .console-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .console-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .console-table tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* ── 뱃지 스타일 ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-green { background-color: var(--accent-green-bg); color: var(--accent-green); }
+        .badge-blue { background-color: var(--accent-blue-bg); color: var(--accent-blue); }
+        .badge-purple { background-color: var(--accent-purple-bg); color: var(--accent-purple); }
+        .badge-yellow { background-color: var(--accent-yellow-bg); color: var(--accent-yellow); }
+        .badge-red { background-color: var(--accent-red-bg); color: var(--accent-red); }
+        .badge-gray { background-color: #f1f5f9; color: #64748b; }
+
+        /* ── 사진 심사 UI ── */
+        .approval-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .approval-card {
+            background-color: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+        }
+
+        .approval-card:hover {
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-4px);
+        }
+
+        .approval-img-container {
+            width: 100%;
+            height: 200px;
+            background-color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .approval-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .approval-img-container span {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .approval-body {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .approval-user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .approval-user-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .approval-time {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .approval-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .approval-footer-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .approval-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .approval-btn.approve {
+            background-color: var(--accent-green);
+            color: #ffffff;
+        }
+
+        .approval-btn.approve:hover {
+            background-color: #00a383;
+        }
+
+        .approval-btn.reject {
+            background-color: var(--accent-red);
+            color: #ffffff;
+        }
+
+        .approval-btn.reject:hover {
+            background-color: #c02626;
+        }
+
+        /* ── 원부자재 카탈로그 카드 ── */
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .catalog-card {
+            background-color: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+        }
+
+        .catalog-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .catalog-img-box {
+            width: 100%;
+            height: 160px;
+            background-color: #f1f5f9;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .catalog-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .catalog-body {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .catalog-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .catalog-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            height: 32px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .catalog-price {
+            font-family: var(--font-outfit);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+
+        .catalog-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid #f1f5f9;
+            margin-top: auto;
+            font-size: 12px;
+        }
+
+        /* ── 절임실 모니터링 카드 ── */
+        .salting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .salting-card {
+            background-color: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+        }
+
+        .salting-timer-circle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid var(--accent-blue-bg);
+            border-top: 3px solid var(--accent-blue);
+            animation: spin 3s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .salting-batch-id {
+            font-family: var(--font-outfit);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .salting-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .salting-countdown {
+            font-family: var(--font-outfit);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            letter-spacing: 1px;
+            background-color: var(--accent-blue-bg);
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        /* ── 설비 고장 및 오너 결재 제어 ── */
+        .facility-grid {
+            display: grid;
+            grid-template-columns: 2fr 3fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .facility-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .facility-task-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: #ffffff;
+            transition: all 0.2s;
+        }
+
+        .facility-task-card:hover {
+            border-color: var(--accent-red);
+        }
+
+        .facility-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .facility-name {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .owner-req-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: #fafbfc;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .owner-req-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+
+        .btn-submit-req {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-submit-req:hover {
+            opacity: 0.9;
+        }
+
+        /* ── 시뮬레이터 조작 패널 ── */
+        .sim-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .sim-btn {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+        }
+
+        .sim-btn i {
+            font-size: 18px;
+            color: var(--accent-purple);
+        }
+
+        .sim-btn:hover {
+            border-color: var(--accent-purple);
+            background-color: var(--accent-purple-bg);
+            transform: translateY(-2px);
+        }
+
+        .sim-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-top: 14px;
+            margin-bottom: 6px;
+            border-left: 3px solid var(--accent-purple);
+            padding-left: 8px;
+        }
+
+        /* ── 차트 그리드 ── */
+        .charts-container-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .chart-box-large {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 992px) {
+            .charts-container-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-box-large {
+                grid-column: span 1;
+            }
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+
+        /* ── 실시간 알림음 토글 & UI 로그 ── */
+        .sys-log-box {
+            background-color: #2d3436;
+            color: #00ff88;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 16px;
+            border-radius: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .sys-log-line {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 4px 0;
+        }
+
+        /* ── 정보 아이콘 툴팁 ── */
+        .info-tooltip-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-left: 6px;
+            cursor: pointer;
+        }
+        .info-tooltip-wrap .info-tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #2d3436;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            z-index: 999;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .info-tooltip-wrap .info-tooltip-text::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2d3436 transparent transparent transparent;
+        }
+        .info-tooltip-wrap:hover .info-tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* ── 출하/배송 대시보드 ── */
+        .shipping-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+        @media (max-width: 992px) {
+            .shipping-dashboard-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        .shipping-spec-card {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .shipping-spec-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+        }
+        .shipping-spec-card .spec-size {
+            font-family: var(--font-outfit);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+        .shipping-spec-card .spec-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .shipping-spec-card .spec-quota {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .shipping-spec-card .spec-bar {
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .shipping-spec-card .spec-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+        }
+        .shipping-spec-card .spec-remaining {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-red);
+        }
+
+        /* ── 잔여 목표 알림 ── */
+        .remaining-target-alert {
+            background: linear-gradient(135deg, rgba(9,132,227,0.08), rgba(108,92,231,0.08));
+            border: 1px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 4px;
+        }
+        .remaining-target-alert .rta-icon {
+            font-size: 28px;
+            color: var(--accent-blue);
+            flex-shrink: 0;
+        }
+        .remaining-target-alert .rta-main {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+        .remaining-target-alert .rta-sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ── 1. 왼쪽 고정 사이드바 ── -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <img src="./images/k-icon.png" alt="Kimchi Icon">
+            <h2>KIMP CONSOLE</h2>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li class="sidebar-menu-item">
+                <a href="#dashboard" class="sidebar-link active" onclick="switchTab('dashboard')">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>종합 대시보드</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#hygiene" class="sidebar-link" onclick="switchTab('hygiene')">
+                    <i class="bi bi-shield-check"></i>
+                    <span>실시간 사진 심사</span>
+                    <span id="hygiene-badge" class="sidebar-badge" style="display: none;">0</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#orders" class="sidebar-link" onclick="switchTab('orders')">
+                    <i class="bi bi-file-earmark-text-fill"></i>
+                    <span>생산 지시서</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#workers" class="sidebar-link" onclick="switchTab('workers')">
+                    <i class="bi bi-people-fill"></i>
+                    <span>실시간 공정 모니터</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#inventory" class="sidebar-link" onclick="switchTab('inventory')">
+                    <i class="bi bi-box-seam-fill"></i>
+                    <span>원부재료 재고 관리</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#salting" class="sidebar-link" onclick="switchTab('salting')">
+                    <i class="bi bi-thermometer-snow"></i>
+                    <span>절임 및 숙성실</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#facility" class="sidebar-link" onclick="switchTab('facility')">
+                    <i class="bi bi-gear-wide-connected"></i>
+                    <span>오너 결재 & 설비</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#simulation" class="sidebar-link" onclick="switchTab('simulation')">
+                    <i class="bi bi-play-circle-fill"></i>
+                    <span>시뮬레이터 조작판</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="#analytics" class="sidebar-link" onclick="switchTab('analytics')">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                    <span>재정 및 통계 분석</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="manager-profile-card">
+                <div class="manager-avatar" id="mgr-avatar-text">최</div>
+                <div class="manager-info">
+                    <h4 id="mgr-name">최현일 매니저</h4>
+                    <p id="mgr-role-text">관리 자격 승인 완료</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── 2. 오른쪽 메인 영역 ── -->
+    <div class="main-content">
+        <!-- 상단 네비게이션 헤더 -->
+        <header class="top-header">
+            <div class="header-title-section">
+                <h1 id="header-page-title">김치공정 종합 대시보드</h1>
+                <p id="header-page-subtitle">스마트팩토리 김치 제조 관리 환경을 한눈에 모니터링합니다.</p>
+            </div>
+
+            <div class="header-controls">
+                <!-- 세션 지우기 버튼 -->
+                <button class="top-action-btn" style="background-color: var(--accent-red-bg); color: var(--accent-red); margin-right: 12px; border-color: rgba(255, 107, 107, 0.2);" onclick="resetManagerTestSession()">
+                    <i class="bi bi-trash-fill"></i>
+                    <span>세션 지우기</span>
+                </button>
+                <!-- 출근 스위치 -->
+                <div class="clock-in-wrapper">
+                    <span class="clock-in-label" id="clock-in-status">출근 대기</span>
+                    <input type="checkbox" id="manager-clock-switch" class="switch-input" onchange="toggleManagerClockIn()">
+                    <label for="manager-clock-switch" class="switch-label"></label>
+                </div>
+
+                <!-- 시프트 타이머 -->
+                <div class="shift-timer-box">
+                    <i class="bi bi-clock-history"></i>
+                    <div class="shift-timer-info">
+                        <span>Shift Countdown</span>
+                        <span id="shift-time-left">02:00:00</span>
+                    </div>
+                </div>
+
+                <!-- 메인 바로가기 -->
+                <a href="./main.html" class="top-action-btn">
+                    <i class="bi bi-box-arrow-left"></i>
+                    <span>메인으로</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- 탭 패널 컨테이너 -->
+        <div class="tab-panel-container">
+
+            <!-- ========================================== -->
+            <!-- 탭 1: 종합 대시보드 -->
+            <!-- ========================================== -->
+            <div id="panel-dashboard" class="tab-panel active">
+                <!-- 상단 미니 지표 카드 -->
+                <div class="card-row">
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">실시간 재정 (수익 / 지출)</span>
+                            <span class="stats-value" id="stats-finance-ratio">0원 / 0원</span>
+                            <div class="stats-trend neutral" id="stats-finance-trend">
+                                예상 잔고: <span id="stats-expected-balance">0원</span>
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper purple">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">오늘 / 어제 주문 실적</span>
+                            <span class="stats-value" id="stats-orders-comp">0건 / 0건</span>
+                            <div class="stats-trend up" id="stats-orders-trend">
+                                <i class="bi bi-graph-up-arrow"></i> 원활한 출하 진행 중
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper blue">
+                            <i class="bi bi-cart-check-fill"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">숙성 완료 절임 배추</span>
+                            <span class="stats-value" id="stats-matured-heads">0포기</span>
+                            <div class="stats-trend neutral" id="stats-salting-batches-count">
+                                절임 진행 배치: 0개
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper green">
+                            <i class="bi bi-egg-fried"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">현장 가동 인원</span>
+                            <span class="stats-value" id="stats-workers-count">0명</span>
+                            <div class="stats-trend neutral" id="stats-break-count">
+                                작업자 0명 / 휴식 0명 / 헬퍼 0명
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper yellow">
+                            <i class="bi bi-person-fill-check"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 대시보드 상세 바둑판 -->
+                <div class="dashboard-grid">
+                    <!-- 왼쪽 큰 컬럼: 매니저 자신 상태 관리 및 설비 현황 요약 -->
+                    <div class="section-card manager-ctrl-panel">
+                        <div class="card-header">
+                            <h3><i class="bi bi-person-gear"></i> 매니저 활동 및 역할 실시간 기록</h3>
+                            <span class="badge badge-purple">자격 요건 충족 (30시간 이상)</span>
+                        </div>
+                        <div class="manager-status-grid">
+                            <div class="status-button-group">
+                                <span class="status-btn-title">매니저 현재 위치</span>
+                                <div class="status-option-btns">
+                                    <button class="option-btn active" id="mgr-loc-office" onclick="updateManagerLocation('office')">사무실 (Office)</button>
+                                    <button class="option-btn" id="mgr-loc-workshop" onclick="updateManagerLocation('workshop')">작업장 (Floor)</button>
+                                </div>
+                            </div>
+                            <div class="status-button-group">
+                                <span class="status-btn-title">현장 활동 종류</span>
+                                <div class="status-option-btns">
+                                    <button class="option-btn active" id="mgr-act-supervising" onclick="updateManagerActivity('supervising')">감독/모니터</button>
+                                    <button class="option-btn" id="mgr-act-participating" onclick="updateManagerActivity('participating')">직접 참여</button>
+                                    <button class="option-btn" id="mgr-act-helper" onclick="updateManagerActivity('helper')">헬퍼 지원</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 공정 직접 참여 / 헬퍼 선택 시 배치할 Task 선택기 -->
+                        <div class="task-selector-wrapper" id="mgr-task-selector">
+                            <span class="status-btn-title">투입할 세부 공정(Task) 선택</span>
+                            <div class="task-option-btns">
+                                <button class="task-mini-btn" id="mgr-task-1" onclick="assignManagerTask(1)">Task 1 (적재)</button>
+                                <button class="task-mini-btn" id="mgr-task-2" onclick="assignManagerTask(2)">Task 2 (다듬기)</button>
+                                <button class="task-mini-btn" id="mgr-task-3" onclick="assignManagerTask(3)">Task 3 (절임)</button>
+                                <button class="task-mini-btn" id="mgr-task-4" onclick="assignManagerTask(4)">Task 4 (양념)</button>
+                                <button class="task-mini-btn" id="mgr-task-5" onclick="assignManagerTask(5)">Task 5 (포장)</button>
+                            </div>
+                        </div>
+
+                        <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-top: 5px;">
+                            💡 **매니저 근무 수수료 수당 안내:** 매니저는 현장 체험 시 기본 시급 **15,000원**으로 정산되며, 자격 시험 및 심사 활동 시간 역시 정식 근무 시간으로 전액 인정 및 지급됩니다. (출근 버튼을 켜면 누적 금액이 비용 지표에 반영됩니다)
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽 작은 컬럼: 완제품 현고량 요약 카드 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-box-seam"></i> 완제품 규격별 현고량 요약</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px;" id="dashboard-product-summary">
+                            <!-- JS 바인딩 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 실시간 공정 상태 알림 로그 -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-terminal"></i> 김치공정 시스템 실시간 상태 로그 (FCM / WebSockets 가상 연동)</h3>
+                        <button class="top-action-btn" style="padding: 4px 10px; font-size: 11px;" onclick="clearSysLog()">로그 초기화</button>
+                    </div>
+                    <div class="sys-log-box" id="system-console-log">
+                        <div class="sys-log-line">[시스템] 팩토리 모니터링 엔진이 로드되었습니다. 크로스탭 이벤트 수신 준비 완료.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 2: 실시간 사진 심사 -->
+            <!-- ========================================== -->
+            <div id="panel-hygiene" class="tab-panel">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-camera"></i> 실시간 사진 심사 대기열</h3>
+                        <span class="badge badge-yellow" id="approval-queue-count">대기 0건</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        작업자들이 제출한 위생 검증, 특별 청소 및 불량 감액 사진을 실시간으로 심사합니다. [승인] 처리가 완료되어야 작업자가 다음 공정을 정상적으로 진행할 수 있습니다.
+                    </p>
+                    <div class="approval-cards-grid" id="approval-queue-container">
+                        <!-- JS로 카드 추가됨 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 3: 생산 지시서 -->
+            <!-- ========================================== -->
+            <div id="panel-orders" class="tab-panel">
+                <!-- Feature 4: 잔여 목표 알림 -->
+                <div class="remaining-target-alert" id="remaining-target-alert">
+                    <i class="bi bi-exclamation-diamond-fill rta-icon"></i>
+                    <div>
+                        <div class="rta-main" id="rta-main-msg">오늘 앞으로 0 포기 (0 kg)를 더 작업해야 합니다.</div>
+                        <div class="rta-sub">📋 2시간 시프트 내 평균 권장 생산량: 30 포기 (90.0 kg)</div>
+                    </div>
+                </div>
+
+                <!-- Feature 3: 포장 규격 확장 및 당일 출하/배송 대시보드 -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-truck"></i> 당일 출하 / 배송 현황 (포장 규격별)</h3>
+                        <span class="badge badge-green" id="shipping-overall-badge">출하율 80%</span>
+                    </div>
+                    <div class="shipping-dashboard-grid" id="shipping-dashboard-grid">
+                        <!-- JS 바인딩 -->
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px; padding: 10px 14px; background-color: var(--bg-primary); border-radius: 10px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            <i class="bi bi-box-seam" style="color: var(--accent-red);"></i> 미배송 잔량 합계: <b id="shipping-remaining-weight">0 kg</b>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            총 잔여 김치 무게: <b id="shipping-remaining-total" style="color: var(--accent-purple);">0 kg</b>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 생산지시서 발행 제어판 (Manual Order Form) -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-file-earmark-plus"></i> 신규 생산지시서 발행 제어판</h3>
+                    </div>
+                    <div class="form-wrapper" style="padding: 15px 0;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">체험 품목 선택</label>
+                                <select id="order-form-product" class="sim-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" onchange="calculateFormWeights()">
+                                    <option value="p300g">300g 맛김치 팩 (3,000원)</option>
+                                    <option value="p1kg" selected>1kg 포기김치 팩 (8,000원)</option>
+                                    <option value="p3kg">3kg 대용량 김치 팩 (20,000원)</option>
+                                    <option value="p5kg">5kg 실속 김치 팩 (32,000원)</option>
+                                    <option value="p10kg">10kg 업소용 김치 (60,000원)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">수량 (배추 포기수)</label>
+                                <input type="number" id="order-form-quantity" class="sim-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" min="1" max="50" value="5" oninput="calculateFormWeights()">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">배추 크기/규격</label>
+                                <select id="order-form-spec" class="sim-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" onchange="calculateFormWeights()">
+                                    <option value="2.5" selected>2.5 kg (표준형)</option>
+                                    <option value="3.0">3.0 kg (대형)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">배추 원산지</label>
+                                <select id="order-form-origin" class="sim-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <option value="강원 평창 고랭지" selected>강원 평창 고랭지</option>
+                                    <option value="제주 서귀포 산지">제주 서귀포 산지</option>
+                                    <option value="충남 태안 황토 배추">충남 태안 황토 배추</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">납품 상사</label>
+                                <select id="order-form-supplier" class="sim-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <option value="대관령 유통" selected>대관령 유통</option>
+                                    <option value="제주 영농조합">제주 영농조합</option>
+                                    <option value="서해안 청과">서해안 청과</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">입고 배달 루트</label>
+                                <select id="order-form-route" class="sim-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <option value="루트-1" selected>루트-1 (A구역 입고)</option>
+                                    <option value="루트-2">루트-2 (B구역 입고)</option>
+                                    <option value="루트-3">루트-3 (C구역 입고)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="padding: 12px; background-color: var(--accent-blue-bg); border: 1px solid var(--accent-blue); border-radius: 8px; font-size: 12px; color: var(--accent-blue); font-weight: 600; margin-bottom: 14px;" id="order-form-calc-result">
+                            배추 12.5kg 처리 가능 (양념 2.5kg 배합 후 김치 15.0kg 생산 예상)
+                        </div>
+                        <button class="top-action-btn" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 700; background-color: var(--accent-purple); color: #fff; border: none; border-radius: 8px; cursor: pointer;" onclick="issueManualOrder()">
+                            <i class="bi bi-file-earmark-plus-fill"></i> 생산지시서 발행 및 등록하기
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-file-earmark-spreadsheet"></i> 오늘자 생산지시서 현황 및 Task 1 적재 처리</h3>
+                        <span class="badge badge-blue" id="orders-total-count">총 0건</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        체험용 생산지시서 DB와 연동됩니다. 배추의 원산지, 납품사, 입고루트를 확인하고 **'Task 1(배추적재)로 전달'** 버튼을 클릭하면, 작업자의 화면에 배출된 지시서와 배추 산지 데이터가 전송됩니다.
+                    </p>
+                    <div class="table-wrapper">
+                        <table class="console-table">
+                            <thead>
+                                <tr>
+                                    <th>지시서 코드</th>
+                                    <th>체험 품목</th>
+                                    <th>배추 규격</th>
+                                    <th>배추 원산지 / 상사</th>
+                                    <th>입고 루트</th>
+                                    <th>지시서 생성 시각</th>
+                                    <th>현재 진행 상태</th>
+                                    <th>공정 배달 액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="production-orders-table-body">
+                                <!-- JS 바인딩 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 4: 실시간 공정 모니터 -->
+            <!-- ========================================== -->
+            <div id="panel-workers" class="tab-panel">
+                <!-- 공정 맵 비주얼 요약판 -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-diagram-3"></i> 김치 제조 5단계 Task별 실시간 투입 현황</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;" id="visual-task-map">
+                        <!-- JS 렌더링 -->
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-person-lines-fill"></i> 작업자 및 헬퍼 실시간 상태 현황판 (출근 / 휴식 / 급여 정산)</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="console-table">
+                            <thead>
+                                <tr>
+                                    <th>근로자명</th>
+                                    <th>역할</th>
+                                    <th>현재 위치</th>
+                                    <th>진행 단계 (Step)</th>
+                                    <th>체험 예약 상태</th>
+                                    <th>출근시간</th>
+                                    <th>실제 근로 시간</th>
+                                    <th>누적 휴식 시간</th>
+                                    <th>생산성 (과거평균대비)</th>
+                                    <th>실시간 적립 급여</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workers-list-table-body">
+                                <!-- JS 바인딩 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 5: 원부재료 재고 관리 -->
+            <!-- ========================================== -->
+            <div id="panel-inventory" class="tab-panel">
+                <div class="card-row">
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">배추 1포기당 단가</span>
+                            <span class="stats-value">2,500원</span>
+                            <div class="stats-trend neutral">
+                                총 배추 보유량 가치: <span id="stats-cabbage-value">0원</span>
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper green">
+                            <i class="bi bi-tag-fill"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">양념 재고 상태</span>
+                            <span class="stats-value" id="stats-seasoning-weight">0.0kg</span>
+                            <div class="stats-trend neutral" id="stats-seasoning-status-label">
+                                상태: 양호
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper red" id="stats-seasoning-icon-bg">
+                            <i class="bi bi-droplet-fill"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-info">
+                            <span class="stats-title">양념 제조 필요량 계산</span>
+                            <span class="stats-value" id="stats-needed-seasoning">0.0kg</span>
+                            <div class="stats-trend neutral">
+                                (배추 1포기당 0.5kg 양념 요구)
+                            </div>
+                        </div>
+                        <div class="stats-icon-wrapper blue">
+                            <i class="bi bi-calculator-fill"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- 원자재 목록 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-box"></i> 원자재 및 위생 PPE 재고 테이블</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="console-table">
+                                <thead>
+                                    <tr>
+                                        <th>원부자재명</th>
+                                        <th>현재 수량</th>
+                                        <th>유통기한</th>
+                                        <th>공급 루트 / 상사</th>
+                                        <th>재고 경고 등급</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="raw-inventory-table-body">
+                                    <!-- JS 바인딩 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 완제품 카탈로그 카드 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-images"></i> 완제품 상품 카탈로그 및 단가</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 16px;" id="product-catalog-list">
+                            <!-- JS 바인딩 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 6: 절임 및 숙성실 -->
+            <!-- ========================================== -->
+            <div id="panel-salting" class="tab-panel">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-snow2"></i> 냉장 보관 절임실 배치 모니터링 (6시간 절임 공정)</h3>
+                        <span class="badge badge-blue" id="salting-batch-total-lbl">진행 중 0개</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        배추를 소금물에 절여 6시간 동안 숙성시키는 저온 절임실 보관 상태를 모니터링합니다. 6시간이 초과되어 절임이 완료되면, 자동으로 '숙성 완료 절임 배추' 재고로 누적되어 Task 4 양념 버무리기 공정에 공급할 수 있습니다.
+                    </p>
+                    <div class="salting-grid" id="salting-room-container">
+                        <!-- JS 바인딩 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 7: 오너 결재 & 설비 -->
+            <!-- ========================================== -->
+            <div id="panel-facility" class="tab-panel">
+                <div class="facility-grid">
+                    <!-- 왼쪽: 공정 긴급 정지 / 스위치 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-exclamation-triangle-fill"></i> 공정 Task별 기기 긴급 정지 제어판</h3>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-secondary);">
+                            현장 가동 중에 기기 고장이나 돌발사고 감지 시 해당 Task의 전원을 긴급 차단할 수 있습니다. 차단 시 작업자의 가상 태블릿 화면에도 경고가 출력됩니다.
+                        </p>
+                        <div style="display: flex; flex-direction: column; gap: 12px;" id="facility-switch-container">
+                            <!-- JS 바인딩 -->
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽: 오너 승인 요청 대기열 및 시프트 마감 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-patch-question-fill"></i> 본사 슈퍼바이저 / 오너(Owner) 자산 승인 대기열</h3>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-secondary);">
+                            자산 구매(배추 추가 매입), 설비 유상 수리, 특수 청소 신청, 불량품 폐기 감액 승인 등 대규모 금액 처리가 필요한 업무는 오너의 승인 번호가 내려와야 집행이 가능합니다.
+                        </p>
+
+                        <div class="table-wrapper">
+                            <table class="console-table">
+                                <thead>
+                                    <tr>
+                                        <th>요청 코드</th>
+                                        <th>구분</th>
+                                        <th>승인 요청 내용</th>
+                                        <th>소요 비용</th>
+                                        <th>요청 시각</th>
+                                        <th>결재 상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="owner-approvals-table-body">
+                                    <!-- JS 바인딩 -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 신규 결재 기안서 폼 -->
+                        <div class="owner-req-form">
+                            <h4 style="font-size: 12px; font-weight: 700; color: var(--accent-purple); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 6px;">신규 자금 및 자산 결재 기안서 송신</h4>
+                            <div class="owner-req-grid">
+                                <div class="form-group">
+                                    <label>결재 구분</label>
+                                    <select class="form-control" id="owner-req-type">
+                                        <option value="purchase">배추 추가 매입 ( heads * 2,500원 )</option>
+                                        <option value="repair">기기 설비 유상 수리</option>
+                                        <option value="cleaning">특수 청소 및 살균 가동</option>
+                                        <option value="defect">대량 불량 처리 폐기 승인</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>기안 명목</label>
+                                    <input type="text" class="form-control" id="owner-req-title" placeholder="예: 국산 고춧가루 추가 급매">
+                                </div>
+                                <div class="form-group">
+                                    <label>요청 수량/설명</label>
+                                    <input type="text" class="form-control" id="owner-req-desc" placeholder="예: 배추 50포기 또는 3호기 노즐 교체">
+                                </div>
+                                <div class="form-group">
+                                    <label>소요 예상 금액 (원)</label>
+                                    <input type="number" class="form-control" id="owner-req-cost" placeholder="예: 125000">
+                                </div>
+                            </div>
+                            <button class="btn-submit-req" onclick="submitOwnerApproval()">오너 결재 기안 송신 (FCM 모사)</button>
+                        </div>
+
+                        <!-- 최종 시프트 마감 승인 -->
+                        <div style="border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <h4 style="font-size: 13px; font-weight:700;">시프트 최종 작업량 승인요청 (Shift Close Out)</h4>
+                                <p style="font-size:11px; color:var(--text-secondary);">2시간 시프트 작업 종료 시 오늘 제조한 최종 완제품의 작업량을 오너에게 승인받아 실습을 종결합니다.</p>
+                            </div>
+                            <button class="top-action-btn" style="background: linear-gradient(135deg, #10ac84, #01a3a4); color:#fff; border:none;" onclick="requestShiftCloseOut()">
+                                <i class="bi bi-send-check-fill"></i> 시프트 마감 결재 송신
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 8: 시뮬레이터 조작판 -->
+            <!-- ========================================== -->
+            <div id="panel-simulation" class="tab-panel">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-controller"></i> 스마트팩토리 1인 다중 세션 테스트 시뮬레이터</h3>
+                        <span class="badge badge-purple">개발 및 평가용 간이 조작판</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        여러 명의 체험자가 각각 기기에서 클릭하거나 위생 사진을 업로드하고 QR코드를 스캔하는 등의 시나리오를 이 하나의 대시보드 화면에서 즉시 모의 연출할 수 있습니다. 버튼을 클릭하면 `localStorage`와 이벤트 채널을 통해 다른 탭들과 실시간 연동됩니다.
+                    </p>
+
+                    <div class="sim-section-title">[최수아] 일반 체험자 가상 행동 모사</div>
+                    <div class="sim-actions-grid">
+                        <button class="sim-btn" onclick="simUserAction('sua_photo')">
+                            <i class="bi bi-camera-fill"></i>
+                            <span>위생 사진 제출 모사</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('sua_qr')">
+                            <i class="bi bi-qr-code-scan"></i>
+                            <span>출근 QR 스캔 모사</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('sua_break_start')">
+                            <i class="bi bi-cup-hot-fill"></i>
+                            <span>휴식 시작 모사</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('sua_break_end')">
+                            <i class="bi bi-play-fill"></i>
+                            <span>휴식 종료 모사</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('sua_task1_complete')">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Task 1 작업완료 모사</span>
+                        </button>
+                    </div>
+
+                    <div class="sim-section-title">[김수민] 일반 체험자 가상 행동 모사</div>
+                    <div class="sim-actions-grid">
+                        <button class="sim-btn" onclick="simUserAction('sumin_photo')">
+                            <i class="bi bi-camera-fill"></i>
+                            <span>위생 사진 제출 모사</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('sumin_qr')">
+                            <i class="bi bi-qr-code-scan"></i>
+                            <span>출근 QR 스캔 모사</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('sumin_task_progress')">
+                            <i class="bi bi-arrow-right-circle-fill"></i>
+                            <span>공정 작업 진행도 변경</span>
+                        </button>
+                    </div>
+
+                    <div class="sim-section-title">가상 생산지시서 및 오너 결재 피드백 시뮬레이션</div>
+                    <div class="sim-actions-grid">
+                        <button class="sim-btn" onclick="simUserAction('create_prod_order')">
+                            <i class="bi bi-file-earmark-plus-fill"></i>
+                            <span>신규 생산지시서 생성</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('owner_approve_all')">
+                            <i class="bi bi-check-all"></i>
+                            <span>오너 미결재 전원 승인</span>
+                        </button>
+                        <button class="sim-btn" onclick="simUserAction('trigger_machine_fail')">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                            <span>무작위 기기 고장 유도</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 탭 9: 재정 및 통계 분석 -->
+            <!-- ========================================== -->
+            <div id="panel-analytics" class="tab-panel">
+                <div class="charts-container-grid">
+                    <!-- 차트 1: 누적 수익 및 지출 비용 흐름 -->
+                    <div class="section-card chart-box-large">
+                        <div class="card-header">
+                            <h3><i class="bi bi-graph-up"></i> 실시간 누적 매출 vs 비용 트렌드 분석 (2시간 시프트 기준)</h3>
+                        </div>
+                        <div class="chart-canvas-wrapper">
+                            <canvas id="chartFinanceTrend"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 차트 2: 작업자 생산 효율도 비교 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-bar-chart-steps"></i> 작업자별 생산량 속도 분석 (과거 평균치 비교)</h3>
+                        </div>
+                        <div class="chart-canvas-wrapper">
+                            <canvas id="chartWorkerSpeed"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 차트 3: 완제품 출하 규격별 비율 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-pie-chart-fill"></i> 제품 규격별 누적 주문량 분포</h3>
+                        </div>
+                        <div class="chart-canvas-wrapper">
+                            <canvas id="chartProductRatio"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── 3. 매니저 웹 핵심 비즈니스 로직 스크립트 ── -->
+    <script>
+        // ── A. 글로벌 상태 변수 ──
+        let activeTab = 'dashboard';
+        let remainingSeconds = 7200;
+        let lastApprovalCount = 0;
+        let systemLogs = [];
+
+        var defaultProductionOrders = {
+            "260530-5-9": {
+                orderId: "260530-5-9",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 2,
+                progressStatus: "생산중 (Stage1완료)",
+                cabbageOrigin: "강원도 평창 고랭지",
+                supplier: "대관령 유통",
+                deliveryRoute: "루트-1",
+                createdTime: "15:00:00",
+                stages: {
+                    1: {
+                        operator: "최수아",
+                        startTime: "15:00:00",
+                        endTime: "15:15:00",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "최수아", startTime: "15:00:00", endTime: "15:15:00", duration: 900 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            },
+            "260612-5-1": {
+                orderId: "260612-5-1",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 2,
+                progressStatus: "생산중 (Stage1완료)",
+                cabbageOrigin: "강원도 평창 고랭지",
+                supplier: "대관령 유통",
+                deliveryRoute: "루트-1",
+                createdTime: "오후 9:46",
+                stages: {
+                    1: {
+                        operator: "최수아",
+                        startTime: "21:46:00",
+                        endTime: "22:01:00",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "최수아", startTime: "21:46:00", endTime: "22:01:00", duration: 900 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            },
+            "260530-5-8": {
+                orderId: "260530-5-8",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 2,
+                progressStatus: "생산중 (Stage1완료)",
+                cabbageOrigin: "강원도 평창 고랭지",
+                supplier: "대관령 유통",
+                deliveryRoute: "루트-1",
+                createdTime: "14:00:00",
+                stages: {
+                    1: {
+                        operator: "김태호",
+                        startTime: "14:00:12",
+                        endTime: "14:30:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "김태호", startTime: "14:00:12", endTime: "14:18:12", duration: 1080 },
+                            { operator: "박준호", startTime: "14:18:12", endTime: "14:30:12", duration: 720 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            },
+            "260530-5-5": {
+                orderId: "260530-5-5",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 3,
+                progressStatus: "생산중 (Stage2완료)",
+                cabbageOrigin: "전라남도 해남 겨울배추",
+                supplier: "남도 농산",
+                deliveryRoute: "루트-2",
+                createdTime: "14:00:00",
+                stages: {
+                    1: {
+                        operator: "김태호",
+                        startTime: "14:00:12",
+                        endTime: "14:30:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "김태호", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    2: {
+                        operator: "김태호",
+                        startTime: "14:30:12",
+                        endTime: "15:00:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "최은지", startTime: "14:30:12", endTime: "14:45:12", duration: 900 },
+                            { operator: "김태호", startTime: "14:45:12", endTime: "15:00:12", duration: 900 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            },
+            "260530-5-3": {
+                orderId: "260530-5-3",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 3,
+                progressStatus: "생산중 (Stage2완료)",
+                cabbageOrigin: "충청북도 괴산 가을배추",
+                supplier: "태백 농협",
+                deliveryRoute: "루트-3",
+                createdTime: "14:00:00",
+                stages: {
+                    1: {
+                        operator: "김태호",
+                        startTime: "14:00:12",
+                        endTime: "14:30:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "김태호", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    2: {
+                        operator: "최은지",
+                        startTime: "14:30:12",
+                        endTime: "15:00:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "최은지", startTime: "14:30:12", endTime: "15:00:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            },
+            "260530-5-2": {
+                orderId: "260530-5-2",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 4,
+                progressStatus: "생산중 (Stage3완료)",
+                cabbageOrigin: "강원도 정선 고랭지",
+                supplier: "대구 유통",
+                deliveryRoute: "루트-1",
+                createdTime: "13:30:00",
+                stages: {
+                    1: {
+                        operator: "김태호",
+                        startTime: "13:30:12",
+                        endTime: "14:00:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "김태호", startTime: "13:30:12", endTime: "14:00:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    2: {
+                        operator: "최은지",
+                        startTime: "14:00:12",
+                        endTime: "14:30:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "최은지", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    3: {
+                        operator: "이영희",
+                        startTime: "14:30:12",
+                        endTime: "15:00:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "이영희", startTime: "14:30:12", endTime: "15:00:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            },
+            "260530-5-1": {
+                orderId: "260530-5-1",
+                productId: "p1kg",
+                productName: "1kg 포기김치",
+                quantity: 5,
+                status: "in_progress",
+                currentTask: 5,
+                progressStatus: "생산중 (Stage4완료)",
+                cabbageOrigin: "강원도 태백 고랭지",
+                supplier: "태백 농협",
+                deliveryRoute: "루트-2",
+                createdTime: "13:00:00",
+                stages: {
+                    1: {
+                        operator: "김태호",
+                        startTime: "13:00:12",
+                        endTime: "13:30:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "김태호", startTime: "13:00:12", endTime: "13:30:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    2: {
+                        operator: "최은지",
+                        startTime: "13:30:12",
+                        endTime: "14:00:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "최은지", startTime: "13:30:12", endTime: "14:00:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    3: {
+                        operator: "이영희",
+                        startTime: "14:00:12",
+                        endTime: "14:30:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "이영희", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    },
+                    4: {
+                        operator: "정다은",
+                        startTime: "14:30:12",
+                        endTime: "15:00:12",
+                        postWorkQty: 5,
+                        postWorkWeight: 4.0,
+                        sessions: [
+                            { operator: "정다은", startTime: "14:30:12", endTime: "15:00:12", duration: 1800 }
+                        ],
+                        defectCount: 0,
+                        weight: 4.0,
+                        step1Done: true,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        statusSubmitted: true
+                    }
+                }
+            }
+        };
+
+        // 차트 인스턴스 저장용
+        let chartFinance = null;
+        let chartSpeed = null;
+        let chartProduct = null;
+
+        // 차트 히스토리 저장을 위한 가상 배열
+        let financeHistory = {
+            labels: [],
+            revenue: [],
+            cost: []
+        };
+
+        // ── B. Web Audio API 기반 오디오 비프 톤 재생기 (외부 파일 의존성 제거) ──
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 첫 번째 음
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+                gain1.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start();
+                osc1.stop(audioCtx.currentTime + 0.15);
+
+                // 두 번째 음 (약간 지연되어 재생)
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(1046.5, audioCtx.currentTime); // C6 note
+                    gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.2);
+                }, 150);
+            } catch(e) {
+                console.error("Audio beep synthesis failed: ", e);
+            }
+        }
+
+        // ── C. 시스템 로그 출력 도구 ──
+        function addConsoleLog(message) {
+            const timeStr = new Date().toLocaleTimeString();
+            const logLine = `[${timeStr}] ${message}`;
+            systemLogs.push(logLine);
+            if (systemLogs.length > 50) systemLogs.shift();
+
+            const container = document.getElementById("system-console-log");
+            if (container) {
+                container.innerHTML = systemLogs.map(line => `<div class="sys-log-line">${escapeHtml(line)}</div>`).join("");
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function clearSysLog() {
+            systemLogs = [];
+            addConsoleLog("로그를 초기화하였습니다.");
+        }
+
+        function resetManagerTestSession() {
+            if (!confirm("정말로 테스트 세션을 초기화하시겠습니까? 모든 체험자 상태와 생산지시서가 초기화되며, 체험자 3인(최수아, 김수민, 김영희)이 대기 상태로 재정렬됩니다.")) {
+                return;
+            }
+
+            // 1. localStorage 데이터 지우기
+            localStorage.clear();
+            
+            // 2. 초기 근로자 상태 설정 (최초 대기 상태 3인 설정)
+            const initialWorkersProgress = {
+                "local-capegon21@gmail.com": {
+                    userId: "local-capegon21@gmail.com",
+                    userName: "최수아",
+                    currentStep: 0,
+                    stepName: "대기 중",
+                    status: "waiting",
+                    location: "대기실",
+                    checkInTime: null,
+                    accumWorkSeconds: 0,
+                    accumBreakSeconds: 0,
+                    completedOrdersCount: 0,
+                    lastActiveTime: new Date().toISOString()
+                },
+                "local-capegon23@gmail.com": {
+                    userId: "local-capegon23@gmail.com",
+                    userName: "김수민",
+                    currentStep: 0,
+                    stepName: "대기 중",
+                    status: "waiting",
+                    location: "대기실",
+                    checkInTime: null,
+                    accumWorkSeconds: 0,
+                    accumBreakSeconds: 0,
+                    completedOrdersCount: 0,
+                    lastActiveTime: new Date().toISOString()
+                },
+                "local-helper-kim": {
+                    userId: "local-helper-kim",
+                    userName: "김영희",
+                    currentStep: 0,
+                    stepName: "대기 중",
+                    status: "waiting",
+                    location: "대기실",
+                    checkInTime: null,
+                    accumWorkSeconds: 0,
+                    accumBreakSeconds: 0,
+                    completedOrdersCount: 0,
+                    lastActiveTime: new Date().toISOString(),
+                    isHelper: true
+                }
+            };
+            localStorage.setItem("kimp_workers_progress", JSON.stringify(initialWorkersProgress));
+
+            // 3. 매니저 본인 상태 초기화 (출근하지 않은 상태)
+            const initialManagerOwnState = {
+                location: "office",
+                activity: "supervising",
+                assignedTask: null,
+                checkInTime: null
+            };
+            localStorage.setItem("kimp_manager_own_state", JSON.stringify(initialManagerOwnState));
+
+            // 4. 시프트 잔여 시간 초기화 (2시간 = 7200초)
+            localStorage.setItem("kimp_remaining_seconds", "7200");
+
+            // 5. 기본 데이터 셋 구조 복구
+            localStorage.setItem("kimp_factory_initialized", "true");
+
+            // 5.1. 재정 기본 상태 설정
+            localStorage.setItem("kimp_factory_finance", JSON.stringify({ revenue: 0, cost: 0 }));
+
+            // 5.2. 기본 오더 맵 구조
+            localStorage.setItem("kimp_production_orders", JSON.stringify(defaultProductionOrders));
+            localStorage.setItem("kimp_approval_requests", JSON.stringify([]));
+
+            // 5.3. 5개 절임 배치 초기 세팅 (2시간 시프트에 가동할 데이터 구조 맞춰두기)
+            const initialSalting = [
+                { id: "20260612-5-1", status: "salting", startTime: Date.now() - 3 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, cabbageHeads: 5 },
+                { id: "20260612-5-2", status: "salting", startTime: Date.now() - 3 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, cabbageHeads: 5 },
+                { id: "20260612-5-3", status: "salting", startTime: Date.now() - 3.2 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, cabbageHeads: 5 },
+                { id: "20260612-5-4", status: "matured", startTime: Date.now() - 7.5 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, cabbageHeads: 5, maturedTime: Date.now() - 1.5 * 3600 * 1000 },
+                { id: "20260612-5-5", status: "matured", startTime: Date.now() - 9 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, cabbageHeads: 5, maturedTime: Date.now() - 3.0 * 3600 * 1000 }
+            ];
+            localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSalting));
+            localStorage.setItem("kimp_factory_matured_cabbages", "10");
+
+            // 5.4. 당일 출하/배송 현황 초기화 (시뮬레이터와 구조 맞추기)
+            const initialDailyOrders = {
+                p300g: { ordered: 10, completed: 0, backlog: 2 },
+                p1kg: { ordered: 20, completed: 0, backlog: 4 },
+                p3kg: { ordered: 10, completed: 0, backlog: 2 },
+                p5kg: { ordered: 10, completed: 0, backlog: 2 },
+                p10kg: { ordered: 1, completed: 0, backlog: 1 }
+            };
+            localStorage.setItem("kimp_daily_orders", JSON.stringify(initialDailyOrders));
+
+            addConsoleLog("[시스템] 테스트 세션이 성공적으로 초기화되었습니다. 모든 상태가 최초 조건으로 복구되었습니다.");
+            
+            // 6. 화면 갱신
+            loadManagerStatus();
+            refreshAllData();
+            
+            // 7. 출근 스위치 엘리먼트 수동 조작
+            const clockSwitch = document.getElementById("manager-clock-switch");
+            if (clockSwitch) {
+                clockSwitch.checked = false;
+                const clockLbl = document.getElementById("clock-in-status");
+                if (clockLbl) {
+                    clockLbl.textContent = "출근 대기";
+                    clockLbl.style.color = "var(--text-secondary)";
+                }
+            }
+
+            alert("테스트 세션이 성공적으로 초기화되었습니다!");
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // ── D. 탭 전환 처리 ──
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+
+            // 액티브 클래스 부여
+            const activeLink = document.querySelector(`a[href="#${tabId}"]`);
+            if (activeLink) activeLink.classList.add('active');
+
+            const activePanel = document.getElementById(`panel-${tabId}`);
+            if (activePanel) activePanel.classList.add('active');
+
+            // 헤더 정보 변경
+            const titleMap = {
+                dashboard: { title: "김치공정 종합 대시보드", desc: "스마트팩토리 김치 제조 관리 환경을 한눈에 모니터링합니다." },
+                hygiene: { title: "실시간 사진 심사 센터", desc: "체험자들이 올린 위생 검증, 특별 청소 및 불량 감액 사진을 신속하게 확인하고 승인/반려합니다." },
+                orders: { title: "생산 지시서 제어판", desc: "오늘 대기 중인 생산 지시서 목록을 조회하고 배추 입고루트에 맞춰 공정에 전달합니다." },
+                workers: { title: "실시간 공정 및 근로자 모니터", desc: "작업자들의 실제 근무/휴식 상태, 실시간 시급 누적, 생산 효율성을 실시간으로 대조합니다." },
+                inventory: { title: "원부재료 및 소모품 재고 자산", desc: "공장의 배추, 양념 제조 필요량, 각종 위생 소품의 실시간 남은 양과 유통기한을 통제합니다." },
+                salting: { title: "냉장 절임실 6시간 숙성고", desc: "원자재인 배추의 절임 소요 시간 카운트다운과 가용 배추 수준을 감시합니다." },
+                facility: { title: "오너 결재 및 기기 전원 제어", desc: "긴급 상황 시 공정 전원 스위치 차단 및 오너에게 자금 및 최종 작업량 마감 결재를 요청합니다." },
+                simulation: { title: "1인 시나리오 테스트 시뮬레이터", desc: "기능 테스트를 위해 가상의 체험자들의 행동을 강제 모사하여 실시간 반응을 확인합니다." },
+                analytics: { title: "누적 매출 및 지출 재정 통계", desc: "비용과 수익 트렌드 곡선, 작업자 생산 속도 편차, 상품 판매 비율을 그래프로 정밀 분석합니다." }
+            };
+
+            const headerTitle = document.getElementById("header-page-title");
+            const headerSubtitle = document.getElementById("header-page-subtitle");
+            if (headerTitle && titleMap[tabId]) {
+                headerTitle.textContent = titleMap[tabId].title;
+                headerSubtitle.textContent = titleMap[tabId].desc;
+            }
+
+            // 차트 탭일 경우 강제 리드로우
+            if (tabId === 'analytics') {
+                setTimeout(initCharts, 50);
+            }
+        }
+
+        // ── E. 매니저 출근 상태 관리 ──
+        function loadManagerStatus() {
+            let mgrState = { location: "office", activity: "supervising", assignedTask: null, checkInTime: null };
+            try {
+                const saved = localStorage.getItem("kimp_manager_own_state");
+                if (saved) mgrState = JSON.parse(saved);
+            } catch(e) {}
+
+            const clockSwitch = document.getElementById("manager-clock-switch");
+            const clockLbl = document.getElementById("clock-in-status");
+
+            if (mgrState.checkInTime) {
+                clockSwitch.checked = true;
+                clockLbl.textContent = "출근 완료";
+                clockLbl.style.color = "var(--accent-green)";
+            } else {
+                clockSwitch.checked = false;
+                clockLbl.textContent = "출근 대기";
+                clockLbl.style.color = "var(--text-secondary)";
+            }
+
+            // 위치 버튼 토글
+            document.querySelectorAll("#panel-dashboard .manager-status-grid button").forEach(btn => btn.classList.remove('active'));
+            if (mgrState.location === 'office') {
+                document.getElementById("mgr-loc-office")?.classList.add('active');
+            } else {
+                document.getElementById("mgr-loc-workshop")?.classList.add('active');
+            }
+
+            // 활동 버튼 토글
+            document.getElementById("mgr-act-supervising")?.classList.remove('active');
+            document.getElementById("mgr-act-participating")?.classList.remove('active');
+            document.getElementById("mgr-act-helper")?.classList.remove('active');
+            
+            if (mgrState.activity === 'supervising') {
+                document.getElementById("mgr-act-supervising")?.classList.add('active');
+                document.getElementById("mgr-task-selector")?.classList.remove('show');
+            } else if (mgrState.activity === 'participating') {
+                document.getElementById("mgr-act-participating")?.classList.add('active');
+                document.getElementById("mgr-task-selector")?.classList.add('show');
+            } else if (mgrState.activity === 'helper') {
+                document.getElementById("mgr-act-helper")?.classList.add('active');
+                document.getElementById("mgr-task-selector")?.classList.add('show');
+            }
+
+            // Task 선택기 갱신
+            document.querySelectorAll(".task-mini-btn").forEach(btn => btn.classList.remove('active'));
+            if (mgrState.assignedTask) {
+                document.getElementById(`mgr-task-${mgrState.assignedTask}`)?.classList.add('active');
+            }
+        }
+
+        function toggleManagerClockIn() {
+            const clockSwitch = document.getElementById("manager-clock-switch");
+            const clockLbl = document.getElementById("clock-in-status");
+
+            let mgrState = { location: "office", activity: "supervising", assignedTask: null, checkInTime: null };
+            try {
+                const saved = localStorage.getItem("kimp_manager_own_state");
+                if (saved) mgrState = JSON.parse(saved);
+            } catch(e) {}
+
+            if (clockSwitch.checked) {
+                mgrState.checkInTime = new Date().toLocaleTimeString();
+                clockLbl.textContent = "출근 완료";
+                clockLbl.style.color = "var(--accent-green)";
+                addConsoleLog("매니저가 스마트 팩토리 대시보드에 정식 출근 하였습니다.");
+                window.addAppLog("매니저 출근 등록을 완료하였습니다.");
+            } else {
+                mgrState.checkInTime = null;
+                clockLbl.textContent = "출근 대기";
+                clockLbl.style.color = "var(--text-secondary)";
+                addConsoleLog("매니저가 퇴근 처리되었습니다.");
+                window.addAppLog("매니저 퇴근 처리를 완료하였습니다.");
+            }
+
+            localStorage.setItem("kimp_manager_own_state", JSON.stringify(mgrState));
+            loadManagerStatus();
+            refreshAllData();
+        }
+
+        function updateManagerLocation(loc) {
+            let mgrState = getManagerOwnState();
+            mgrState.location = loc;
+            localStorage.setItem("kimp_manager_own_state", JSON.stringify(mgrState));
+            loadManagerStatus();
+            refreshAllData();
+            addConsoleLog(`매니저 위치 변경: ${loc === 'office' ? '사무실' : '현장 작업장'}`);
+            window.addAppLog(`매니저 위치를 ${loc === 'office' ? '사무실' : '작업장'}으로 변경하였습니다.`);
+        }
+
+        function updateManagerActivity(act) {
+            let mgrState = getManagerOwnState();
+            mgrState.activity = act;
+            if (act === 'supervising') {
+                mgrState.assignedTask = null;
+            } else if (!mgrState.assignedTask) {
+                mgrState.assignedTask = 1; // 기본값
+            }
+            localStorage.setItem("kimp_manager_own_state", JSON.stringify(mgrState));
+            loadManagerStatus();
+            refreshAllData();
+            addConsoleLog(`매니저 활동 변경: ${act}`);
+            window.addAppLog(`매니저 활동 상태를 ${act}(으)로 변경하였습니다.`);
+        }
+
+        function assignManagerTask(taskNum) {
+            let mgrState = getManagerOwnState();
+            mgrState.assignedTask = taskNum;
+            localStorage.setItem("kimp_manager_own_state", JSON.stringify(mgrState));
+            loadManagerStatus();
+            refreshAllData();
+            addConsoleLog(`매니저 세부 투입 공정 변경: Task ${taskNum}`);
+            window.addAppLog(`매니저 배정 공정을 Task ${taskNum}(으)로 지정했습니다.`);
+        }
+
+        function getManagerOwnState() {
+            let mgrState = { location: "office", activity: "supervising", assignedTask: null, checkInTime: null };
+            try {
+                const saved = localStorage.getItem("kimp_manager_own_state");
+                if (saved) mgrState = JSON.parse(saved);
+            } catch(e) {}
+            return mgrState;
+        }
+
+        // ── E.5 생산지시서 데이터 호환성 및 헬퍼 ──
+        function loadProductionOrders() {
+            let raw = localStorage.getItem("kimp_production_orders");
+            if (!raw || raw === "{}" || raw === "[]") {
+                localStorage.setItem("kimp_production_orders", JSON.stringify(defaultProductionOrders));
+                return JSON.parse(JSON.stringify(defaultProductionOrders));
+            }
+            try {
+                let parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    let obj = {};
+                    parsed.forEach(o => {
+                        if (o && o.orderId) obj[o.orderId] = o;
+                    });
+                    return obj;
+                }
+                return parsed;
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveProductionOrders(ordersObj) {
+            localStorage.setItem("kimp_production_orders", JSON.stringify(ordersObj));
+        }
+
+        function printOrderSheet(orderId) {
+            let ordersObj = loadProductionOrders();
+            let o = ordersObj[orderId];
+            if (!o) return;
+
+            // Generate QR Code URL using api.qrserver.com
+            const qrData = {
+                id: o.orderId,
+                taskName: "김치만들기",
+                date: new Date().toLocaleDateString(),
+                cabbageInfo: `${o.quantity}포기 (${o.cabbageOrigin})`,
+                route: o.deliveryRoute
+            };
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(JSON.stringify(qrData))}`;
+
+            // Open popup window
+            const popup = window.open("", "_blank", "width=600,height=700");
+            popup.document.write(`
+                <html>
+                <head>
+                    <title>생산지시서 출력 - ${o.orderId}</title>
+                    <style>
+                        body { font-family: 'Noto Sans KR', sans-serif; padding: 40px; color: #333; }
+                        .sheet-container { border: 2px solid #333; padding: 30px; border-radius: 12px; max-width: 500px; margin: 0 auto; }
+                        h2 { text-align: center; margin-bottom: 30px; border-bottom: 2px double #333; padding-bottom: 10px; }
+                        .info-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; border-bottom: 1px dashed #ddd; padding-bottom: 8px; }
+                        .info-label { font-weight: bold; }
+                        .qr-section { text-align: center; margin-top: 40px; }
+                        .qr-image { width: 150px; height: 150px; margin-bottom: 15px; }
+                        .footer-msg { text-align: center; font-size: 12px; color: #777; margin-top: 30px; }
+                        @media print {
+                            body { padding: 0; }
+                            .sheet-container { border: none; padding: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="sheet-container">
+                        <h2>생산 작업 지시서</h2>
+                        <div class="info-row">
+                            <span class="info-label">지시서 ID:</span>
+                            <span>${o.orderId}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">작업 유형:</span>
+                            <span>김치 만들기 (생산)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">품목 종류:</span>
+                            <span>${o.productName}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">배추 규격:</span>
+                            <span>${o.quantity}포기 (${o.cabbageOrigin})</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">납품 상사:</span>
+                            <span>${o.supplier || '-'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">입고 루트:</span>
+                            <span>${o.deliveryRoute || '-'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">지시서 발행 시각:</span>
+                            <span>${o.createdTime || '-'}</span>
+                        </div>
+                        <div class="qr-section">
+                            <img class="qr-image" src="${qrUrl}" alt="QR Code">
+                            <div style="font-size: 12px; font-weight: bold;">[현장 스캔용 QR 코드]</div>
+                        </div>
+                        <div class="footer-msg">
+                            위 지시서 정보는 QR 코드로 암호화되어 관리됩니다.<br>
+                            Task 1 작업대로 이송하여 공정을 시작해 주십시오.
+                        </div>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            popup.document.close();
+        }
+
+        function calculateFormWeights() {
+            const qtyInput = document.getElementById("order-form-quantity");
+            const specSelect = document.getElementById("order-form-spec");
+            const resultDiv = document.getElementById("order-form-calc-result");
+            if (!qtyInput || !specSelect || !resultDiv) return;
+
+            const qty = parseInt(qtyInput.value) || 0;
+            const spec = parseFloat(specSelect.value) || 2.5;
+
+            const cabbageWeight = qty * spec;
+            const seasoningWeight = qty * 0.5;
+            const kimchiWeight = cabbageWeight + seasoningWeight;
+
+            resultDiv.textContent = `배추 ${cabbageWeight.toFixed(1)}kg 처리 가능 (양념 ${seasoningWeight.toFixed(1)}kg 배합 후 김치 ${kimchiWeight.toFixed(1)}kg 생산 예상)`;
+        }
+
+        function issueManualOrder() {
+            const productSelect = document.getElementById("order-form-product");
+            const qtyInput = document.getElementById("order-form-quantity");
+            const specSelect = document.getElementById("order-form-spec");
+            const originSelect = document.getElementById("order-form-origin");
+            const supplierSelect = document.getElementById("order-form-supplier");
+            const routeSelect = document.getElementById("order-form-route");
+
+            if (!productSelect || !qtyInput || !specSelect || !originSelect || !supplierSelect || !routeSelect) return;
+
+            const productVal = productSelect.value;
+            const quantity = parseInt(qtyInput.value) || 0;
+            const spec = parseFloat(specSelect.value) || 2.5;
+            const origin = originSelect.value;
+            const supplier = supplierSelect.value;
+            const route = routeSelect.value;
+
+            if (quantity <= 0) {
+                alert("수량은 1포기 이상이어야 합니다.");
+                return;
+            }
+
+            const dateObj = new Date();
+            const yy = String(dateObj.getFullYear()).slice(-2);
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const dateStr = `${yy}${mm}${dd}`; // "260612"
+            
+            let ordersObj = loadProductionOrders();
+            
+            // Generate the next sequence number for this date and quantity!
+            let maxSeq = 0;
+            const prefix = `${dateStr}-${quantity}-`;
+            Object.keys(ordersObj).forEach(key => {
+                if (key.startsWith(prefix)) {
+                    const suffixPart = key.slice(prefix.length);
+                    const seq = parseInt(suffixPart);
+                    if (!isNaN(seq) && seq > maxSeq) {
+                        maxSeq = seq;
+                    }
+                }
+            });
+            
+            const nextSeq = maxSeq + 1;
+            const newId = `${prefix}${nextSeq}`; // e.g. "260612-5-1"
+
+            const names = {
+                p300g: "300g 맛김치",
+                p1kg: "1kg 포기김치",
+                p3kg: "3kg 대용량 김치",
+                p5kg: "5kg 실속 김치",
+                p10kg: "10kg 업소용 김치"
+            };
+
+            const newOrder = {
+                orderId: newId,
+                productId: productVal,
+                productName: names[productVal],
+                quantity: quantity,
+                status: "pending",
+                progressStatus: "대기 중",
+                cabbageOrigin: origin,
+                supplier: supplier,
+                deliveryRoute: route,
+                createdTime: new Date().toLocaleTimeString().slice(0, 8),
+                stages: {}
+            };
+
+            ordersObj[newId] = newOrder;
+            saveProductionOrders(ordersObj);
+
+            addConsoleLog(`[생산지시서 발행] 신규 생산지시서 ${newId}가 등록되었습니다.`);
+            window.addAppLog(`신규 생산지시서 ${newId} (${names[productVal]} ${quantity}포기)를 수동 발행했습니다.`);
+
+            // Clear any "order_required" pending requests from kimp_approval_requests
+            let requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+            requests = requests.filter(r => r.type !== "order_required");
+            localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
+
+            refreshAllData();
+        }
+
+        function renderShippingDashboard() {
+            const container = document.getElementById("shipping-dashboard-grid");
+            if (!container) return;
+
+            let ordersObj = loadProductionOrders();
+            let orders = Object.values(ordersObj);
+
+            const quotas = {
+                p300g: { ordered: 10, initialShipped: 8, price: 3000, name: "300g 맛김치" },
+                p1kg:  { ordered: 20, initialShipped: 16, price: 8000, name: "1kg 포기김치" },
+                p3kg:  { ordered: 10, initialShipped: 8, price: 20000, name: "3kg 대용량" },
+                p5kg:  { ordered: 10, initialShipped: 8, price: 32000, name: "5kg 실속형" },
+                p10kg: { ordered: 1,  initialShipped: 0, price: 60000, name: "10kg 업소용" }
+            };
+
+            let completedCounts = { p300g: 0, p1kg: 0, p3kg: 0, p5kg: 0, p10kg: 0 };
+            orders.forEach(o => {
+                if (o.status === "completed" && completedCounts[o.productId] !== undefined) {
+                    completedCounts[o.productId]++;
+                }
+            });
+
+            let totalOrderedWeight = 0;
+            let totalShippedWeight = 0;
+            let html = "";
+
+            Object.keys(quotas).forEach(size => {
+                const q = quotas[size];
+                const shipped = q.initialShipped + completedCounts[size];
+                const remaining = Math.max(0, q.ordered - shipped);
+
+                let unitWeight = 1.0;
+                if (size === 'p300g') unitWeight = 0.3;
+                else if (size === 'p3kg') unitWeight = 3.0;
+                else if (size === 'p5kg') unitWeight = 5.0;
+                else if (size === 'p10kg') unitWeight = 10.0;
+
+                totalOrderedWeight += q.ordered * unitWeight;
+                totalShippedWeight += shipped * unitWeight;
+
+                const percent = Math.min(100, Math.round((shipped / q.ordered) * 100));
+
+                html += `
+                <div class="shipping-spec-card">
+                    <div class="spec-size">${q.name}</div>
+                    <div class="spec-price">${q.price.toLocaleString()}원</div>
+                    <div class="spec-quota">주문 ${q.ordered}개 / 출하 ${shipped}개</div>
+                    <div class="spec-bar">
+                        <div class="spec-bar-fill" style="width: ${percent}%;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:4px;">
+                        <span style="color:var(--text-secondary);">${percent}% 완료</span>
+                        <span class="spec-remaining">${remaining > 0 ? '미배송 ' + remaining + '개' : '출하 완료'}</span>
+                    </div>
+                </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            const remainingWeight = Math.max(0, totalOrderedWeight - totalShippedWeight);
+            document.getElementById("shipping-remaining-weight").textContent = `${remainingWeight.toFixed(1)} kg`;
+
+            const overallPercent = Math.min(100, Math.round((totalShippedWeight / totalOrderedWeight) * 100));
+            const badge = document.getElementById("shipping-overall-badge");
+            if (badge) {
+                badge.textContent = `출하율 ${overallPercent}%`;
+            }
+
+            let activeHeads = orders.filter(o => o.status !== "completed").reduce((sum, o) => sum + (o.quantity || 1), 0);
+            let activeWeight = activeHeads * 2.5;
+            document.getElementById("shipping-remaining-total").textContent = `${activeWeight.toFixed(1)} kg`;
+        }
+
+        function updateRemainingTargetAlert() {
+            let ordersObj = loadProductionOrders();
+            let orders = Object.values(ordersObj);
+
+            let totalIssuedHeads = orders.reduce((sum, o) => sum + (o.quantity || 0), 0);
+            let remainingTargetHeads = Math.max(0, 11 - totalIssuedHeads);
+            let remainingTargetWeight = remainingTargetHeads * 2.5;
+
+            const msgDiv = document.getElementById("rta-main-msg");
+            if (msgDiv) {
+                msgDiv.textContent = `오늘 앞으로 ${remainingTargetHeads} 포기 (${remainingTargetWeight.toFixed(1)} kg)를 더 작업해야 합니다.`;
+            }
+        }
+
+        // ── F. 데이터 갱신 핵심 루프 ──
+        function refreshAllData() {
+            // 1. 남은 타이머 업데이트
+            let remaining = parseInt(localStorage.getItem("kimp_remaining_seconds") || "7200");
+            const hrs = Math.floor(remaining / 3600);
+            const mins = Math.floor((remaining % 3600) / 60);
+            const secs = remaining % 60;
+            document.getElementById("shift-time-left").textContent = 
+                `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+            // 2. 재정 지표 업데이트
+            let finance = { revenue: 0, cost: 0 };
+            try {
+                finance = JSON.parse(localStorage.getItem("kimp_factory_finance") || '{"revenue":194500,"cost":87600}');
+            } catch(e) {}
+            
+            const balance = finance.revenue - finance.cost;
+            document.getElementById("stats-finance-ratio").textContent = 
+                `${finance.revenue.toLocaleString()}원 / ${finance.cost.toLocaleString()}원`;
+            document.getElementById("stats-expected-balance").textContent = 
+                `${balance.toLocaleString()}원`;
+
+            // 3. 주문 실적 업데이트
+            let products = {};
+            let todayTotal = 0, yesterdayTotal = 0, totalStock = 0;
+            try {
+                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+                Object.keys(products).forEach(k => {
+                    todayTotal += products[k].todayOrders || 0;
+                    yesterdayTotal += products[k].yesterdayOrders || 0;
+                    totalStock += products[k].stock || 0;
+                });
+            } catch(e) {}
+            document.getElementById("stats-orders-comp").textContent = `${todayTotal}건 / ${yesterdayTotal}건`;
+
+            // 4. 절임실 배추 업데이트
+            let maturedHeads = parseInt(localStorage.getItem("kimp_factory_matured_cabbages") || "15");
+            document.getElementById("stats-matured-heads").textContent = `${maturedHeads}포기`;
+
+            let saltingBatches = [];
+            try {
+                saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch(e) {}
+            const activeSalts = saltingBatches.filter(b => b.status === "salting").length;
+            document.getElementById("stats-salting-batches-count").textContent = `절임 진행 배치: ${activeSalts}개`;
+
+            // 5. 근로자 현황 업데이트
+            let workers = {};
+            try {
+                workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+            } catch(e) {}
+
+            let activeCount = 0, breakCount = 0, helperCount = 0;
+            Object.keys(workers).forEach(k => {
+                const w = workers[k];
+                if (w.status === "on_break") breakCount++;
+                else activeCount++;
+                if (w.isHelper) helperCount++;
+            });
+            document.getElementById("stats-workers-count").textContent = `${activeCount + breakCount}명`;
+            document.getElementById("stats-break-count").textContent = 
+                `작업자 ${activeCount}명 / 휴식 ${breakCount}명 / 헬퍼 ${helperCount}명`;
+
+            // 6. 완제품 요약 리스트 렌더링
+            renderProductSummary(products);
+
+            // 7. 위생 심사 렌더링
+            renderHygieneQueue();
+
+            // 8. 생산지시서 테이블 렌더링
+            renderProductionOrdersTable();
+            
+            // 8.5 출하/배송 대시보드 및 잔여목표 알림 갱신
+            renderShippingDashboard();
+            updateRemainingTargetAlert();
+
+            // 9. 공정 시각화 맵 & 근로자 테이블 렌더링
+            renderWorkersList(workers);
+
+            // 10. 원부재료 현황 렌더링
+            renderInventoryTable(maturedHeads);
+
+            // 11. 절임실 타이머 카드 렌더링
+            renderSaltingCards(saltingBatches);
+
+            // 12. 설비 전원 스위치 & 오너 결재 렌더링
+            renderFacilityAndOwnerApprovals();
+
+            // 차트 업데이트 (차트 탭 활성화 시)
+            if (activeTab === 'analytics') {
+                updateChartsData(finance, workers, products);
+            }
+        }
+
+        // ── G. 완제품 간이 요약 리스트 렌더링 ──
+        function renderProductSummary(products) {
+            const summaryContainer = document.getElementById("dashboard-product-summary");
+            if (!summaryContainer) return;
+
+            let html = "";
+            Object.keys(products).forEach(key => {
+                const item = products[key];
+                html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-primary);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${item.img}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" alt="${item.name}">
+                        <div>
+                            <div style="font-size: 13px; font-weight: 700;">${item.name}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">${item.desc}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-family: var(--font-outfit); font-size: 14px; font-weight: 700; color: var(--accent-purple);">${item.price.toLocaleString()}원</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">재고: <b>${item.stock}팩</b> | 주문: ${item.todayOrders}건</div>
+                    </div>
+                </div>
+                `;
+            });
+            summaryContainer.innerHTML = html;
+        }
+
+        // ── H. 위생 심사 렌더링 ──
+        function renderHygieneQueue() {
+            let requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+
+            // 미심사 건 필터
+            const pendingReqs = requests.filter(r => r.status === "pending");
+
+            // 뱃지 업데이트
+            const badge = document.getElementById("hygiene-badge");
+            const queueCount = document.getElementById("approval-queue-count");
+            
+            if (badge) {
+                if (pendingReqs.length > 0) {
+                    badge.textContent = pendingReqs.length;
+                    badge.style.display = "block";
+                } else {
+                    badge.style.display = "none";
+                }
+            }
+
+            if (queueCount) {
+                queueCount.textContent = `대기 ${pendingReqs.length}건`;
+                if (pendingReqs.length > 0) {
+                    queueCount.className = "badge badge-red";
+                } else {
+                    queueCount.className = "badge badge-gray";
+                }
+            }
+
+            // 비프 사운드 연동 (대기열 수가 늘어났을 때 작동)
+            if (pendingReqs.length > lastApprovalCount) {
+                playBeepSound();
+                addConsoleLog(`[알림] 새로운 위생 심사 요청이 도착했습니다. (대기열: ${pendingReqs.length}건)`);
+            }
+            lastApprovalCount = pendingReqs.length;
+
+            const container = document.getElementById("approval-queue-container");
+            if (!container) return;
+
+            if (pendingReqs.length === 0) {
+                container.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary); border: 2px dashed var(--border-color); border-radius: 16px;">
+                    <i class="bi bi-patch-check" style="font-size: 32px; color: var(--accent-green);"></i>
+                    <p style="margin-top: 10px; font-size: 13px;">현재 대기 중인 위생 심사 요청 건이 없습니다.</p>
+                </div>
+                `;
+                return;
+            }
+
+            let html = "";
+            pendingReqs.forEach(req => {
+                let imgHtml = "";
+                if (req.type === "order_required") {
+                    imgHtml = `<div class="approval-img-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; height: 120px; color: var(--accent-red); text-align: center;">
+                        <i class="bi bi-file-earmark-medical-fill" style="font-size: 28px; margin-bottom: 4px;"></i>
+                        <span style="font-size: 11px; font-weight: 600;">지시서 미등록</span>
+                    </div>`;
+                } else {
+                    const src = req.imageUrl || req.photoData || "./images/media__1781091605675.jpg";
+                    imgHtml = `
+                    <div class="approval-img-container">
+                        <img src="${src}" alt="심사 사진">
+                    </div>`;
+                }
+                
+                let title = req.title || "위생 검사 및 서류 제출 요청";
+                if (req.type === "defect") {
+                    title = `Stage${req.stageNum || ''}. 작업 전 수량확인`;
+                } else if (req.type === "completion") {
+                    title = `Stage${req.stageNum || ''}. 작업 후 수량확인`;
+                } else if (req.type === "cleaning") {
+                    title = `Stage${req.stageNum || ''} 특별 위생 청소 승인 요청`;
+                } else if (req.type === "hygiene") {
+                    title = "위생 검사 및 서류 제출 요청";
+                } else if (req.type === "order_required") {
+                    title = `Stage 1에 생산지시서가 필요합니다.`;
+                }
+
+                html += `
+                <div class="approval-card" id="req-card-${req.id}">
+                    ${imgHtml}
+                    <div class="approval-body">
+                        <div class="approval-user-info">
+                            <span class="approval-user-name">${req.userName}</span>
+                            <span class="approval-time">${req.submittedTime}</span>
+                        </div>
+                        <div class="approval-title">${title}</div>
+                        <div style="font-size:11px; color: var(--text-secondary);">ID: ${req.userId}</div>
+                        <div class="approval-footer-btns">
+                            <button class="approval-btn approve" onclick="approveHygiene('${req.id}', true)">승인</button>
+                            <button class="approval-btn reject" onclick="approveHygiene('${req.id}', false)">반려</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function approveHygiene(reqId, isApprove) {
+            let requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+
+            const idx = requests.findIndex(r => r.id === reqId);
+            if (idx !== -1) {
+                const req = requests[idx];
+                req.status = isApprove ? "approved" : "rejected";
+                localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
+                
+                const userId = req.userId;
+                const reqType = req.type || "hygiene";
+
+                if (reqType === "hygiene") {
+                    let workers = {};
+                    try {
+                        workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                    } catch(e) {}
+
+                    if (workers[userId]) {
+                        if (isApprove) {
+                            workers[userId].currentStep = 6;
+                            workers[userId].stepName = "Step 6. 위생 심사 승인 완료";
+                            workers[userId].location = "AFood Kimchi룸 입구";
+                        } else {
+                            workers[userId].currentStep = 5;
+                            workers[userId].stepName = "Step 5. 위생 검사 반려 (재촬영 대기)";
+                        }
+                        localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                    }
+                    addConsoleLog(`[심사 결과] ${req.userName} 사용자의 위생 검사를 ${isApprove ? '승인' : '반려'} 하였습니다.`);
+                    window.addAppLog(`${req.userName} 회원의 위생 검사 요청을 ${isApprove ? '승인' : '반려'} 처리하였습니다.`);
+                } else if (reqType === "defect") {
+                    addConsoleLog(`[심사 결과] ${req.userName} 사용자의 불량 감액 사진 심사를 ${isApprove ? '승인' : '반려'} 하였습니다.`);
+                    window.addAppLog(`${req.userName} 회원의 불량 감액 사진 심사 요청을 ${isApprove ? '승인' : '반려'} 처리하였습니다.`);
+                } else if (reqType === "cleaning") {
+                    addConsoleLog(`[심사 결과] ${req.userName} 사용자의 특별 위생 청소 사진 심사를 ${isApprove ? '승인' : '반려'} 하였습니다.`);
+                    window.addAppLog(`${req.userName} 회원의 특별 위생 청소 사진 심사 요청을 ${isApprove ? '승인' : '반려'} 처리하였습니다.`);
+                } else if (reqType === "order_required") {
+                    addConsoleLog(`[심사 결과] ${req.userName} 사용자의 지시서 필요 알림을 ${isApprove ? '승인' : '반려'} 하였습니다.`);
+                    window.addAppLog(`${req.userName} 회원의 지시서 필요 알림을 ${isApprove ? '승인' : '반려'} 처리하였습니다.`);
+                } else if (reqType === "completion") {
+                    let orders = {};
+                    try {
+                        orders = JSON.parse(localStorage.getItem("kimp_production_orders") || "{}");
+                    } catch(e) {}
+
+                    const orderId = req.orderId;
+                    const stageNum = parseInt(req.stageNum);
+
+                    if (orders[orderId]) {
+                        if (isApprove) {
+                            if (!orders[orderId].stages) {
+                                orders[orderId].stages = {};
+                            }
+                            if (!orders[orderId].stages[stageNum]) {
+                                orders[orderId].stages[stageNum] = {};
+                            }
+                            orders[orderId].stages[stageNum].statusSubmitted = true;
+                            orders[orderId].stages[stageNum].step1Done = true;
+                            orders[orderId].stages[stageNum].step2Done = true;
+                            orders[orderId].stages[stageNum].step3Done = true;
+                            orders[orderId].stages[stageNum].step4Done = true;
+                            orders[orderId].stages[stageNum].step5Done = true;
+                            orders[orderId].stages[stageNum].step2Status = "approved";
+                            orders[orderId].stages[stageNum].step3Status = "approved";
+                            orders[orderId].stages[stageNum].postWorkQty = req.postWorkQty || 5;
+                            orders[orderId].stages[stageNum].postWorkWeight = req.weight || 4.0;
+                            orders[orderId].stages[stageNum].endTime = new Date().toLocaleTimeString();
+
+                            if (stageNum === 5) {
+                                orders[orderId].status = "completed";
+                                orders[orderId].progressStatus = "생산 완료";
+                            } else {
+                                orders[orderId].currentTask = stageNum + 1;
+                                orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`;
+                            }
+                            addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 승인하였습니다.`);
+                            window.addAppLog(`생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 승인 처리하였습니다.`);
+                        } else {
+                            orders[orderId].progressStatus = "투입 후 생산 중";
+                            addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 반려하였습니다.`);
+                            window.addAppLog(`생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 반려 처리하였습니다.`);
+                        }
+                        localStorage.setItem("kimp_production_orders", JSON.stringify(orders));
+                    }
+                }
+            }
+            refreshAllData();
+        }
+
+        // ── I. 생산지시서 테이블 렌더링 ──
+        function renderProductionOrdersTable() {
+            let orders = Object.values(loadProductionOrders());
+
+            const totalCount = document.getElementById("orders-total-count");
+            if (totalCount) totalCount.textContent = `총 ${orders.length}건`;
+
+            const tbody = document.getElementById("production-orders-table-body");
+            if (!tbody) return;
+
+            if (orders.length === 0) {
+                tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                        등록된 생산지시서가 없습니다.
+                    </td>
+                </tr>
+                `;
+                return;
+            }
+
+            let html = "";
+            orders.forEach(o => {
+                let statusBadge = `<span class="badge badge-gray">대기 중</span>`;
+                let actionBtn = "";
+
+                let progress = o.progressStatus || "";
+                if (progress === "대기 중") {
+                    statusBadge = `<span class="badge badge-gray">대기 중</span>`;
+                } else if (progress === "QR코드 스캔 전") {
+                    statusBadge = `<span class="badge badge-yellow">QR코드 스캔 전</span>`;
+                } else if (progress === "투입 후 생산 중") {
+                    statusBadge = `<span class="badge badge-blue">투입 후 생산 중</span>`;
+                } else if (progress === "검사 대기 중") {
+                    statusBadge = `<span class="badge badge-yellow">검사 대기 중</span>`;
+                } else if (progress.startsWith("생산중 (Stage")) {
+                    statusBadge = `<span class="badge badge-blue">${progress}</span>`;
+                } else if (progress === "생산 완료" || o.status === "completed") {
+                    statusBadge = `<span class="badge badge-green">생산 완료</span>`;
+                } else {
+                    if (o.status === "pending") {
+                        statusBadge = `<span class="badge badge-yellow">작업 전 (대기)</span>`;
+                    } else if (o.status === "in_progress") {
+                        statusBadge = `<span class="badge badge-blue">생산 중 (Task ${o.currentTask || 1})</span>`;
+                    } else if (o.status === "completed") {
+                        statusBadge = `<span class="badge badge-green">생산 완료</span>`;
+                    }
+                }
+
+                if (o.status === "pending") {
+                    actionBtn = `<button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple);" onclick="sendOrderToTask1('${o.orderId}')">Task 1로 전달</button><span class="info-tooltip-wrap"><i class="bi bi-info-circle" style="color: var(--accent-blue); font-size: 14px;"></i><span class="info-tooltip-text">Task 1에 작업지시서를 전달해주세요.</span></span> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 4px;" onclick="printOrderSheet('${o.orderId}')">[인쇄하기]</button>`;
+                } else if (o.status === "in_progress") {
+                    actionBtn = `<div style="display: flex; align-items: center; gap: 6px;"><span style="font-size:11px; color: var(--text-secondary);">작업 중</span> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; display: inline-flex;" onclick="printOrderSheet('${o.orderId}')">[인쇄하기]</button></div>`;
+                } else if (o.status === "completed") {
+                    actionBtn = `<div style="display: flex; align-items: center; gap: 6px;"><i class="bi bi-check-circle-fill" style="color: var(--accent-green); font-size: 16px;"></i> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; display: inline-flex;" onclick="printOrderSheet('${o.orderId}')">[인쇄하기]</button></div>`;
+                }
+
+                html += `
+                <tr>
+                    <td style="font-family: var(--font-outfit); font-weight: 700;">${o.orderId}</td>
+                    <td>${o.productName || '김치 규종'}</td>
+                    <td style="font-weight: 600;">${o.quantity || 1}포기 (${((o.quantity || 1)*2.5).toFixed(1)}kg)</td>
+                    <td>
+                        <div style="font-weight:600;">${o.cabbageOrigin || '강원 평창 고랭지'}</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">${o.supplier || '대관령 유통'}</div>
+                    </td>
+                    <td><span class="badge badge-blue">${o.deliveryRoute || '루트-1'}</span></td>
+                    <td style="font-family: var(--font-outfit);">${o.createdTime || '22:00'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function sendOrderToTask1(orderId) {
+            let ordersObj = loadProductionOrders();
+            if (ordersObj[orderId]) {
+                ordersObj[orderId].status = "in_progress";
+                ordersObj[orderId].progressStatus = "QR코드 스캔 전";
+                ordersObj[orderId].currentTask = 1;
+                ordersObj[orderId].task1StartTime = new Date().toLocaleTimeString();
+                
+                // 배추 원재료 차감 (생산 투입)
+                let inventory = {};
+                try {
+                    inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
+                } catch(e) {}
+
+                if (inventory.cabbage) {
+                    const headsToUse = ordersObj[orderId].quantity || 1;
+                    inventory.cabbage.heads = Math.max(0, inventory.cabbage.heads - headsToUse);
+                    inventory.cabbage.totalWeight = inventory.cabbage.heads * 2.5;
+                    localStorage.setItem("kimp_factory_inventory", JSON.stringify(inventory));
+                }
+
+                saveProductionOrders(ordersObj);
+                
+                addConsoleLog(`[생산 개시] 생산지시서 ${orderId}를 Task 1 (배추 적재) 공정에 전달 완료했습니다. (배추 차감)`);
+                window.addAppLog(`생산지시서 ${orderId}를 Task 1 공정에 할당 및 적재를 시작했습니다.`);
+            }
+            refreshAllData();
+        }
+
+        // ── J. 공정 비주얼 맵 & 근로자 테이블 렌더링 ──
+        function renderWorkersList(workers) {
+            // 1. 공정 비주얼 맵 렌더링
+            const visualMap = document.getElementById("visual-task-map");
+            if (visualMap) {
+                let taskHolders = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+
+                // 근로자 배치
+                Object.keys(workers).forEach(k => {
+                    const w = workers[k];
+                    if (w.status !== "on_break" && w.location) {
+                        const match = w.location.match(/(?:Task|Stage)\s*(\d+)/i);
+                        if (match) {
+                            const taskNum = parseInt(match[1]);
+                            if (taskHolders[taskNum]) {
+                                taskHolders[taskNum].push({ name: w.userName, isHelper: w.isHelper, role: 'USER' });
+                            }
+                        }
+                    }
+                });
+
+                // 매니저 배치
+                const mgrState = getManagerOwnState();
+                if (mgrState.checkInTime && mgrState.location === 'workshop' && mgrState.assignedTask) {
+                    taskHolders[mgrState.assignedTask].push({ name: "최현일(M)", isHelper: false, role: 'MANAGER' });
+                }
+
+                let mapHtml = "";
+                for (let i = 1; i <= 5; i++) {
+                    const people = taskHolders[i];
+                    let peopleTags = people.map(p => {
+                        let colorClass = "badge-blue";
+                        if (p.role === 'MANAGER') colorClass = "badge-purple";
+                        else if (p.isHelper) colorClass = "badge-yellow";
+                        return `<span class="badge ${colorClass}" style="margin: 2px;">${p.name}</span>`;
+                    }).join("");
+
+                    if (peopleTags === "") {
+                        peopleTags = `<span style="font-size:11px; color:var(--text-secondary); font-style:italic;">인원 없음</span>`;
+                    }
+
+                    // 설비 고장 감지
+                    let facility = { task1: "normal", task2: "normal", task3: "normal", task4: "normal", task5: "normal" };
+                    try {
+                        const saved = localStorage.getItem("kimp_factory_facility");
+                        if (saved) facility = JSON.parse(saved);
+                    } catch(e) {}
+                    
+                    const isBroken = facility[`task${i}`] === 'broken';
+                    const borderStyle = isBroken ? 'border: 2px solid var(--accent-red); background-color: var(--accent-red-bg);' : '';
+
+                    mapHtml += `
+                    <div style="border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; text-align: center; min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; background-color: #ffffff; ${borderStyle}">
+                        <div>
+                            <div style="font-size: 13px; font-weight: 700;">Task ${i}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+                                ${i===1?'배추 적재':i===2?'배추 다듬기':i===3?'배추 절임':i===4?'양념 버무리': '제품 포장'}
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; justify-content: center; align-content: center; flex-grow: 1;">
+                            ${isBroken ? '<span class="badge badge-red" style="margin-bottom:4px;"><i class="bi bi-exclamation-triangle"></i> 긴급 정지</span>' : peopleTags}
+                        </div>
+                    </div>
+                    `;
+                }
+                visualMap.innerHTML = mapHtml;
+            }
+
+            // 2. 근로자 상세 테이블 렌더링
+            const tbody = document.getElementById("workers-list-table-body");
+            if (!tbody) return;
+
+            let html = "";
+            const keys = Object.keys(workers);
+
+            // 매니저 본인도 테이블에 추가하여 정산 시각화
+            const mgrState = getManagerOwnState();
+            if (mgrState.checkInTime) {
+                // 매니저 경과 시간 계산
+                let elapsedText = "00:00";
+                let accumSecs = 120; // 가상 기본
+                if (mgrState.checkInTime) {
+                    // 초당 급여 시뮬레이션을 통해 로컬스토리지 누적 예정
+                    // 여기서는 대략적인 시간 표기
+                    elapsedText = "체험 중";
+                }
+                const hourlyRate = 15000;
+                // 초당 계산은 시뮬레이터에서 하며, 전체 누적 비용에 합산됨.
+                // 여기서는 대략적으로 표시
+                const tempSalary = Math.floor(hourlyRate * 0.1); // 매니저 대시보드 누적 편의용
+
+                html += `
+                <tr style="background-color: var(--accent-purple-bg);">
+                    <td style="font-weight: 700;">최현일(나)</td>
+                    <td><span class="badge badge-purple"><i class="bi bi-person-fill-gear"></i> MANAGER</span></td>
+                    <td><span class="badge badge-purple">${mgrState.location === 'office' ? '사무실 (Office)' : '작업장 (Workshop)'}</span></td>
+                    <td><span class="badge badge-purple">${mgrState.activity === 'supervising' ? '종합 관리 감독' : mgrState.activity === 'participating' ? `Task ${mgrState.assignedTask} 참여 중` : `Task ${mgrState.assignedTask} 헬퍼 지원`}</span></td>
+                    <td><span class="badge badge-green">출석 완료 (본인)</span></td>
+                    <td style="font-family: var(--font-outfit); font-weight: 600; color: var(--accent-purple);">${mgrState.checkInTime || '-'}</td>
+                    <td style="font-family: var(--font-outfit);">실시간 가동</td>
+                    <td style="font-family: var(--font-outfit);">-</td>
+                    <td style="font-weight: 600; color: var(--accent-purple);">관리 감독자</td>
+                    <td style="font-family: var(--font-outfit); font-weight: 700; color: var(--accent-purple);">15,000원/시간</td>
+                </tr>
+                `;
+            }
+
+            if (keys.length === 0 && !mgrState.checkInTime) {
+                tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                        공정에 접속한 가상/실제 체험자 정보가 없습니다.
+                    </td>
+                </tr>
+                `;
+                return;
+            }
+
+            keys.forEach(k => {
+                const w = workers[k];
+                const isBreak = w.status === "on_break";
+                let locationBadge = `<span class="badge badge-blue">${w.location || '준비중'}</span>`;
+                if (isBreak) {
+                    locationBadge = `<span class="badge badge-yellow"><i class="bi bi-cup-hot"></i> 휴식중 (Break)</span>`;
+                }
+
+                let stepBadge = `<span class="badge badge-gray">${w.stepName || '대기'}</span>`;
+                if (w.currentStep >= 6) {
+                    stepBadge = `<span class="badge badge-green">${w.stepName || '완료'}</span>`;
+                }
+
+                // 근로시간
+                const wSecs = w.accumWorkSeconds || 0;
+                const workHrs = Math.floor(wSecs / 3600);
+                const workMins = Math.floor((wSecs % 3600) / 60);
+                const workSecs = wSecs % 60;
+                const workTimeStr = `${String(workHrs).padStart(2, '0')}:${String(workMins).padStart(2, '0')}:${String(workSecs).padStart(2, '0')}`;
+
+                // 휴식시간
+                const bSecs = w.accumBreakSeconds || 0;
+                const breakHrs = Math.floor(bSecs / 3600);
+                const breakMins = Math.floor((bSecs % 3600) / 60);
+                const breakSecs = bSecs % 60;
+                const breakTimeStr = `${String(breakMins).padStart(2, '0')}분 ${String(breakSecs).padStart(2, '0')}초`;
+
+                // 실시간 정산 급여 (시급 기준: 헬퍼 12,000원, 일반 10,000원)
+                const rate = w.isHelper ? 12000 : 10000;
+                const accumulatedSalary = Math.floor((wSecs * rate) / 3600);
+
+                // 생산속도 비교
+                let speedDiff = w.completedOrdersCount - 2; // 가상 평균 생산량을 2개로 설정
+                let speedHtml = `<span style="color:var(--text-secondary); font-weight:600;">평균수준</span>`;
+                if (speedDiff > 0) {
+                    speedHtml = `<span style="color:var(--accent-green); font-weight:700;"><i class="bi bi-caret-up-fill"></i> +${speedDiff}개</span>`;
+                } else if (speedDiff < 0) {
+                    speedHtml = `<span style="color:var(--accent-red); font-weight:700;"><i class="bi bi-caret-down-fill"></i> ${speedDiff}개</span>`;
+                }
+
+                // 예약 출석 상태
+                let attendanceBadge = `<span class="badge badge-gray">미출석 (대기)</span>`;
+                if (w.checkInTime) {
+                    attendanceBadge = `<span class="badge badge-green">출석 완료</span>`;
+                }
+
+                html += `
+                <tr>
+                    <td style="font-weight: 700;">${w.userName}</td>
+                    <td>${w.isHelper ? '<span class="badge badge-yellow">현장 헬퍼</span>' : '<span class="badge badge-blue">일반 체험자</span>'}</td>
+                    <td>${locationBadge}</td>
+                    <td>${stepBadge}</td>
+                    <td>${attendanceBadge}</td>
+                    <td style="font-family: var(--font-outfit); font-weight: 600;">${w.checkInTime || '-'}</td>
+                    <td style="font-family: var(--font-outfit);">${workTimeStr}</td>
+                    <td style="font-family: var(--font-outfit);">${breakTimeStr}</td>
+                    <td>${speedHtml}</td>
+                    <td style="font-family: var(--font-outfit); font-weight: 700; color: var(--accent-purple);">${accumulatedSalary.toLocaleString()}원</td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ── K. 원부재료 현황 렌더링 ──
+        function renderInventoryTable(maturedHeads) {
+            let inventory = {};
+            try {
+                inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
+            } catch(e) {}
+
+            // 자산 가치
+            const cabPrice = inventory.cabbage ? inventory.cabbage.unitPrice : 2500;
+            const cabHeads = inventory.cabbage ? inventory.cabbage.heads : 0;
+            const cabbageValue = cabHeads * cabPrice;
+            document.getElementById("stats-cabbage-value").textContent = `${cabbageValue.toLocaleString()}원`;
+
+            // 양념 재고량
+            const seasoningW = inventory.seasoning ? inventory.seasoning.weight : 0;
+            document.getElementById("stats-seasoning-weight").textContent = `${seasoningW.toFixed(1)}kg`;
+            
+            const seasoningLbl = document.getElementById("stats-seasoning-status-label");
+            const seasoningIconBg = document.getElementById("stats-seasoning-icon-bg");
+            
+            if (seasoningW <= 20.0) {
+                if (seasoningLbl) seasoningLbl.textContent = "상태: 부족 (경고!)";
+                if (seasoningIconBg) {
+                    seasoningIconBg.className = "stats-icon-wrapper red";
+                    seasoningIconBg.style.animation = "pulse-red 1.5s infinite";
+                }
+            } else {
+                if (seasoningLbl) seasoningLbl.textContent = "상태: 양호 (적정)";
+                if (seasoningIconBg) {
+                    seasoningIconBg.className = "stats-icon-wrapper red";
+                    seasoningIconBg.style.animation = "none";
+                }
+            }
+
+            // 양념 제조 필요량 동적 계산
+            // 대기 주문 및 진행 중인 지시서의 포기 수 합계 * 0.5kg
+            let orders = Object.values(loadProductionOrders());
+            const activeHeads = orders.filter(o => o.status !== 'completed').reduce((sum, o) => sum + (o.quantity || 1), 0);
+            const neededSeasoning = activeHeads * 0.5;
+            document.getElementById("stats-needed-seasoning").textContent = `${neededSeasoning.toFixed(1)}kg`;
+
+            // 테이블 렌더링
+            const tbody = document.getElementById("raw-inventory-table-body");
+            if (tbody && inventory.cabbage) {
+                tbody.innerHTML = `
+                <tr>
+                    <td style="font-weight: 700;">국산 배추 (체험 재료)</td>
+                    <td style="font-weight: 600;">${cabHeads}포기 (${inventory.cabbage.totalWeight}kg)</td>
+                    <td>${inventory.cabbage.expiry}</td>
+                    <td>${inventory.cabbage.origin} (${inventory.cabbage.supplier})</td>
+                    <td>${cabHeads <= 20 ? '<span class="badge badge-red">구매 필요</span>' : '<span class="badge badge-green">안전</span>'}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">제조 양념 (김치용 소)</td>
+                    <td style="font-weight: 600;">${seasoningW.toFixed(1)}kg</td>
+                    <td>${inventory.seasoning.expiry}</td>
+                    <td>현장 직접 배합 제조</td>
+                    <td>${seasoningW <= 20 ? '<span class="badge badge-red">추가 배합 필요</span>' : '<span class="badge badge-green">안전</span>'}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">국산 고춧가루</td>
+                    <td style="font-weight: 600;">${inventory.redPepperPowder ? inventory.redPepperPowder.weight : 0}kg</td>
+                    <td>${inventory.redPepperPowder ? inventory.redPepperPowder.expiry : ''}</td>
+                    <td>안동 농협 유통</td>
+                    <td><span class="badge badge-green">안전</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">찹쌀가루 및 밀가루</td>
+                    <td style="font-weight: 600;">${inventory.flour ? inventory.flour.weight : 0}kg</td>
+                    <td>${inventory.flour ? inventory.flour.expiry : ''}</td>
+                    <td>오뚜기 상사</td>
+                    <td><span class="badge badge-green">안전</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">멸치 액젓</td>
+                    <td style="font-weight: 600;">${inventory.anchovySauce ? inventory.anchovySauce.volume : 0}L</td>
+                    <td>${inventory.anchovySauce ? inventory.anchovySauce.expiry : ''}</td>
+                    <td>통영 유통</td>
+                    <td><span class="badge badge-green">안전</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">위생 장갑 (소모품)</td>
+                    <td style="font-weight: 600;">${inventory.ppe ? inventory.ppe.gloves : 0}개</td>
+                    <td>-</td>
+                    <td>3M 코리아</td>
+                    <td><span class="badge badge-green">안전</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">머리가리개 (위생모)</td>
+                    <td style="font-weight: 600;">${inventory.ppe ? inventory.ppe.hairnets : 0}개</td>
+                    <td>-</td>
+                    <td>유한킴벌리</td>
+                    <td><span class="badge badge-green">안전</span></td>
+                </tr>
+                `;
+            }
+
+            // 완제품 세부 목록 카드 렌더링
+            let products = {};
+            try {
+                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+            } catch(e) {}
+
+            const catalogContainer = document.getElementById("product-catalog-list");
+            if (catalogContainer) {
+                let catHtml = "";
+                Object.keys(products).forEach(key => {
+                    const item = products[key];
+                    catHtml += `
+                    <div style="display: flex; gap: 14px; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; background-color: #ffffff;">
+                        <img src="${item.img}" style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover;" alt="${item.name}">
+                        <div style="flex-grow: 1;">
+                            <div style="font-size:14px; font-weight:700;">${item.name}</div>
+                            <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 4px;">${item.desc}</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span class="catalog-price">${item.price.toLocaleString()}원</span>
+                                <span style="font-size:11px; color: var(--text-secondary);">재고: <b>${item.stock}팩</b> | 오늘 주문: ${item.todayOrders}개</span>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                });
+                catalogContainer.innerHTML = catHtml;
+            }
+        }
+
+        // ── L. 절임실 타이머 카드 렌더링 (Feature 6: 5 Aging Batches) ──
+        function renderSaltingCards(batches) {
+            const container = document.getElementById("salting-room-container");
+            if (!container) return;
+
+            // Feature 6: Ensure at least 5 batches exist with proper IDs
+            if (batches.length === 0) {
+                const now = Date.now();
+                const sixHours = 6 * 3600000;
+                const threeHours = 3 * 3600000;
+                batches = [
+                    { id: "20260609-5-1", cabbageHeads: 8, status: "salting", startTime: now - threeHours + 600000, saltingTimeLimit: sixHours },
+                    { id: "20260609-5-2", cabbageHeads: 6, status: "salting", startTime: now - threeHours + 300000, saltingTimeLimit: sixHours },
+                    { id: "20260609-5-3", cabbageHeads: 10, status: "salting", startTime: now - threeHours, saltingTimeLimit: sixHours },
+                    { id: "20260609-5-4", cabbageHeads: 7, status: "matured", startTime: now - sixHours - 1800000, saltingTimeLimit: sixHours, maturedTime: now - 1800000 },
+                    { id: "20260609-5-5", cabbageHeads: 5, status: "matured", startTime: now - sixHours - 3600000, saltingTimeLimit: sixHours, maturedTime: now - 3600000 }
+                ];
+                localStorage.setItem("kimp_factory_salting", JSON.stringify(batches));
+            }
+
+            const totalLbl = document.getElementById("salting-batch-total-lbl");
+            const activeCount = batches.filter(b => b.status === 'salting').length;
+            const maturedCount = batches.filter(b => b.status === 'matured').length;
+            if (totalLbl) totalLbl.textContent = `진행 중 ${activeCount}개 / 숙성완료 ${maturedCount}개`;
+
+            let html = "";
+            const now = Date.now();
+
+            batches.forEach(b => {
+                let cardBody = "";
+                if (b.status === 'matured') {
+                    // Feature 6: Show elapsed storage time since maturation
+                    const maturedAt = b.maturedTime || (b.startTime + (b.saltingTimeLimit || 21600000));
+                    const storageDuration = now - maturedAt;
+                    const stgHrs = Math.floor(storageDuration / 3600000);
+                    const stgMins = Math.floor((storageDuration % 3600000) / 60000);
+                    const stgSecs = Math.floor((storageDuration % 60000) / 1000);
+                    const storageTimeStr = `${String(stgHrs).padStart(2, '0')}:${String(stgMins).padStart(2, '0')}:${String(stgSecs).padStart(2, '0')}`;
+
+                    cardBody = `
+                    <div class="salting-title" style="color: var(--accent-green);"><i class="bi bi-patch-check-fill"></i> 숙성 완료</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        투입: 배추 <b>${b.cabbageHeads}포기</b>
+                    </div>
+                    <div style="font-size:12px; font-weight:600; color: var(--accent-blue); margin-top: 4px;">
+                        <i class="bi bi-clock-history"></i> 보관 경과 시간: <span style="font-family: var(--font-outfit);">${storageTimeStr}</span>
+                    </div>
+                    <span class="badge badge-green" style="text-align:center;">적치 자산 반영됨 · 즉시 투입 가능</span>
+                    `;
+                } else {
+                    const elapsed = now - b.startTime;
+                    const remaining = Math.max(0, (b.saltingTimeLimit || 21600000) - elapsed);
+
+                    const hrs = Math.floor(remaining / 3600000);
+                    const mins = Math.floor((remaining % 3600000) / 60000);
+                    const secs = Math.floor((remaining % 60000) / 1000);
+
+                    const countdownStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+                    cardBody = `
+                    <div class="salting-timer-circle"></div>
+                    <div class="salting-title">저온 소금물 절임 중</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        투입: 배추 <b>${b.cabbageHeads}포기</b> (${b.orderId || '지시서연동'})
+                    </div>
+                    <div class="salting-countdown">${countdownStr}</div>
+                    <div style="font-size:11px; color:var(--text-secondary);">6시간 절임 카운트다운</div>
+                    `;
+                }
+
+                html += `
+                <div class="salting-card">
+                    <div class="salting-batch-id">${b.id}</div>
+                    ${cardBody}
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // ── M. 설비 전원 스위치 & 오너 결재 대기열 렌더링 ──
+        function renderFacilityAndOwnerApprovals() {
+            // 1. 설비 전원 스위치
+            let facility = { task1: "normal", task2: "normal", task3: "normal", task4: "normal", task5: "normal" };
+            try {
+                const saved = localStorage.getItem("kimp_factory_facility");
+                if (saved) facility = JSON.parse(saved);
+            } catch(e) {}
+
+            const switchContainer = document.getElementById("facility-switch-container");
+            if (switchContainer) {
+                let html = "";
+                const taskLabels = {
+                    task1: "Task 1 배추 공급 적재 컨베이어",
+                    task2: "Task 2 배추 밑동 다듬기 세척기",
+                    task3: "Task 3 절임 배추 세척 탈수조",
+                    task4: "Task 4 양념 혼합 버무림기",
+                    task5: "Task 5 완제품 포장 결속기"
+                };
+
+                Object.keys(taskLabels).forEach(key => {
+                    const isBroken = facility[key] === 'broken';
+                    html += `
+                    <div class="facility-task-card" style="${isBroken ? 'border-color: var(--accent-red); background-color: var(--accent-red-bg);' : ''}">
+                        <div class="facility-info">
+                            <span class="facility-name">${taskLabels[key]}</span>
+                            <span style="font-size: 11px; color: var(--text-secondary);">
+                                상태: ${isBroken ? '<b style="color:var(--accent-red);">긴급 정지 (Broken)</b>' : '<b style="color:var(--accent-green);">정상 작동 (Normal)</b>'}
+                            </span>
+                        </div>
+                        <div class="clock-in-wrapper" style="background:transparent; border:none; padding:0;">
+                            <input type="checkbox" id="fac-switch-${key}" class="switch-input" ${!isBroken ? 'checked' : ''} onchange="toggleFacilityPower('${key}')">
+                            <label for="fac-switch-${key}" class="switch-label" style="background-color: var(--accent-red);"></label>
+                        </div>
+                    </div>
+                    `;
+                });
+                switchContainer.innerHTML = html;
+            }
+
+            // 2. 오너 결재 요청 테이블
+            let approvals = [];
+            try {
+                approvals = JSON.parse(localStorage.getItem("kimp_owner_approvals") || "[]");
+            } catch(e) {}
+
+            const tbody = document.getElementById("owner-approvals-table-body");
+            if (tbody) {
+                if (approvals.length === 0) {
+                    tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; color:var(--text-secondary); padding:20px;">
+                            제출된 오너 결재안이 존재하지 않습니다.
+                        </td>
+                    </tr>
+                    `;
+                    return;
+                }
+
+                let html = "";
+                approvals.forEach(a => {
+                    let statusBadge = "";
+                    if (a.status === 'pending') {
+                        statusBadge = `<span class="badge badge-yellow">오너 결재 대기</span>`;
+                    } else if (a.status === 'approved') {
+                        statusBadge = `<span class="badge badge-green">결재 승인 완료</span>`;
+                    } else {
+                        statusBadge = `<span class="badge badge-red">결재 반려됨</span>`;
+                    }
+
+                    let typeName = "구매";
+                    if (a.type === 'repair') typeName = "수리";
+                    else if (a.type === 'cleaning') typeName = "특수청소";
+                    else if (a.type === 'defect') typeName = "불량감액";
+                    else if (a.type === 'shift_close') typeName = "시프트마감";
+
+                    html += `
+                    <tr>
+                        <td style="font-family:var(--font-outfit); font-weight:700;">${a.id}</td>
+                        <td><span class="badge badge-purple">${typeName}</span></td>
+                        <td style="font-weight:600;">${a.title}</td>
+                        <td style="font-family:var(--font-outfit); font-weight:700; color:var(--accent-purple);">${a.cost.toLocaleString()}원</td>
+                        <td style="font-family:var(--font-outfit);">${a.submittedTime}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+        }
+
+        function toggleFacilityPower(key) {
+            let facility = { task1: "normal", task2: "normal", task3: "normal", task4: "normal", task5: "normal" };
+            try {
+                const saved = localStorage.getItem("kimp_factory_facility");
+                if (saved) facility = JSON.parse(saved);
+            } catch(e) {}
+
+            const targetVal = document.getElementById(`fac-switch-${key}`).checked ? "normal" : "broken";
+            facility[key] = targetVal;
+            localStorage.setItem("kimp_factory_facility", JSON.stringify(facility));
+
+            addConsoleLog(`[설비 제어] ${key.toUpperCase()} 전원 상태를 ${targetVal === 'normal' ? '가동(Normal)' : '차단(Broken)'}으로 변경했습니다.`);
+            window.addAppLog(`설비 ${key} 전원 공급 상태를 ${targetVal === 'normal' ? '정상화' : '긴급 차단'} 하였습니다.`);
+            refreshAllData();
+        }
+
+        function submitOwnerApproval() {
+            const type = document.getElementById("owner-req-type").value;
+            const title = document.getElementById("owner-req-title").value;
+            const desc = document.getElementById("owner-req-desc").value;
+            const cost = parseInt(document.getElementById("owner-req-cost").value || "0");
+
+            if (!title) {
+                alert("기안 명목을 입력하세요.");
+                return;
+            }
+
+            let approvals = [];
+            try {
+                approvals = JSON.parse(localStorage.getItem("kimp_owner_approvals") || "[]");
+            } catch(e) {}
+
+            const dateCode = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+            const newId = `REQ-${dateCode}-${String(approvals.length + 1).padStart(2, '0')}`;
+
+            const newReq = {
+                id: newId,
+                type: type,
+                title: `${title} (${desc})`,
+                cost: cost,
+                status: "pending",
+                submittedTime: new Date().toLocaleTimeString()
+            };
+
+            approvals.push(newReq);
+            localStorage.setItem("kimp_owner_approvals", JSON.stringify(approvals));
+
+            // 기안서 폼 리셋
+            document.getElementById("owner-req-title").value = "";
+            document.getElementById("owner-req-desc").value = "";
+            document.getElementById("owner-req-cost").value = "";
+
+            addConsoleLog(`[결재 기안] 신규 기안서 ${newId}가 오너 단말기(FCM)로 전송되었습니다. 결재 대기 중.`);
+            window.addAppLog(`본사 결재 기안서 ${newId} (${title})를 기안 송신하였습니다.`);
+            refreshAllData();
+        }
+
+        function requestShiftCloseOut() {
+            let finance = { revenue: 0, cost: 0 };
+            try {
+                finance = JSON.parse(localStorage.getItem("kimp_factory_finance") || '{"revenue":194500,"cost":87600}');
+            } catch(e) {}
+
+            let approvals = [];
+            try {
+                approvals = JSON.parse(localStorage.getItem("kimp_owner_approvals") || "[]");
+            } catch(e) {}
+
+            const dateCode = new Date().toISOString().slice(2, 10).replace(/-/g, "");
+            const newId = `CLOSE-${dateCode}`;
+
+            const closeReq = {
+                id: newId,
+                type: "shift_close",
+                title: "시프트 작업 총량 마감 및 임금 지급 최종 결재",
+                cost: finance.cost, // 총 발생 비용
+                status: "pending",
+                submittedTime: new Date().toLocaleTimeString()
+            };
+
+            approvals.push(closeReq);
+            localStorage.setItem("kimp_owner_approvals", JSON.stringify(approvals));
+
+            addConsoleLog(`[마감 요청] 시프트 최종 마감 승인 기안 ${newId}가 발송되었습니다. 오너 단말기 승인을 기다립니다.`);
+            window.addAppLog(`시프트 마감 및 총 정산비용 ${finance.cost}원에 대해 최종 결재 요청을 송신했습니다.`);
+            refreshAllData();
+        }
+
+        // ── N. 시뮬레이션 조작 함수 ──
+        function simUserAction(actionType) {
+            let workers = {};
+            try {
+                workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+            } catch(e) {}
+
+            let approvals = [];
+            try {
+                approvals = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+
+            let ordersObj = loadProductionOrders();
+            let orders = Object.values(ordersObj);
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+
+            if (actionType === 'sua_photo') {
+                // 최수아 위생 사진 업로드 모사
+                const newId = `APP-${Date.now()}`;
+                approvals.push({
+                    id: newId,
+                    userId: "local-capegon21@gmail.com",
+                    userName: "최수아",
+                    title: "위생 사진 및 위생복 심사 요청",
+                    photoData: "./images/media__1781091605675.jpg", // 더미
+                    status: "pending",
+                    submittedTime: timeStr
+                });
+                localStorage.setItem("kimp_approval_requests", JSON.stringify(approvals));
+
+                if (workers["local-capegon21@gmail.com"]) {
+                    workers["local-capegon21@gmail.com"].currentStep = 5;
+                    workers["local-capegon21@gmail.com"].stepName = "Step 5. 위생 심사 대기 (Pending)";
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 최수아 님이 위생 검사 사진을 전송했습니다. (대시보드 실시간 심사 대기)");
+            }
+            else if (actionType === 'sua_qr') {
+                // 최수아 출근 QR 완료 모사
+                if (workers["local-capegon21@gmail.com"]) {
+                    workers["local-capegon21@gmail.com"].currentStep = 3;
+                    workers["local-capegon21@gmail.com"].stepName = "Step 3. 출근 QR 스캔 완료";
+                    workers["local-capegon21@gmail.com"].checkInTime = timeStr;
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 최수아 님이 실습장 입구 QR 스캔을 완료하여 출석이 정상 확인되었습니다.");
+            }
+            else if (actionType === 'sua_break_start') {
+                if (workers["local-capegon21@gmail.com"]) {
+                    workers["local-capegon21@gmail.com"].status = "on_break";
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 최수아 님이 10분 휴식 모드로 전환하였습니다.");
+            }
+            else if (actionType === 'sua_break_end') {
+                if (workers["local-capegon21@gmail.com"]) {
+                    workers["local-capegon21@gmail.com"].status = "active";
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 최수아 님이 휴식을 마치고 작업 현장으로 복귀했습니다.");
+            }
+            else if (actionType === 'sua_task1_complete') {
+                // 최수아 Task 1 적재 완료 모사
+                if (workers["local-capegon21@gmail.com"]) {
+                    workers["local-capegon21@gmail.com"].completedOrdersCount = (workers["local-capegon21@gmail.com"].completedOrdersCount || 0) + 1;
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                
+                // 가상 생산 지시서 진행도 업데이트
+                const progOrder = orders.find(o => o.status === 'in_progress' && o.currentTask === 1);
+                if (progOrder) {
+                    ordersObj[progOrder.orderId].currentTask = 2;
+                    saveProductionOrders(ordersObj);
+                    addConsoleLog(`[시뮬레이터] 최수아 님이 지시서 ${progOrder.orderId}의 Task 1 적재를 완료하여 공정을 Task 2로 이송시켰습니다.`);
+                } else {
+                    addConsoleLog("[시뮬레이터] 현재 진행 중인 Task 1 생산지시서가 존재하지 않습니다.");
+                }
+            }
+            else if (actionType === 'sumin_photo') {
+                const newId = `APP-${Date.now()}`;
+                approvals.push({
+                    id: newId,
+                    userId: "local-capegon23@gmail.com",
+                    userName: "김수민",
+                    title: "보건증 및 자격 서류 제출 요청",
+                    photoData: "./images/media__1781091939639.jpg", // 더미
+                    status: "pending",
+                    submittedTime: timeStr
+                });
+                localStorage.setItem("kimp_approval_requests", JSON.stringify(approvals));
+
+                if (workers["local-capegon23@gmail.com"]) {
+                    workers["local-capegon23@gmail.com"].currentStep = 5;
+                    workers["local-capegon23@gmail.com"].stepName = "Step 5. 위생 심사 대기 (Pending)";
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 김수민 님이 위생 검사 요청을 등록했습니다.");
+            }
+            else if (actionType === 'sumin_qr') {
+                if (workers["local-capegon23@gmail.com"]) {
+                    workers["local-capegon23@gmail.com"].currentStep = 3;
+                    workers["local-capegon23@gmail.com"].stepName = "Step 3. 출근 QR 완료";
+                    workers["local-capegon23@gmail.com"].checkInTime = timeStr;
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 김수민 님이 입구 QR 스캔을 완료했습니다.");
+            }
+            else if (actionType === 'sumin_task_progress') {
+                if (workers["local-capegon23@gmail.com"]) {
+                    const steps = ["Task 1 (적재)", "Task 2 (다듬기)", "Task 3 (절임)", "Task 4 (양념)", "Task 5 (포장)"];
+                    const currentLoc = workers["local-capegon23@gmail.com"].location || "대기실";
+                    let nextIdx = steps.indexOf(currentLoc) + 1;
+                    if (nextIdx >= steps.length) nextIdx = 0;
+                    
+                    workers["local-capegon23@gmail.com"].location = steps[nextIdx];
+                    workers["local-capegon23@gmail.com"].stepName = `공정 실습 진행 중 (${steps[nextIdx]})`;
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+                addConsoleLog("[시뮬레이터] 김수민 님의 현장 공정 실습 위치가 한 단계 순환 변경되었습니다.");
+            }
+            else if (actionType === 'create_prod_order') {
+                // 신규 생산지시서 발행 (kimp_experience.html 등에서 호환되게)
+                const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+                const newOrderId = `${dateCode}-5-${orders.length + 1}`;
+                
+                const origins = ["강원 평창 고랭지", "제주 서귀포 산지", "충남 태안 황토 배추"];
+                const suppliers = ["대관령 유통", "제주 영농조합", "서해안 청과"];
+                const routes = ["루트-1", "루트-2", "루트-3"];
+                const sizeOpts = ["p300g", "p1kg", "p3kg", "p5kg", "p10kg"];
+                
+                const rand = Math.floor(Math.random() * sizeOpts.length);
+                const randSize = sizeOpts[rand];
+                
+                const names = {
+                    p300g: "300g 맛김치",
+                    p1kg: "1kg 포기김치",
+                    p3kg: "3kg 대용량 김치",
+                    p5kg: "5kg 실속 김치",
+                    p10kg: "10kg 업소용 김치"
+                };
+
+                const newOrder = {
+                    orderId: newOrderId,
+                    productId: randSize,
+                    productName: names[randSize],
+                    quantity: Math.floor(Math.random() * 5) + 3, // 3~7포기
+                    status: "pending",
+                    cabbageOrigin: origins[Math.floor(Math.random() * origins.length)],
+                    supplier: suppliers[Math.floor(Math.random() * suppliers.length)],
+                    deliveryRoute: routes[Math.floor(Math.random() * routes.length)],
+                    createdTime: timeStr,
+                    stages: {}
+                };
+                
+                ordersObj[newOrderId] = newOrder;
+                saveProductionOrders(ordersObj);
+                addConsoleLog(`[시뮬레이터] 신규 주문 생산지시서 ${newOrderId}가 대기 목록에 임시 발행되었습니다.`);
+            }
+            else if (actionType === 'owner_approve_all') {
+                // 본사 슈퍼바이저/오너 피드백 일괄 승인 시뮬레이션
+                let ownerApps = [];
+                try {
+                    ownerApps = JSON.parse(localStorage.getItem("kimp_owner_approvals") || "[]");
+                } catch(e) {}
+
+                let changed = false;
+                ownerApps.forEach(req => {
+                    if (req.status === 'pending') {
+                        req.status = 'approved';
+                        changed = true;
+                        addConsoleLog(`[시뮬레이터] 본사 오너가 결재요청 ${req.id}를 최종 승인 처리했습니다.`);
+                    }
+                });
+
+                if (changed) {
+                    localStorage.setItem("kimp_owner_approvals", JSON.stringify(ownerApps));
+                } else {
+                    addConsoleLog("[시뮬레이터] 현재 대기 중인 오너 승인 안건이 없습니다.");
+                }
+            }
+            else if (actionType === 'trigger_machine_fail') {
+                // 설비 임의 고장 유도
+                let facility = { task1: "normal", task2: "normal", task3: "normal", task4: "normal", task5: "normal" };
+                try {
+                    const saved = localStorage.getItem("kimp_factory_facility");
+                    if (saved) facility = JSON.parse(saved);
+                } catch(e) {}
+
+                const tasks = ["task1", "task2", "task3", "task4", "task5"];
+                const randTask = tasks[Math.floor(Math.random() * 5)];
+                facility[randTask] = "broken";
+                localStorage.setItem("kimp_factory_facility", JSON.stringify(facility));
+                
+                addConsoleLog(`[시뮬레이터] 경보!! 돌발 상황으로 ${randTask.toUpperCase()}에 전동 고장이 발생했습니다.`);
+            }
+
+            refreshAllData();
+        }
+
+        // ── O. 차트 통계 연동 및 렌더링 (Chart.js) ──
+        function initCharts() {
+            const ctxFinance = document.getElementById('chartFinanceTrend')?.getContext('2d');
+            const ctxSpeed = document.getElementById('chartWorkerSpeed')?.getContext('2d');
+            const ctxProduct = document.getElementById('chartProductRatio')?.getContext('2d');
+
+            if (!ctxFinance) return; // 페이지 렌더링 전 예외방지
+
+            // 1. 재정 트렌드 차트 (Line)
+            if (chartFinance) chartFinance.destroy();
+            
+            // 데이터 초기 샘플
+            if (financeHistory.labels.length === 0) {
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const t = new Date(now.getTime() - i * 10 * 1000);
+                    financeHistory.labels.push(t.toLocaleTimeString());
+                    financeHistory.revenue.push(194500 - i * 4000);
+                    financeHistory.cost.push(87600 + i * 200);
+                }
+            }
+
+            chartFinance = new Chart(ctxFinance, {
+                type: 'line',
+                data: {
+                    labels: financeHistory.labels,
+                    datasets: [
+                        {
+                            label: '누적 수익 매출 (Revenue)',
+                            data: financeHistory.revenue,
+                            borderColor: '#00b894',
+                            backgroundColor: 'rgba(0, 184, 148, 0.05)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 3
+                        },
+                        {
+                            label: '누적 지급 비용 (Cost)',
+                            data: financeHistory.cost,
+                            borderColor: '#d63031',
+                            backgroundColor: 'rgba(214, 48, 49, 0.05)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) { return value.toLocaleString() + '원'; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. 생산성 속도 분석 차트 (Bar)
+            if (chartSpeed) chartSpeed.destroy();
+            chartSpeed = new Chart(ctxSpeed, {
+                type: 'bar',
+                data: {
+                    labels: ['최수아', '김수민', '현장 헬퍼(김영희)'],
+                    datasets: [{
+                        label: '작업자별 완료 지시서 수량',
+                        data: [2, 0, 1],
+                        backgroundColor: ['#0984e3', '#e1b12c', '#6c5ce7'],
+                        borderWidth: 0,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            max: 5,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+
+            // 3. 규격별 판매 분포 차트 (Doughnut)
+            if (chartProduct) chartProduct.destroy();
+            chartProduct = new Chart(ctxProduct, {
+                type: 'doughnut',
+                data: {
+                    labels: ['300g 맛김치 팩', '1kg 포기김치 팩', '3kg 대용량 김치 팩', '5kg 실속 김치 팩', '10kg 업소용 김치'],
+                    datasets: [{
+                        data: [14, 22, 8, 5, 2],
+                        backgroundColor: ['#74b9ff', '#a29bfe', '#55efc4', '#ff7675', '#ffeaa7'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function updateChartsData(finance, workers, products) {
+            if (!chartFinance || !chartSpeed || !chartProduct) return;
+
+            // 1. 실시간 라인 차트 히스토리 누적 (10초 주기 등으로 차트에 푸시)
+            const timeLabel = new Date().toLocaleTimeString();
+            
+            // 중복 레이블 방지
+            if (financeHistory.labels[financeHistory.labels.length - 1] !== timeLabel) {
+                financeHistory.labels.push(timeLabel);
+                financeHistory.revenue.push(finance.revenue);
+                financeHistory.cost.push(finance.cost);
+
+                if (financeHistory.labels.length > 10) {
+                    financeHistory.labels.shift();
+                    financeHistory.revenue.shift();
+                    financeHistory.cost.shift();
+                }
+
+                chartFinance.data.labels = financeHistory.labels;
+                chartFinance.data.datasets[0].data = financeHistory.revenue;
+                chartFinance.data.datasets[1].data = financeHistory.cost;
+                chartFinance.update('none'); // 애니메이션 없이 신속 갱신
+            }
+
+            // 2. 바 차트 업데이트
+            const workerNames = [];
+            const workerCounts = [];
+            Object.keys(workers).forEach(k => {
+                workerNames.push(workers[k].userName);
+                workerCounts.push(workers[k].completedOrdersCount || 0);
+            });
+            
+            chartSpeed.data.labels = workerNames;
+            chartSpeed.data.datasets[0].data = workerCounts;
+            chartSpeed.update('none');
+
+            // 3. 도넛 차트 업데이트
+            if (products.p300g && products.p1kg && products.p3kg && products.p5kg && products.p10kg) {
+                chartProduct.data.datasets[0].data = [
+                    products.p300g.todayOrders || 0,
+                    products.p1kg.todayOrders || 0,
+                    products.p3kg.todayOrders || 0,
+                    products.p5kg.todayOrders || 0,
+                    products.p10kg.todayOrders || 0
+                ];
+                chartProduct.update('none');
+            }
+        }
+
+        // ── P. 초기 기동 및 이벤트 처리 ──
+        window.addEventListener('DOMContentLoaded', () => {
+            // 탭 초기 로드
+            const hash = window.location.hash.replace('#', '');
+            if (hash && document.getElementById(`panel-${hash}`)) {
+                switchTab(hash);
+            } else {
+                switchTab('dashboard');
+            }
+
+            // DB Cleanup: Delete 260530-5-10~12 and ensure 260530-5-9 & 260612-5-1 are Stage 1 completed
+            try {
+                let raw = localStorage.getItem("kimp_production_orders");
+                if (raw) {
+                    let orders = JSON.parse(raw);
+                    let changed = false;
+                    
+                    if (orders["260530-5-10"]) { delete orders["260530-5-10"]; changed = true; }
+                    if (orders["260530-5-11"]) { delete orders["260530-5-11"]; changed = true; }
+                    if (orders["260530-5-12"]) { delete orders["260530-5-12"]; changed = true; }
+                    
+                    if (!orders["260530-5-9"]) {
+                        orders["260530-5-9"] = {
+                            orderId: "260530-5-9",
+                            productId: "p1kg",
+                            productName: "1kg 포기김치",
+                            quantity: 5,
+                            status: "in_progress",
+                            currentTask: 2,
+                            progressStatus: "생산중 (Stage1완료)",
+                            cabbageOrigin: "강원도 평창 고랭지",
+                            supplier: "대관령 유통",
+                            deliveryRoute: "루트-1",
+                            createdTime: "15:00:00",
+                            stages: {
+                                1: {
+                                    operator: "최수아",
+                                    startTime: "15:00:00",
+                                    endTime: "15:15:00",
+                                    postWorkQty: 5,
+                                    postWorkWeight: 4.0,
+                                    sessions: [
+                                        { operator: "최수아", startTime: "15:00:00", endTime: "15:15:00", duration: 900 }
+                                    ],
+                                    defectCount: 0,
+                                    weight: 4.0,
+                                    step1Done: true,
+                                    step2Done: true,
+                                    step2Status: "approved",
+                                    step3Done: true,
+                                    step3Status: "approved",
+                                    step4Done: true,
+                                    statusSubmitted: true
+                                }
+                            }
+                        };
+                        changed = true;
+                    }
+                    
+                    if (!orders["260612-5-1"]) {
+                        orders["260612-5-1"] = {
+                            orderId: "260612-5-1",
+                            productId: "p1kg",
+                            productName: "1kg 포기김치",
+                            quantity: 5,
+                            status: "in_progress",
+                            currentTask: 2,
+                            progressStatus: "생산중 (Stage1완료)",
+                            cabbageOrigin: "강원도 평창 고랭지",
+                            supplier: "대관령 유통",
+                            deliveryRoute: "루트-1",
+                            createdTime: "오후 9:46",
+                            stages: {
+                                1: {
+                                    operator: "최수아",
+                                    startTime: "21:46:00",
+                                    endTime: "22:01:00",
+                                    postWorkQty: 5,
+                                    postWorkWeight: 4.0,
+                                    sessions: [
+                                        { operator: "최수아", startTime: "21:46:00", endTime: "22:01:00", duration: 900 }
+                                    ],
+                                    defectCount: 0,
+                                    weight: 4.0,
+                                    step1Done: true,
+                                    step2Done: true,
+                                    step2Status: "approved",
+                                    step3Done: true,
+                                    step3Status: "approved",
+                                    step4Done: true,
+                                    statusSubmitted: true
+                                }
+                            }
+                        };
+                        changed = true;
+                    }
+                    
+                    if (changed) {
+                        localStorage.setItem("kimp_production_orders", JSON.stringify(orders));
+                    }
+                }
+            } catch(e) {}
+
+            // 매니저 전용 상태 로딩
+            loadManagerStatus();
+            refreshAllData();
+            calculateFormWeights(); // 수동 지시서 예상 중량 계산기 초기화
+
+            // 백그라운드 실시간 갱신 루프 (1초 주기)
+            setInterval(refreshAllData, 1000);
+
+            // 다른 탭의 localStorage 변경 감지 (FCM 가상 연동)
+            window.addEventListener('storage', (e) => {
+                if (e.key && e.key.startsWith("kimp_")) {
+                    refreshAllData();
+                    
+                    if (e.key === 'kimp_approval_requests') {
+                        // 새로운 위생 신청 등
+                        addConsoleLog("[FCM 수신] 작업자의 위생 심사 요청 변경사항이 수신되었습니다.");
+                    } else if (e.key === 'kimp_workers_progress') {
+                        addConsoleLog("[동기화] 작업자 실습 진행 상태 데이터가 갱신되었습니다.");
+                    } else if (e.key === 'kimp_production_orders') {
+                        addConsoleLog("[동기화] 생산 지시서 공통 DB가 동기화되었습니다.");
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

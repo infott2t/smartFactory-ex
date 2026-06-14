@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="./css/styles2.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <title>실시간 활동 로그 - 스마트팩토리</title>
+    <style>
+        .log-container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            background-color: var(--var-bg-color);
+            min-height: 100vh;
+            color: #d8d8d8;
+            font-family: 'NotoKR', sans-serif;
+            padding: 20px;
+            box-sizing: border-box;
+            padding-top: 60px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a4a;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .log-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #2a2a4a;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: rgba(123, 92, 245, 0.15);
+            border-color: #7b5cf5;
+        }
+
+        /* ── 검색 및 필터 컨트롤 ── */
+        .controls-card {
+            background: #121226;
+            border: 1px solid #1e1e3f;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: #090916;
+            border: 1px solid #2a2a5a;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #7b5cf5;
+            box-shadow: 0 0 8px rgba(123, 92, 245, 0.2);
+        }
+
+        .filter-select {
+            background: #090916;
+            border: 1px solid #2a2a5a;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-action {
+            background: rgba(255, 77, 77, 0.1);
+            border: 1px solid rgba(255, 77, 77, 0.3);
+            color: #ff4d4d;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 77, 77, 0.2);
+            border-color: #ff4d4d;
+        }
+
+        .btn-refresh {
+            background: rgba(85, 239, 196, 0.1);
+            border: 1px solid rgba(85, 239, 196, 0.3);
+            color: #55efc4;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(85, 239, 196, 0.2);
+            border-color: #55efc4;
+        }
+
+        /* ── 타임라인 스타일 ── */
+        .timeline {
+            position: relative;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 2px solid #2a2a5a;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .timeline-item {
+            position: relative;
+            background: #141430;
+            border: 1px solid #1e1e4a;
+            border-radius: 12px;
+            padding: 14px;
+            transition: all 0.2s;
+        }
+
+        .timeline-item:hover {
+            border-color: #7b5cf5;
+            box-shadow: 0 4px 12px rgba(123, 92, 245, 0.1);
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -31px;
+            top: 18px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #7b5cf5;
+            border: 4px solid var(--var-bg-color);
+            box-shadow: 0 0 8px #7b5cf5;
+        }
+
+        .timeline-dot.info {
+            background: #55efc4;
+            box-shadow: 0 0 8px #55efc4;
+        }
+
+        .timeline-dot.login {
+            background: #fdcb6e;
+            box-shadow: 0 0 8px #fdcb6e;
+        }
+
+        .timeline-dot.logout {
+            background: #ff7675;
+            box-shadow: 0 0 8px #ff7675;
+        }
+
+        .timeline-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            font-size: 11px;
+            color: #8f8fc6;
+            margin-bottom: 6px;
+        }
+
+        .tag-user {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #7b5cf5;
+            color: #fff;
+        }
+
+        .tag-user.guest {
+            background: #4b6584;
+        }
+
+        .tag-user.admin {
+            background: #9b5de5;
+        }
+
+        .tag-page {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+        }
+
+        .timeline-action {
+            font-size: 13px;
+            color: #fff;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .empty-logs {
+            text-align: center;
+            padding: 40px 20px;
+            color: #76769e;
+            font-size: 14px;
+            background: #141430;
+            border: 1px dashed #1e1e4a;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .empty-logs i {
+            font-size: 32px;
+        }
+
+        @media (max-width: 480px) {
+            .log-container {
+                padding: 12px;
+                padding-top: 50px;
+            }
+            .search-row {
+                flex-direction: column;
+            }
+            .filter-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="log-container">
+        <div class="log-header">
+            <h2 class="log-title">
+                <i class="bi bi-list-task" style="color: #7b5cf5;"></i>
+                <span>실시간 활동 로그</span>
+            </h2>
+            <a href="javascript:history.back()" class="back-btn">
+                <i class="bi bi-arrow-left"></i>
+                <span>돌아가기</span>
+            </a>
+        </div>
+
+        <!-- 필터 영역 -->
+        <div class="controls-card">
+            <div class="search-row">
+                <input type="text" id="search-input" class="search-input" placeholder="사용자명, 행동 내용, 페이지 등으로 검색...">
+                <select id="user-filter" class="filter-select">
+                    <option value="all">모든 사용자</option>
+                    <option value="GUEST">GUEST</option>
+                    <option value="최현일">최현일 (ADMIN)</option>
+                    <option value="최수아">최수아 (USER)</option>
+                    <option value="김수민">김수민 (USER)</option>
+                </select>
+            </div>
+            <div class="action-row">
+                <button class="btn-action" onclick="clearLogs()">
+                    <i class="bi bi-trash3"></i>
+                    <span>로그 전체 삭제</span>
+                </button>
+                <button class="btn-refresh" onclick="loadLogs()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span>새로고침</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 타임라인 영역 -->
+        <div id="timeline-container" class="timeline">
+            <!-- 자바스크립트로 렌더링 됩니다. -->
+        </div>
+    </div>
+
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script>
+        // 로그 로드 및 렌더링
+        function loadLogs() {
+            const container = document.getElementById("timeline-container");
+            if (!container) return;
+
+            const searchQuery = document.getElementById("search-input").value.toLowerCase();
+            const userFilter = document.getElementById("user-filter").value;
+
+            // 로컬스토리지에서 로그 데이터 획득 (최신순 정렬을 위해 reverse)
+            let logs = JSON.parse(localStorage.getItem("app_activity_logs") || "[]");
+            logs = [...logs].reverse(); 
+
+            // 필터링 적용
+            const filteredLogs = logs.filter(function(log) {
+                const matchesUser = (userFilter === "all") || 
+                                    (userFilter === "GUEST" && log.userName === "GUEST") || 
+                                    (log.userName.includes(userFilter));
+                
+                const matchesSearch = !searchQuery || 
+                                      log.userName.toLowerCase().includes(searchQuery) ||
+                                      log.pageName.toLowerCase().includes(searchQuery) ||
+                                      log.action.toLowerCase().includes(searchQuery) ||
+                                      log.time.includes(searchQuery);
+
+                return matchesUser && matchesSearch;
+            });
+
+            if (filteredLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-logs">
+                        <i class="bi bi-clipboard-x"></i>
+                        <span>기록된 활동 로그가 없습니다.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = "";
+            filteredLogs.forEach(function(log) {
+                // 사용자 역할에 따른 태그 스타일링
+                let userClass = "";
+                let userDisplay = log.userName;
+                if (log.userName === "GUEST") {
+                    userClass = "guest";
+                } else if (log.userName === "최현일") {
+                    userClass = "admin";
+                    userDisplay = "최현일 (ADMIN)";
+                } else if (log.userName === "최수아" || log.userName === "김수민") {
+                    userClass = ""; // 기본
+                    userDisplay = log.userName + " (USER)";
+                }
+
+                // 행동 종류에 따른 Dot 아이콘 색상 설정
+                let dotClass = "info";
+                if (log.action.includes("로그인")) {
+                    dotClass = "login";
+                } else if (log.action.includes("초기화") || log.action.includes("로그아웃")) {
+                    dotClass = "logout";
+                }
+
+                html += `
+                    <div class="timeline-item">
+                        <span class="timeline-dot ${dotClass}"></span>
+                        <div class="timeline-meta">
+                            <span class="tag-user ${userClass}"><i class="bi bi-person-fill"></i> ${userDisplay}</span>
+                            <span class="tag-page"><i class="bi bi-file-earmark-code"></i> ${log.pageName}</span>
+                            <span><i class="bi bi-clock"></i> ${log.time}</span>
+                        </div>
+                        <div class="timeline-action">${log.action}</div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 로그 전체 삭제
+        function clearLogs() {
+            if (confirm("정말로 모든 활동 로그를 영구 삭제하시겠습니까?")) {
+                localStorage.removeItem("app_activity_logs");
+                // 삭제 행위 자체를 첫 번째 로그로 다시 남김
+                if (typeof window.addAppLog === 'function') {
+                    window.addAppLog("모든 활동 로그 기록을 삭제하였습니다.");
+                }
+                loadLogs();
+            }
+        }
+
+        // 이벤트 리스너 바인딩
+        $(document).ready(function() {
+            loadLogs();
+
+            $("#search-input").on("input", function() {
+                loadLogs();
+            });
+
+            $("#user-filter").on("change", function() {
+                loadLogs();
+            });
+        });
+    </script>
+</body>
+</html>

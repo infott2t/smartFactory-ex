@@ -1,0 +1,1738 @@
+<!--
+<%@ page contentType="text/html;charset=UTF-8" language="java" isELIgnored="true" %>
+<%
+    org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
+    if (sUser != null) {
+%>
+    <script>
+        sessionStorage.setItem("user-id", "<%= sUser.getId() %>");
+        sessionStorage.setItem("user", JSON.stringify({
+            id: "<%= sUser.getId() %>",
+            name: "<%= sUser.getName() %>",
+            email: "<%= sUser.getEmail() %>",
+            picture: "<%= sUser.getPicture() != null ? sUser.getPicture() : "" %>",
+            role: "<%= sUser.getRole() %>"
+        }));
+    </script>
+<%
+    }
+%>
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+    <title>김치만들기 - 위생 체크인</title>
+    <!-- Google Fonts: Inter, Noto Sans KR, Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/simulator.js" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0b0b16;
+            --card-bg: #121226;
+            --card-border: #1e1e3f;
+            --text-main: #ffffff;
+            --text-sub: #76769e;
+            --neon-blue: #7b92ff;
+            --amber-accent: #e85d04;
+            --neon-green: #00b894;
+            --btn-disabled: #1d1d36;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* ── 메인 컨테이너 ── */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: #0b0b16;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 16px 60px 16px;
+            position: relative;
+        }
+
+        /* ── 상단 헤더 ── */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 4px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .back-btn {
+            font-size: 20px;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .back-btn:hover {
+            color: var(--neon-blue);
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* 온라인 체험 중 애니메이션 녹색 점 */
+        .online-dot-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .online-dot::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid var(--neon-green);
+            border-radius: 50%;
+            animation: pulse-dot 1.8s infinite ease-out;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        .online-text {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--neon-green);
+        }
+
+        /* ── 안내 가이드 배너 ── */
+        .guide-banner {
+            background: linear-gradient(135deg, rgba(123, 92, 245, 0.15) 0%, rgba(0, 184, 148, 0.15) 100%);
+            border: 1px solid rgba(123, 92, 245, 0.3);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.1);
+        }
+
+        .guide-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(123, 92, 245, 0.5);
+        }
+
+        /* ── 가상체험 온라인 그리팅 카드 ── */
+        .greeting-card {
+            background-color: var(--card-bg);
+            border-left: 4px solid var(--neon-blue);
+            border-top: 1px solid var(--card-border);
+            border-right: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+
+        .greeting-text {
+            font-size: 12px;
+            color: var(--text-main);
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        /* ── 6단계 비주얼 프로그레스 바 ── */
+        .steps-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin: 10px 8px 30px 8px;
+        }
+
+        .steps-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--card-border);
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-green));
+            z-index: 2;
+            transform: translateY(-50%);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .step-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: var(--bg-color);
+            border: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-sub);
+            z-index: 3;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .step-dot.active {
+            border-color: var(--neon-blue);
+            background-color: var(--bg-color);
+            color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(123, 92, 245, 0.5);
+            transform: scale(1.1);
+        }
+
+        .step-dot.completed {
+            border-color: var(--neon-green);
+            background-color: var(--neon-green);
+            color: #fff;
+        }
+
+        .step-dot-label {
+            position: absolute;
+            bottom: -22px;
+            font-size: 9px;
+            white-space: nowrap;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+
+        .step-dot.active .step-dot-label {
+            color: var(--neon-blue);
+            font-weight: 700;
+        }
+
+        .step-dot.completed .step-dot-label {
+            color: var(--neon-green);
+        }
+
+        /* ── 아코디언 단계 카드 ── */
+        .step-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .step-card.active {
+            border-color: rgba(123, 92, 245, 0.5);
+            box-shadow: 0 4px 20px rgba(123, 92, 245, 0.08);
+        }
+
+        .step-card.completed {
+            border-color: rgba(0, 184, 148, 0.3);
+            background: rgba(0, 184, 148, 0.02);
+        }
+
+        .step-card.locked {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .step-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-title i {
+            font-size: 18px;
+            color: var(--neon-blue);
+            transition: color 0.3s;
+        }
+
+        .step-card.completed .step-title i {
+            color: var(--neon-green);
+        }
+
+        .step-status {
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .step-status.completed-text {
+            color: var(--neon-green);
+        }
+
+        .step-status.locked-text {
+            color: var(--text-sub);
+        }
+
+        .step-status.active-text {
+            color: var(--neon-blue);
+        }
+
+        .step-content {
+            margin-top: 14px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding-top: 14px;
+        }
+
+        .step-card.active .step-content {
+            display: flex;
+        }
+
+        /* ── 공통 카드 내부 스타일 ── */
+        .info-box {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-bottom: 2px;
+        }
+
+        .info-val {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* 버튼 */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--neon-blue), #5c72f5);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(123, 92, 245, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            background: var(--btn-disabled) !important;
+            color: var(--text-sub) !important;
+            border: 1px solid var(--card-border) !important;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* ── 주소 복사 ── */
+        .address-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .address-box {
+            background-color: #0b0b16;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: #d1d1e0;
+            line-height: 1.5;
+            word-break: keep-all;
+        }
+
+        /* ── QR 스캐너 모의화 ── */
+        .qr-scanner-mock {
+            width: 100%;
+            height: 160px;
+            border: 2px dashed rgba(123, 92, 245, 0.4);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            background-color: rgba(18, 18, 38, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-scan-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: scanLine 2s infinite ease-in-out;
+        }
+
+        @keyframes scanLine {
+            0% { top: 10px; }
+            50% { top: 150px; }
+            100% { top: 10px; }
+        }
+
+        .qr-mock-code {
+            font-size: 64px;
+            color: rgba(255, 255, 255, 0.1);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(0.95); opacity: 0.1; }
+            to { transform: scale(1.05); opacity: 0.2; }
+        }
+
+        /* ── 사물함 지정 ── */
+        .locker-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .locker-tab-btn {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            color: var(--text-sub);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .locker-tab-btn.active {
+            border-color: var(--neon-blue);
+            color: #fff;
+            background-color: rgba(123, 92, 245, 0.1);
+        }
+
+        .locker-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .locker-num {
+            aspect-ratio: 1;
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-sub);
+        }
+
+        .locker-num:hover {
+            border-color: rgba(123, 92, 245, 0.5);
+            color: #fff;
+        }
+
+        .locker-num.active {
+            border-color: var(--neon-blue);
+            background-color: rgba(123, 92, 245, 0.15);
+            color: #fff;
+            box-shadow: 0 0 8px rgba(123, 92, 245, 0.3);
+        }
+
+        .clothes-sizes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .size-chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .size-chip:hover {
+            border-color: rgba(123, 92, 245, 0.5);
+            color: #fff;
+        }
+
+        .size-chip.active {
+            border-color: var(--neon-blue);
+            background-color: rgba(123, 92, 245, 0.15);
+            color: #fff;
+        }
+
+        /* ── 손씻기 위생구 ── */
+        .hygiene-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .hygiene-check-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-sub);
+            transition: color 0.3s;
+        }
+
+        .hygiene-check-item.checked {
+            color: #fff;
+        }
+
+        .hygiene-check-item i {
+            font-size: 16px;
+            color: var(--card-border);
+            transition: color 0.3s;
+        }
+
+        .hygiene-check-item.checked i {
+            color: var(--neon-green);
+        }
+
+        /* ── 사진 촬영 ── */
+        .photo-slots {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .photo-slot-card {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px dashed var(--card-border);
+            border-radius: 12px;
+            aspect-ratio: 4/5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .photo-slot-card:hover {
+            border-color: rgba(123, 92, 245, 0.5);
+            background-color: rgba(123, 92, 245, 0.02);
+        }
+
+        .photo-slot-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-slot-card.has-photo {
+            border-style: solid;
+            border-color: var(--neon-green);
+        }
+
+        .photo-slot-icon {
+            font-size: 28px;
+            color: var(--text-sub);
+        }
+
+        .photo-slot-label {
+            font-size: 11px;
+            color: var(--text-sub);
+            font-weight: 500;
+            text-align: center;
+            padding: 0 8px;
+        }
+
+        .camera-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #05050f;
+            z-index: 10001;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fff;
+        }
+
+        .camera-close-btn {
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .camera-view {
+            flex: 1;
+            border: 2px solid rgba(123, 92, 245, 0.3);
+            border-radius: 16px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0b0b16;
+        }
+
+        .camera-guide-box {
+            position: absolute;
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            width: 80%;
+            height: 80%;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-view-message {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .camera-shutter-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 20px;
+        }
+
+        .camera-shutter-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 6px solid #1a1a33;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        }
+
+        .camera-shutter-btn:active {
+            transform: scale(0.9);
+            background-color: #ccc;
+        }
+
+        .photo-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            z-index: 10002;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ── 심사 승인 영역 ── */
+        .approval-box {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 20px;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            background-color: rgba(18, 18, 38, 0.4);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .spinner-ring {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(123, 92, 245, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--neon-blue);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 토스트 */
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background-color: var(--card-bg);
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.3);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #fff;
+            z-index: 10005;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast-msg.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .completed-summary {
+            font-size: 12px;
+            color: var(--neon-green);
+            font-weight: 500;
+            background-color: rgba(0, 184, 148, 0.08);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 184, 148, 0.15);
+            line-height: 1.5;
+            word-break: keep-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ── 상단 헤더 ── -->
+        <header class="app-header">
+            <i class="bi bi-chevron-left back-btn"></i>
+            <span class="header-title">김치만들기 (가상체험관)</span>
+            <div class="online-dot-container">
+                <span class="online-dot"></span>
+                <span class="online-text">온라인 체험중</span>
+            </div>
+        </header>
+
+        <!-- ── 가이드 배너 ── -->
+        <div class="guide-banner">
+            <div class="guide-text">단계별 절차를 거쳐 안전하고 재미있게 체험을 진행해 보세요! 🥬✨</div>
+        </div>
+
+        <!-- ── 그리팅 카드 ── -->
+        <div class="greeting-card">
+            <div class="greeting-text">
+                온라인으로 체험중입니다. 김치만들기. 지금 체험하시고, 실제로 오셔서 즐겁게 일을 해보세요. 감사합니다.
+            </div>
+        </div>
+
+        <!-- ── 비주얼 프로그레스 바 ── -->
+        <div class="steps-indicator">
+            <div class="progress-line" id="steps-progress-line"></div>
+            <div class="step-dot active" id="dot-1">1<span class="step-dot-label">오시는 길</span></div>
+            <div class="step-dot" id="dot-2">2<span class="step-dot-label">본인 확인</span></div>
+            <div class="step-dot" id="dot-3">3<span class="step-dot-label">출근 QR</span></div>
+            <div class="step-dot" id="dot-4">4<span class="step-dot-label">탈의실</span></div>
+            <div class="step-dot" id="dot-5">5<span class="step-dot-label">위생준비</span></div>
+            <div class="step-dot" id="dot-6">6<span class="step-dot-label">위생승인</span></div>
+            <div class="step-dot" id="dot-7">7<span class="step-dot-label">입장</span></div>
+        </div>
+
+        <!-- ── 6단계 아코디언 위저드 ── -->
+        
+        <!-- Step 1: 오시는 길 확인 -->
+        <div class="step-card active" id="step-card-1">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span>Step 1: 오시는 길 확인</span>
+                </span>
+                <span class="step-status active-text" id="status-1">대기 중</span>
+            </div>
+            <div class="step-content">
+                <div class="address-container">
+                    <div style="font-weight: 600; font-size: 13px; color: var(--neon-blue); display: flex; align-items: center; gap: 4px;">
+                        <i class="bi bi-building"></i> 김치만들기 AFood
+                    </div>
+                    <div class="address-box">
+                        서울시 성동구 성수동 ATower 3층 스마트팩토리 체험관 AFood Kimchi
+                    </div>
+                    <button class="btn-secondary" id="btn-copy-address" onclick="copyAddress()">
+                        <i class="bi bi-clipboard"></i> 주소 복사하기
+                    </button>
+                </div>
+                <div class="info-box">
+                    “예약된 날짜와 시간에 여기로 오시면 됩니다.”
+                </div>
+                <button class="btn-primary" onclick="completeStep(1)">
+                    오시는 길 확인 완료
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: 본인 확인하기 -->
+        <div class="step-card locked" id="step-card-2">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-person-bounding-box"></i>
+                    <span>Step 2: 본인 확인하기</span>
+                </span>
+                <span class="step-status locked-text" id="status-2"><i class="bi bi-lock-fill"></i> 잠김</span>
+            </div>
+            <div class="step-content">
+                <div class="info-box">
+                    <div class="info-label">대기 위치</div>
+                    <div class="info-val">ATower 3층 미팅룸 (Meeting Room)</div>
+                </div>
+                <div class="info-box" style="border-left: 3px solid var(--neon-blue);">
+                    지참하신 신분증과 보건증으로 간단하게 본인확인을 합니다. meeting룸으로 오세요. (3분 소요)
+                </div>
+                <button class="btn-primary" onclick="completeStep(2)">
+                    확인 (OK)
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: 출근 QR 찍기 -->
+        <div class="step-card locked" id="step-card-3">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-qr-code-scan"></i>
+                    <span>Step 3: 출근 QR 찍기</span>
+                </span>
+                <span class="step-status locked-text" id="status-3"><i class="bi bi-lock-fill"></i> 잠김</span>
+            </div>
+            <div class="step-content">
+                <div class="qr-scanner-mock">
+                    <div class="qr-scan-line"></div>
+                    <i class="bi bi-qr-code qr-mock-code"></i>
+                </div>
+                <div class="info-box" style="text-align: center; color: var(--text-sub); font-size: 12px;">
+                    위 스캔 영역에 모바일 QR 코드를 비추어 출근 등록을 진행해주세요.
+                </div>
+                <button class="btn-primary" id="btn-qr-scan" onclick="performQRScan()">
+                    <i class="bi bi-camera"></i> QR코드 스캔 (출근 등록)
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 4: 옷 갈아입기 -->
+        <div class="step-card locked" id="step-card-4">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-door-closed-fill"></i>
+                    <span>Step 4: 옷 갈아입기 (탈의실)</span>
+                </span>
+                <span class="step-status locked-text" id="status-4"><i class="bi bi-lock-fill"></i> 잠김</span>
+            </div>
+            <div class="step-content">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <div class="info-label" style="margin-bottom: 6px;">사물함 성별 선택</div>
+                        <div class="locker-tabs">
+                            <div class="locker-tab-btn" id="gender-male" onclick="selectGender('남성')">남성 사물함</div>
+                            <div class="locker-tab-btn" id="gender-female" onclick="selectGender('여성')">여성 사물함</div>
+                        </div>
+                    </div>
+                    
+                    <div id="locker-selection-section" style="display: none;">
+                        <div class="info-label" style="margin-bottom: 4px;">사물함 번호 선택</div>
+                        <div class="locker-grid">
+                            <div class="locker-num" onclick="selectLocker(1)">1</div>
+                            <div class="locker-num" onclick="selectLocker(2)">2</div>
+                            <div class="locker-num" onclick="selectLocker(3)">3</div>
+                            <div class="locker-num" onclick="selectLocker(4)">4</div>
+                            <div class="locker-num" onclick="selectLocker(5)">5</div>
+                        </div>
+                    </div>
+
+                    <div id="size-selection-section" style="display: none;">
+                        <div class="info-label" style="margin-bottom: 4px;">작업복 사이즈 선택</div>
+                        <div class="clothes-sizes">
+                            <div class="size-chip" onclick="selectSize('XL')">XL</div>
+                            <div class="size-chip" onclick="selectSize('XXL')">XXL</div>
+                            <div class="size-chip" onclick="selectSize('XXXL')">XXXL</div>
+                            <div class="size-chip" onclick="selectSize('XXXXL')">XXXXL</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn-primary" id="btn-complete-locker" onclick="completeStep(4)" disabled>
+                    사물함 지정 및 환복 완료
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 5: 손 씻기 및 위생구 착용 -->
+        <div class="step-card locked" id="step-card-5">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Step 5: 위생 준비</span>
+                </span>
+                <span class="step-status locked-text" id="status-5"><i class="bi bi-lock-fill"></i> 잠김</span>
+            </div>
+            <div class="step-content">
+                <div class="info-box" style="border-left: 3px solid var(--neon-blue); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-info-circle-fill" style="color: var(--neon-blue);"></i>
+                    <span>손을 씻어주세요.</span>
+                </div>
+                
+                <div class="hygiene-checklist" style="margin-top: 4px;">
+                    <div class="hygiene-check-item" id="check-item-wash">
+                        <i class="bi bi-circle-fill"></i>
+                        <span>물과 비누로 손씻기</span>
+                    </div>
+                    <div class="hygiene-check-item" id="check-item-cap">
+                        <i class="bi bi-circle-fill"></i>
+                        <span>위생모 착용 완료</span>
+                    </div>
+                    <div class="hygiene-check-item" id="check-item-coat">
+                        <i class="bi bi-circle-fill"></i>
+                        <span>위생복 착용 완료</span>
+                    </div>
+                    <div class="hygiene-check-item" id="check-item-gloves">
+                        <i class="bi bi-circle-fill"></i>
+                        <span>위생장갑 착용 완료</span>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="btn-complete-hygiene" onclick="completeStep(5)" style="margin-top: 6px;">
+                    손씻기 및 위생구 착용완료
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 6: 위생 상태 사진 촬영 및 승인 -->
+        <div class="step-card locked" id="step-card-6">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-camera-fill"></i>
+                    <span>Step 6: 위생 검사 사진 촬영</span>
+                </span>
+                <span class="step-status locked-text" id="status-6"><i class="bi bi-lock-fill"></i> 잠김</span>
+            </div>
+            <div class="step-content">
+                <div class="info-box" style="border-left: 3px solid var(--amber-accent);">
+                    “옷을 다갈아입고, 단정하게 사진을 찍어주세요.”
+                </div>
+                <div class="photo-slots">
+                    <div class="photo-slot-card" id="slot-gloves" onclick="openCamera('gloves')">
+                        <i class="bi bi-camera photo-slot-icon" id="icon-gloves"></i>
+                        <span class="photo-slot-label" id="label-gloves">위생장갑 착용 사진</span>
+                    </div>
+                    <div class="photo-slot-card" id="slot-full" onclick="openCamera('full')">
+                        <i class="bi bi-camera photo-slot-icon" id="icon-full"></i>
+                        <span class="photo-slot-label" id="label-full">전신 위생상태 사진</span>
+                    </div>
+                </div>
+                
+                <!-- 승인 심사 대기 및 결과 영역 -->
+                <div class="approval-box" id="approval-box-area">
+                    <div id="approval-spinner-section">
+                        <div class="spinner-ring"></div>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--neon-blue); margin-top: 10px;" id="approval-text">
+                            위생 검사 진행 중... 잠시만 기다려주세요 (3초)
+                        </div>
+                    </div>
+                    <div id="approval-success-section" style="display: none;">
+                        <i class="bi bi-check-circle-fill" style="font-size: 32px; color: var(--neon-green);"></i>
+                        <div style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 8px;">
+                            승인이 완료되었습니다. 입장해보세요.
+                        </div>
+                        <button class="btn-primary" style="margin-top: 14px; width: 100%;" onclick="enterExperienceCenter()">
+                            AFood Kimchi룸으로 입장하기
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="btn-request-approval" onclick="submitApprovalRequest()" disabled>
+                    위생 상태 사진 제출 및 승인 요청
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 7: Workshop 입장 -->
+        <div class="step-card locked" id="step-card-7">
+            <div class="step-header">
+                <span class="step-title">
+                    <i class="bi bi-door-open-fill"></i>
+                    <span>Step 7: Workshop 입장하기</span>
+                </span>
+                <span class="step-status locked-text" id="status-7"><i class="bi bi-lock-fill"></i> 잠김</span>
+            </div>
+            <div class="step-content">
+                <div class="info-box" style="border-left: 3px solid var(--neon-green); background: rgba(0, 184, 148, 0.08);">
+                    준비가 완료되었습니다. 🎊 일 해보세요~. 안전하고 청결하게 일합시다. 😁😊
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 14px;">
+                    <button class="btn-primary" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #009e7e);" onclick="enterWorkshop()">
+                        <i class="bi bi-door-open"></i> Workshop 입장하기
+                    </button>
+                    <button class="btn-primary" style="flex: 0.6; background: linear-gradient(135deg, #6c5ce7, #a29bfe);" onclick="showFacilityMap()">
+                        <i class="bi bi-map"></i> 휴식장소 및 편의시설 안내
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 카메라 전체화면 모의 창 ── -->
+    <div class="camera-overlay" id="camera-window">
+        <div class="camera-header">
+            <span style="font-size: 14px; font-weight: 700;"><i class="bi bi-camera"></i> 스마트팩토리 위생 인증 카메라</span>
+            <i class="bi bi-x camera-close-btn" onclick="closeCamera()"></i>
+        </div>
+        <div class="camera-view">
+            <div class="camera-view-line h" style="top: 33.3%;"></div>
+            <div class="camera-view-line h" style="top: 66.6%;"></div>
+            <div class="camera-view-line v" style="left: 33.3%;"></div>
+            <div class="camera-view-line v" style="left: 66.6%;"></div>
+            <div class="camera-guide-box" id="camera-guide">
+                <!-- 위생 상태 박스 가이드 -->
+            </div>
+            <div class="camera-view-message" id="camera-prompt">
+                정렬 가이드라인에 맞추어 장갑을 착용한 손을 보여주세요.
+            </div>
+            <div class="photo-flash" id="shutter-flash"></div>
+        </div>
+        <div class="camera-shutter-container">
+            <div class="camera-shutter-btn" onclick="takePhoto()"></div>
+        </div>
+    </div>
+
+    <!-- ── 휴식장소 및 편의시설 안내 모달 ── -->
+    <div class="camera-overlay" id="facility-map-modal" style="display:none; background: rgba(0,0,0,0.92); z-index:2000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+        <div style="width:100%; max-width:440px; background: var(--card-bg); border-radius:16px; border:1px solid var(--card-border); overflow:hidden;">
+            <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border);">
+                <span style="font-size:15px; font-weight:700; color:var(--text-main);"><i class="bi bi-map"></i> 공장 편의시설 안내도</span>
+                <i class="bi bi-x" style="font-size:22px; cursor:pointer; color:var(--text-sub);" onclick="closeFacilityMap()"></i>
+            </div>
+            <div style="padding:20px; position:relative;">
+                <!-- SVG Factory Floor Map -->
+                <svg viewBox="0 0 400 280" style="width:100%; border-radius:8px; background:#1a1a35;">
+                    <!-- Factory outline -->
+                    <rect x="10" y="10" width="380" height="260" rx="8" fill="none" stroke="#2d2d5e" stroke-width="2"/>
+                    
+                    <!-- Workshop Area -->
+                    <rect x="20" y="20" width="200" height="140" rx="4" fill="#1e1e3f" stroke="#3d3d7e" stroke-width="1"/>
+                    <text x="120" y="95" text-anchor="middle" fill="#76769e" font-size="12" font-family="Inter">🏭 작업장 (Workshop)</text>
+                    
+                    <!-- Task Areas -->
+                    <rect x="30" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5"/>
+                    <text x="57" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task 1</text>
+                    <rect x="95" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5"/>
+                    <text x="122" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task 2-3</text>
+                    <rect x="160" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5"/>
+                    <text x="187" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task 4-5</text>
+                    
+                    <!-- Changing Room -->
+                    <rect x="230" y="20" width="80" height="60" rx="4" fill="#2a1f4e" stroke="#6c5ce7" stroke-width="1"/>
+                    <text x="270" y="50" text-anchor="middle" fill="#a29bfe" font-size="10" font-family="Inter">👔 탈의실</text>
+                    <text x="270" y="65" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">사물함 보관</text>
+                    
+                    <!-- Aging Room -->
+                    <rect x="320" y="20" width="65" height="60" rx="4" fill="#1e3a2a" stroke="#00b894" stroke-width="1"/>
+                    <text x="352" y="50" text-anchor="middle" fill="#00b894" font-size="10" font-family="Inter">🧂 절임실</text>
+                    
+                    <!-- ★ Break Room (highlighted) -->
+                    <rect x="230" y="100" width="155" height="70" rx="6" fill="rgba(255, 165, 0, 0.15)" stroke="#ff9f43" stroke-width="2" stroke-dasharray="4,2">
+                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+                    </rect>
+                    <text x="307" y="130" text-anchor="middle" fill="#ff9f43" font-size="13" font-weight="bold" font-family="Inter">☕ 휴식공간 (Break Room)</text>
+                    <text x="307" y="148" text-anchor="middle" fill="#ffcc80" font-size="9" font-family="Inter">음료수 · 간식 · 소파 · 충전기</text>
+                    <text x="307" y="162" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">휴식시간: 10분 이내</text>
+                    
+                    <!-- ★ Restroom (highlighted) -->
+                    <rect x="20" y="180" width="100" height="80" rx="6" fill="rgba(0, 206, 209, 0.12)" stroke="#00cec9" stroke-width="2" stroke-dasharray="4,2">
+                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+                    </rect>
+                    <text x="70" y="215" text-anchor="middle" fill="#00cec9" font-size="13" font-weight="bold" font-family="Inter">🚻 화장실 (Restroom)</text>
+                    <text x="70" y="233" text-anchor="middle" fill="#81ecec" font-size="9" font-family="Inter">남/여 구분 · 세면대</text>
+                    <text x="70" y="247" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">이용 후 손씻기 필수!</text>
+                    
+                    <!-- QR Station -->
+                    <rect x="140" y="200" width="80" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8"/>
+                    <text x="180" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">📱 QR 입력기</text>
+                    <text x="180" y="240" text-anchor="middle" fill="#76769e" font-size="7" font-family="Inter">(출근/퇴근)</text>
+                    
+                    <!-- Entrance -->
+                    <rect x="240" y="200" width="60" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8"/>
+                    <text x="270" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">🚪 입구</text>
+                    
+                    <!-- Office -->
+                    <rect x="320" y="200" width="65" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8"/>
+                    <text x="352" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">🏢 사무실</text>
+                    
+                    <!-- Legend indicators -->
+                    <circle cx="25" y="270" r="4" fill="#ff9f43"/>
+                    <text x="35" y="273" fill="#ff9f43" font-size="8" font-family="Inter">= 휴식장소</text>
+                    <circle cx="110" y="270" r="4" fill="#00cec9"/>
+                    <text x="120" y="273" fill="#00cec9" font-size="8" font-family="Inter">= 화장실</text>
+                    <circle cx="195" y="270" r="4" fill="#7b92ff"/>
+                    <text x="205" y="273" fill="#7b92ff" font-size="8" font-family="Inter">= 작업 구역</text>
+                </svg>
+                <div style="margin-top:12px; padding:10px; background:rgba(255,159,67,0.08); border-radius:8px; border:1px solid rgba(255,159,67,0.2);">
+                    <div style="font-size:12px; color:#ff9f43; font-weight:600;"><i class="bi bi-info-circle"></i> 안내사항</div>
+                    <div style="font-size:11px; color:var(--text-sub); margin-top:4px; line-height:1.6;">
+                        • 휴식공간은 작업장 우측에 위치해 있습니다.<br>
+                        • 화장실은 작업장 좌측 하단에 있습니다.<br>
+                        • 화장실 이용 후 반드시 손을 깨끗이 씻어주세요.<br>
+                        • 휴식은 30분 이내로 사용해 주세요. <br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div class="toast-msg" id="toast">주소가 복사되었습니다!</div>
+
+    <!-- jQuery 및 스크립트 -->
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script>
+        // ── 1. 데이터 정의 ──
+        let currentStep = 1;
+        
+        // 사물함 선택 변수
+        let selectedGender = '';
+        let selectedLocker = 0;
+        let selectedSize = '';
+
+        // 사진 파일 매핑
+        let capturedGloves = false;
+        let capturedFull = false;
+        let activeCameraTarget = ''; // 'gloves' 또는 'full'
+
+        // ── 2. 초기 로드 ──
+        window.addEventListener('load', function() {
+            // 뒤로가기 버튼 리스너
+            document.querySelector('.back-btn').addEventListener('click', function() {
+                window.location.href = "kimp.html";
+            });
+
+            // progress-line 초기 넓이 지정
+            updateProgressBar();
+        });
+
+        // ── 3. 토스트 및 오시는 길 기능 ──
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function copyAddress() {
+            const addressText = "서울시 성동구 성수동 ATower 3층 스마트팩토리 체험관 AFood Kimchi";
+            navigator.clipboard.writeText(addressText).then(() => {
+                const btn = document.getElementById('btn-copy-address');
+                const origHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2"></i> 복사 완료';
+                btn.style.backgroundColor = 'var(--neon-green)';
+                btn.style.borderColor = 'var(--neon-green)';
+                setTimeout(() => {
+                    btn.innerHTML = origHtml;
+                    btn.style.backgroundColor = '';
+                    btn.style.borderColor = '';
+                }, 2000);
+                showToast("주소가 클립보드에 복사되었습니다!");
+            }).catch(err => {
+                // 대체 카피
+                const textArea = document.createElement("textarea");
+                textArea.value = addressText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast("주소가 클립보드에 복사되었습니다!");
+            });
+        }
+
+        // ── 4. Web Audio API 모의 효과음 ──
+        function playSound(type) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (type === 'beep') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = 1200;
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.08);
+                } else if (type === 'click') {
+                    const bufferSize = audioCtx.sampleRate * 0.08;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = buffer;
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 1000;
+                    const gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    noise.start();
+                }
+            } catch (e) {
+                console.log("Audio not supported or blocked", e);
+            }
+        }
+
+        // ── 5. 단계별 워크플로우 진행 제어 ──
+        // ── 5. 단계별 워크플로우 진행 제어 ──
+        function updateWorkersProgress(stepName, status = "active") {
+            const userId = sessionStorage.getItem("user-id") || "guest";
+            const userJson = sessionStorage.getItem("user");
+            let userName = "손님";
+            if (userJson) {
+                try {
+                    userName = JSON.parse(userJson).name || "손님";
+                } catch(e) {}
+            }
+            
+            let progressMap = {};
+            try {
+                progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+            } catch(e) {}
+            
+            let location = "준비중";
+            let customStepName = stepName;
+            const checkInTime = getPartitionedItem("kimp_check_in_time");
+
+            if (currentStep === 3 || currentStep === 4) {
+                location = "AFood QR코드입력기";
+                if (checkInTime) {
+                    customStepName = "출근 (" + checkInTime + ")";
+                }
+            } else if (currentStep === 5 || currentStep === 6) {
+                location = "위생세척실";
+            } else if (currentStep >= 7) {
+                location = "AFood Kimchi룸 입구";
+            }
+            
+            let targetId = userId;
+            const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userName);
+            if (existingKey) {
+                targetId = existingKey;
+            }
+            
+            const oldData = progressMap[targetId] || {};
+            progressMap[targetId] = {
+                userId: targetId,
+                userName: userName,
+                currentStep: currentStep,
+                stepName: customStepName,
+                status: status,
+                location: location,
+                checkInTime: checkInTime,
+                accumWorkSeconds: oldData.accumWorkSeconds || 0,
+                accumBreakSeconds: oldData.accumBreakSeconds || 0,
+                completedOrdersCount: oldData.completedOrdersCount || 0,
+                lastActiveTime: new Date().toISOString()
+            };
+            localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+        }
+
+        function updateProgressBar() {
+            const line = document.getElementById('steps-progress-line');
+            const completedCount = currentStep - 1;
+            const percentage = (completedCount / 7) * 100;
+            line.style.width = percentage + '%';
+        }
+
+        function completeStep(stepNum) {
+            const card = document.getElementById(`step-card-${stepNum}`);
+            const status = document.getElementById(`status-${stepNum}`);
+            const dot = document.getElementById(`dot-${stepNum}`);
+
+            // 1. 현재 카드 완료 처리
+            card.classList.remove('active');
+            card.classList.add('completed');
+            
+            // 완료 서머리 내용 삽입
+            let summaryText = '완료됨';
+            let stepText = `Step ${stepNum} 완료`;
+            if (stepNum === 1) {
+                summaryText = '서울시 성동구 성수동 ATower 3층 스마트팩토리 체험관 AFood Kimchi';
+                stepText = "Step 1. 오시는 길 완료";
+            } else if (stepNum === 2) {
+                summaryText = '본인확인완료 (신분증과 보건증을 꼭 지참해주세요~.)';
+                stepText = "Step 2. 신원 및 보건증 확인 완료";
+            } else if (stepNum === 3) {
+                const clockVal = sessionStorage.getItem('kimp_check_in_time') || '등록완료';
+                summaryText = `출근 등록 완료 [${clockVal}]`;
+                stepText = "Step 3. 출근 QR 스캔 완료";
+            } else if (stepNum === 4) {
+                summaryText = `${selectedGender} ${selectedLocker}번 사물함 (${selectedSize}) / 위생모, 위생복, 위생장갑`;
+                stepText = "Step 4. 위생복 착용 완료";
+            } else if (stepNum === 5) {
+                summaryText = '손씻기 및 위생구 착용 완료';
+                stepText = "Step 5. 손씻기 완료";
+            } else if (stepNum === 6) {
+                summaryText = '위생 검사 사진 승인 완료';
+                stepText = "Step 6. 위생 심사 승인 완료";
+            } else if (stepNum === 7) {
+                summaryText = 'Workshop 입장 완료 - 작업 시작!';
+                stepText = "Step 7. Workshop 입장 완료";
+            }
+            
+            status.innerHTML = `<i class="bi bi-check-circle-fill"></i> <span style="font-size:11px;">${summaryText}</span>`;
+            status.className = 'step-status completed-text';
+
+            dot.classList.remove('active');
+            dot.classList.add('completed');
+
+            // 2. 다음 단계 잠금 해제 및 확장
+            const nextStep = stepNum + 1;
+            if (nextStep <= 7) {
+                currentStep = nextStep;
+                
+                const nextCard = document.getElementById(`step-card-${nextStep}`);
+                const nextStatus = document.getElementById(`status-${nextStep}`);
+                const nextDot = document.getElementById(`dot-${nextStep}`);
+
+                nextCard.classList.remove('locked');
+                nextCard.classList.add('active');
+                
+                nextStatus.innerHTML = '진행 중';
+                nextStatus.className = 'step-status active-text';
+                
+                nextDot.classList.add('active');
+
+                // 스크롤 이동
+                setTimeout(() => {
+                    nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            } else {
+                currentStep = 8; // 완료
+            }
+
+            updateProgressBar();
+            updateWorkersProgress(stepText);
+        }
+
+        // ── Step 3: 출근 QR 스캔 ──
+        function performQRScan() {
+            const btn = document.getElementById('btn-qr-scan');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> 스캔 진행 중...';
+
+            setTimeout(() => {
+                playSound('beep');
+                
+                // 출근 등록 시간 캡처
+                const now = new Date();
+                let hours = String(now.getHours()).padStart(2, '0');
+                let minutes = String(now.getMinutes()).padStart(2, '0');
+                let seconds = String(now.getSeconds()).padStart(2, '0');
+                const checkInTime = `${hours}:${minutes}:${seconds}`;
+
+                // partitioned storage에 저장
+                setPartitionedItem('kimp_check_in_time', checkInTime);
+
+                showToast(`출근이 성공적으로 등록되었습니다: ${checkInTime}`);
+                completeStep(3);
+            }, 1000);
+        }
+
+        // ── Step 4: 옷 갈아입기 (사물함) ──
+        function selectGender(gender) {
+            selectedGender = gender;
+            document.getElementById('gender-male').classList.toggle('active', gender === '남성');
+            document.getElementById('gender-female').classList.toggle('active', gender === '여성');
+
+            // 사물함 번호 섹션 활성화
+            $('#locker-selection-section').slideDown(250);
+            checkLockerStepValidity();
+        }
+
+        function selectLocker(num) {
+            selectedLocker = num;
+            const lockerDivs = document.querySelectorAll('.locker-num');
+            lockerDivs.forEach((div, idx) => {
+                div.classList.toggle('active', (idx + 1) === num);
+            });
+
+            // 사이즈 선택 섹션 활성화
+            $('#size-selection-section').slideDown(250);
+            checkLockerStepValidity();
+        }
+
+        function selectSize(size) {
+            selectedSize = size;
+            const chips = document.querySelectorAll('.size-chip');
+            chips.forEach(chip => {
+                chip.classList.toggle('active', chip.textContent === size);
+            });
+            checkLockerStepValidity();
+        }
+
+        function checkLockerStepValidity() {
+            const finishBtn = document.getElementById('btn-complete-locker');
+            if (selectedGender && selectedLocker && selectedSize) {
+                finishBtn.disabled = false;
+            } else {
+                finishBtn.disabled = true;
+            }
+        }
+
+        // ── Step 5: 위생 준비 완료 ──
+        // (단순 클릭 시 완료하도록 수정)
+        // 위생구 아이템 상태 표시용
+        window.addEventListener('load', function() {
+            // 위생 카드 활성화 시 자동으로 체크 아이콘들 스타일 입혀두기
+            document.getElementById('check-item-wash').classList.add('checked');
+            document.getElementById('check-item-cap').classList.add('checked');
+            document.getElementById('check-item-coat').classList.add('checked');
+            document.getElementById('check-item-gloves').classList.add('checked');
+            
+            document.querySelectorAll('#step-card-5 .hygiene-check-item').forEach(item => {
+                item.querySelector('i').className = 'bi bi-check-circle-fill';
+            });
+        });
+
+        // ── Step 6: 위생 상태 사진 촬영 및 승인 ──
+        function openCamera(target) {
+            activeCameraTarget = target;
+            const overlay = document.getElementById('camera-window');
+            const prompt = document.getElementById('camera-prompt');
+            const guide = document.getElementById('camera-guide');
+
+            if (target === 'gloves') {
+                prompt.textContent = "위생장갑을 착용한 손이 사각 그리드 내에 들어오도록 해주세요.";
+                guide.style.width = "70%";
+                guide.style.height = "50%";
+            } else {
+                prompt.textContent = "전신 모습이 실선 가이드 내에 들어오도록 한 뒤, 단정하게 사진을 찍어주세요.";
+                guide.style.width = "60%";
+                guide.style.height = "85%";
+            }
+
+            overlay.style.display = 'flex';
+        }
+
+        function closeCamera() {
+            document.getElementById('camera-window').style.display = 'none';
+        }
+
+        function takePhoto() {
+            const flash = document.getElementById('shutter-flash');
+            
+            // 셔터음
+            playSound('click');
+
+            // 화면 플래시 연출
+            flash.style.opacity = 1;
+            setTimeout(() => {
+                flash.style.opacity = 0;
+            }, 150);
+
+            setTimeout(() => {
+                closeCamera();
+                
+                // 사진 슬롯 업데이트
+                if (activeCameraTarget === 'gloves') {
+                    capturedGloves = true;
+                    const slot = document.getElementById('slot-gloves');
+                    slot.classList.add('has-photo');
+                    slot.innerHTML = '<img src="./images/media__1780385402815.jpg" alt="Gloves Photo">';
+                } else {
+                    capturedFull = true;
+                    const slot = document.getElementById('slot-full');
+                    slot.classList.add('has-photo');
+                    slot.innerHTML = '<img src="./images/media__1780391849288.jpg" alt="Full Worker Photo">';
+                }
+
+                showToast("사진이 임시로 캡처되었습니다.");
+                checkPhotoStepValidity();
+            }, 300);
+        }
+
+        function checkPhotoStepValidity() {
+            const requestBtn = document.getElementById('btn-request-approval');
+            if (capturedGloves && capturedFull) {
+                requestBtn.disabled = false;
+            } else {
+                requestBtn.disabled = true;
+            }
+        }
+
+        function submitApprovalRequest() {
+            const requestBtn = document.getElementById('btn-request-approval');
+            const approvalArea = document.getElementById('approval-box-area');
+            const photoSlots = document.querySelector('.photo-slots');
+            
+            requestBtn.style.display = 'none';
+            photoSlots.style.display = 'none';
+            approvalArea.style.display = 'flex';
+
+            const userId = sessionStorage.getItem("user-id") || "guest";
+            const userJson = sessionStorage.getItem("user");
+            let userName = "손님";
+            if (userJson) {
+                try {
+                    userName = JSON.parse(userJson).name || "손님";
+                } catch(e) {}
+            }
+            
+            const approvalRequest = {
+                id: userId + "_" + Date.now(),
+                userId: userId,
+                userName: userName,
+                type: "hygiene",
+                status: "pending", // pending, approved, rejected
+                imageGloves: "./images/media__1780385402815.jpg",
+                imageFull: "./images/media__1780391849288.jpg",
+                submittedTime: new Date().toLocaleTimeString()
+            };
+            
+            let requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+            
+            // Remove existing requests from this user to prevent accumulation
+            requests = requests.filter(r => r.userId !== userId);
+            requests.push(approvalRequest);
+            localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
+            
+            // Update workers progress to pending_approval
+            updateWorkersProgress("Step 6. 위생 심사 대기", "pending_approval");
+
+            const approvalText = document.getElementById('approval-text');
+            approvalText.textContent = "매니저의 위생 심사 승인을 대기 중입니다...";
+
+            const checkStatus = () => {
+                let requests = [];
+                try {
+                    requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+                } catch(e) {}
+                
+                const myReq = requests.find(r => r.userId === userId && r.type === "hygiene");
+                if (myReq) {
+                    if (myReq.status === "approved") {
+                        clearInterval(statusTimer);
+                        window.removeEventListener("storage", storageHandler);
+                        
+                        // 승인 완료 → Step 6 완료 → Step 7 열기
+                        document.getElementById('approval-spinner-section').style.display = 'none';
+                        document.getElementById('approval-success-section').style.display = 'none';
+                        playSound('beep');
+                        completeStep(6);
+                    } else if (myReq.status === "rejected") {
+                        clearInterval(statusTimer);
+                        window.removeEventListener("storage", storageHandler);
+                        
+                        // 반려 상태 복구
+                        alert("매니저가 위생 사진을 반려했습니다. 사진을 다시 찍고 제출해 주세요.");
+                        document.getElementById('approval-spinner-section').style.display = 'none';
+                        approvalArea.style.display = 'none';
+                        requestBtn.style.display = 'block';
+                        photoSlots.style.display = 'flex';
+                        
+                        // Remove request from localStorage
+                        let updatedReqs = requests.filter(r => r.userId !== userId);
+                        localStorage.setItem("kimp_approval_requests", JSON.stringify(updatedReqs));
+                        
+                        updateWorkersProgress("Step 6. 위생 심사 반려됨", "active");
+                    }
+                }
+            };
+
+            const storageHandler = (e) => {
+                if (e.key === "kimp_approval_requests") {
+                    checkStatus();
+                }
+            };
+            
+            window.addEventListener("storage", storageHandler);
+            const statusTimer = setInterval(checkStatus, 1000); // Poll as fallback
+        }
+
+        function enterWorkshop() {
+            const userId = sessionStorage.getItem("user-id") || "guest";
+            const userJson = sessionStorage.getItem("user");
+            let userName = "손님";
+            if (userJson) {
+                try { userName = JSON.parse(userJson).name || "손님"; } catch(e) {}
+            }
+            const checkInTime = getPartitionedItem('kimp_check_in_time') || new Date().toLocaleTimeString();
+            
+            // Update workers progress to active with check-in time
+            let progressMap = {};
+            try {
+                progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+            } catch(e) {}
+            
+            let targetId = userId;
+            const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userName);
+            if (existingKey) {
+                targetId = existingKey;
+            }
+            
+            if (!progressMap[targetId]) {
+                progressMap[targetId] = {
+                    userId: targetId,
+                    userName: userName,
+                    accumWorkSeconds: 0,
+                    accumBreakSeconds: 0,
+                    completedOrdersCount: 0
+                };
+            }
+            
+            progressMap[targetId].status = "active";
+            progressMap[targetId].checkInTime = checkInTime;
+            progressMap[targetId].location = "Task 1 (적재)";
+            progressMap[targetId].stepName = "출근 완료";
+            progressMap[targetId].currentStep = 7;
+            progressMap[targetId].lastActiveTime = new Date().toISOString();
+            
+            localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+            
+            setPartitionedItem('kimp_checkin_prep_completed', 'true');
+            completeStep(7);
+            
+            setTimeout(() => {
+                window.location.href = "kimp_experience.html";
+            }, 500);
+        }
+
+        function showFacilityMap() {
+            document.getElementById('facility-map-modal').style.display = 'flex';
+        }
+
+        function closeFacilityMap() {
+            document.getElementById('facility-map-modal').style.display = 'none';
+        }
+
+        function enterExperienceCenter() {
+            enterWorkshop();
+        }
+    </script>
+</body>
+</html>

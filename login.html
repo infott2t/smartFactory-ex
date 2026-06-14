@@ -1,0 +1,987 @@
+<!--
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%
+    org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
+    if (sUser != null) {
+%>
+    <script>
+        sessionStorage.setItem("user-id", "<%= sUser.getId() %>");
+        sessionStorage.setItem("user", JSON.stringify({
+            id: "<%= sUser.getId() %>",
+            name: "<%= sUser.getName() %>",
+            email: "<%= sUser.getEmail() %>",
+            picture: "<%= sUser.getPicture() != null ? sUser.getPicture() : "" %>",
+            role: "<%= sUser.getRole() %>"
+        }));
+    </script>
+<%
+    }
+%>
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="./css/styles2.css" rel="stylesheet" type="text/css">
+<link href="./css/underCover.css" rel="stylesheet" type="text/css">   
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="./js/api.js" type="text/javascript"></script>
+<script src="./js/auth-guard.js" type="text/javascript"></script>
+<title>로그인 / 회원가입</title>
+<style>
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 120px);
+        padding: 20px;
+    }
+    .login-card {
+        width: 100%;
+        max-width: 440px;
+        background: #231965; /* styles2.css의 --bar-bg2-color 변수값 매칭 */
+        border: 1px solid #322587;
+        border-radius: 16px;
+        padding: 30px 24px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        text-align: center;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+    }
+    .login-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #ffffff;
+        margin-bottom: 20px;
+    }
+    .auth-tabs {
+        display: flex;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #322587;
+    }
+    .auth-tab {
+        flex: 1;
+        padding: 12px;
+        color: #a7a7a7;
+        font-weight: bold;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s;
+    }
+    .auth-tab.active {
+        color: #ffffff;
+        border-bottom: 2px solid #5f3dc4;
+    }
+    .login-desc {
+        font-size: 14px;
+        color: #a7a7a7;
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+    .oauth-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 48px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        text-decoration: none;
+        margin-bottom: 16px;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+        border: none;
+        cursor: pointer;
+    }
+    .oauth-btn:active {
+        transform: scale(0.98);
+    }
+    .naver-btn {
+        background-color: #03C75A;
+        color: #ffffff;
+    }
+    .naver-btn:hover {
+        background-color: #02b14f;
+    }
+    .google-btn {
+        background-color: #ffffff;
+        color: #1f1f1f;
+        border: 1px solid #dadce0;
+    }
+    .google-btn:hover {
+        background-color: #f8f9fa;
+    }
+    .btn-icon {
+        margin-right: 12px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+    }
+    .naver-icon {
+        font-weight: 900;
+        font-style: normal;
+        font-size: 18px;
+    }
+    /* 헤더 내 뒤로가기 버튼 스타일 */
+    .header-back {
+        font-size: 20px;
+        color: #cccccc;
+        cursor: pointer;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+    }
+    .header-back:hover {
+        color: #ffffff;
+    }
+
+    /* 일반 로그인 및 회원가입 폼 스타일 */
+    .form-group {
+        margin-bottom: 16px;
+        text-align: left;
+    }
+    .form-group label {
+        display: block;
+        color: #e0e0e0;
+        font-size: 13px;
+        margin-bottom: 6px;
+        font-weight: bold;
+    }
+    .input-with-btn {
+        display: flex;
+        gap: 8px;
+    }
+    .form-control {
+        flex: 1;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid #322587;
+        border-radius: 8px;
+        color: #ffffff;
+        padding: 0 12px;
+        box-sizing: border-box;
+        outline: none;
+        transition: all 0.3s;
+        font-size: 14px;
+    }
+    .form-control:focus {
+        border-color: #5f3dc4;
+        background: rgba(255, 255, 255, 0.12);
+    }
+    .form-control:disabled {
+        background: rgba(255, 255, 255, 0.03);
+        color: #777777;
+        border-color: rgba(50, 37, 135, 0.5);
+    }
+    .btn-action {
+        background: #5f3dc4;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 0 16px;
+        height: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    .btn-action:hover {
+        background: #7048e8;
+    }
+    .btn-action:disabled {
+        background: #495057;
+        color: #adb5bd;
+        cursor: not-allowed;
+    }
+    .btn-sub {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #322587;
+    }
+    .btn-sub:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    .terms-box {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid #322587;
+        border-radius: 8px;
+        height: auto;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: #c1c1c1;
+        text-align: left;
+        line-height: 1.6;
+        margin-bottom: 8px;
+        white-space: pre-line;
+    }
+    .terms-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #e0e0e0;
+        margin-bottom: 16px;
+    }
+    .terms-check input {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+    .gender-wrap {
+        display: flex;
+        gap: 12px;
+    }
+    .gender-btn {
+        flex: 1;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid #322587;
+        border-radius: 8px;
+        color: #a7a7a7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+        font-size: 14px;
+    }
+    .gender-btn.active {
+        background: #5f3dc4;
+        border-color: #7048e8;
+        color: #ffffff;
+    }
+    .msg-validate {
+        font-size: 11px;
+        margin-top: 4px;
+        display: block;
+        font-weight: bold;
+    }
+    .msg-success { color: #2ecc71; }
+    .msg-error { color: #e74c3c; }
+
+    /* 폭죽 축하 애니메이션 오버레이 */
+    .confetti-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(10, 5, 40, 0.85);
+        backdrop-filter: blur(10px);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+    }
+    .confetti-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .confetti-card {
+        background: #231965;
+        border: 2px solid #5f3dc4;
+        border-radius: 20px;
+        padding: 40px 60px;
+        text-align: center;
+        box-shadow: 0 0 40px rgba(95, 61, 196, 0.6);
+        position: relative;
+        overflow: hidden;
+    }
+    .confetti-title {
+        font-size: 28px;
+        font-weight: bold;
+        color: #ffffff;
+        margin-bottom: 16px;
+    }
+    .confetti-desc {
+        font-size: 18px;
+        color: #2ecc71;
+        font-weight: bold;
+    }
+    
+    /* 폭죽 조각들 */
+    .particle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background: #f1c40f;
+        border-radius: 4px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    @keyframes explode-1 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(-300px, -250px) rotate(360deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-2 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(300px, -230px) rotate(720deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-3 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(-220px, 200px) rotate(180deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-4 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(220px, 240px) rotate(540deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-5 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(0px, -320px) rotate(-360deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-6 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(-150px, -200px) rotate(45deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-7 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(150px, -200px) rotate(-45deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-8 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(-100px, 280px) rotate(270deg) scale(0); opacity: 0; }
+    }
+    @keyframes explode-9 {
+        0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.5); opacity: 1; }
+        100% { transform: translate(100px, 280px) rotate(-270deg) scale(0); opacity: 0; }
+    }
+    .particle:nth-child(1) { animation: explode-1 2s ease-out infinite; background: #e74c3c; }
+    .particle:nth-child(2) { animation: explode-2 2s ease-out infinite; background: #3498db; }
+    .particle:nth-child(3) { animation: explode-3 2s ease-out infinite; background: #2ecc71; }
+    .particle:nth-child(4) { animation: explode-4 2s ease-out infinite; background: #f1c40f; }
+    .particle:nth-child(5) { animation: explode-5 2.2s ease-out infinite; background: #9b59b6; }
+    .particle:nth-child(6) { animation: explode-6 1.8s ease-out infinite; background: #e67e22; }
+    .particle:nth-child(7) { animation: explode-7 1.9s ease-out infinite; background: #1abc9c; }
+    .particle:nth-child(8) { animation: explode-8 2.1s ease-out infinite; background: #fd79a8; }
+    .particle:nth-child(9) { animation: explode-9 2s ease-out infinite; background: #0984e3; }
+</style>
+</head>
+<body>
+    <div class="header-wrap">
+        <header class="header">
+            <div class="h-logo" style="display: flex; align-items: center;">
+                <a href="./main.html" class="header-back"><i class="bi bi-chevron-left"></i></a>
+                <h3>로그인</h3>
+            </div>
+        </header>
+    </div>
+    
+    <div class="main-wrap">
+        <main class="main">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="login-title">스마트 팩토리</div>
+                    
+                    <!-- 로그인/회원가입 탭 -->
+                    <div class="auth-tabs">
+                        <div class="auth-tab active" onclick="switchAuthTab('social')">간편 로그인</div>
+                        <div class="auth-tab" onclick="switchAuthTab('local')">일반 로그인</div>
+                    </div>
+                    
+                    <!-- 소셜 간편로그인 -->
+                    <div id="section-social">
+                        <div class="login-desc">가상 체험 로그인 계정을 선택하세요.</div>
+                        
+                        <a href="javascript:void(0)" onclick="doMockLogin(1)" class="oauth-btn" style="background-color: #5f3dc4; color: #ffffff;">
+                            <span class="btn-icon"><i class="bi bi-person-badge-fill"></i></span>
+                            <span>최현일 (MANAGER) 로그인</span>
+                        </a>
+                        
+                        <a href="javascript:void(0)" onclick="doMockLogin(2)" class="oauth-btn" style="background-color: #03C75A; color: #ffffff;">
+                            <span class="btn-icon"><i class="bi bi-person-fill"></i></span>
+                            <span>최수아 (USER) 로그인</span>
+                        </a>
+
+                        <a href="javascript:void(0)" onclick="doMockLogin(3)" class="oauth-btn" style="background-color: #4b6584; color: #ffffff;">
+                            <span class="btn-icon"><i class="bi bi-person-fill"></i></span>
+                            <span>김수민 (USER) 로그인</span>
+                        </a>
+                    </div>
+
+                    <!-- 이메일 로그인 -->
+                    <div id="section-local" style="display: none;">
+                        <div class="form-group">
+                            <label for="login-email">이메일 주소</label>
+                            <input type="email" id="login-email" class="form-control" placeholder="example@email.com">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label for="login-pwd">비밀번호</label>
+                            <input type="password" id="login-pwd" class="form-control" placeholder="비밀번호 입력">
+                        </div>
+                        <button onclick="submitLogin()" class="oauth-btn" style="background-color: #5f3dc4; color: #ffffff; border: none; margin-bottom: 16px;">로그인</button>
+                        
+                        <div style="font-size: 13px; color: #a7a7a7;">
+                            아직 계정이 없으신가요? 
+                            <a href="javascript:void(0)" onclick="showRegisterForm()" style="color: #ffffff; font-weight: bold; text-decoration: underline; margin-left: 5px;">회원가입</a>
+                        </div>
+                    </div>
+
+                    <!-- 이메일 회원가입 -->
+                    <div id="section-register" style="display: none;">
+                        <!-- Step 1: 이메일 입력 + 중복확인 -->
+                        <div class="form-group">
+                            <label for="reg-email">이메일 주소</label>
+                            <div class="input-with-btn">
+                                <input type="email" id="reg-email" class="form-control" placeholder="example@email.com" oninput="resetEmailCheck()">
+                                <button onclick="checkEmail()" class="btn-action btn-sub" id="btn-email-check">중복확인</button>
+                            </div>
+                            <span id="email-msg" class="msg-validate"></span>
+                        </div>
+                        
+                        <!-- Step 2: 비밀번호 입력 (유효성 검사) -->
+                        <div class="form-group">
+                            <label for="reg-pwd">비밀번호 (최소 6글자)</label>
+                            <input type="password" id="reg-pwd" class="form-control" placeholder="비밀번호 입력" oninput="validatePassword()">
+                            <span id="pwd-msg" class="msg-validate"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reg-pwd-confirm">비밀번호 확인</label>
+                            <input type="password" id="reg-pwd-confirm" class="form-control" placeholder="비밀번호 재입력" oninput="validatePassword()">
+                            <span id="pwd-confirm-msg" class="msg-validate"></span>
+                        </div>
+
+                        <!-- Step 3: 인증코드 발송 및 확인 -->
+                        <div class="form-group" id="group-send-code">
+                            <button onclick="sendCode()" class="btn-action" style="width: 100%; background-color: #4b6584;" id="btn-send-code" disabled>인증번호 발송</button>
+                        </div>
+
+                        <div class="form-group" id="group-verify-code">
+                            <label for="reg-code">인증번호 입력</label>
+                            <div class="input-with-btn">
+                                <input type="text" id="reg-code" class="form-control" placeholder="6자리 인증코드" maxlength="6" disabled>
+                                <button onclick="verifyCode()" class="btn-action btn-sub" id="btn-verify-code" disabled>인증확인</button>
+                            </div>
+                            <span id="code-msg" class="msg-validate"></span>
+                        </div>
+
+                        <!-- Step 4: 개인정보처리방침 약관 동의 -->
+                        <div class="form-group" id="group-terms">
+                            <label>개인정보처리방침 약관</label>
+                            <div class="terms-box" id="terms-content">
+                                로딩 중...
+                            </div>
+                            <div class="terms-check" style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <input type="checkbox" id="reg-agree" onchange="checkSignupReady()">
+                                <label for="reg-agree" style="margin-bottom: 0;">개인정보처리방침 약관에 동의합니다. (필수)</label>
+                                <span id="terms-msg" class="msg-validate" style="margin-top: 0; display: inline-block;"></span>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: 이름 및 성별 입력 -->
+                        <div class="form-group" id="group-info">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <label for="reg-name" style="margin-bottom: 0;">이름</label>
+                                <span id="name-msg" class="msg-validate" style="margin-top: 0; display: inline-block;"></span>
+                            </div>
+                            <input type="text" id="reg-name" class="form-control" placeholder="이름 입력" oninput="checkSignupReady()">
+                        </div>
+                        
+                        <div class="form-group" id="group-gender" style="margin-bottom: 24px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                <label style="margin-bottom: 0;">성별</label>
+                                <span id="gender-msg" class="msg-validate" style="margin-top: 0; display: inline-block;"></span>
+                            </div>
+                            <div class="gender-wrap">
+                                <div class="gender-btn" id="gender-male" onclick="selectGender('M')">남성</div>
+                                <div class="gender-btn" id="gender-female" onclick="selectGender('F')">여성</div>
+                            </div>
+                        </div>
+
+                        <!-- 가입 버튼 -->
+                        <button onclick="submitRegister()" class="oauth-btn" id="btn-signup-submit" style="background-color: #5f3dc4; color: #ffffff; border: none; margin-bottom: 16px;">회원가입 완료</button>
+
+                        <div style="font-size: 13px; color: #a7a7a7;">
+                            이미 계정이 있으신가요? 
+                            <a href="javascript:void(0)" onclick="showLoginForm()" style="color: #ffffff; font-weight: bold; text-decoration: underline; margin-left: 5px;">로그인</a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 가입 성공 축하 폭죽 오버레이 -->
+    <div class="confetti-overlay" id="confetti-overlay">
+        <div class="confetti-card">
+            <!-- 폭죽 입자들 -->
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            
+            <div class="confetti-title">축하합니다! 🎉</div>
+            <div class="confetti-desc">회원가입이 완료되었습니다!</div>
+            <div style="color: #a7a7a7; font-size: 14px; margin-top: 15px;">잠시 후 메인 화면으로 이동합니다.</div>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        let isEmailChecked = false;
+        let isEmailVerified = false;
+        let isPasswordOk = false;
+        let selectedGender = '';
+        let companyConfig = {
+            companyName: '스마트 팩토리',
+            privacyEmail: 'tt2t2am1118@naver.com',
+            companyTel: '000-0000-0000'
+        };
+
+        // 탭 전환
+        function switchAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            tabs[0].classList.remove('active');
+            tabs[1].classList.remove('active');
+            
+            if (tab === 'social') {
+                tabs[0].classList.add('active');
+                document.getElementById('section-social').style.display = 'block';
+                document.getElementById('section-local').style.display = 'none';
+                document.getElementById('section-register').style.display = 'none';
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('section-social').style.display = 'none';
+                document.getElementById('section-local').style.display = 'block';
+                document.getElementById('section-register').style.display = 'none';
+            }
+        }
+
+        // 로그인 폼 보이기
+        function showLoginForm() {
+            document.getElementById('section-local').style.display = 'block';
+            document.getElementById('section-register').style.display = 'none';
+        }
+
+        // 회원가입 폼 보이기
+        function showRegisterForm() {
+            document.getElementById('section-local').style.display = 'none';
+            document.getElementById('section-register').style.display = 'block';
+            fetchConfig();
+        }
+
+        // 회사 구성정보 로드 및 약관 반영
+        async function fetchConfig() {
+            try {
+                const res = await fetch('/smart2/api/auth/config');
+                if (res.ok) {
+                    companyConfig = await res.json();
+                    let termsHTML = `[${companyConfig.companyName}] 개인정보 처리방침\n\n`
+                        + `1. 개인정보 수집 및 이용 목적\n`
+                        + `회사는 회원제 서비스 이용에 따른 본인확인, 가입의사 확인, 고객 문의 처리를 위해 개인정보를 수집합니다.\n\n`
+                        + `2. 수집하는 개인정보 항목\n`
+                        + `- 필수항목: 이메일 주소, 비밀번호, 이름, 성별\n\n`
+                        + `3. 개인정보의 보유 및 이용 기간\n`
+                        + `회원의 개인정보는 회원 탈퇴 시까지 보유 및 이용되며, 탈퇴 후에는 즉시 파기합니다.\n\n`
+                        + `4. 개인정보 보호책임자 및 문의처\n`
+                        + `- 담당자 이메일: ${companyConfig.privacyEmail}\n`
+                        + `- 회사 전화번호: ${companyConfig.companyTel}`;
+                    document.getElementById('terms-content').innerText = termsHTML;
+                }
+            } catch (err) {
+                console.error('설정 로드 실패', err);
+            }
+        }
+
+        // 이메일 주소 변경 시 상태 리셋
+        function resetEmailCheck() {
+            isEmailChecked = false;
+            isEmailVerified = false;
+            document.getElementById('email-msg').innerText = '';
+            document.getElementById('email-msg').className = 'msg-validate';
+            document.getElementById('btn-send-code').disabled = true;
+            document.getElementById('reg-code').value = '';
+            document.getElementById('reg-code').disabled = true;
+            document.getElementById('btn-verify-code').disabled = true;
+            document.getElementById('code-msg').innerText = '';
+            document.getElementById('code-msg').className = 'msg-validate';
+            
+            // 이메일 잠금 해제
+            document.getElementById('reg-email').disabled = false;
+            document.getElementById('btn-email-check').disabled = false;
+            checkSignupReady();
+        }
+
+        // 이메일 중복 확인
+        async function checkEmail() {
+            const email = document.getElementById('reg-email').value;
+            const emailMsg = document.getElementById('email-msg');
+            
+            if (!email || !email.includes('@')) {
+                emailMsg.innerText = '올바른 이메일 형식을 입력하세요.';
+                emailMsg.className = 'msg-validate msg-error';
+                return;
+            }
+            
+            try {
+                const res = await fetch('/smart2/api/auth/check-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (data.duplicate) {
+                    emailMsg.innerText = '이미 가입된 이메일입니다.';
+                    emailMsg.className = 'msg-validate msg-error';
+                    isEmailChecked = false;
+                } else {
+                    emailMsg.innerText = '사용 가능한 이메일입니다.';
+                    emailMsg.className = 'msg-validate msg-success';
+                    isEmailChecked = true;
+                    // 인증코드 발송 버튼 활성화
+                    document.getElementById('btn-send-code').disabled = false;
+                }
+                checkSignupReady();
+            } catch (err) {
+                alert('이메일 중복 검사 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 비밀번호 유효성 및 글자수 검사
+        function validatePassword() {
+            const pwd = document.getElementById('reg-pwd').value;
+            const pwdConfirm = document.getElementById('reg-pwd-confirm').value;
+            const pwdMsg = document.getElementById('pwd-msg');
+            const pwdConfirmMsg = document.getElementById('pwd-confirm-msg');
+            
+            let isFirstPwdOk = false;
+            
+            if (pwd.length < 6) {
+                pwdMsg.innerText = '비밀번호는 최소 6글자 이상이어야 합니다.';
+                pwdMsg.className = 'msg-validate msg-error';
+                isFirstPwdOk = false;
+            } else {
+                pwdMsg.innerText = '사용 가능한 비밀번호입니다.';
+                pwdMsg.className = 'msg-validate msg-success';
+                isFirstPwdOk = true;
+            }
+            
+            if (pwdConfirm.length === 0) {
+                pwdConfirmMsg.innerText = '';
+                pwdConfirmMsg.className = 'msg-validate';
+                isPasswordOk = false;
+            } else if (pwd !== pwdConfirm) {
+                pwdConfirmMsg.innerText = '비밀번호가 일치하지 않습니다.';
+                pwdConfirmMsg.className = 'msg-validate msg-error';
+                isPasswordOk = false;
+            } else {
+                pwdConfirmMsg.innerText = '비밀번호가 일치합니다.';
+                pwdConfirmMsg.className = 'msg-validate msg-success';
+                isPasswordOk = isFirstPwdOk;
+            }
+            
+            checkSignupReady();
+        }
+
+        // 인증 메일 전송
+        async function sendCode() {
+            const email = document.getElementById('reg-email').value;
+            const btn = document.getElementById('btn-send-code');
+            btn.disabled = true;
+            btn.innerText = '발송 중...';
+            
+            try {
+                const res = await fetch('/smart2/api/auth/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                alert(data.message);
+                if (data.success) {
+                    // 인증번호 입력 및 확인 활성화
+                    document.getElementById('reg-code').disabled = false;
+                    document.getElementById('btn-verify-code').disabled = false;
+                }
+            } catch (err) {
+                alert('인증번호 발송 중 오류가 발생했습니다.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '인증번호 재발송';
+            }
+        }
+
+        // 인증코드 검증
+        async function verifyCode() {
+            const email = document.getElementById('reg-email').value;
+            const code = document.getElementById('reg-code').value;
+            const codeMsg = document.getElementById('code-msg');
+            
+            if (!code || code.length !== 6) {
+                codeMsg.innerText = '인증번호 6자리를 입력해 주세요.';
+                codeMsg.className = 'msg-validate msg-error';
+                return;
+            }
+            
+            try {
+                const res = await fetch('/smart2/api/auth/verify-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    codeMsg.innerText = '이메일 인증이 완료되었습니다.';
+                    codeMsg.className = 'msg-validate msg-success';
+                    isEmailVerified = true;
+                    
+                    // 인증 완료 후 정보 수정 불가하도록 잠금
+                    document.getElementById('reg-email').disabled = true;
+                    document.getElementById('btn-email-check').disabled = true;
+                    document.getElementById('btn-send-code').disabled = true;
+                    document.getElementById('reg-code').disabled = true;
+                    document.getElementById('btn-verify-code').disabled = true;
+                } else {
+                    codeMsg.innerText = data.message;
+                    codeMsg.className = 'msg-validate msg-error';
+                    isEmailVerified = false;
+                }
+                checkSignupReady();
+            } catch (err) {
+                alert('인증번호 확인 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 성별 선택
+        function selectGender(gender) {
+            selectedGender = gender;
+            document.getElementById('gender-male').classList.remove('active');
+            document.getElementById('gender-female').classList.remove('active');
+            if (gender === 'M') {
+                document.getElementById('gender-male').classList.add('active');
+            } else {
+                document.getElementById('gender-female').classList.add('active');
+            }
+            
+            // Clear gender error message when selected
+            const genderMsg = document.getElementById('gender-msg');
+            genderMsg.innerText = '';
+            genderMsg.className = 'msg-validate';
+            
+            checkSignupReady();
+        }
+
+        // 가입 완료 제출이 준비되었는지 검증
+        function checkSignupReady() {
+            // Keep button enabled all the time so we can click it to show validation errors
+            const btn = document.getElementById('btn-signup-submit');
+            btn.disabled = false;
+            
+            // Clear name error message inline as the user types
+            const name = document.getElementById('reg-name').value;
+            if (name.trim().length > 0) {
+                const nameMsg = document.getElementById('name-msg');
+                if (nameMsg.innerText === '이름을 입력해주세요.') {
+                    nameMsg.innerText = '';
+                    nameMsg.className = 'msg-validate';
+                }
+            }
+            
+            // Clear terms error message inline as the user checks the box
+            const agree = document.getElementById('reg-agree').checked;
+            if (agree) {
+                const termsMsg = document.getElementById('terms-msg');
+                if (termsMsg.innerText === '약관을 읽고 동의해주세요.') {
+                    termsMsg.innerText = '';
+                    termsMsg.className = 'msg-validate';
+                }
+            }
+        }
+
+        // 회원가입 제출
+        async function submitRegister() {
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-pwd').value;
+            const name = document.getElementById('reg-name').value;
+            const agreeTerms = document.getElementById('reg-agree').checked;
+            
+            // Validate missing items and display inline errors
+            let hasError = false;
+            
+            // 1. Password validation
+            const pwdMsg = document.getElementById('pwd-msg');
+            if (password.length === 0) {
+                pwdMsg.innerText = "암호를 입력해주세요.";
+                pwdMsg.className = "msg-validate msg-error";
+                hasError = true;
+            } else if (!isPasswordOk) {
+                hasError = true;
+            }
+            
+            // 2. Terms validation
+            const termsMsg = document.getElementById('terms-msg');
+            if (!agreeTerms) {
+                termsMsg.innerText = "약관을 읽고 동의해주세요.";
+                termsMsg.className = "msg-validate msg-error";
+                hasError = true;
+            } else {
+                termsMsg.innerText = "";
+                termsMsg.className = "msg-validate";
+            }
+            
+            // 3. Name validation
+            const nameMsg = document.getElementById('name-msg');
+            if (!name || name.trim().length === 0) {
+                nameMsg.innerText = "이름을 입력해주세요.";
+                nameMsg.className = "msg-validate msg-error";
+                hasError = true;
+            } else {
+                nameMsg.innerText = "";
+                nameMsg.className = "msg-validate";
+            }
+            
+            // 4. Verification Code validation
+            const codeMsg = document.getElementById('code-msg');
+            if (!isEmailChecked || !isEmailVerified) {
+                codeMsg.innerText = "인증번호를 입력해주세요.";
+                codeMsg.className = "msg-validate msg-error";
+                hasError = true;
+            }
+            
+            // 5. Gender validation
+            const genderMsg = document.getElementById('gender-msg');
+            if (!selectedGender) {
+                genderMsg.innerText = "성별을 입력해주세요.";
+                genderMsg.className = "msg-validate msg-error";
+                hasError = true;
+            } else {
+                genderMsg.innerText = "";
+                genderMsg.className = "msg-validate";
+            }
+            
+            if (hasError) {
+                return;
+            }
+            
+            try {
+                const res = await fetch('/smart2/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        name,
+                        gender: selectedGender,
+                        agreeTerms: agreeTerms.toString()
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // 폭죽 축하 효과 활성화
+                    document.getElementById('confetti-overlay').classList.add('active');
+                    
+                    // 세션 세팅
+                    sessionStorage.setItem("user-id", "local-" + email);
+                    sessionStorage.setItem("user", JSON.stringify({
+                        id: "local-" + email,
+                        name: name,
+                        email: email,
+                        role: "USER",
+                        picture: ""
+                    }));
+                    
+                    // 2초 뒤에 메인화면으로 이동
+                    setTimeout(() => {
+                        location.href = "./main.html";
+                    }, 2000);
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                alert('회원가입 요청 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 일반 이메일 로그인 제출
+        async function submitLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pwd').value;
+            
+            if (!email || !password) {
+                alert('이메일과 비밀번호를 모두 입력해 주세요.');
+                return;
+            }
+
+            // 정적 HTML 테스트용 가상 로그인 계정 매칭
+            if (email === "tt2t2am1118@naver.com") {
+                await doMockLogin(1);
+                return;
+            } else if (email === "capegon21@gmail.com") {
+                await doMockLogin(2);
+                return;
+            } else if (email === "capegon23@gmail.com") {
+                await doMockLogin(3);
+                return;
+            }
+            
+            try {
+                // 백엔드 API (향후 JSP 기동 대비 유지)
+                const res = await fetch('/smart2/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    sessionStorage.setItem("user-id", "local-" + email);
+                    sessionStorage.setItem("user", JSON.stringify({
+                        id: "local-" + email,
+                        email: email,
+                        role: "USER"
+                    }));
+                    location.href = "./main.html";
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                alert('로그인 처리 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 모의 계정 로그인 함수
+        async function doMockLogin(userId) {
+            const user = ApiClient.getUserById(userId);
+            const userInfo = await ApiClient.getUserInfo(userId);
+            const workerProfile = await ApiClient.getKimpWorkerProfile(userId);
+            
+            const resolvedUserId = (user && user.email) ? ("local-" + user.email) : String(userId);
+            sessionStorage.setItem("user-id", resolvedUserId);
+            
+            sessionStorage.setItem("virt-0-mapChk", 'false');
+            sessionStorage.setItem("virt-0-qrChk", 'false');
+            sessionStorage.setItem("virt-0-clothesChk", 'false');
+            sessionStorage.setItem("virt-0-handChk", 'false');
+            sessionStorage.setItem("completeStep1", 'false');
+            sessionStorage.setItem("virt-1-mapChk", 'false');
+            sessionStorage.setItem("work-stars", "false");
+            
+            sessionStorage.setItem("user", JSON.stringify(user));
+            sessionStorage.setItem("user_info", JSON.stringify(userInfo));
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+            
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog(user.name + " 님이 간편 로그인 하였습니다.");
+            }
+            
+            location.href = "./main.html";
+        }
+    </script>
+</body>
+</html>

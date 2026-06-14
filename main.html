@@ -1,0 +1,295 @@
+<!--
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%
+    org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
+    if (sUser != null) {
+%>
+    <script>
+        sessionStorage.setItem('user-id', '<%= sUser.getId() %>');
+        sessionStorage.setItem('user', JSON.stringify({
+            id: '<%= sUser.getId() %>',
+            name: '<%= sUser.getName() %>',
+            email: '<%= sUser.getEmail() %>',
+            picture: '<%= sUser.getPicture() != null ? sUser.getPicture() : "" %>',
+            role: '<%= sUser.getRole() %>'
+        }));
+    </script>
+<%
+    }
+%>
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="./css/styles2.css" rel="stylesheet" type="text/css">
+<link href="./css/underCover.css" rel="stylesheet" type="text/css">   
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="./js/auth-guard.js" type="text/javascript"></script>
+<title>Desigin developing</title>
+<style>
+    /* 세션 초기화 플로팅 액션 버튼 (FAB) */
+    .fab-reset-session {
+        position: fixed;
+        bottom: 84px;
+        left: 50%;
+        transform: translateX(-220px);
+        background: linear-gradient(135deg, #ff4d4d, #c30000);
+        color: #fff;
+        border: none;
+        border-radius: 30px;
+        padding: 12px 20px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 8px 25px rgba(195, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        z-index: 9999;
+        transition: all 0.25s;
+    }
+
+    .fab-reset-session:hover {
+        transform: translateX(-220px) translateY(-2px);
+        box-shadow: 0 10px 28px rgba(195, 0, 0, 0.5);
+        background: linear-gradient(135deg, #ff6666, #d90000);
+    }
+
+    .fab-activity-log {
+        position: fixed;
+        bottom: 84px;
+        left: 50%;
+        transform: translateX(80px);
+        background: linear-gradient(135deg, #7b5cf5, #4720ca);
+        color: #fff;
+        border: none;
+        border-radius: 30px;
+        padding: 12px 20px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 8px 25px rgba(123, 92, 245, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        z-index: 9999;
+        transition: all 0.25s;
+        text-decoration: none;
+    }
+
+    .fab-activity-log:hover {
+        transform: translateX(80px) translateY(-2px);
+        box-shadow: 0 10px 28px rgba(123, 92, 245, 0.5);
+        color: #fff;
+    }
+
+    @media (max-width: 480px) {
+        .fab-reset-session {
+            left: 16px;
+            right: auto;
+            transform: none;
+        }
+        .fab-reset-session:hover {
+            transform: translateY(-2px);
+        }
+        .fab-activity-log {
+            right: 16px;
+            left: auto;
+            transform: none;
+        }
+        .fab-activity-log:hover {
+            transform: translateY(-2px);
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="header-wrap">
+        <header class="header">
+            <div class="h-logo">
+                <h3>스마트 팩토리</h3>
+            </div>
+
+            <div class="h-bar">
+                <input type="text" class="h-search" placeholder="Search">
+                <button type="button" class="h-open-btn"><i class="bi bi-person-circle"></i></button>
+            </div>
+        </header>
+    </div>
+<div class="main-wrap">
+<main class="main">
+<div class="padding-20"></div>    
+<div class="comment"><div><span>오늘의 새로운 일 <i class="bi bi-stars"></i> </span></div>
+<div><a href="#">더 보기</a></div>
+</div>
+<div class="comment-sm"><span>트레이닝으로 새로운일을 해보세요.</span></div>
+<div class="boxs">
+    <a class="box" href="./kimp.html">
+        <div class="up"><img src="./images/k-icon.png" /><div class="texts"><span>김치만들기</span><span>AFood</span></div></div>
+        <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">1.3</span></div>
+        <div><span class="val">5</span><span>Task</span></div>
+        </div>
+    </a>
+    <a class="box">
+        <div class="up"><img src="./images/Uton_150x150.png" /><div class="texts"><span>우동만들기</span><span>Uton</span></div></div>
+        <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">1.3</span></div>
+        <div><span class="val">5</span><span>Task</span></div>
+        </div>
+    </a>
+    <a class="box">
+        <div class="up"><img src="./images/fancy_150x150.png"><div class="texts"><span>지갑만들기</span><span>Persa</span></div></div>
+        <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">1.3</span></div>
+        <div><span class="val">5</span><span>Task</span></div>
+        </div>
+    </a> 
+</div>
+<div class="padding-20"></div>
+<div class="comment"><div><span>지금 인기있는 일 <i class="bi bi-fire"></i> </span></div>
+<div><a href="#">더 보기</a></div>
+</div>
+<div class="comment-sm"><span>지금 인기 있는 일입니다.</span></div>
+<div class="boxs">
+    <a class="box" href="./kimp.html">
+        <div class="up"><img src="./images/k-icon.png" /><div class="texts"><span>김치만들기</span><span>AFood</span></div></div>
+        <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">1.3</span></div>
+        <div><span class="val">5</span><span>Task</span></div>
+        </div>
+    </a>
+    <a class="box">
+        <div class="up"><img src="./images/Uton_150x150.png" /><div class="texts"><span>우동만들기</span><span>Uton</span></div></div>
+        <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">1.3</span></div>
+        <div><span class="val">5</span><span>Task</span></div>
+        </div>
+    </a>
+    <a class="box">
+        <div class="up"><img src="./images/fancy_150x150.png" /><div class="texts"><span>지갑만들기</span><span>Persa</span></div></div>
+        <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">1.3</span></div>
+        <div><span class="val">5</span><span>Task</span></div>
+        </div>
+    </a> 
+</div>
+<div class="padding-20"></div>
+<div class="comment"><div><span>인기 카테고리</span></div>
+<div><a href="#">더 보기</a></div>
+</div>
+<div class="t-cent">  pay / 참가자</div>
+<div class="t-com"><div class="left"><span class="num">1</span><span>음식, 요리</span></div>
+                    <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.3</span></div>
+                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>200</span></div>
+                    </div>
+</div>
+<div class="t-com"><div class="left"><span class="num">2</span><span>만들기</span></div>
+                   <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.2</span></div>
+                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>180</span></div>
+                    </div>                    
+</div>
+<div class="t-com"><div class="left"><span class="num">3</span><span>포장, 음식</span></div>
+                   <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.1</span></div>
+                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>100</span></div>
+                    </div>                    
+</div>
+<div class="t-com"><div class="left"><span class="num">4</span><span>안내하기</span></div>
+                   <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.1</span></div>
+                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>70</span></div>
+                    </div>                    
+</div>
+</main>
+</div>
+<div class="footer-wrap">
+<footer class="footer">
+</footer>
+</div>
+
+<script src="./js/jquery-3.7.1.min.js"></script>
+<script src="./js/simulator.js" type="text/javascript"></script>
+<script type="text/javascript">
+function resetSession() {
+    if (confirm("세션을 초기화하시겠습니까? 로그인 정보 및 진행 데이터가 모두 삭제됩니다.")) {
+        const userId = sessionStorage.getItem("user-id") || "guest";
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes("_" + userId) || key.startsWith("kimp_"))) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        if (typeof window.addAppLog === 'function') {
+            window.addAppLog("세션을 초기화(로그아웃) 하였습니다.");
+        }
+        
+        sessionStorage.clear();
+        alert("세션이 초기화되었습니다. 페이지를 새로고침합니다.");
+        window.location.reload();
+    }
+}
+
+$(document).ready(function(){
+    // Check logged in status for header display
+    const userJson = sessionStorage.getItem("user");
+    if (userJson) {
+        const user = JSON.parse(userJson);
+        // Replace profile icon with a small round profile picture if exists, else name/default icon
+        if (user.picture) {
+            $(".h-open-btn").html('<img src="' + user.picture + '" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ffffff; object-fit: cover; vertical-align: middle;" alt="' + user.name + '" />');
+        } else {
+            $(".h-open-btn").html('<span style="font-size:13px; font-weight:bold; color:#ffffff; background-color:#03C75A; padding:4px 8px; border-radius:12px;">' + user.name + '</span>');
+        }
+        if (user.name === '최현일' || user.email === 'tt2t2am1118@naver.com') {
+            $("#fab-manager-console").css("display", "flex");
+            $("#fab-manager-console").css("transform", "translateX(-50%)");
+        }
+    }
+
+    function checkLoginAndRedirect(targetUrl) {
+        const user = sessionStorage.getItem("user");
+        if (!user) {
+            alert("로그인이 필요합니다. 로그인 페이지로 이동합니다.");
+            window.location.href = "./login.html";
+            return false;
+        }
+        if (targetUrl) {
+            window.location.href = targetUrl;
+        }
+        return true;
+    }
+
+    $(".box").click(function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        var targetHref = $(this).attr("href") || "./main-design.html";
+        checkLoginAndRedirect(targetHref);
+    });
+
+    $(".comment a").click(function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        checkLoginAndRedirect("./main-design.html");
+    });
+
+    $(".t-com").css("cursor", "pointer").click(function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        checkLoginAndRedirect("./main-design.html");
+    });
+    
+    // 프로필 버튼 클릭 시 로그인 페이지로 전환
+    $(".h-open-btn").click(function(e) {
+        e.stopPropagation();
+        location.href = "./login.html";
+    });
+});
+</script>
+
+<!-- 매니저 콘솔 플로팅 버튼 -->
+<a href="./manager.html" id="fab-manager-console" style="display: none; position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #00b894, #00d2d3); color: #fff; border: none; border-radius: 30px; padding: 12px 20px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4); display: flex; align-items: center; gap: 8px; cursor: pointer; z-index: 9999; text-decoration: none; transition: all 0.25s;">
+    <i class="bi bi-speedometer2"></i>
+    <span>매니저 콘솔</span>
+</a>
+</body>
+</html>
+
+ 
