@@ -1665,6 +1665,11 @@
             };
 
             const storageHandler = (e) => {
+                if (e.key === null) {
+                    alert("매니저가 세션을 초기화했습니다. 초기 화면으로 이동합니다.");
+                    window.location.reload();
+                    return;
+                }
                 if (e.key === "kimp_approval_requests") {
                     checkStatus();
                 }

@@ -4928,6 +4928,11 @@
 
         // storage 이벤트 감지하여 동기화
         window.addEventListener('storage', function(e) {
+            if (e.key === null) {
+                alert("매니저가 세션을 초기화했습니다. 초기 화면으로 이동합니다.");
+                window.location.reload();
+                return;
+            }
             if (e.key === window.getStorageKey('kimp_help_request')) {
                 syncHelpRequest();
                 renderTaskCards();
