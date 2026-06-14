@@ -1768,7 +1768,45 @@
 
         // ── 1. 시간 타이머 및 남은 시간 기반 Overall Progress 100% 처리 ──
         var totalSeconds = 7200; // 2시간 (7200초)
-        var remainingSeconds = parseInt(getPartitionedItem('kimp_remaining_seconds') || '6960');
+        
+        function getShiftTimeRemaining() {
+            var now = new Date();
+            var currentMins = now.getHours() * 60 + now.getMinutes();
+            var currentSecs = currentMins * 60 + now.getSeconds();
+
+            var shifts = [
+                { start: 8*60, end: 10*60 },
+                { start: 10*60, end: 12*60 },
+                { start: 12*60, end: 13*60 },
+                { start: 13*60, end: 15*60 },
+                { start: 15*60, end: 17*60 },
+                { start: 17*60, end: 19*60 },
+                { start: 19*60, end: 21*60 },
+                { start: 21*60, end: 23*60 },
+                { start: 23*60, end: 24*60 },
+                { start: 0, end: 1*60 },
+                { start: 1*60, end: 3*60 },
+                { start: 3*60, end: 5*60 },
+                { start: 5*60, end: 7*60 },
+                { start: 7*60, end: 8*60 }
+            ];
+
+            var activeShift = null;
+            for (var i = 0; i < shifts.length; i++) {
+                if (currentMins >= shifts[i].start && currentMins < shifts[i].end) {
+                    activeShift = shifts[i];
+                    break;
+                }
+            }
+
+            if (activeShift) {
+                var endSecs = activeShift.end * 60;
+                return endSecs - currentSecs;
+            }
+            return 7200;
+        }
+
+        var remainingSeconds = getShiftTimeRemaining();
 
         // 휴식(잠깐 쉬기) 관련 전역 변수
         var accumBreakSeconds = parseInt(getPartitionedItem('kimp_accum_break_seconds') || '0');
@@ -1782,9 +1820,10 @@
             experienceRemainingSeconds = parseInt(experienceRemainingSeconds);
         }
 
-        // 초기 시작 시간 설정 (시계표시.png의 15:04)
-        var clockHour = parseInt(getPartitionedItem('kimp_clock_hour') || '15');
-        var clockMinute = parseInt(getPartitionedItem('kimp_clock_minute') || '4');
+        // 초기 시작 시간 설정 (실제 로컬 현재 시간 기준)
+        var initialNow = new Date();
+        var clockHour = initialNow.getHours();
+        var clockMinute = initialNow.getMinutes();
 
         function updateClocks() {
             var h = Math.floor(remainingSeconds / 3600);
@@ -1816,34 +1855,23 @@
 
         var secondCounter = parseInt(getPartitionedItem('kimp_second_counter') || '0');
         setInterval(function() {
+            var now = new Date();
+            clockHour = now.getHours();
+            clockMinute = now.getMinutes();
+            secondCounter = now.getSeconds();
+            
+            remainingSeconds = getShiftTimeRemaining();
+
+            // 로컬스토리지에 실시간 시간 저장
+            setPartitionedItem('kimp_remaining_seconds', remainingSeconds);
+            setPartitionedItem('kimp_clock_hour', clockHour);
+            setPartitionedItem('kimp_clock_minute', clockMinute);
+            setPartitionedItem('kimp_second_counter', secondCounter);
+            setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
+            setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
+            setPartitionedItem('kimp_is_on_break', isOnBreak);
+
             if (remainingSeconds > 0) {
-                remainingSeconds--;
-                secondCounter++;
-                
-                if (secondCounter >= 60) {
-                    secondCounter = 0;
-                    clockMinute++;
-                    if (clockMinute >= 60) {
-                        clockMinute = 0;
-                        clockHour++;
-                        if (clockHour >= 24) {
-                            clockHour = 0;
-                        }
-                    }
-                }
-
-                // 로컬스토리지에 실시간 시간 저장
-                setPartitionedItem('kimp_remaining_seconds', remainingSeconds);
-                setPartitionedItem('kimp_clock_hour', clockHour);
-                setPartitionedItem('kimp_clock_minute', clockMinute);
-                setPartitionedItem('kimp_second_counter', secondCounter);
-                setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
-                setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
-                setPartitionedItem('kimp_is_on_break', isOnBreak);
-
-
-
-                // 만약 휴식 중이면
                 if (isOnBreak) {
                     breakRemainingSeconds--;
                     accumBreakSeconds++;

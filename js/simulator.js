@@ -171,12 +171,46 @@
         }
         localStorage.setItem("kimp_last_sim_tick", now.toString());
 
-        // A. 2시간 시프트 타이머(Countdown) 업데이트
-        let remaining = parseInt(localStorage.getItem("kimp_remaining_seconds") || "7200");
-        if (remaining > 0) {
-            remaining--;
-            localStorage.setItem("kimp_remaining_seconds", remaining.toString());
+        // A. 2시간 시프트 타이머(Countdown) 실제 현재시간 동기화 업데이트
+        function getShiftTimeRemaining() {
+            var now = new Date();
+            var currentMins = now.getHours() * 60 + now.getMinutes();
+            var currentSecs = currentMins * 60 + now.getSeconds();
+
+            var shifts = [
+                { start: 8*60, end: 10*60 },
+                { start: 10*60, end: 12*60 },
+                { start: 12*60, end: 13*60 },
+                { start: 13*60, end: 15*60 },
+                { start: 15*60, end: 17*60 },
+                { start: 17*60, end: 19*60 },
+                { start: 19*60, end: 21*60 },
+                { start: 21*60, end: 23*60 },
+                { start: 23*60, end: 24*60 },
+                { start: 0, end: 1*60 },
+                { start: 1*60, end: 3*60 },
+                { start: 3*60, end: 5*60 },
+                { start: 5*60, end: 7*60 },
+                { start: 7*60, end: 8*60 }
+            ];
+
+            var activeShift = null;
+            for (var i = 0; i < shifts.length; i++) {
+                if (currentMins >= shifts[i].start && currentMins < shifts[i].end) {
+                    activeShift = shifts[i];
+                    break;
+                }
+            }
+
+            if (activeShift) {
+                var endSecs = activeShift.end * 60;
+                return endSecs - currentSecs;
+            }
+            return 7200;
         }
+
+        let remaining = getShiftTimeRemaining();
+        localStorage.setItem("kimp_remaining_seconds", remaining.toString());
 
         // B. 근로자 근무 시간 및 실시간 급여 정산
         let workers = {};
