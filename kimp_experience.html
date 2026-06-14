@@ -3072,13 +3072,30 @@
                     </div>
                 `;
             } else if (state.statusSubmitted) {
+                var resetBtnHtml = '';
+                if (activeStageNum === 1) {
+                    resetBtnHtml = `
+                    <div style="margin-top: 14px; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04)); border: 1px solid rgba(0,200,83,0.25);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <i class="bi bi-patch-check-fill" style="font-size: 20px; color: var(--neon-green);"></i>
+                            <span style="font-weight: 700; color: var(--neon-green); font-size: 14px;">Stage 1 공정 완료!</span>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">이 생산지시서의 Stage 1 작업이 승인 완료되었습니다.<br>아래 버튼을 눌러 다음 생산지시서로 새 작업을 시작하세요.</p>
+                        <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, #00c853, #00e676); color: #000; width: 100%; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,200,83,0.3);">
+                            <i class="bi bi-arrow-clockwise"></i>&nbsp; 초기화하기 · 다음 생산지시서 작업시작
+                        </button>
+                    </div>`;
+                } else {
+                    resetBtnHtml = `
+                    <div class="widget-area" style="margin-top: 10px;">
+                        <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, var(--neon-blue), #5c4dff); width: 100%;"><i class="bi bi-arrow-clockwise"></i> 새 작업 시작하기 (초기화)</button>
+                    </div>`;
+                }
                 step5Widget = `
                     <span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 최종 실습 정보 클라우드 전송 완료</span>
                     <span class="workflow-subtext">완료 수량: ${state.postWorkQty}포기 / 최종 무게: ${state.postWorkWeight}kg</span>
                     <span class="workflow-subtext">이동 구역: <strong style="color: var(--neon-blue);">${m.nextLocation}</strong></span>
-                    <div class="widget-area" style="margin-top: 10px;">
-                        <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, var(--neon-blue), #5c4dff); width: 100%;"><i class="bi bi-arrow-clockwise"></i> 새 작업 시작하기 (초기화)</button>
-                    </div>
+                    ${resetBtnHtml}
                 `;
             }
             
@@ -3754,15 +3771,7 @@
                             productionOrders[m.order].currentTask = 2; // 다음 스테이지
                         }
                         
-                        // Stage 1 완료 시 다음 지시서를 즉시 받아올 수 있도록 로컬 상태 초기화
-                        if (capturedStage === 1) {
-                            stagesModel[1].step1Done = false;
-                            stagesModel[1].order = "없음";
-                            if (tempStageStates[1]) {
-                                delete tempStageStates[1];
-                            }
-                            syncActiveOrders();
-                        }
+                        // Stage 1 완료 시: 자동 초기화하지 않고, 완료 UI를 보여준 뒤 사용자가 수동으로 초기화 버튼 클릭
                         
                         // 만약 마지막 Stage 5 완료인 경우, 전체 생산지시서 상태 완료 처리
                         if (capturedStage === 5 && m.order && productionOrders[m.order]) {
@@ -3806,7 +3815,37 @@
             if (activeStageNum === null) return;
             var m = stagesModel[activeStageNum];
             
-            // 1. 다음 이용가능한 지시서 확인
+            // Stage 1 전용: 완료된 지시서를 completedOrders에 추가하고 로컬 상태 초기화
+            if (activeStageNum === 1) {
+                if (!m.completedOrders) {
+                    m.completedOrders = [];
+                }
+                if (m.order && m.order !== "없음" && m.completedOrders.indexOf(m.order) === -1) {
+                    m.completedOrders.push(m.order);
+                }
+                
+                // 로컬 상태 초기화
+                m.step1Done = false;
+                m.order = "없음";
+                if (tempStageStates[1]) {
+                    delete tempStageStates[1];
+                }
+                
+                // 다음 지시서 동기화
+                syncActiveOrders();
+                
+                var nextOrderId = m.order; // syncActiveOrders가 새 지시서를 배정
+                renderWorkflow();
+                
+                if (nextOrderId && nextOrderId !== "없음") {
+                    alert("Stage 1이 초기화되었습니다! 새로운 생산지시서(" + nextOrderId + ")가 배정되었습니다. QR코드를 스캔하여 작업을 시작하세요.");
+                } else {
+                    alert("Stage 1이 초기화되었습니다. 현재 대기 중인 생산지시서가 없습니다. 매니저에게 새 지시서 발행을 요청해 주세요.");
+                }
+                return;
+            }
+            
+            // Stage 2~5: 다음 이용가능한 지시서 확인
             var nextOrder = getAvailableOrderForStage(activeStageNum);
             
             if (activeStageNum > 1 && !nextOrder) {
@@ -3814,7 +3853,7 @@
                 return;
             }
             
-            // 2. 현재 완료된 지시서를 완료 목록에 추가
+            // 현재 완료된 지시서를 완료 목록에 추가
             if (!m.completedOrders) {
                 m.completedOrders = [];
             }
@@ -3822,7 +3861,7 @@
                 m.completedOrders.push(m.order);
             }
             
-            // 3. 상태 리셋 및 지시서 번호 교체
+            // 상태 리셋 및 지시서 번호 교체
             m.order = nextOrder;
             m.step1Done = false;
             
