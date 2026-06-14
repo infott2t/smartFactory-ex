@@ -49,11 +49,11 @@
 
             // 완제품 상품 카탈로그 및 재고
             const initialCatalog = {
-                p300g: { name: "300g 맛김치 팩", price: 3000, stock: 50, todayOrders: 14, yesterdayOrders: 20, img: "./images/media__1780385225803.jpg", desc: "1인 가구용 실속형 맛김치" },
-                p1kg: { name: "1kg 포기김치 팩", price: 8000, stock: 30, todayOrders: 22, yesterdayOrders: 25, img: "./images/media__1780385402815.jpg", desc: "가정용 표준 포장 프리미엄 김치" },
-                p3kg: { name: "3kg 대용량 김치 팩", price: 20000, stock: 15, todayOrders: 8, yesterdayOrders: 12, img: "./images/media__1780391849288.jpg", desc: "다인가구 및 김장 보관용 실용 김치" },
-                p5kg: { name: "5kg 실속 김치 팩", price: 32000, stock: 10, todayOrders: 5, yesterdayOrders: 7, img: "./images/media__1780385402815.jpg", desc: "대가족 및 업소용 실속 포장" },
-                p10kg: { name: "10kg 업소용 김치", price: 60000, stock: 5, todayOrders: 2, yesterdayOrders: 3, img: "./images/media__1780391849288.jpg", desc: "업소/단체급식 전용 대용량 김치" }
+                p300g: { name: "300g 맛김치 팩", price: 3000, stock: 50, todayOrders: 14, yesterdayOrders: 20, img: "./images/kimchi_product_300g.png", desc: "1인 가구용 실속형 맛김치" },
+                p1kg: { name: "1kg 포기김치 팩", price: 8000, stock: 30, todayOrders: 22, yesterdayOrders: 25, img: "./images/kimchi_product_1kg.png", desc: "가정용 표준 포장 프리미엄 김치" },
+                p3kg: { name: "3kg 대용량 김치 팩", price: 20000, stock: 15, todayOrders: 8, yesterdayOrders: 12, img: "./images/kimchi_product_3kg.png", desc: "다인가구 및 김장 보관용 실용 김치" },
+                p5kg: { name: "5kg 실속 김치 팩", price: 32000, stock: 10, todayOrders: 5, yesterdayOrders: 7, img: "./images/kimchi_product_1kg.png", desc: "대가족 및 업소용 실속 포장" },
+                p10kg: { name: "10kg 업소용 김치", price: 60000, stock: 5, todayOrders: 2, yesterdayOrders: 3, img: "./images/kimchi_product_3kg.png", desc: "업소/단체급식 전용 대용량 김치" }
             };
             localStorage.setItem("kimp_factory_products", JSON.stringify(initialCatalog));
 
