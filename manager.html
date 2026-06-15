@@ -3141,16 +3141,32 @@
         }
 
         function updateRemainingTargetAlert() {
+            const targetHeads = parseInt(localStorage.getItem("kimp_daily_target_heads") || "30");
+            
             let ordersObj = loadProductionOrders();
             let orders = Object.values(ordersObj);
 
-            let totalIssuedHeads = orders.reduce((sum, o) => sum + (o.quantity || 0), 0);
-            let remainingTargetHeads = Math.max(0, 11 - totalIssuedHeads);
-            let remainingTargetWeight = remainingTargetHeads * 2.5;
+            // Sum of quantity of orders where status is "completed"
+            let totalCompletedHeads = orders.reduce((sum, o) => {
+                if (o.status === "completed") {
+                    return sum + (o.quantity || 0);
+                }
+                return sum;
+            }, 0);
+
+            let remainingTargetHeads = Math.max(0, targetHeads - totalCompletedHeads);
+            let remainingTargetWeight = remainingTargetHeads * 3.0;
 
             const msgDiv = document.getElementById("rta-main-msg");
             if (msgDiv) {
                 msgDiv.textContent = `오늘 앞으로 ${remainingTargetHeads} 포기 (${remainingTargetWeight.toFixed(1)} kg)를 더 작업해야 합니다.`;
+            }
+
+            const subDiv = document.querySelector("#remaining-target-alert .rta-sub");
+            if (subDiv) {
+                const avgProductionHeads = Math.floor(targetHeads / 3);
+                const avgProductionWeight = avgProductionHeads * 3.0;
+                subDiv.textContent = `📋 2시간 시프트 내 평균 권장 생산량: ${avgProductionHeads} 포기 (${avgProductionWeight.toFixed(1)} kg)`;
             }
         }
 
@@ -4690,6 +4706,60 @@
             renderKimpDeliveryDashboard();
         }
 
+        function changeProdAdded(pId, amount) {
+            let added = {};
+            try {
+                added = JSON.parse(localStorage.getItem("kimp_production_added") || "{}");
+            } catch (e) {}
+
+            let orders = [];
+            try {
+                orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            let products = {};
+            try {
+                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+            } catch(e) {}
+
+            // Calculate current needed
+            let orderCounts = { p300g: 0, p1kg: 0, p3kg: 0, p5kg: 0, p10kg: 0 };
+            orders.forEach(o => {
+                orderCounts[o.productId] = (orderCounts[o.productId] || 0) + o.quantity;
+            });
+
+            const ordered = orderCounts[pId] || 0;
+            const stock = products[pId] ? products[pId].stock : 0;
+            const needed = Math.max(0, ordered - stock);
+
+            const currentVal = (added[pId] !== undefined) ? added[pId] : needed;
+            const newVal = Math.max(0, currentVal + amount);
+
+            added[pId] = newVal;
+            localStorage.setItem("kimp_production_added", JSON.stringify(added));
+
+            // Recalculate daily target heads
+            let totalWeight = 0;
+            const keys = ["p300g", "p1kg", "p3kg", "p5kg", "p10kg"];
+            keys.forEach(k => {
+                const oCount = orderCounts[k] || 0;
+                const pStock = products[k] ? products[k].stock : 0;
+                const pNeeded = Math.max(0, oCount - pStock);
+                const val = (added[k] !== undefined) ? added[k] : pNeeded;
+                totalWeight += val * getWeightByProductId(k);
+            });
+
+            const newTargetHeads = Math.max(1, Math.ceil(totalWeight / 3.0));
+            localStorage.setItem("kimp_daily_target_heads", newTargetHeads.toString());
+
+            if (typeof addConsoleLog === 'function') {
+                addConsoleLog(`[생산추가] ${pId} 추가 생산 수량이 ${newVal}개로 변경되었습니다. (새 목표: ${newTargetHeads}포기)`);
+            }
+
+            renderKimpDeliveryDashboard();
+            updateRemainingTargetAlert();
+        }
+
         // 주문 상태 갱신
         function updateOrderStatus(orderId, newStatus) {
             let orders = [];
@@ -4769,18 +4839,6 @@
         function renderKimpDeliveryDashboard() {
             initKimpDeliveryData();
             
-            const targetHeads = parseInt(localStorage.getItem("kimp_daily_target_heads") || "30");
-            const neededSaltedWeight = targetHeads * 3.0 * 0.7; // 수득률 70%
-            const neededTotalWeight = targetHeads * 3.0;         // 완제품 김치 기준
-            
-            const lblSalted = document.getElementById("lbl-needed-salted-weight");
-            if (lblSalted) lblSalted.textContent = neededSaltedWeight.toFixed(1) + " kg";
-            const lblTotal = document.getElementById("lbl-needed-total-weight");
-            if (lblTotal) lblTotal.textContent = neededTotalWeight.toFixed(1) + " kg";
-            
-            const inputTarget = document.getElementById("input-daily-target-heads");
-            if (inputTarget) inputTarget.value = targetHeads;
-
             let orders = [];
             try {
                 orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
@@ -4792,10 +4850,42 @@
             } catch(e) {}
 
             let orderCounts = { p300g: 0, p1kg: 0, p3kg: 0, p5kg: 0, p10kg: 0 };
-            let totalOrderWeight = 0;
-
             orders.forEach(o => {
                 orderCounts[o.productId] = (orderCounts[o.productId] || 0) + o.quantity;
+            });
+
+            // Calculate total added weight and update targetHeads first
+            let added = {};
+            try {
+                added = JSON.parse(localStorage.getItem("kimp_production_added") || "{}");
+            } catch (e) {}
+
+            let totalAddedWeight = 0;
+            const keys = ["p300g", "p1kg", "p3kg", "p5kg", "p10kg"];
+            keys.forEach(pId => {
+                const ordered = orderCounts[pId] || 0;
+                const stock = products[pId] ? products[pId].stock : 0;
+                const needed = Math.max(0, ordered - stock);
+                const val = (added[pId] !== undefined) ? added[pId] : needed;
+                totalAddedWeight += val * getWeightByProductId(pId);
+            });
+
+            const targetHeads = Math.max(1, Math.ceil(totalAddedWeight / 3.0));
+            localStorage.setItem("kimp_daily_target_heads", targetHeads.toString());
+
+            const neededSaltedWeight = targetHeads * 3.0 * 0.7; // 수득률 70%
+            const neededTotalWeight = targetHeads * 3.0;         // 완제품 김치 기준
+            
+            const lblSalted = document.getElementById("lbl-needed-salted-weight");
+            if (lblSalted) lblSalted.textContent = neededSaltedWeight.toFixed(1) + " kg";
+            const lblTotal = document.getElementById("lbl-needed-total-weight");
+            if (lblTotal) lblTotal.textContent = neededTotalWeight.toFixed(1) + " kg";
+            
+            const inputTarget = document.getElementById("input-daily-target-heads");
+            if (inputTarget) inputTarget.value = targetHeads;
+
+            let totalOrderWeight = 0;
+            orders.forEach(o => {
                 totalOrderWeight += getWeightByProductId(o.productId) * o.quantity;
             });
 
@@ -4809,16 +4899,39 @@
                     const stock = products[pId] ? products[pId].stock : 0;
                     const needed = Math.max(0, ordered - stock);
                     
+                    const val = (added[pId] !== undefined) ? added[pId] : needed;
+                    
                     const neededBadge = needed > 0 
                         ? `<span class="badge" style="background-color: var(--accent-purple); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">${needed}개 생산 필요</span>`
                         : `<span class="badge" style="background-color: var(--neon-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">완료</span>`;
                     
+                    let rowStyle = "";
+                    let feedbackMsg = "";
+                    let styleMsgColor = "";
+                    if (val === needed) {
+                        rowStyle = "background-color: rgba(46, 204, 113, 0.08);";
+                        feedbackMsg = "(수량 일치)";
+                        styleMsgColor = "color: var(--neon-green); font-weight: bold;";
+                    } else if (val > needed) {
+                        feedbackMsg = `(재고 ${val - needed}개 확보)`;
+                        styleMsgColor = "color: var(--neon-blue); font-weight: bold;";
+                    } else {
+                        feedbackMsg = `(${needed - val}개 부족)`;
+                        styleMsgColor = "color: #ff7675; font-weight: bold;";
+                    }
+
                     html += `
-                    <tr>
+                    <tr style="${rowStyle}">
                         <td style="font-weight: 700;">${prodName}</td>
                         <td>${ordered}개</td>
                         <td>${stock}팩</td>
                         <td>${neededBadge}</td>
+                        <td style="white-space: nowrap;">
+                            <button onclick="changeProdAdded('${pId}', -1)" style="padding: 2px 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 4px; outline: none;">-</button>
+                            <span style="font-weight: 700; display: inline-block; width: 24px; text-align: center;">${val}</span>
+                            <button onclick="changeProdAdded('${pId}', 1)" style="padding: 2px 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 4px; outline: none;">+</button>
+                            <span style="font-size: 10.5px; margin-left: 8px; ${styleMsgColor}">${feedbackMsg}</span>
+                        </td>
                     </tr>
                     `;
                 });
@@ -4977,6 +5090,7 @@
                 statsOrdersComp.textContent = `${todayTotal + orders.length}건 / ${yesterdayTotal}건`;
             }
         }
+
     </script>
 </body>
 </html>
