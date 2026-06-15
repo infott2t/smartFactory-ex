@@ -1187,6 +1187,8 @@
     </style>
 </head>
 <body>
+<!-- SERVED_FROM_SMART_FACTROY_APPDESIGN1_SMARTF2_HTML -->
+
     <!-- ── 1. 왼쪽 고정 사이드바 ── -->
     <aside class="sidebar">
         <div class="sidebar-brand">
@@ -1414,6 +1416,144 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 14px;" id="dashboard-product-summary">
                             <!-- JS 바인딩 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 생산 계획 및 주문 출하 통합 제어판 -->
+                <div class="dashboard-grid" style="margin-top: 16px;">
+                    <!-- 왼쪽: 하루 생산 계획 및 제품별 출하/생산 현황 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-gear-fill"></i> 하루 생산 계획 수량 제어판</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 14px;">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <label style="font-size: 13px; font-weight: 700;">하루 생산 목표량 (포기):</label>
+                                <input type="number" id="input-daily-target-heads" value="30" min="1" max="200" onchange="updateDailyProductionTarget(this.value)" style="width: 70px; padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: #fff; text-align: center; outline: none;" />
+                            </div>
+                            <div class="info-list-card" style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                                    <div>• 필요한 절임 배추 무게 (수득률 70%): <strong id="lbl-needed-salted-weight" style="color: var(--neon-blue);">63.0 kg</strong></div>
+                                    <div>• 완제품 총 예상 생산 무게 (배추+양념): <strong id="lbl-needed-total-weight" style="color: var(--neon-green);">90.0 kg</strong></div>
+                                </div>
+                            </div>
+                            
+                            <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;"><i class="bi bi-truck"></i> 현재 출하 및 긴급 추가 생산이 필요한 제품 목록</h4>
+                            <div class="table-wrapper">
+                                <table class="console-table" style="font-size: 12px;">
+                                    <thead>
+                                        <tr>
+                                            <th>제품 규격</th>
+                                            <th>주문 요구량</th>
+                                            <th>현재 재고</th>
+                                            <th>추가 생산 필요</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbl-body-production-needed">
+                                        <!-- JS 동적 렌더링 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div id="div-production-time-msg" style="padding: 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center;">
+                                <!-- JS 메시지 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽: 부자재 및 스티로폼 박스 재고 관리 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-box2"></i> 포장재 및 박스 부자재 재고 모니터링</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <p style="font-size: 11px; color: var(--text-secondary);">
+                                300g~3kg 제품은 전용 용기/파우치를 사용하며, 5kg/10kg 이상 규격은 배송용 속비닐 및 보온 스티로폼 박스 재고가 필수적입니다.
+                            </p>
+                            <div class="table-wrapper">
+                                <table class="console-table" style="font-size: 12px;">
+                                    <thead>
+                                        <tr>
+                                            <th>부자재명</th>
+                                            <th>사용 규격</th>
+                                            <th>현재 재고</th>
+                                            <th>과부족 상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbl-body-packaging-stock">
+                                        <!-- JS 동적 렌더링 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 주문 출하 관리 & 실시간 재정 계산판 -->
+                <div class="dashboard-grid" style="margin-top: 16px;">
+                    <!-- 왼쪽: 야간/아침 신규 주문 목록 및 상태 관리 -->
+                    <div class="section-card" style="grid-column: span 2;">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3><i class="bi bi-receipt"></i> 주문 출하 현황판 (어제 17:00 ~ 오늘 10:00 접수분)</h3>
+                            <span style="font-size: 11px; color: var(--text-secondary);" id="lbl-orders-date-range">조회 기준일: 2026-06-15</span>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="console-table" style="font-size: 12px;">
+                                <thead>
+                                    <tr>
+                                        <th>주문시각</th>
+                                        <th>주문자</th>
+                                        <th>배송 주소</th>
+                                        <th>주문 상품</th>
+                                        <th>수량</th>
+                                        <th>주문 금액</th>
+                                        <th>진행 상태</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbl-body-delivery-orders">
+                                    <!-- JS 동적 렌더링 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기업 재정 분석 및 손익 계산판 -->
+                <div class="section-card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <h3><i class="bi bi-bar-chart-line-fill"></i> 기업 비용 및 손익 분석 계산판 (2026-06-15 기준)</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+                        <!-- 매출 -->
+                        <div style="background: rgba(0, 184, 148, 0.05); border: 1px solid rgba(0, 184, 148, 0.2); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-secondary);">당일 매출 수익 (입금완료 기준)</div>
+                            <div id="lbl-finance-revenue" style="font-size: 20px; font-weight: 700; color: var(--neon-green); margin-top: 4px;">0원</div>
+                        </div>
+                        <!-- 지출 -->
+                        <div style="background: rgba(255, 118, 117, 0.05); border: 1px solid rgba(255, 118, 117, 0.2); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-secondary);">당일 지출 비용 (고정비 일할+원부재료)</div>
+                            <div id="lbl-finance-cost" style="font-size: 20px; font-weight: 700; color: #ff7675; margin-top: 4px;">0원</div>
+                        </div>
+                        <!-- 순이익 -->
+                        <div style="background: rgba(123, 92, 245, 0.05); border: 1px solid rgba(123, 92, 245, 0.2); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: var(--text-secondary);">당일 순이익 (수익 - 지출)</div>
+                            <div id="lbl-finance-margin" style="font-size: 20px; font-weight: 700; color: var(--neon-blue); margin-top: 4px;">0원</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 11px; color: var(--text-secondary); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+                        <div>
+                            <strong>[고정 지출 정보 (월간 / 당일 일할)]</strong><br>
+                            • 임대료: 3,000,000원 (당일: 100,000원)<br>
+                            • 수도세: 300,000원 (당일: 10,000원) | 전기세: 600,000원 (당일: 20,000원)<br>
+                            • 당일 고정비 합계: <span style="color: #ff7675; font-weight: 600;">130,000원</span>
+                        </div>
+                        <div>
+                            <strong>[원재료 변동비 정보]</strong><br>
+                            • 배추 1포기: 2,500원 | 김치양념 1kg: 8,000원<br>
+                            • 포장재 단가: 300g(300원), 1kg(500원), 3kg(700원), 5kg/10kg 비닐+스티로폼(1,500원)<br>
+                            • 누적 원재료 변동비: <span id="lbl-finance-raw-cost" style="color: #ff7675; font-weight: 600;">0원</span>
                         </div>
                     </div>
                 </div>
@@ -2768,11 +2908,13 @@
         }
 
         function calculateFormWeights() {
+            const productSelect = document.getElementById("order-form-product");
             const qtyInput = document.getElementById("order-form-quantity");
             const specSelect = document.getElementById("order-form-spec");
             const resultDiv = document.getElementById("order-form-calc-result");
-            if (!qtyInput || !specSelect || !resultDiv) return;
+            if (!productSelect || !qtyInput || !specSelect || !resultDiv) return;
 
+            const productVal = productSelect.value;
             const qty = parseInt(qtyInput.value) || 0;
             const spec = parseFloat(specSelect.value) || 2.5;
 
@@ -2780,7 +2922,64 @@
             const seasoningWeight = qty * 0.5;
             const kimchiWeight = cabbageWeight + seasoningWeight;
 
-            resultDiv.textContent = `배추 ${cabbageWeight.toFixed(1)}kg 처리 가능 (양념 ${seasoningWeight.toFixed(1)}kg 배합 후 김치 ${kimchiWeight.toFixed(1)}kg 생산 예상)`;
+            // Get product name
+            const names = {
+                p300g: "300g 맛김치",
+                p1kg: "1kg 포기김치",
+                p3kg: "3kg 대용량 김치",
+                p5kg: "5kg 실속 김치",
+                p10kg: "10kg 업소용 김치"
+            };
+            const prodName = names[productVal] || productVal;
+
+            // Read delivery orders and products from localStorage
+            let deliveryOrders = [];
+            try {
+                deliveryOrders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            let products = {};
+            try {
+                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+            } catch(e) {}
+
+            // Calculate ordered quantity and completed quantity
+            let totalOrdered = 0;
+            let totalCompleted = 0;
+            deliveryOrders.forEach(o => {
+                if (o.productId === productVal) {
+                    totalOrdered += o.quantity;
+                    if (o.status === "배송 완료" || o.status === "입금 완료") {
+                        totalCompleted += o.quantity;
+                    }
+                }
+            });
+            const remainingOrders = Math.max(0, totalOrdered - totalCompleted);
+            const currentStock = products[productVal] ? products[productVal].stock : 0;
+            const neededProduction = Math.max(0, remainingOrders - currentStock);
+
+            // Unit weight of the product in kg
+            let unitWeight = 1.0;
+            if (productVal === "p300g") unitWeight = 0.3;
+            else if (productVal === "p3kg") unitWeight = 3.0;
+            else if (productVal === "p5kg") unitWeight = 5.0;
+            else if (productVal === "p10kg") unitWeight = 10.0;
+
+            const packsProduced = Math.round(kimchiWeight / unitWeight);
+            const expectedStock = currentStock + packsProduced;
+            const afterDeliveryStock = expectedStock - remainingOrders;
+
+            resultDiv.innerHTML = `
+                <div style="margin-bottom: 6px;">
+                    <i class="bi bi-info-circle-fill"></i> 배추 ${cabbageWeight.toFixed(1)}kg 처리 가능 (양념 ${seasoningWeight.toFixed(1)}kg 배합 후 김치 ${kimchiWeight.toFixed(1)}kg 생산 예상 / <strong>약 ${packsProduced}팩 생산</strong>)
+                </div>
+                <div style="font-size: 11px; opacity: 0.9; margin-bottom: 4px;">
+                    현재 [${prodName}] 총 주문: <strong>${totalOrdered}개</strong> (완료: ${totalCompleted}개, 미배송: ${remainingOrders}개) | 현재 재고: <strong>${currentStock}팩</strong> | 생산 필요량: <strong>${neededProduction}개</strong>
+                </div>
+                <div style="font-size: 11px; opacity: 0.9;">
+                    발행 시 예상 재고: <strong>${currentStock}팩 &rarr; ${expectedStock}팩</strong> (모든 미배송 주문 출하 후 예상 잔여 재고: <strong>${afterDeliveryStock}팩</strong>)
+                </div>
+            `;
         }
 
         function issueManualOrder() {
@@ -3031,6 +3230,9 @@
             // 8.5 출하/배송 대시보드 및 잔여목표 알림 갱신
             renderShippingDashboard();
             updateRemainingTargetAlert();
+            
+            // 8.6 주문 출하 및 파이낸셜 대시보드 렌더링
+            renderKimpDeliveryDashboard();
 
             // 9. 공정 시각화 맵 & 근로자 테이블 렌더링
             renderWorkersList(workers);
@@ -4418,6 +4620,7 @@
 
             // 매니저 전용 상태 로딩
             loadManagerStatus();
+            initKimpDeliveryData(); // 주문 출하 및 부자재 초기화
             refreshAllData();
             calculateFormWeights(); // 수동 지시서 예상 중량 계산기 초기화
 
@@ -4440,6 +4643,335 @@
                 }
             });
         });
+
+        // ── H. 주문 출하 및 파이낸셜 대시보드 로직 ──
+        function initKimpDeliveryData() {
+            // 하루 생산계획 기본값
+            if (!localStorage.getItem("kimp_daily_target_heads")) {
+                localStorage.setItem("kimp_daily_target_heads", "30");
+            }
+
+            // 초기 주문 데이터
+            if (!localStorage.getItem("kimp_delivery_orders")) {
+                const initialOrders = [
+                    { orderId: "ORD-260615-01", orderTime: "2026-06-14 18:32", customerName: "김지우", address: "서울시 성동구 성수동", productId: "p300g", quantity: 5, price: 3000, status: "입금 완료" },
+                    { orderId: "ORD-260615-02", orderTime: "2026-06-14 20:15", customerName: "박민수", address: "서울시 강남구 역삼동", productId: "p1kg", quantity: 3, price: 8000, status: "입금 완료" },
+                    { orderId: "ORD-260615-03", orderTime: "2026-06-14 23:44", customerName: "이서연", address: "서울시 서초구 반포동", productId: "p3kg", quantity: 2, price: 20000, status: "배송 중" },
+                    { orderId: "ORD-260615-04", orderTime: "2026-06-15 01:10", customerName: "최준호", address: "경기 성남시 삼평동", productId: "p5kg", quantity: 1, price: 32000, status: "생산 중" },
+                    { orderId: "ORD-260615-05", orderTime: "2026-06-15 06:22", customerName: "정수진", address: "서울시 용산구 한남동", productId: "p10kg", quantity: 1, price: 60000, status: "주문 완료" },
+                    { orderId: "ORD-260615-06", orderTime: "2026-06-15 08:50", customerName: "강현우", address: "서울시 송파구 잠실동", productId: "p300g", quantity: 10, price: 3000, status: "주문 완료" },
+                    { orderId: "ORD-260615-07", orderTime: "2026-06-15 09:40", customerName: "윤아름", address: "서울시 영등포구 여의도동", productId: "p1kg", quantity: 5, price: 8000, status: "주문 완료" }
+                ];
+                localStorage.setItem("kimp_delivery_orders", JSON.stringify(initialOrders));
+            }
+
+            // 초기 부자재 데이터
+            if (!localStorage.getItem("kimp_packaging_inventory")) {
+                const initialPackaging = {
+                    p300g: 120, // 300g 용기/포장지
+                    p1kg: 80,   // 1kg 용기/포장지
+                    p3kg: 45,   // 3kg 용기/포장지
+                    vinyl: 150,  // 속비닐 (5kg/10kg 이상)
+                    box: 30     // 스티로폼 박스 (5kg/10kg 이상)
+                };
+                localStorage.setItem("kimp_packaging_inventory", JSON.stringify(initialPackaging));
+            }
+        }
+
+        // 목표 생산량 갱신
+        function updateDailyProductionTarget(val) {
+            const num = parseInt(val) || 30;
+            localStorage.setItem("kimp_daily_target_heads", num.toString());
+            
+            // FCM 가상 로그 기록
+            if (typeof addConsoleLog === 'function') {
+                addConsoleLog(`[생산계획] 하루 권장 생산 목표량이 ${num}포기로 수정되었습니다.`);
+            }
+            
+            renderKimpDeliveryDashboard();
+        }
+
+        // 주문 상태 갱신
+        function updateOrderStatus(orderId, newStatus) {
+            let orders = [];
+            try {
+                orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            const order = orders.find(o => o.orderId === orderId);
+            if (order) {
+                const oldStatus = order.status;
+                order.status = newStatus;
+                localStorage.setItem("kimp_delivery_orders", JSON.stringify(orders));
+                
+                // 가상 로그 기록
+                if (typeof addConsoleLog === 'function') {
+                    addConsoleLog(`[주문상태] ${orderId} (${order.customerName}님)의 상태가 [${oldStatus}] -> [${newStatus}]로 변경되었습니다.`);
+                }
+                
+                // 입금 완료 상태로 바뀔 때 재정 반영을 위해 호출
+                recalculateFinance(orders);
+            }
+        }
+
+        // 입금완료에 따른 재정 재계산 및 로컬스토리지 저장
+        function recalculateFinance(orders) {
+            let finance = { revenue: 194500, cost: 87600 };
+            try {
+                const stored = localStorage.getItem("kimp_factory_finance");
+                if (stored) finance = JSON.parse(stored);
+            } catch(e) {}
+
+            // 당일 주문 중 '입금 완료' 상태인 주문 총액 계산
+            let todayRevenue = 0;
+            orders.forEach(o => {
+                if (o.status === "입금 완료") {
+                    todayRevenue += o.price * o.quantity;
+                }
+            });
+
+            // 당일 비용 산출
+            const dailyFixedCost = 130000; // 하루 고정비 (390만원 / 30일)
+            let todayVariableCost = 0;
+            orders.forEach(o => {
+                const weight = getWeightByProductId(o.productId) * o.quantity;
+                const cabbageCost = (weight / 3.0) * 2500; // 배추 원가
+                const sauceCost = weight * 0.3 * 8000;    // 양념 원가
+                const pkgCost = getPackagingUnitCost(o.productId) * o.quantity; // 포장재 원가
+                todayVariableCost += cabbageCost + sauceCost + pkgCost;
+            });
+
+            // 임시 당일 정산 (localStorage에 업데이트)
+            finance.revenue = 194500 + todayRevenue; 
+            finance.cost = 87600 + dailyFixedCost + todayVariableCost;
+            localStorage.setItem("kimp_factory_finance", JSON.stringify(finance));
+            
+            renderKimpDeliveryDashboard();
+        }
+
+        function getWeightByProductId(id) {
+            if (id === "p300g") return 0.3;
+            if (id === "p1kg") return 1.0;
+            if (id === "p3kg") return 3.0;
+            if (id === "p5kg") return 5.0;
+            if (id === "p10kg") return 10.0;
+            return 1.0;
+        }
+
+        function getPackagingUnitCost(id) {
+            if (id === "p300g") return 300;
+            if (id === "p1kg") return 500;
+            if (id === "p3kg") return 700;
+            if (id === "p5kg" || id === "p10kg") return 1500; // 비닐 + 스티로폼
+            return 500;
+        }
+
+        // 주문 및 파이낸셜 대시보드 렌더링 핵심
+        function renderKimpDeliveryDashboard() {
+            initKimpDeliveryData();
+            
+            const targetHeads = parseInt(localStorage.getItem("kimp_daily_target_heads") || "30");
+            const neededSaltedWeight = targetHeads * 3.0 * 0.7; // 수득률 70%
+            const neededTotalWeight = targetHeads * 3.0;         // 완제품 김치 기준
+            
+            const lblSalted = document.getElementById("lbl-needed-salted-weight");
+            if (lblSalted) lblSalted.textContent = neededSaltedWeight.toFixed(1) + " kg";
+            const lblTotal = document.getElementById("lbl-needed-total-weight");
+            if (lblTotal) lblTotal.textContent = neededTotalWeight.toFixed(1) + " kg";
+            
+            const inputTarget = document.getElementById("input-daily-target-heads");
+            if (inputTarget) inputTarget.value = targetHeads;
+
+            let orders = [];
+            try {
+                orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            let products = {};
+            try {
+                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+            } catch(e) {}
+
+            let orderCounts = { p300g: 0, p1kg: 0, p3kg: 0, p5kg: 0, p10kg: 0 };
+            let totalOrderWeight = 0;
+
+            orders.forEach(o => {
+                orderCounts[o.productId] = (orderCounts[o.productId] || 0) + o.quantity;
+                totalOrderWeight += getWeightByProductId(o.productId) * o.quantity;
+            });
+
+            // 1) 추가 생산이 필요한 제품 목록 렌더링
+            const tblProductionNeeded = document.getElementById("tbl-body-production-needed");
+            if (tblProductionNeeded) {
+                let html = "";
+                Object.keys(orderCounts).forEach(pId => {
+                    const prodName = products[pId] ? products[pId].name : pId;
+                    const ordered = orderCounts[pId];
+                    const stock = products[pId] ? products[pId].stock : 0;
+                    const needed = Math.max(0, ordered - stock);
+                    
+                    const neededBadge = needed > 0 
+                        ? `<span class="badge" style="background-color: var(--accent-purple); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">${needed}개 생산 필요</span>`
+                        : `<span class="badge" style="background-color: var(--neon-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">완료</span>`;
+                    
+                    html += `
+                    <tr>
+                        <td style="font-weight: 700;">${prodName}</td>
+                        <td>${ordered}개</td>
+                        <td>${stock}팩</td>
+                        <td>${neededBadge}</td>
+                    </tr>
+                    `;
+                });
+                tblProductionNeeded.innerHTML = html;
+            }
+
+            // 2) 예상 완료 시간 메시지박스 렌더링
+            const msgDiv = document.getElementById("div-production-time-msg");
+            if (msgDiv) {
+                if (totalOrderWeight <= neededTotalWeight) {
+                    const hoursNeeded = totalOrderWeight / 15.0; // 시간당 15kg 생산 기준 (5포기)
+                    const finishTime = new Date();
+                    finishTime.setHours(10, 0, 0);
+                    finishTime.setMinutes(hoursNeeded * 60);
+                    
+                    const fHrs = String(finishTime.getHours()).padStart(2, '0');
+                    const fMins = String(finishTime.getMinutes()).padStart(2, '0');
+                    
+                    msgDiv.innerHTML = `
+                    <div style="background-color: rgba(0, 184, 148, 0.08); border: 1px solid rgba(0, 184, 148, 0.2); color: var(--neon-green); padding: 10px; border-radius: 6px; text-align: left; line-height: 1.5;">
+                        <i class="bi bi-clock-fill"></i> 오늘 들어온 주문의 총 중량은 <strong>${totalOrderWeight.toFixed(1)}kg</strong> (생산목표 ${neededTotalWeight.toFixed(1)}kg 이하) 입니다.<br>
+                        오전 10시 생산 시작 시, <strong>오늘 ${fHrs}시 ${fMins}분까지</strong> 생산하면 수량을 맞출 수 있습니다.
+                    </div>
+                    `;
+                } else {
+                    msgDiv.innerHTML = `
+                    <div style="background-color: rgba(232, 93, 4, 0.08); border: 1px solid rgba(232, 93, 4, 0.2); color: var(--amber-accent); padding: 10px; border-radius: 6px; text-align: left; line-height: 1.5;">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 경고: 오늘 주문량(<strong>${totalOrderWeight.toFixed(1)}kg</strong>)이 권장 생산 목표 캐파(<strong>${neededTotalWeight.toFixed(1)}kg</strong>)를 초과했습니다. 생산목표 증설이나 야간 가동이 권장됩니다.
+                    </div>
+                    `;
+                }
+            }
+
+            // 3) 포장재 및 부자재 상태 렌더링
+            let packaging = {};
+            try {
+                packaging = JSON.parse(localStorage.getItem("kimp_packaging_inventory") || "{}");
+            } catch(e) {}
+
+            const tblPackaging = document.getElementById("tbl-body-packaging-stock");
+            if (tblPackaging) {
+                let html = "";
+                const packItems = [
+                    { name: "300g 전용 용기/파우치", key: "p300g", needed: orderCounts.p300g },
+                    { name: "1kg 전용 용기/파우치", key: "p1kg", needed: orderCounts.p1kg },
+                    { name: "3kg 전용 용기/파우치", key: "p3kg", needed: orderCounts.p3kg },
+                    { name: "배송용 속비닐 (5kg/10kg용)", key: "vinyl", needed: orderCounts.p5kg + orderCounts.p10kg },
+                    { name: "스티로폼 단열 박스", key: "box", needed: orderCounts.p5kg + orderCounts.p10kg }
+                ];
+
+                packItems.forEach(item => {
+                    const stock = packaging[item.key] || 0;
+                    const diff = stock - item.needed;
+                    let statusLabel = "";
+                    if (diff < 0) {
+                        statusLabel = `<span style="color: #ff7675; font-weight: 700;"><i class="bi bi-dash-circle-fill"></i> 부족 (${diff}개)</span>`;
+                    } else {
+                        statusLabel = `<span style="color: var(--neon-green); font-weight: 700;"><i class="bi bi-check-circle-fill"></i> 여유 (+${diff}개)</span>`;
+                    }
+
+                    html += `
+                    <tr>
+                        <td style="font-weight: 600;">${item.name}</td>
+                        <td>${item.key === 'vinyl' || item.key === 'box' ? '5kg/10kg' : item.key.substring(1)}</td>
+                        <td>${stock}개</td>
+                        <td>${statusLabel}</td>
+                    </tr>
+                    `;
+                });
+                tblPackaging.innerHTML = html;
+            }
+
+            // 4) 주문 목록 테이블 렌더링
+            const tblOrders = document.getElementById("tbl-body-delivery-orders");
+            if (tblOrders) {
+                let html = "";
+                orders.forEach(o => {
+                    const prodName = products[o.productId] ? products[o.productId].name : o.productId;
+                    const totalAmt = o.price * o.quantity;
+
+                    const states = ["주문 완료", "생산 중", "포장 완료", "출하 준비 완료", "배송 중", "배송 완료", "입금 완료"];
+                    let options = "";
+                    states.forEach(s => {
+                        options += `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`;
+                    });
+
+                    html += `
+                    <tr>
+                        <td>${o.orderTime.substring(11)}</td>
+                        <td style="font-weight: 700;">${o.customerName}</td>
+                        <td>${o.address}</td>
+                        <td>${prodName}</td>
+                        <td>${o.quantity}개</td>
+                        <td style="font-weight: 700; color: var(--neon-blue);">${totalAmt.toLocaleString()}원</td>
+                        <td>
+                            <select onchange="updateOrderStatus('${o.orderId}', this.value)" style="background: #1c1c38; border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 4px; font-size: 11px; outline: none; cursor: pointer;">
+                                ${options}
+                            </select>
+                        </td>
+                    </tr>
+                    `;
+                });
+                tblOrders.innerHTML = html;
+            }
+
+            // 5) 기업 재정 분석 (Financial Panel) 갱신
+            let finance = { revenue: 194500, cost: 87600 };
+            try {
+                const stored = localStorage.getItem("kimp_factory_finance");
+                if (stored) finance = JSON.parse(stored);
+            } catch(e) {}
+
+            const dailyFixedCost = 130000;
+            let todayVariableCost = 0;
+            orders.forEach(o => {
+                const weight = getWeightByProductId(o.productId) * o.quantity;
+                const cabbageCost = (weight / 3.0) * 2500;
+                const sauceCost = weight * 0.3 * 8000;
+                const pkgCost = getPackagingUnitCost(o.productId) * o.quantity;
+                todayVariableCost += cabbageCost + sauceCost + pkgCost;
+            });
+
+            const lblRev = document.getElementById("lbl-finance-revenue");
+            if (lblRev) lblRev.textContent = finance.revenue.toLocaleString() + "원";
+            const lblCost = document.getElementById("stats-finance-ratio"); // 메인 비용 지표 싱크
+            if (lblCost) lblCost.textContent = `${finance.revenue.toLocaleString()}원 / ${finance.cost.toLocaleString()}원`;
+            const lblCost2 = document.getElementById("lbl-finance-cost");
+            if (lblCost2) lblCost2.textContent = finance.cost.toLocaleString() + "원";
+            const lblMargin = document.getElementById("lbl-finance-margin");
+            if (lblMargin) {
+                const margin = finance.revenue - finance.cost;
+                lblMargin.textContent = margin.toLocaleString() + "원";
+                lblMargin.style.color = margin >= 0 ? "var(--neon-blue)" : "#ff7675";
+            }
+            const lblRawCost = document.getElementById("lbl-finance-raw-cost");
+            if (lblRawCost) lblRawCost.textContent = Math.round(todayVariableCost).toLocaleString() + "원";
+
+            // 상단 실시간 재정 지표 싱크
+            const topExpected = document.getElementById("stats-expected-balance");
+            if (topExpected) topExpected.textContent = `${(finance.revenue - finance.cost).toLocaleString()}원`;
+
+            // 오늘/어제 주문 실적 카드 싱크
+            const statsOrdersComp = document.getElementById("stats-orders-comp");
+            if (statsOrdersComp) {
+                let todayTotal = 0, yesterdayTotal = 0;
+                Object.keys(products).forEach(k => {
+                    todayTotal += products[k].todayOrders || 0;
+                    yesterdayTotal += products[k].yesterdayOrders || 0;
+                });
+                statsOrdersComp.textContent = `${todayTotal + orders.length}건 / ${yesterdayTotal}건`;
+            }
+        }
     </script>
 </body>
 </html>
