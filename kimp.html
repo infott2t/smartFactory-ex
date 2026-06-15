@@ -34,625 +34,32 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        /* ── 체험하기 / 예약하기 버튼 영역 ── */
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            padding: 20px 15px 10px 15px;
-        }
-        .action-buttons .btn-experience,
-        .action-buttons .btn-reserve {
-            flex: 1;
-            padding: 10px 0;
-            border: none;
-            border-radius: 12px;
-            font-size: 15px;
-            font-family: 'NotoKR', sans-serif;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all 0.25s ease;
-        }
-        .btn-experience {
-            background: linear-gradient(135deg, #4720ca, #7b5cf5);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(71, 32, 202, 0.4);
-        }
-        .btn-experience:hover {
-            background: linear-gradient(135deg, #5a35e0, #9178f7);
-            box-shadow: 0 6px 20px rgba(71, 32, 202, 0.55);
-            transform: translateY(-2px);
-        }
-        .btn-reserve {
-            background: linear-gradient(135deg, #e85d04, #ff8c42);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(232, 93, 4, 0.4);
-        }
-        .btn-reserve:hover {
-            background: linear-gradient(135deg, #f06f1a, #ffa05c);
-            box-shadow: 0 6px 20px rgba(232, 93, 4, 0.55);
-            transform: translateY(-2px);
-        }
-        .btn-reserve:disabled {
-            background: #3a3a3a;
-            color: #777;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-        }
 
-        /* ── 예약 모달 ── */
-        .reservation-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: 2000;
-            justify-content: center;
-            align-items: flex-end;
-            animation: fadeIn 0.2s ease;
-        }
-        .reservation-overlay.show {
-            display: flex;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        .reservation-modal {
-            background: #1a1a2e;
-            width: 100%;
-            max-width: 800px;
-            border-radius: 24px 24px 0 0;
-            padding: 0;
-            animation: slideUp 0.35s ease;
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-        .modal-handle {
-            width: 40px;
-            height: 4px;
-            background: #555;
-            border-radius: 2px;
-            margin: 12px auto 0 auto;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px 12px 20px;
-            border-bottom: 1px solid #2a2a4a;
-        }
-        .modal-header h3 {
-            margin: 0;
-            color: #fff;
-            font-size: 17px;
-            font-family: 'NotoKR', sans-serif;
-            font-weight: 600;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            color: #999;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px;
-            transition: color 0.2s;
-        }
-        .modal-close:hover {
-            color: #fff;
-        }
-        .modal-body {
-            padding: 20px;
-        }
-        .modal-body .section-label {
-            font-size: 13px;
-            color: #9998DC;
-            margin-bottom: 10px;
-            font-family: 'NotoKR', sans-serif;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .modal-body .section-label i {
-            font-size: 14px;
-        }
-
-        /* 날짜 표시 */
-        .reservation-date {
-            background: #16213e;
-            border: 1px solid #2a2a4a;
-            border-radius: 12px;
-            padding: 12px 16px;
-            color: #d8d8d8;
-            font-size: 14px;
-            font-family: 'NotoKR', sans-serif;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .reservation-date i {
-            color: #9998DC;
-            font-size: 16px;
-        }
-
-        /* 시간 슬롯 그리드 */
-        .time-slots {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .time-slot {
-            background: #16213e;
-            border: 2px solid #2a2a4a;
-            border-radius: 12px;
-            padding: 14px 12px;
-            color: #d8d8d8;
-            font-size: 14px;
-            font-family: 'NotoKR', sans-serif;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-        .time-slot .slot-time {
-            font-size: 16px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .time-slot .slot-label {
-            font-size: 11px;
-            color: #888;
-        }
-        .time-slot:hover {
-            border-color: #4720ca;
-            background: #1e2a4a;
-        }
-        .time-slot.selected {
-            border-color: #7b5cf5;
-            background: linear-gradient(135deg, rgba(71, 32, 202, 0.25), rgba(123, 92, 245, 0.15));
-            box-shadow: 0 0 12px rgba(71, 32, 202, 0.3);
-        }
-        .time-slot.selected .slot-time {
-            color: #b49aff;
-        }
-        .time-slot.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        .time-slot.disabled .slot-label {
-            color: #ff6b6b;
-        }
-
-        /* 예약 확인 버튼 */
-        .btn-confirm-reserve {
-            width: 100%;
-            padding: 15px 0;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            font-family: 'NotoKR', sans-serif;
-            cursor: pointer;
-            background: linear-gradient(135deg, #e85d04, #ff8c42);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(232, 93, 4, 0.4);
-            transition: all 0.25s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-confirm-reserve:hover {
-            box-shadow: 0 6px 20px rgba(232, 93, 4, 0.55);
-            transform: translateY(-1px);
-        }
-        .btn-confirm-reserve:disabled {
-            background: #3a3a3a;
-            color: #777;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* 체험 필요 안내 메시지 */
-        .experience-notice {
-            background: rgba(232, 93, 4, 0.1);
-            border: 1px solid rgba(232, 93, 4, 0.3);
-            border-radius: 10px;
-            padding: 12px 14px;
-            margin-bottom: 18px;
-            font-size: 13px;
-            color: #ffb380;
-            font-family: 'NotoKR', sans-serif;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            line-height: 1.5;
-        }
-        .experience-notice i {
-            font-size: 16px;
-            color: #ff8c42;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-
-        /* 예약 완료 화면 */
-        .reservation-success {
-            display: none;
-            text-align: center;
-            padding: 30px 20px;
-        }
-        .reservation-success.show {
-            display: block;
-        }
-        .success-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #00b894, #55efc4);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px auto;
-            font-size: 28px;
-            color: #fff;
-            box-shadow: 0 4px 20px rgba(0, 184, 148, 0.4);
-            animation: bounceIn 0.5s ease;
-        }
-        @keyframes bounceIn {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.15); }
-            100% { transform: scale(1); }
-        }
-        .success-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #fff;
-            font-family: 'NotoKR', sans-serif;
-            margin-bottom: 8px;
-        }
-        .success-detail {
-            font-size: 14px;
-            color: #aaa;
-            font-family: 'NotoKR', sans-serif;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        .success-detail strong {
-            color: #b49aff;
-        }
-        .btn-close-success {
-            padding: 12px 40px;
-            border: none;
-            border-radius: 10px;
-            background: #4720ca;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: 'NotoKR', sans-serif;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-close-success:hover {
-            background: #5a35e0;
-        }
-
-        /* 체험 상태 뱃지 */
-        .experience-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-family: 'NotoKR', sans-serif;
-            margin-left: 15px;
-            margin-bottom: 5px;
-        }
-        .experience-badge.not-done {
-            background: rgba(255, 107, 107, 0.15);
-            color: #ff6b6b;
-            border: 1px solid rgba(255, 107, 107, 0.3);
-        }
-        .experience-badge.done {
-            background: rgba(0, 184, 148, 0.15);
-            color: #55efc4;
-            border: 1px solid rgba(0, 184, 148, 0.3);
-        }
-
-        /* 확인해보기 버튼 */
-        .btn-try-experience {
-            width: 100%;
-            padding: 10px 0;
-            border: 2px solid #00b894;
-            border-radius: 12px;
-            font-size: 14px;
-            font-family: 'NotoKR', sans-serif;
-            cursor: pointer;
-            background: linear-gradient(135deg, rgba(0, 184, 148, 0.15), rgba(85, 239, 196, 0.1));
-            color: #55efc4;
-            transition: all 0.25s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-try-experience:hover {
-            background: linear-gradient(135deg, rgba(0, 184, 148, 0.3), rgba(85, 239, 196, 0.2));
-            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
-            transform: translateY(-1px);
-        }
-
-        /* 시간 슬롯 3열 그리드 */
-        .time-slots {
-            grid-template-columns: 1fr 1fr 1fr !important;
-        }
-        .text0 i {
-            font-size: 14px;
-            color: white;
-            cursor: pointer;
-        }
-        .text0 i.bi-caret-up-fill {
-            color: rgb(0, 160, 0);
-        }
-        .text0 i.bi-caret-down-fill {
-            color: rgb(255, 107, 107);
-        }
-
-        /* ── 예약 날짜 선택 버튼 스타일 ── */
-        .date-selector-btn {
-            flex: 0 0 auto;
-            width: 76px;
-            padding: 10px 4px;
-            background: #16213e;
-            border: 1px solid #2a2a4a;
-            border-radius: 10px;
-            color: #d8d8d8;
-            font-size: 11px;
-            text-align: center;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            font-family: 'NotoKR', sans-serif;
-            transition: all 0.2s ease;
-        }
-        .date-selector-btn.selected {
-            background: linear-gradient(135deg, #7b5cf5, #4720ca);
-            border-color: #7b5cf5;
-            color: #fff;
-            box-shadow: 0 0 10px rgba(123, 92, 245, 0.4);
-        }
-        .date-selector-btn .date-num {
-            font-size: 14px;
-            font-weight: 700;
-        }
-        .date-selector-btn .date-day {
-            font-size: 9px;
-            opacity: 0.8;
-        }
-
-        /* 스크롤바 커스텀 */
-        #reservation-date-selector::-webkit-scrollbar {
-            height: 4px;
-        }
-        #reservation-date-selector::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 2px;
-        }
-        #reservation-date-selector::-webkit-scrollbar-thumb {
-            background: #2a2a4a;
-            border-radius: 2px;
-        }
-
-        /* ── 가상체험 선택 모달 ── */
-        .experience-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5, 5, 15, 0.85);
-            backdrop-filter: blur(8px);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            animation: fadeInOverlay 0.25s ease;
-        }
-        .experience-overlay.show {
-            display: flex;
-        }
-        .experience-modal {
-            background-color: #121226;
-            border: 1px solid #1e1e3f;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-            padding: 24px;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            font-family: 'NotoKR', 'Inter', sans-serif;
-            color: #fff;
-        }
-        .experience-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            padding-bottom: 12px;
-        }
-        .experience-modal-title {
-            font-size: 15px;
-            font-weight: 700;
-        }
-        
-        /* 온라인 체험 중 애니메이션 녹색 점 */
-        .online-dot-container {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .online-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #00b894;
-            border-radius: 50%;
-            position: relative;
-        }
-        .online-dot::after {
-            content: '';
-            position: absolute;
-            top: -3px;
-            left: -3px;
-            width: 12px;
-            height: 12px;
-            border: 1.5px solid #00b894;
-            border-radius: 50%;
-            animation: pulse-dot 1.8s infinite ease-out;
-        }
-        @keyframes pulse-dot {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(2.2); opacity: 0; }
-        }
-        .online-text {
-            font-size: 11px;
-            font-weight: 600;
-            color: #00b894;
-        }
-
-        .guide-banner-modal {
-            background: linear-gradient(135deg, rgba(123, 92, 245, 0.15) 0%, rgba(0, 184, 148, 0.15) 100%);
-            border: 1px solid rgba(123, 92, 245, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(123, 92, 245, 0.05);
-        }
-        .guide-text-modal {
-            font-size: 14px;
-            font-weight: 700;
-            color: #fff;
-            text-shadow: 0 0 10px rgba(123, 92, 245, 0.4);
-        }
-
-        .greeting-card-modal {
-            background-color: rgba(255, 255, 255, 0.02);
-            border-left: 4px solid #7b92ff;
-            border-top: 1px solid #1e1e3f;
-            border-right: 1px solid #1e1e3f;
-            border-bottom: 1px solid #1e1e3f;
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .greeting-text-modal {
-            font-size: 12px;
-            color: #d1d1e0;
-            line-height: 1.6;
-            font-weight: 500;
-        }
-
-        .modal-buttons-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 4px;
-        }
-        .btn-modal-action {
-            width: 100%;
-            height: 48px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-modal-action.primary {
-            background: linear-gradient(135deg, #7b92ff, #2b3573);
-            color: #fff;
-            border: none;
-            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.2);
-        }
-        .btn-modal-action.primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(123, 92, 245, 0.3);
-        }
-        .btn-modal-action.secondary {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid #1e1e3f;
-            color: #fff;
-        }
-        .btn-modal-action.secondary:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .warning-box {
-            background-color: rgba(232, 93, 4, 0.08);
-            border: 1px solid rgba(232, 93, 4, 0.25);
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 12px;
-            color: #ff9f43;
-            font-weight: 600;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        @keyframes fadeInOverlay {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        body, html {
-            overflow: auto !important;
-            height: auto !important;
-        }
-    </style>
 </head>
 
 <body>
     <div class="main-wrap">
-        <main class="main" style="padding-top: 125px; padding-bottom: 120px;">
-            <div class="fixed-header-wrap" style="position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 800px; z-index: 100; background-color: var(--var-bg-color);">
+        <main class="main">
+            <div class="fixed-header-wrap">
                 <div class="menu-bar">
-                    <i class="bi bi-chevron-left back"></i><img src="./images/k-icon.png" /><span style="cursor: pointer;" onclick="openStatusPage()">김치만들기</span><i
+                    <i class="bi bi-chevron-left back"></i><img src="./images/k-icon.png" /><span class="cursor-pointer" onclick="openStatusPage()">김치만들기</span><i
                         id="work-stars" class="bi bi-star"></i>
                 </div>
                 <div class="text0">
                     <i class="bi bi-caret-up-fill"></i><span>1.3</span><span class="ratio">+0.03%</span>
-                    <i class="bi bi-info-circle info-icon"
-                        style="color: white; cursor: pointer;"></i>
+                    <i class="bi bi-info-circle info-icon"></i>
                 </div>
-                <div class="tab" style="margin-top: 0; margin-bottom: 0;">
+                <div class="tab">
                     <div class="active" data-tab="0"><span>Chart</span></div>
                     <div data-tab="1"><span>Stats</span></div>
                     <div class="tab-indicator"></div>
                 </div>
             </div>
             <div class="content-tab active">
-                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; padding-right: 8px; font-family: 'NotoKR', sans-serif;">
-                    <button id="btn-interval-1m" onclick="changeInterval('1m')" style="background: rgba(123, 92, 245, 0.25); border: 1px solid #7b5cf5; color: white; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">1m</button>
-                    <button id="btn-interval-30m" onclick="changeInterval('30m')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #aaa; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">30m</button>
-                    <button id="btn-interval-1h" onclick="changeInterval('1h')" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #aaa; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">1h</button>
+                <div class="interval-btn-group">
+                    <button id="btn-interval-1m" class="btn-interval active" onclick="changeInterval('1m')">1m</button>
+                    <button id="btn-interval-30m" class="btn-interval" onclick="changeInterval('30m')">30m</button>
+                    <button id="btn-interval-1h" class="btn-interval" onclick="changeInterval('1h')">1h</button>
                 </div>
                 <div>
                     <canvas id="myChart"></canvas>
@@ -661,68 +68,66 @@
                     <div><span>카테고리</span></div>
                     <div><button>요리</button><button>김치</button><button>만들기</button></div>
                 </div>
-                <div class="categories" style="margin-top: 15px;">
+                <div class="categories mt-15">
                     <div><span>작업 시간</span></div>
-                    <div><button
-                            style="border-color: #9998DC; color: #9998DC; display: flex; align-items: center; gap: 4px; background: transparent; cursor: default;"><i
-                                class="bi bi-clock"></i> 2시간 작업</button></div>
+                    <div><button class="btn-worktime"><i class="bi bi-clock"></i> 2시간 작업</button></div>
                 </div>
 
                 <!-- 체험 상태 뱃지 -->
-                <div style="margin-top: 7px;">
+                <div class="badge-wrapper">
                     <div class="experience-badge not-done" id="exp-badge">
                         <i class="bi bi-exclamation-circle"></i> 체험 미완료
                     </div>
                 </div>
 
                 <!-- 체험하기 / 예약하기 버튼 -->
-                <div class="action-buttons" style="flex-direction: column; gap: 10px;">
-                    <div style="display: flex; gap: 10px; width: 100%;">
-                        <button class="btn-experience" id="btn-experience" onclick="goExperience()" style="flex: 1; margin: 0;">
+                <div class="action-buttons column">
+                    <div class="btn-row">
+                        <button class="btn-experience" id="btn-experience" onclick="goExperience()">
                             <i class="bi bi-headset"></i> 체험하기
                         </button>
-                        <button class="btn-reserve" id="btn-reserve" onclick="openReservation()" style="flex: 1; margin: 0;">
+                        <button class="btn-reserve" id="btn-reserve" onclick="openReservation()">
                             <i class="bi bi-calendar-check"></i> 예약하기
                         </button>
                     </div>
-                    <button class="btn-try-experience" id="btn-helper-login" onclick="openHelperModal()" style="width: 100%; border-color: #7b5cf5; color: #b49aff; background: linear-gradient(135deg, rgba(123, 92, 245, 0.15), rgba(71, 32, 202, 0.1));">
+                    <button class="btn-try-experience btn-helper-login" id="btn-helper-login" onclick="openHelperModal()">
                         <i class="bi bi-person-fill-gear"></i> 현장 헬퍼 지원 및 로그인 (김영희)
                     </button>
                 </div>
             </div>
-            <div class="content-tab" style="padding: 16px; font-family: 'NotoKR', sans-serif; color: #d8d8d8; max-height: 480px; overflow-y: auto;">
-                <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="content-tab stats-tab-content">
+                <div class="stats-container">
                     <!-- 1. Simplified Job Information Card -->
-                    <div style="background: #121226; border: 1px solid #2a2a4a; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 2px;">
-                            <span style="display: flex; align-items: center; gap: 6px;">
+                    <div class="stats-card">
+                        <div class="stats-card-header space-between">
+                            <span class="flex-align-center">
                                 <i class="bi bi-info-circle-fill" style="color: #7b5cf5;"></i> 작업 정보
                             </span>
-                            <span style="background: #e85d04; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">AFood</span>
+                            <span class="tag-orange">AFood</span>
                         </div>
-                        <div style="font-size: 12px; color: #aaa; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="stats-card-body">
+                            <div class="stats-row">
                                 <span>주소:</span>
-                                <span style="display: flex; align-items: center; gap: 6px;">
-                                    <strong style="color: #fff;" id="address-text">서울시 광진구 성수동</strong>
-                                    <button onclick="copyAddress()" style="background: rgba(123, 92, 245, 0.15); border: 1px solid rgba(123, 92, 245, 0.4); color: #b49aff; font-size: 9px; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">복사</button>
+                                <span class="flex-align-center">
+                                    <strong class="text-white" id="address-text">서울시 성동구 성수동</strong>
+                                    <button onclick="copyAddress()" class="btn-copy-tag">복사</button>
                                 </span>
                             </div>
-                            <div style="display: flex; justify-content: space-between;">
+                            <div class="stats-row">
                                 <span>작업 시작일:</span>
-                                <strong style="color: #00b894;" id="job-start-date">2024년 8월 1일 (목)</strong>
+                                <strong class="color-green" id="job-start-date">2024년 8월 1일 (목)</strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between;">
+                            <div class="stats-row">
                                 <span>근무 시간:</span>
-                                <strong style="color: #fff;">오전 10:00 ~ 오후 5:00</strong>
+                                <strong class="text-white">오전 10:00 ~ 오후 5:00</strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 4px; padding-top: 6px;">
+                            <div class="stats-row border-top">
                                 <span>현재까지 참여자:</span>
-                                <strong style="color: #fff;">123명</strong>
+                                <strong class="text-white">123명</strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between;">
+                            <div class="stats-row">
                                 <span>평가 평점:</span>
-                                <strong style="color: #ffd700; display: flex; align-items: center; gap: 2px;">
+                                <strong class="rating-stars">
                                     <i class="bi bi-star-fill"></i> 4.7 / 5.0
                                 </strong>
                             </div>
@@ -730,120 +135,120 @@
                     </div>
 
                     <!-- 2. Guidelines & Notices Card (From Screenshot) -->
-                    <div style="background: #121226; border: 1px solid #1e1e3f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                    <div class="stats-card alternate">
+                        <div class="stats-card-header">
                             <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 안내 및 유의사항
                         </div>
                         
-                        <ul style="list-style-type: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 12px; line-height: 1.5; color: #d8d8d8; font-family: 'NotoKR', sans-serif;">
-                            <li style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #7b5cf5; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-egg-fried"></i></span>
+                        <ul class="guide-list">
+                            <li class="guide-item">
+                                <span class="guide-icon color-purple"><i class="bi bi-egg-fried"></i></span>
                                 <span>요리. 배추를 절이는 작업입니다.</span>
                             </li>
-                            <li style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ff6b6b; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-card-image"></i></span>
+                            <li class="guide-item">
+                                <span class="guide-icon color-red"><i class="bi bi-card-image"></i></span>
                                 <span>신분증, 보건증을 지참해주세요.</span>
                             </li>
-                            <li style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ffd700; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-clock-history"></i></span>
+                            <li class="guide-item">
+                                <span class="guide-icon color-gold"><i class="bi bi-clock-history"></i></span>
                                 <span>2시간 단위로 예약가능합니다. 2시간 단위로 30분 쉬는 시간을 드려요.</span>
                             </li>
-                            <li style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #55efc4; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-ticket-perforated"></i></span>
+                            <li class="guide-item">
+                                <span class="guide-icon color-teal"><i class="bi bi-ticket-perforated"></i></span>
                                 <span>혜택, 당일 식권 1매 제공. 일주일간 식권 사용가능합니다.</span>
                             </li>
-                            <li style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #9998DC; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-person-check"></i></span>
+                            <li class="guide-item">
+                                <span class="guide-icon color-lavender"><i class="bi bi-person-check"></i></span>
                                 <span>단정한 차림으로 입장해주세요.</span>
                             </li>
-                            <li style="display: flex; gap: 8px; align-items: flex-start; background: rgba(0, 184, 148, 0.08); padding: 8px; border-radius: 8px; border: 1px dashed rgba(0, 184, 148, 0.3);">
-                                <span style="color: #00b894; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-calendar-event"></i></span>
+                            <li class="guide-item banner-green">
+                                <span class="guide-icon color-green"><i class="bi bi-calendar-event"></i></span>
                                 <span>당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊</span>
                             </li>
-                            <li style="display: flex; gap: 8px; align-items: flex-start; background: rgba(123, 92, 245, 0.08); padding: 8px; border-radius: 8px; border: 1px dashed rgba(123, 92, 245, 0.3); margin-top: 4px;">
-                                <span style="color: #b49aff; font-size: 14px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-gift-fill"></i></span>
-                                <span style="color: #b49aff; font-weight: bold;">처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉 </span>
+                            <li class="guide-item banner-purple">
+                                <span class="guide-icon color-lightpurple"><i class="bi bi-gift-fill"></i></span>
+                                <span class="color-lightpurple font-bold">처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉 </span>
                             </li>
                         </ul>
                     </div>
 
                     <!-- 3. 5-Task Details Card -->
-                    <div style="background: #121226; border: 1px solid #1e1e3f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                    <div class="stats-card alternate">
+                        <div class="stats-card-header">
                             <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 김치만들기 공정 (5-Task) 구성
                         </div>
                         
-                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.4; color: #d8d8d8; font-family: 'NotoKR', sans-serif;">
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 1.</span>
-                                <span style="color: #fff;">배추 5단위 적재하기</span>
+                        <div class="task-list">
+                            <div class="task-item">
+                                <span class="task-label">Task 1.</span>
+                                <span class="text-white">배추 5단위 적재하기</span>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 2.</span>
-                                <span style="color: #fff;">배추 손질하기</span>
+                            <div class="task-item">
+                                <span class="task-label">Task 2.</span>
+                                <span class="text-white">배추 손질하기</span>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 3.</span>
-                                <span style="color: #fff;">배추를 절이는 작업</span>
+                            <div class="task-item">
+                                <span class="task-label">Task 3.</span>
+                                <span class="text-white">배추를 절이는 작업</span>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 4.</span>
-                                <span style="color: #fff;">양념제조와 양념을 묻히는 작업</span>
+                            <div class="task-item">
+                                <span class="task-label">Task 4.</span>
+                                <span class="text-white">양념제조와 양념을 묻히는 작업</span>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span style="color: #ffd700; font-weight: bold; flex-shrink: 0; width: 44px;">Task 5.</span>
-                                <span style="color: #fff;">포장용기에 담는 작업</span>
+                            <div class="task-item">
+                                <span class="task-label">Task 5.</span>
+                                <span class="text-white">포장용기에 담는 작업</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- 4. Work Flow & Rest Notice Card -->
-                    <div style="background: #111126; border: 1px solid #1e1e3f; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-                        <div style="font-size: 14px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                    <div class="stats-card alternate2">
+                        <div class="stats-card-header">
                             <i class="bi bi-arrow-right-circle-fill" style="color: #e85d04;"></i> 진행 순서 및 휴식 안내
                         </div>
                         
                         <!-- Step Flow Diagram -->
-                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: #ccc; margin-top: 4px; font-family: 'NotoKR', sans-serif;">
-                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
-                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 1</div>
-                                    <div style="color: #fff;">입장<br><span style="font-size: 9px; color: #aaa;">(QR코드 출석하기)</span></div>
+                        <div class="step-flow-diagram">
+                            <div class="step-flow-row">
+                                <div class="step-flow-card">
+                                    <div class="modal-card-label">Step 1</div>
+                                    <div class="text-white">입장<br><span style="font-size: 9px; color: #aaa;">(QR코드 출석하기)</span></div>
                                 </div>
-                                <div style="color: #7b5cf5; font-weight: bold;"><i class="bi bi-chevron-right"></i></div>
-                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 2</div>
-                                    <div style="color: #fff;">락커룸 입장<br><span style="font-size: 9px; color: #aaa;">번호표 받기</span></div>
+                                <div class="step-flow-arrow"><i class="bi bi-chevron-right"></i></div>
+                                <div class="step-flow-card">
+                                    <div class="modal-card-label">Step 2</div>
+                                    <div class="text-white">락커룸 입장<br><span style="font-size: 9px; color: #aaa;">번호표 받기</span></div>
                                 </div>
                             </div>
                             
-                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
-                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 3</div>
-                                    <div style="color: #fff;">작업실 이동</div>
+                            <div class="step-flow-row">
+                                <div class="step-flow-card">
+                                    <div class="modal-card-label">Step 3</div>
+                                    <div class="text-white">작업실 이동</div>
                                 </div>
-                                <div style="color: #7b5cf5; font-weight: bold;"><i class="bi bi-chevron-right"></i></div>
-                                <div style="background: rgba(123, 92, 245, 0.1); border: 1px solid rgba(123, 92, 245, 0.2); padding: 8px; border-radius: 8px; text-align: center;">
+                                <div class="step-flow-arrow"><i class="bi bi-chevron-right"></i></div>
+                                <div class="step-flow-card highlight">
                                     <div style="color: #ffd700; font-weight: bold; margin-bottom: 2px;">Step 4</div>
-                                    <div style="color: #fff; font-weight: bold;">작업</div>
+                                    <div class="text-white font-bold">작업</div>
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;">
-                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
-                                    <div style="color: #9998DC; font-weight: bold; margin-bottom: 2px;">Step 5</div>
-                                    <div style="color: #fff;">락커룸</div>
+                            <div class="step-flow-row">
+                                <div class="step-flow-card">
+                                    <div class="modal-card-label">Step 5</div>
+                                    <div class="text-white">락커룸</div>
                                 </div>
-                                <div style="color: #7b5cf5; font-weight: bold;"><i class="bi bi-chevron-right"></i></div>
-                                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; text-align: center;">
+                                <div class="step-flow-arrow"><i class="bi bi-chevron-right"></i></div>
+                                <div class="step-flow-card">
                                     <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 2px;">Step 6</div>
-                                    <div style="color: #fff;">퇴실</div>
+                                    <div class="text-white">퇴실</div>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Rest Area Notice -->
-                        <div style="margin-top: 6px; background: rgba(85, 239, 196, 0.08); border: 1px solid rgba(85, 239, 196, 0.2); border-radius: 8px; padding: 10px; font-size: 11px; color: #55efc4; line-height: 1.4; display: flex; align-items: center; gap: 6px; font-weight: bold;">
+                        <div class="notice-banner-teal">
                             <i class="bi bi-info-circle-fill" style="font-size: 14px;"></i>
                             <span>쉴 때에는 휴식 룸을 사용해보세요.</span>
                         </div>
@@ -862,29 +267,29 @@
         <div class="reservation-modal">
             <div class="modal-handle"></div>
             <div class="modal-header">
-                <h3 id="modal-title"><i class="bi bi-calendar-event" style="color: #9998DC; margin-right: 6px;"></i>예약하기</h3>
+                <h3 id="modal-title"><i class="bi bi-calendar-event color-lavender-icon"></i>예약하기</h3>
                 <button class="modal-close" onclick="closeReservation()"><i class="bi bi-x-lg"></i></button>
             </div>
 
             <!-- 예약/체험 폼 -->
             <div class="modal-body" id="reservation-form">
                 <!-- 작업 정보 -->
-                <div class="work-info-card" style="background: #16213e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 15px; margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
-                    <div style="font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                        <i class="bi bi-info-circle-fill" style="color: #9998DC;"></i> 작업 정보
+                <div class="work-info-card">
+                    <div class="modal-card-title">
+                        <i class="bi bi-info-circle-fill color-lavender-icon"></i> 작업 정보
                     </div>
-                    <div style="font-size: 13px; color: #d8d8d8; line-height: 1.6;">
-                        <div style="display: flex; margin-bottom: 6px;">
-                            <span style="color: #9998DC; width: 80px; flex-shrink: 0;">작업 이름:</span>
-                            <strong style="color: #fff;">김치만들기</strong>
+                    <div class="modal-card-body">
+                        <div class="modal-card-row">
+                            <span class="modal-card-label">작업 이름:</span>
+                            <strong class="text-white">김치만들기</strong>
                         </div>
-                        <div style="display: flex; margin-bottom: 6px;">
-                            <span style="color: #9998DC; width: 80px; flex-shrink: 0;">작업장 위치:</span>
-                            <span style="color: #fff;">AFood - 1층 KimchiA</span>
+                        <div class="modal-card-row">
+                            <span class="modal-card-label">작업장 위치:</span>
+                            <span class="text-white">AFood - 1층 KimchiA</span>
                         </div>
-                        <div style="display: flex;">
-                            <span style="color: #9998DC; width: 80px; flex-shrink: 0;">주소:</span>
-                            <span style="color: #aaa; font-size: 12px;">서울시 중구 123-456 AFood 1층 KimchiA</span>
+                        <div class="modal-card-row last">
+                            <span class="modal-card-label">주소:</span>
+                            <span class="modal-card-desc">서울시 중구 123-456 AFood 1층 KimchiA</span>
                         </div>
                     </div>
                 </div>
@@ -895,12 +300,12 @@
                 </div>
 
                 <!-- 확인해보기 버튼 (체험 모드에서만 표시) -->
-                <div id="try-experience-area" style="display: none; margin-bottom: 18px;">
+                <div id="try-experience-area" class="hidden mb-18">
                     <div class="section-label"><i class="bi bi-phone"></i> 앱으로 미리 체험해보기</div>
                     <button class="btn-try-experience" onclick="tryExperience()">
                         <i class="bi bi-play-circle-fill"></i> 확인해보기
                     </button>
-                    <div style="font-size: 11px; color: #888; margin-top: 8px; padding-left: 2px; font-family: 'NotoKR', sans-serif;">시간대를 예약하기 전에, 앱에서 미리 작업 내용을 체험해볼 수 있습니다.</div>
+                    <div class="desc-muted">시간대를 예약하기 전에, 앱에서 미리 작업 내용을 체험해볼 수 있습니다.</div>
                 </div>
 
                 <!-- 보건증 및 신분 증명 증빙 카드 -->
@@ -909,49 +314,49 @@
                 </div>
 
                 <!-- 지원 역할 선택 (초심자/경험자에 따라 동적 활성화) -->
-                <div id="role-selection-area" style="margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
+                <div id="role-selection-area" class="mb-18 font-notokr">
                     <!-- JS에 의해 동적 렌더링 됩니다. -->
                 </div>
 
                 <!-- 안내 및 유의사항 -->
-                <div class="modal-notice-card" style="background: #121226; border: 1px solid #1e1e3f; border-radius: 12px; padding: 15px; margin-bottom: 18px; font-family: 'NotoKR', sans-serif;">
-                    <div style="font-size: 13px; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 10px;">
+                <div class="modal-notice-card">
+                    <div class="modal-notice-title">
                         <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 안내 및 유의사항
                     </div>
-                    <ul style="list-style-type: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 11px; line-height: 1.4; color: #d8d8d8;">
-                        <li style="display: flex; gap: 6px; align-items: flex-start;">
-                            <span style="color: #7b5cf5; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-egg-fried"></i></span>
+                    <ul class="modal-notice-list">
+                        <li class="modal-notice-item">
+                            <span class="modal-notice-icon color-purple"><i class="bi bi-egg-fried"></i></span>
                             <span>요리. 배추를 절이는 작업입니다.</span>
                         </li>
-                        <li style="display: flex; gap: 6px; align-items: flex-start;">
-                            <span style="color: #ff6b6b; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-card-image"></i></span>
+                        <li class="modal-notice-item">
+                            <span class="modal-notice-icon color-red"><i class="bi bi-card-image"></i></span>
                             <span>신분증, 보건증을 지참해주세요.</span>
                         </li>
-                        <li style="display: flex; gap: 6px; align-items: flex-start;">
-                            <span style="color: #ffd700; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-clock-history"></i></span>
+                        <li class="modal-notice-item">
+                            <span class="modal-notice-icon color-gold"><i class="bi bi-clock-history"></i></span>
                             <span>2시간 단위로 예약가능합니다. 2시간 단위로 30분 쉬는 시간을 드려요.</span>
                         </li>
-                        <li style="display: flex; gap: 6px; align-items: flex-start;">
-                            <span style="color: #55efc4; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-ticket-perforated"></i></span>
+                        <li class="modal-notice-item">
+                            <span class="modal-notice-icon color-teal"><i class="bi bi-ticket-perforated"></i></span>
                             <span>혜택, 당일 식권 1매 제공. 일주일간 식권 사용가능합니다.</span>
                         </li>
-                        <li style="display: flex; gap: 6px; align-items: flex-start;">
-                            <span style="color: #9998DC; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-person-check"></i></span>
+                        <li class="modal-notice-item">
+                            <span class="modal-notice-icon color-lavender"><i class="bi bi-person-check"></i></span>
                             <span>단정한 차림으로 입장해주세요.</span>
                         </li>
-                        <li style="display: flex; gap: 6px; align-items: flex-start; background: rgba(0, 184, 148, 0.08); padding: 6px; border-radius: 6px; border: 1px dashed rgba(0, 184, 148, 0.2);">
-                            <span style="color: #00b894; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-calendar-event"></i></span>
-                            <span>당일 날, 자리에 일이 없는 경우, 현장에서 일 접수 가능합니다. 😊</span>
+                        <li class="modal-notice-item banner-green">
+                            <span class="modal-notice-icon color-green"><i class="bi bi-calendar-event"></i></span>
+                            <span>당일 날, 자리가 일이 없는 경우, 현장에서 일 접수 가능합니다. 😊</span>
                         </li>
-                        <li style="display: flex; gap: 6px; align-items: flex-start; background: rgba(123, 92, 245, 0.08); padding: 6px; border-radius: 6px; border: 1px dashed rgba(123, 92, 245, 0.2);">
-                            <span style="color: #b49aff; font-size: 12px; flex-shrink: 0; margin-top: 1px;"><i class="bi bi-gift-fill"></i></span>
-                            <span style="color: #b49aff; font-weight: bold;">첫 일예약 체험 보너스로 5000원을 드려요.</span>
+                        <li class="modal-notice-item banner-purple">
+                            <span class="modal-notice-icon color-lightpurple"><i class="bi bi-gift-fill"></i></span>
+                            <span class="color-lightpurple font-bold">첫 일예약 체험 보너스로 5000원을 드려요.</span>
                         </li>
                     </ul>
                 </div>
 
                 <div class="section-label"><i class="bi bi-calendar3"></i> 예약 날짜 선택 (오늘부터 7일 예약 가능)</div>
-                <div id="reservation-date-selector" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px 2px; margin-bottom: 15px; -webkit-overflow-scrolling: touch;">
+                <div id="reservation-date-selector">
                     <!-- JS에 의해 7일 날짜 버튼이 생성됩니다. -->
                 </div>
                 
@@ -960,7 +365,7 @@
                 </div>
 
                 <div class="section-label"><i class="bi bi-clock-history"></i> 시간대 선택 (2시간 단위)</div>
-                <div class="time-slots-list" id="time-slots" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; font-family: 'NotoKR', sans-serif;">
+                <div class="time-slots-list" id="time-slots">
                     <!-- JS에 의해 예약 인원 한도가 표시되어 렌더링 됩니다. -->
                 </div>
 
@@ -978,61 +383,62 @@
                 </div>
                 <button class="btn-close-success" onclick="closeReservation()">확인</button>
             </div>
+
         </div>
     </div>
 
     <!-- 헬퍼 자격 검증 모달 -->
     <div class="reservation-overlay" id="helper-auth-overlay">
-        <div class="reservation-modal" style="background: #0f0f26; border: 1px solid #2a2a5a; border-radius: 20px 20px 0 0;">
+        <div class="reservation-modal helper-theme">
             <div class="modal-handle"></div>
-            <div class="modal-header" style="border-bottom: 1px solid #1e1e3f;">
-                <h3 style="color: #fff; font-size: 16px;"><i class="bi bi-person-fill-gear" style="color: #7b5cf5; margin-right: 6px;"></i>현장 헬퍼 자격 검증</h3>
+            <div class="modal-header border-thin">
+                <h3><i class="bi bi-person-fill-gear color-purple-icon"></i>현장 헬퍼 자격 검증</h3>
                 <button class="modal-close" onclick="closeHelperModal()"><i class="bi bi-x-lg"></i></button>
             </div>
-            <div class="modal-body" style="padding: 20px; font-family: 'NotoKR', sans-serif;">
-                <div style="background: #141432; border: 1px solid #1e1e4a; border-radius: 12px; padding: 15px; margin-bottom: 18px;">
-                    <div style="font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                        <i class="bi bi-person-badge-fill" style="color: #7b5cf5;"></i> 지원자 정보
+            <div class="modal-body">
+                <div class="helper-info-card">
+                    <div class="helper-card-title">
+                        <i class="bi bi-person-badge-fill color-purple-icon"></i> 지원자 정보
                     </div>
-                    <div style="font-size: 13px; color: #d8d8d8; line-height: 1.6;">
-                        <div style="display: flex; margin-bottom: 6px;">
-                            <span style="color: #8f8fc6; width: 100px; flex-shrink: 0;">지원 이름:</span>
-                            <strong style="color: #fff;">김영희 (헬퍼 지원자)</strong>
+                    <div class="helper-card-body">
+                        <div class="helper-card-row">
+                            <span class="helper-card-label">지원 이름:</span>
+                            <strong class="text-white">김영희 (헬퍼 지원자)</strong>
                         </div>
-                        <div style="display: flex; margin-bottom: 6px;">
-                            <span style="color: #8f8fc6; width: 100px; flex-shrink: 0;">지원 공정:</span>
-                            <span style="color: #fff;">김치만들기 공정</span>
+                        <div class="helper-card-row">
+                            <span class="helper-card-label">지원 공정:</span>
+                            <span class="text-white">김치만들기 공정</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="section-label" style="font-size: 13px; color: #8f8fc6; margin-bottom: 10px;"><i class="bi bi-patch-check-fill" style="color: #7b5cf5;"></i> 자격 심사 요건 확인</div>
+                <div class="section-label lavender-text"><i class="bi bi-patch-check-fill color-purple-icon"></i> 자격 심사 요건 확인</div>
                 
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <div class="helper-requirements-list">
                     <!-- 자격 요건 1 -->
-                    <div style="background: rgba(0, 184, 148, 0.08); border: 1px solid rgba(0, 184, 148, 0.2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 13px; font-weight: 600; color: #fff;">1. 누적 작업 경험 시간 (30시간 이상)</span>
-                            <span style="font-size: 11px; color: #aaa;">김영희 님 누적 시간: <strong style="color: #00b894;">32시간</strong></span>
+                    <div class="requirement-item status-approved">
+                        <div class="flex-column gap-4">
+                            <span class="requirement-title">1. 누적 작업 경험 시간 (30시간 이상)</span>
+                            <span class="requirement-desc">김영희 님 누적 시간: <strong class="color-green">32시간</strong></span>
                         </div>
-                        <span style="font-size: 12px; color: #55efc4; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                        <span class="requirement-badge">
                             <i class="bi bi-check-circle-fill"></i> 충족
                         </span>
                     </div>
 
                     <!-- 자격 요건 2 -->
-                    <div style="background: rgba(0, 184, 148, 0.08); border: 1px solid rgba(0, 184, 148, 0.2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 13px; font-weight: 600; color: #fff;">2. 헬퍼 자격 심사 시험</span>
-                            <span style="font-size: 11px; color: #aaa;">평가 심사 결과: <strong style="color: #00b894;">최종 합격 (Pass)</strong></span>
+                    <div class="requirement-item status-approved">
+                        <div class="flex-column gap-4">
+                            <span class="requirement-title">2. 헬퍼 자격 심사 시험</span>
+                            <span class="requirement-desc">평가 심사 결과: <strong class="color-green">최종 합격 (Pass)</strong></span>
                         </div>
-                        <span style="font-size: 12px; color: #55efc4; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                        <span class="requirement-badge">
                             <i class="bi bi-check-circle-fill"></i> 충족
                         </span>
                     </div>
                 </div>
 
-                <button class="btn-confirm-reserve" onclick="enterHelperDashboard()" style="background: linear-gradient(135deg, #7b5cf5, #4720ca); box-shadow: 0 4px 15px rgba(71, 32, 202, 0.4); width: 100%; border: none;">
+                <button class="btn-confirm-reserve btn-helper-theme" onclick="enterHelperDashboard()">
                     <i class="bi bi-shield-check"></i> 자격 검증 승인 및 헬퍼 대시보드 입장
                 </button>
             </div>
@@ -1042,10 +448,10 @@
     <!-- ── 가상체험 선택 모달 ── -->
     <div class="experience-overlay" id="experience-overlay">
         <div class="experience-modal">
-            <i class="bi bi-x" onclick="closeExperienceModeModal()" style="position: absolute; top: 14px; right: 14px; font-size: 24px; color: #76769e; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#76769e'"></i>
+            <i class="bi bi-x experience-modal-close" onclick="closeExperienceModeModal()"></i>
             
             <div class="experience-modal-header">
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="flex-align-center gap-8">
                     <span class="experience-modal-title">김치만들기 (가상체험관)</span>
                     <span class="online-dot"></span>
                 </div>
