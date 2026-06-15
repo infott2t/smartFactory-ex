@@ -1446,7 +1446,7 @@
                                             <th>제품 규격</th>
                                             <th>주문 요구량</th>
                                             <th>현재 재고</th>
-                                            <th>추가 생산 필요</th>
+                                            <th>주문 대비 추가 생산 필요</th>
                                             <th>오늘 목표 생산량 설정</th>
                                         </tr>
                                     </thead>
@@ -4904,7 +4904,7 @@
                     
                     const neededBadge = needed > 0 
                         ? `<span class="badge" style="background-color: var(--accent-purple); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">${needed}개 생산 필요</span>`
-                        : `<span class="badge" style="background-color: var(--neon-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">완료</span>`;
+                        : `<span class="badge" style="background-color: var(--neon-green); color: black; padding: 2px 6px; border-radius: 4px; font-size:10px;">충족됨</span>`;
                     
                     let rowStyle = "";
                     let feedbackMsg = "";
