@@ -94,6 +94,16 @@
                         <i class="bi bi-person-fill-gear"></i> 현장 헬퍼 지원 및 로그인 (김영희)
                     </button>
                 </div>
+
+                <!-- 생산되는 제품 카드 추가 (Chart 탭 아래) -->
+                <div class="stats-card alternate2" style="margin-top: 15px;">
+                    <div class="stats-card-header">
+                        <i class="bi bi-gift" style="color: #7b5cf5;"></i> 여기서 만든 신선한 김치. 구매해보세요~. 🎁
+                    </div>
+                    <div class="boxs kimp-product-list-class" id="kimp-product-list-chart" style="padding-left: 0; padding-top: 10px; display: flex; overflow-x: auto; gap: 12px;">
+                        <!-- JS 동적 바인딩 -->
+                    </div>
+                </div>
             </div>
             <div class="content-tab stats-tab-content">
                 <div class="stats-container">
@@ -253,6 +263,16 @@
                         <div class="notice-banner-teal">
                             <i class="bi bi-info-circle-fill" style="font-size: 14px;"></i>
                             <span>쉴 때에는 휴식 룸을 사용해보세요.</span>
+                        </div>
+                    </div>
+
+                    <!-- 5. 생산되는 제품 카드 추가 (Stats 탭 아래) -->
+                    <div class="stats-card alternate2" style="margin-top: 15px;">
+                        <div class="stats-card-header">
+                            <i class="bi bi-gift" style="color: #7b5cf5;"></i> 여기서 만든 신선한 김치. 구매해보세요~. 🎁
+                        </div>
+                        <div class="boxs kimp-product-list-class" id="kimp-product-list-stats" style="padding-left: 0; padding-top: 10px; display: flex; overflow-x: auto; gap: 12px;">
+                            <!-- JS 동적 바인딩 -->
                         </div>
                     </div>
                 </div>
@@ -1801,8 +1821,60 @@
             }
         });
 
+        // 생산되는 제품 동적 렌더링
+        function renderKimpProducts() {
+            let products = {};
+            try {
+                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+            } catch(e) {}
+            
+            // 만약 로컬스토리지에 없거나 데이터가 비어있다면 기본 데이터 사용
+            if (!products || Object.keys(products).length === 0) {
+                products = {
+                    p300g: { name: "300g 맛김치 팩", price: 3000, stock: 50, todayOrders: 14, img: "./images/kimchi_product_300g.png", desc: "1인 가구용 실속형 맛김치" },
+                    p1kg: { name: "1kg 포기김치 팩", price: 8000, stock: 0, todayOrders: 52, img: "./images/kimchi_product_1kg.png", desc: "가정용 표준 포장 프리미엄 김치" },
+                    p3kg: { name: "3kg 대용량 김치 팩", price: 20000, stock: 0, todayOrders: 23, img: "./images/kimchi_product_3kg.png", desc: "다인가구 및 김장 보관용 실용 김치" },
+                    p5kg: { name: "5kg 실속 김치 팩", price: 32000, stock: 10, todayOrders: 5, img: "./images/kimchi_product_1kg.png", desc: "대가족 및 업소용 실속 포장" },
+                    p10kg: { name: "10kg 업소용 김치", price: 60000, stock: 5, todayOrders: 2, img: "./images/kimchi_product_3kg.png", desc: "업소/단체급식 전용 대용량 김치" }
+                };
+            }
+
+            const containerIds = ["kimp-product-list-chart", "kimp-product-list-stats"];
+            containerIds.forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    let html = "";
+                    Object.keys(products).forEach(key => {
+                        const item = products[key];
+                        const stockText = item.stock > 0 ? `${item.stock} 남음` : '생산 중';
+                        const stockColor = item.stock > 0 ? '#ff7675' : '#7b92ff';
+                        html += `
+                        <a class="box" href="kimp_detail.html?product=${key}" style="width: 220px; min-width: 220px; flex-shrink: 0; background: #1a1a33; border: 1px solid #2d2d5e; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; color: #fff; transition: transform 0.2s;">
+                            <div class="up" style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <img src="${item.img}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="${item.name}">
+                                <div class="texts" style="display: flex; flex-direction: column; position: static; margin-left: 12px; justify-content: center; height: 80px; flex-grow: 1;">
+                                    <span style="position: static; font-size: 13px; font-weight: 700; color: #fff; line-height: 1.4; word-break: keep-all;">${item.name}</span>
+                                    <span style="position: static; font-size: 11px; color: #999; margin-top: 4px;">AFood</span>
+                                </div>
+                            </div>
+                            <div class="down" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-top: 4px;">
+                                <div style="font-size: 14px; font-weight: 700; color: #a29bfe;">${item.price.toLocaleString()}원</div>
+                                <div style="font-size: 11px; color: ${stockColor}; font-weight: 600; display: flex; align-items: center; gap: 2px;">
+                                    <span>${stockText}</span>
+                                </div>
+                            </div>
+                        </a>
+                        `;
+                    });
+                    container.innerHTML = html;
+                }
+            });
+        }
+
         // 정보 아이클 클릭 시 안내 푸터 슬라이드 토글
         $(document).ready(function () {
+            renderKimpProducts(); // 제품 렌더링 호출
+            
             $(".info-icon").click(function (e) {
                 e.stopPropagation();
                 $("#info-footer").slideDown(250);

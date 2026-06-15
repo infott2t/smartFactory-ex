@@ -1306,3 +1306,41 @@ body, html {
 .gap-8 {
     gap: 8px;
 }
+
+/* PC 화면(768px 이상)에서만 스크롤바를 얇고 눈에 띄지 않게 표시 */
+@media (min-width: 768px) {
+    .boxs.kimp-product-list-class {
+        scrollbar-width: thin !important;
+        scrollbar-color: #2d2d5e #111126 !important;
+    }
+    
+    .boxs.kimp-product-list-class::-webkit-scrollbar {
+        display: block !important;
+        height: 6px !important;
+    }
+    
+    .boxs.kimp-product-list-class::-webkit-scrollbar-track {
+        background: #111126 !important;
+        border-radius: 10px !important;
+    }
+    
+    .boxs.kimp-product-list-class::-webkit-scrollbar-thumb {
+        background: #2d2d5e !important;
+        border-radius: 10px !important;
+    }
+    
+    .boxs.kimp-product-list-class::-webkit-scrollbar-thumb:hover {
+        background: #4720ca !important;
+    }
+}
+
+/* 모바일 화면(768px 미만)에서는 기존처럼 스크롤바 숨김 */
+@media (max-width: 767px) {
+    .boxs.kimp-product-list-class {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+    }
+    .boxs.kimp-product-list-class::-webkit-scrollbar {
+        display: none !important;
+    }
+}
