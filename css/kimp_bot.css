@@ -93,7 +93,7 @@
 }
 
 .categories {
-    margin-top: 20px;
+    margin-top: 3px;
     margin-left: 15px;
     font-size: 13px;
     color: white;
@@ -823,14 +823,14 @@ body, html {
 .stats-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 30px;
 }
 
 .stats-card {
     background: #121226;
     border: 1px solid #2a2a4a;
-    border-radius: 14px;
-    padding: 16px;
+    border-radius: 10px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -844,8 +844,7 @@ body, html {
 }
 
 .stats-card-header {
-    font-size: 14px;
-    font-weight: bold;
+    
     color: #fff;
     display: flex;
     align-items: center;
@@ -859,7 +858,7 @@ body, html {
 }
 
 .stats-card-body {
-    font-size: 12px;
+    font-size: 14px;
     color: #aaa;
     line-height: 1.6;
     display: flex;
@@ -881,16 +880,18 @@ body, html {
 .tag-orange {
     background: #e85d04;
     color: #fff;
-    font-size: 10px;
+    
     padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: bold;
+    border-radius: 5px;
+    font: icon;
+    font-size: 13px;
+     
 }
 
 .flex-align-center {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .btn-copy-tag {
@@ -906,6 +907,7 @@ body, html {
 
 .color-green {
     color: #00b894;
+    font-weight:normal;
 }
 
 .rating-stars {
@@ -913,16 +915,18 @@ body, html {
     display: flex;
     align-items: center;
     gap: 2px;
+    font-weight: normal;
 }
 
 .guide-list {
     list-style-type: none;
     padding: 0;
+    padding-top: 14px;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    font-size: 12px;
+    gap: 14px;
+    font-size: 14px;
     line-height: 1.5;
     color: #d8d8d8;
     font-family: 'NotoKR', sans-serif;
@@ -964,8 +968,8 @@ body, html {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.1;
     color: #d8d8d8;
     font-family: 'NotoKR', sans-serif;
 }
@@ -978,7 +982,7 @@ body, html {
 
 .task-label {
     color: #ffd700;
-    font-weight: bold;
+    
     flex-shrink: 0;
     width: 44px;
 }
@@ -1001,6 +1005,7 @@ body, html {
 }
 
 .step-flow-card {
+     
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 8px;
@@ -1010,6 +1015,12 @@ body, html {
 .step-flow-card.highlight {
     background: rgba(123, 92, 245, 0.1);
     border: 1px solid rgba(123, 92, 245, 0.2);
+}
+
+.step-flow-card .modal-card-label {
+    width: auto !important;
+    flex-shrink: 1 !important;
+    margin-bottom: 2px;
 }
 
 .step-flow-arrow {
@@ -1023,13 +1034,13 @@ body, html {
     border: 1px solid rgba(85, 239, 196, 0.2);
     border-radius: 8px;
     padding: 10px;
-    font-size: 11px;
+    font-size: 13px;
     color: #55efc4;
     line-height: 1.4;
     display: flex;
     align-items: center;
     gap: 6px;
-    font-weight: bold;
+     
 }
 
 .work-info-card {
@@ -1246,6 +1257,7 @@ body, html {
 
 .text-white {
     color: #fff !important;
+    font-weight: normal;
 }
 
 .font-bold {
