@@ -55,7 +55,7 @@ body {
     padding-right: 10px;
 }
 .header > .h-bar > .h-search {
-    visibility: hidden;
+    display: none;
 }
 .header > .h-bar > .h-search:focus-visible {
    

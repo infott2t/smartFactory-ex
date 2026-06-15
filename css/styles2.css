@@ -51,7 +51,7 @@ body {
 }
 
 .header > .h-bar > .h-search {
-    visibility: hidden;
+    display: none;
 }
 
 .h-open-btn {
