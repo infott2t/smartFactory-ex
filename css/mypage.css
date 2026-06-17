@@ -61,10 +61,21 @@ body {
     background-color: var(--bg-color);
 }
 .header-icon{
-    nargin-right: 20px;
+    margin-right: 20px;
 }
 .menu-bar.mypage {
     justify-content: space-between;
+}
+.comment-mypage{
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    margin: 0px 15px 10px 15px;
+}
+.comment-mypage a {
+    font-size: 14px;
+    color: #9b9b9b;
+    cursor: default;
 }
 .mypage-box {
     color: rgb(216, 216, 216);
@@ -86,6 +97,19 @@ body {
     border-radius: 10px;
     background: var(--card-bgw);
     margin: 0px 15px 0px 15px;
+    display:flex;
+    flex-direction: column;
+    column-gap: 18px;
+ 
+    row-gap: 11px;
+}
+.mypage-box23 {
+    color: rgb(216, 216, 216);
+    border-radius: 10px;
+    background: var(--card-bg);
+    margin: 0px 15px 0px 15px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     display:flex;
     flex-direction: column;
     column-gap: 18px;
@@ -123,19 +147,20 @@ justify-content: end;
     width: 62%;
     justify-content: space-around;
     align-items: center;
-    font-size: 15px;
+    font-size: 16px;
 }
 .box-corp.fixgap {
      display: flex;
      width: 62%;
     justify-content: space-around;
     align-items: center;
-    font-size: 15px;
+    font-size: 16px;
 }
 .box-value{
     display: flex;
     column-gap: 15px;
     align-items: center;
+    padding-right: 13px;
 }
 .badge01 {
     font-size: 11px;
@@ -168,6 +193,7 @@ justify-content: end;
     font-size: 12px;
     color: var(--text-sub);
     font-weight: 700;
+    padding-right: 15px;
 }
 .mtext-sm2 a {
     font-size: 12px;
@@ -184,7 +210,7 @@ justify-content: end;
 }
 .box-time {
     color: var(--neon-green);
-    font-size: 15px;
+    font-size: 16px;
 }
 .mtext-sm {
     font-size: 16px; 
@@ -192,7 +218,7 @@ justify-content: end;
     font-weight: bold; 
 }
 .brand-name {
-    font-size: 13px;
+    font-size: 14px;
     color: #979797
 }
 .money-sign {
@@ -261,4 +287,211 @@ justify-content: end;
 }
 .bs-tooltip-end .tooltip-arrow::before {
     border-right-color: #1c2333 !important;
+}
+
+/* Allow scrolling for the mypage content, overriding bottom2.css overflow:hidden */
+html, body {
+    overflow-y: auto !important;
+    height: auto !important;
+}
+
+/* Header Gear Icon styling */
+.header-gear-icon {
+    cursor: pointer;
+}
+
+/* Warnings and Badges */
+.badge-health-warning {
+    background-color: #ff7675 !important;
+    font-weight: bold;
+}
+
+/* Icons in Section Titles */
+.res-title-icon {
+    color: var(--neon-blue);
+    margin-right: 6px;
+}
+
+.hist-title-icon {
+    color: var(--neon-green);
+    margin-right: 6px;
+}
+
+/* Reservation Item Styles */
+.reservation-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.reservation-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.reservation-item .box-corp {
+    width: auto;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.reservation-item .box-value {
+    width: auto;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    column-gap: 12px;
+}
+
+.reservation-item .res-date-time {
+    font-size: 13px;
+    color: var(--text-sub);
+}
+
+.res-cancel-btn {
+    background: rgba(255, 118, 117, 0.15);
+    color: #ff7675;
+    border: 1px solid rgba(255, 118, 117, 0.3);
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.res-cancel-btn:hover {
+    background: #ff7675;
+    color: #fff;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 15px 0;
+    color: var(--text-sub);
+    font-size: 13px;
+}
+
+/* History Item Styles */
+.history-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.history-item .hist-date {
+    font-size: 11px;
+    color: var(--text-sub);
+    width: 85px;
+}
+
+.history-item .box-corp {
+    width: 50%;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.history-item .box-corp img {
+    margin-right: 4px;
+    width: 16px;
+    height: 16px;
+}
+
+.history-item .box-corp .brand-name {
+    margin-right: 6px;
+    width: 45px;
+}
+
+.history-item .box-corp .hist-job-title {
+    font-size: 13px;
+    color: #fff;
+}
+
+.history-item .hist-pay {
+    font-weight: bold;
+    color: var(--neon-green);
+    font-size: 14px;
+}
+
+/* Simulation Panel Styles */
+.sim-panel-toggle {
+    text-align: center;
+    color: var(--text-sub);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 10px;
+    text-decoration: underline;
+    margin-top: 20px;
+}
+
+.sim-panel-content {
+    display: none;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 10px 15px;
+}
+
+.sim-group {
+    margin-bottom: 10px;
+}
+
+.sim-group:last-child {
+    margin-bottom: 0;
+}
+
+.sim-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+}
+
+.sim-flex {
+    display: flex;
+    gap: 6px;
+}
+
+.sim-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ccc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 6px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+}
+
+.sim-btn.active {
+    background: var(--neon-blue);
+    color: #0b0b16;
+    font-weight: bold;
+    border-color: var(--neon-blue);
+}
+
+.btn-logout-mypage {
+    background: rgba(255, 255, 255, 0.04);
+    color: #ff7675;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px;
+    width: 100%;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.2s;
+}
+
+.btn-logout-mypage:hover {
+    background: rgba(255, 118, 117, 0.1);
+    border-color: rgba(255, 118, 117, 0.2);
 }

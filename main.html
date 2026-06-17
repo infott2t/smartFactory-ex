@@ -292,10 +292,14 @@ $(document).ready(function(){
         e.stopPropagation();
     });
     
-    // 프로필 버튼 클릭 시 로그인 페이지로 전환
+    // 프로필 버튼 클릭 시 마이페이지(로그인 상태) 또는 로그인 페이지로 전환
     $(".h-open-btn").click(function(e) {
         e.stopPropagation();
-        location.href = "./login.html";
+        if (sessionStorage.getItem("user")) {
+            location.href = "./mypage2.html";
+        } else {
+            location.href = "./login.html";
+        }
     });
 });
 </script>
