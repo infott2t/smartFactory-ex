@@ -171,8 +171,8 @@ justify-content: end;
 }
 .badge01 {
     font-size: 13px;
-    border-color: #34d399 !important;
-    color: #34d399 !important;
+    border-color: #85bda9  !important;
+    color: #2cc58d !important;
     padding: 2px 6px;
     border-radius: 4px;
     font-weight: bold;
@@ -227,7 +227,7 @@ justify-content: end;
 }
 .mtext-sm {
     font-size: 16px; 
-    color: #dbdbdb;
+    color: #cbd5e1;
     font-weight: bold; 
 }
 .brand-name {
@@ -236,7 +236,7 @@ justify-content: end;
 }
 .money-sign {
     font-size: 24px;
-    color: #dbdbdb;
+    color: #cbd5e1;
 }
 .money-num {
     font-weight: 700;
@@ -366,6 +366,9 @@ html, body {
 .reservation-item .res-date-time {
     font-size: 16px;
     color: #d8d8d8;
+}
+.res-date-time {
+    color: #cbd5e1 !important; /* 또는 #94a3b8 */
 }
 
 .res-cancel-btn {
