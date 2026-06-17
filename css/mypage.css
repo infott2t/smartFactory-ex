@@ -92,10 +92,13 @@ body {
 .mypage-box2 {
     color: rgb(216, 216, 216);
     margin: 10px;
-    border: 1px solid var(--card-border);
+    background-color: #111622 !important; 
+    
+    /* 배경색이 들어갔으므로 테두리는 아주 미세하게 주거나 아예 없앱니다 */
+    border: 1px solid #1a2030 !important;
     padding: 10px;
     border-radius: 10px;
-    background: var(--card-bgw);
+     
     margin: 0px 15px 10px 15px;
     display:flex;
     flex-direction: column;
@@ -162,32 +165,39 @@ justify-content: end;
     align-items: center;
     padding-right: 13px;
 }
+.badge01, .badge02, .badge03 {
+    background-color: #1a202c !important; /* 배경은 어두운 칩 형태로 통일 */
+    border: 1px solid transparent !important;
+}
 .badge01 {
-    font-size: 11px;
-    color: #fff;
-    background-color: var(--neon-green);
+    font-size: 13px;
+    border-color: #34d399 !important;
+    color: #34d399 !important;
     padding: 2px 6px;
     border-radius: 4px;
+    font-weight: bold;
 }
 .badge01.bb {
     margin-right: 15px;
 }
 .badge02 {
-    font-size: 11px;
-    color: #fff;
-    background-color: purple;
+    font-size: 13px;
+    border-color: #a855f7 !important;
+    color: #a855f7 !important;
     padding: 2px 6px;
     border-radius: 4px;
+    font-weight: bold;
 }
 .badge02.bb {
     margin-right: 15px;
 }
 .badge03 {
-    font-size: 11px;
-    color: black;
-    background-color: yellow;
+    font-size: 13px;
+    border-color: #60a5fa !important;
+    color: #60a5fa !important;
     padding: 2px 6px;
     border-radius: 4px;
+    font-weight: bold;
 }
 .mtext-sm2{
     font-size: 12px;
@@ -211,6 +221,9 @@ justify-content: end;
 .box-time {
     color: var(--neon-green);
     font-size: 16px;
+    color: #34d399; /* 배지 색상과 맞춘 연한 그린 톤 */
+    font-weight: 500;
+    margin-right: 8px; /* 일반 배지와의 간격 확보 */
 }
 .mtext-sm {
     font-size: 16px; 
@@ -356,11 +369,13 @@ html, body {
 }
 
 .res-cancel-btn {
-    background: rgba(255, 118, 117, 0.15);
-    color: #ff7675;
-    border: 1px solid rgba(255, 118, 117, 0.3);
+    background-color: transparent !important;
+    border: 1px solid #cca1a1 !important; /* 차분한 로즈 골드 / 인디핑크 테두리 */
+    color: #cca1a1 !important; 
+    
+     
     padding: 3px 8px;
-    font-size: 11px;
+    font-size: 13px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
@@ -368,8 +383,7 @@ html, body {
 }
 
 .res-cancel-btn:hover {
-    background: #ff7675;
-    color: #fff;
+    background-color: rgba(204, 161, 161, 0.1) !important;
 }
 
 .empty-state {
