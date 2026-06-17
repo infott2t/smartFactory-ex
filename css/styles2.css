@@ -9,7 +9,7 @@
     font-family: 'NotoKR';
     src: url('../font/NotoSansKR-Regular.otf') format('opentype');  
 }
-
+ 
 body {
    
     color: #CCCCCC;
@@ -35,8 +35,19 @@ body {
     justify-content: center;
     align-items: center;
     background-color: var(--var-bg-color);
-}
 
+    color: white;
+}
+.header.mypage-header {
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+}
+ 
+.h-logo.mypage {
+    padding: 8px 0;
+    padding-left: 9px;
+}
 .header > .h-logo > h3 {
     margin: 0;
     padding: 10px;
@@ -77,6 +88,9 @@ body {
     color: rgb(207, 207, 207);
     padding-top: 41px;
     padding-bottom: 20px;
+}
+.main.mypage {
+    
 }
 .main-inner {
     margin-bottom: 100px;
@@ -235,3 +249,7 @@ body {
      white-space: nowrap;
      justify-self: right;
  }
+.bi.bi-chevron-left.back {
+    font-size: 19px;
+    padding-right: 7px; 
+} 

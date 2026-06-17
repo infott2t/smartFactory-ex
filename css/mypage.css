@@ -1,0 +1,264 @@
+:root {
+ 
+
+     --bg-color: #0b0b16;
+     --card-bg: #121226;
+     --card-border: #6c6cad;
+     --text-main: #ffffff;
+     --text-sub: #76769e;
+     --neon-blue: #7b92ff;
+     --amber-accent: #e85d04;
+     --neon-green: #00b894;
+     --btn-disabled: #1d1d36;
+}
+ 
+@font-face {
+     
+    font-family: 'NotoKR';
+    src: url('../font/NotoSansKR-Regular.otf') format('opentype');  
+}
+ 
+body {
+   
+    color: #CCCCCC;
+    margin: 0;
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    background: var(--bg-color);
+} 
+ 
+.main-mypage{
+        width: 100%;
+    margin: auto;
+    max-width: 800px;
+    background-color: var(--bg-color);
+    color: rgb(207, 207, 207);
+    margin-top: 43px;
+}
+
+.fixed-header-wrap {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 800px;
+    z-index: 100;
+    background-color: var(--bg-color);
+}
+.bi.bi-chevron-left.back {
+    font-size: 19px;
+    padding-right: 7px; 
+} 
+.menu-bar {
+    padding-top: 8px;
+    padding-left: 9px;
+    display: flex;
+    justify-content: flex-start;
+    column-gap: 5px;
+    align-items: center;
+    padding-bottom: 8px;
+    color: white;
+    background-color: var(--bg-color);
+}
+.header-icon{
+    nargin-right: 20px;
+}
+.menu-bar.mypage {
+    justify-content: space-between;
+}
+.mypage-box {
+    color: rgb(216, 216, 216);
+    margin: 10px;
+   
+    padding: 10px;
+ 
+    
+    margin: 0px 15px 0px 15px;
+    display: flex;
+    column-gap: 18px;
+    align-items: center;
+}
+.mypage-box2 {
+    color: rgb(216, 216, 216);
+    margin: 10px;
+    border: 1px solid var(--card-border);
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--card-bgw);
+    margin: 0px 15px 0px 15px;
+    display:flex;
+    flex-direction: column;
+    column-gap: 18px;
+ 
+    row-gap: 11px;
+}
+.icon {
+    width: 25px;
+    height: 25px;
+}
+.icon.fix {
+    transform: translateY(3px);
+}
+.icon2 {
+    width: 20px;
+    height: 20px;
+}
+.box-partner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+}
+.box-partner.right {
+justify-content: end;
+}
+.box-partner0{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+}
+.box-corp{
+    display: flex;
+    width: 62%;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 15px;
+}
+.box-corp.fixgap {
+     display: flex;
+     width: 62%;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 15px;
+}
+.box-value{
+    display: flex;
+    column-gap: 15px;
+    align-items: center;
+}
+.badge01 {
+    font-size: 11px;
+    color: #fff;
+    background-color: var(--neon-green);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.badge01.bb {
+    margin-right: 15px;
+}
+.badge02 {
+    font-size: 11px;
+    color: #fff;
+    background-color: purple;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.badge02.bb {
+    margin-right: 15px;
+}
+.badge03 {
+    font-size: 11px;
+    color: black;
+    background-color: yellow;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.mtext-sm2{
+    font-size: 12px;
+    color: var(--text-sub);
+    font-weight: 700;
+}
+.mtext-sm2 a {
+    font-size: 12px;
+    color: #9b9b9b;
+}
+.badge03.bb {
+    margin-right: 15px;
+}
+.pd {
+    padding: 10px;
+}
+.pd2 {
+    padding-top: 10px;
+}
+.box-time {
+    color: var(--neon-green);
+    font-size: 15px;
+}
+.mtext-sm {
+    font-size: 16px; 
+    color: #dbdbdb;
+    font-weight: bold; 
+}
+.brand-name {
+    font-size: 13px;
+    color: #979797
+}
+.money-sign {
+    font-size: 24px;
+    color: #dbdbdb;
+}
+.money-num {
+    font-weight: 700;
+    color:  var(--neon-green);
+}
+.text-89 {
+    color: #898989;
+    font-size: 14px;
+}
+.moji-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 15px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #7158e2,#cd84f1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(113,88,226, 0.5);
+}
+.bi.bi-person-circle {
+    font-size: 42px;
+}
+.padding-20 {
+    padding: 12px;
+}
+.mypage-comment {
+    margin: 0px 15px 0px 15px;
+    display: flex;
+
+}
+
+.tooltip {
+  /* [핵심] 툴팁 전체의 테두리 색상을 지정합니다 (화살표 테두리까지 영향) */
+  --bs-tooltip-border-color: #3b4252;
+}
+/* 툴팁 글자 상자의 스타일을 변경합니다 */
+.tooltip-inner {
+    background-color: var(--bg-color) !important; /* 마이페이지와 어울리는 진한 네이비 배경 */
+    color: #ffffff !important;            /* 글자 색상 (흰색) */
+    border: 1px solid var(--card-border);            /* 은은한 테두리 선 */
+    padding: 8px 12px;                    /* 안쪽 여백 */
+    border-radius: 8px;                   /* 둥근 모서리 */
+    font-size: 13px; 
+    margin: 0px 15px;     
+                  /* 글자 크기 */
+}
+
+/* 툴팁 화살표 색상도 배경색과 맞춰줍니다 */
+.bs-tooltip-top .tooltip-arrow::before {
+    border-top-color: #1c2333 !important;
+}
+.bs-tooltip-bottom .tooltip-arrow::before {
+    border-bottom-color: #1c2333 !important;
+}
+.bs-tooltip-start .tooltip-arrow::before {
+    border-left-color: #1c2333 !important;
+}
+.bs-tooltip-end .tooltip-arrow::before {
+    border-right-color: #1c2333 !important;
+}

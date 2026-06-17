@@ -9,6 +9,9 @@
     color: white;
     background-color: var(--var-bg-color);
 }
+.menu-bar.mypage {
+    justify-content: space-between;
+}
 
 .menu-bar>i {
     font-size: 19px;
@@ -125,6 +128,9 @@
 .main {
     padding-top: 125px;
     padding-bottom: 120px;
+}
+.main-mypage{
+    margin-top: 43px;
 }
 
 .fixed-header-wrap {
@@ -540,6 +546,10 @@
 /* 시간 슬롯 3열 그리드 */
 .time-slots {
     grid-template-columns: 1fr 1fr 1fr !important;
+}
+.text.name {
+    font-size: 16px;
+    color: #aaa;
 }
 .text0 i {
     font-size: 14px;
