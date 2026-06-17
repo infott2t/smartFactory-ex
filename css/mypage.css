@@ -96,7 +96,7 @@ body {
     padding: 10px;
     border-radius: 10px;
     background: var(--card-bgw);
-    margin: 0px 15px 0px 15px;
+    margin: 0px 15px 10px 15px;
     display:flex;
     flex-direction: column;
     column-gap: 18px;
@@ -533,7 +533,7 @@ html, body {
     }
     .reservation-item .res-job-box {
         width: 100%;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
     }
         .reservation-item .res-btn-box {
