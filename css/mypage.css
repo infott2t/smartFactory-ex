@@ -31,7 +31,7 @@ body {
     margin: auto;
     max-width: 800px;
     background-color: var(--bg-color);
-    color: rgb(207, 207, 207);
+    color: rgb(134 134 134);
     margin-top: 43px;
 }
 
@@ -227,7 +227,7 @@ justify-content: end;
 }
 .mtext-sm {
     font-size: 16px; 
-    color: #cbd5e1;
+    color: #3b6496;
     font-weight: bold; 
 }
 .brand-name {
@@ -236,11 +236,11 @@ justify-content: end;
 }
 .money-sign {
     font-size: 24px;
-    color: #cbd5e1;
+    color: #72ab96;
 }
 .money-num {
     font-weight: 700;
-    color:  var(--neon-green);
+    color:  #72ab96;;
 }
 .text-89 {
     color: #898989;
