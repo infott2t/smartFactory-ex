@@ -250,8 +250,14 @@ justify-content: end;
 .bi.bi-person-circle {
     font-size: 42px;
 }
-.padding-20 {
-    padding: 12px;
+.padding-30 {
+    padding: 30px;
+}
+.padding-15 {
+    padding: 15px;
+}
+.padding-40{
+    padding: 40px;
 }
 .mypage-comment {
     margin: 0px 15px 0px 15px;
@@ -332,8 +338,9 @@ html, body {
 
 .reservation-item .box-corp {
     width: auto;
-    justify-content: flex-start;
+     
     gap: 12px;
+    align-items: center;
 }
 
 .reservation-item .box-value {
@@ -344,8 +351,8 @@ html, body {
 }
 
 .reservation-item .res-date-time {
-    font-size: 13px;
-    color: var(--text-sub);
+    font-size: 16px;
+    color: white;
 }
 
 .res-cancel-btn {
@@ -494,4 +501,46 @@ html, body {
 .btn-logout-mypage:hover {
     background: rgba(255, 118, 117, 0.1);
     border-color: rgba(255, 118, 117, 0.2);
+}
+.bi.bi-award{
+    color: yellow;
+}
+
+@media (max-width: 425px) {
+    .box-partner.reservation-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .box-corp,
+    .box-value {
+        justify-content: space-between;
+    }
+    .reservation-item .res-date-box,
+    .reservation-item .res-time-box,
+    .reservation-item .res-job-box,
+    .reservation-item .res-btn-box {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .reservation-item .res-date-box {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .reservation-item .res-time-box {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .reservation-item .res-job-box {
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+    }
+        .reservation-item .res-btn-box {
+        width: 100%;
+        justify-content: right;
+    }
+    .icon.fix {
+        transform: translateX(8px);
+    }
 }

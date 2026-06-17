@@ -31,14 +31,14 @@
                     <div class="text-89" id="user-email-display">abcdefg@gmail.com</div>
                 </div>
             </div>
-            <div class="padding-20"></div>
+            <div class="padding-15"></div>
             
             <!-- Earnings Box -->
             <div class="mypage-box2">
                 <div class="mtext-sm">오늘 나의 수입</div>
                 <div class="money-sign">₩ <span class="money-num" id="total-earnings-display">24,000</span></div>
             </div>
-            <div class="padding-20"></div>
+            <div class="padding-30"></div>
 
             <!-- Partner Grades Box -->
              <div class="comment-mypage">
@@ -88,21 +88,40 @@
                 </div>
             </div>
 
-            <div class="padding-20"></div>
+            <div class="padding-40"></div>
 
             <!-- New Section 1: 나의 공정 예약 내역 -->
              <div class="comment-mypage">
-                <div><i class="bi bi-calendar-check-fill res-title-icon"></i>나의 공정 예약 내역</div>
+                <div>나의 공정 예약 내역 <i class="bi bi-calendar-check-fill res-title-icon"></i></div>
                 <div><a href="#">더 보기</a></div>
              </div>
             <div class="mypage-box2">
-                <div class="mtext-sm"><i class="bi bi-calendar-check-fill res-title-icon"></i>나의 공정 예약 내역</div>
+                 
                 <div class="reservation-list" id="reservation-container">
-                    <!-- Dynamic Reservations -->
+                    <div class="box-partner reservation-item">
+                        <div class="box-corp res-date-box">
+                             <span class="res-date-time">2026년 6월 19일</span>
+                             <span class="res-date-time">금요일</span>
+                        </div>
+                        <div class="box-corp res-time-box">
+                             <span class="res-date-time">10:00 ~ 12:00</span>
+                             
+                        </div>
+                        <div class="box-value res-job-box">
+                            <div><img class="icon fix" src="./images/k-icon.png"></div>
+                            <div><span class="brand-name">AFood</span></div>
+                            <div>김치만들기</div>
+                        </div>
+                        <div class="box-value res-btn-box">   
+                            <span class="box-time">2h</span>
+                            <span class="badge01">일반</span>
+                            <button type="button" class="res-cancel-btn">예약 취소</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="padding-20"></div>
+            <div class="padding-40"></div>
 
             <!-- New Section 2: 내가 했던 일 -->
             <div class="mypage-box2">
@@ -361,62 +380,7 @@
     }
 
     function renderReservations() {
-        const container = $('#reservation-container');
-        container.empty();
-
-        // Get reservations DB
-        let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
-        
-        // Filter reservations for current user
-        const myRes = db.filter(r => {
-            return String(r.userId) === String(currentUser.id) || 
-                   r.userId === "local-" + currentUser.email ||
-                   r.userName === currentUser.name;
-        });
-
-        if (myRes.length === 0) {
-            container.html('<div class="empty-state">예약된 공정이 없습니다.</div>');
-            return;
-        }
-
-        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
-
-        myRes.forEach(r => {
-            const slotText = slotLabels[r.slot] || '지정 시간';
-            let roleLabel = '일반';
-            let roleClass = 'badge01';
-
-            if (r.role === 'helper') {
-                roleLabel = '헬퍼';
-                roleClass = 'badge02';
-            } else if (r.role === 'manager') {
-                roleLabel = '매니저';
-                roleClass = 'badge03';
-            }
-
-            // Format date to Korean style (YYYY년 M월 D일)
-            const dateParts = r.date.split('-');
-            const formattedDate = dateParts.length === 3 
-                ? `${dateParts[0]}년 ${parseInt(dateParts[1])}월 ${parseInt(dateParts[2])}일` 
-                : r.date;
-
-            let resHtml = `
-                <div class="box-partner reservation-item" id="res-item-${r.id}">
-                    <div class="box-corp">
-                        <div><img class="icon fix" src="./images/k-icon.png"></div>
-                        <div><span class="brand-name">AFood</span></div>
-                        <div>김치만들기</div>
-                    </div>
-                    <div class="box-value">
-                        <span class="res-date-time">${formattedDate} ${slotText}</span>
-                        <span class="box-time">2h</span>
-                        <span class="${roleClass}">${roleLabel}</span>
-                        <button type="button" class="res-cancel-btn" onclick="cancelReservation(${r.id})">예약 취소</button>
-                    </div>
-                </div>
-            `;
-            container.append(resHtml);
-        });
+        // Rendered statically in HTML directly for CSS design customization
     }
 
     function cancelReservation(id) {
