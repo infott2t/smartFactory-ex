@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
- 
-<link rel="stylesheet" href="./css/mypage.css?v=1.0.1">
-<link rel="stylesheet" href="./css/bottom2.css">  
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-<script src="./js/auth-guard.js" type="text/javascript"></script>
-<title>마이페이지 | 스마트팩토리</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="./css/mypage.css?v=1.0.1">
+    <link rel="stylesheet" href="./css/bottom2.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <title>마이페이지 | 스마트팩토리</title>
 </head>
+
 <body>
     <div class="main-wrap">
         <main class="main-mypage">
@@ -19,7 +23,8 @@
             <div class="fixed-header-wrap">
                 <div class="menu-bar mypage">
                     <div><i class="bi bi-chevron-left back"></i><span>마이페이지</span></div>
-                    <div class="header-icon" onclick="toggleSettings()"><i class="bi bi-gear-fill header-gear-icon"></i></div>    
+                    <div class="header-icon" onclick="toggleSettings()"><i class="bi bi-gear-fill header-gear-icon"></i>
+                    </div>
                 </div>
             </div>
 
@@ -32,7 +37,7 @@
                 </div>
             </div>
             <div class="padding-15"></div>
-            
+
             <!-- Earnings Box -->
             <div class="mypage-box2">
                 <div class="mtext-sm">오늘 나의 수입</div>
@@ -41,19 +46,21 @@
             <div class="padding-30"></div>
 
             <!-- Partner Grades Box -->
-             <div class="comment-mypage">
+            <div class="comment-mypage">
                 <div>나의 파트너 등급 <i class="bi bi-award"></i></div>
                 <div><a href="#">더 보기</a></div>
-             </div>
+            </div>
             <div class="mypage-box23">
-                 
-                <div class="box-partner right"><div class="mtext-sm2">근로시간 &nbsp;/&nbsp; 등급</div></div>
-                
+
+                <div class="box-partner right">
+                    <div class="mtext-sm2">근로시간 &nbsp;/&nbsp; 등급</div>
+                </div>
+
                 <!-- AFood Kimchi -->
                 <div class="box-partner">
                     <div class="box-corp">
-                        <div><img class="icon fix" src="./images/k-icon.png"></div>
-                        <div><span class="brand-name">AFood</span></div>
+                         <img class="icon" src="./images/k-icon_150x150.png"> 
+                        <span class="brand-name">AFood</span> 
                         <div>김치만들기</div>
                     </div>
                     <div class="box-value" id="grade-row-kimchi">
@@ -64,7 +71,7 @@
 
                 <!-- Uton Udon -->
                 <div class="box-partner">
-                    <div class="box-corp fixgap">
+                    <div class="box-corp">
                         <img class="icon2" src="./images/Uton_150x150.png">
                         <span class="brand-name">Uton</span>
                         <div>우동만들기</div>
@@ -77,7 +84,7 @@
 
                 <!-- Persa Wallet -->
                 <div class="box-partner">
-                    <div class="box-corp fixgap">
+                    <div class="box-corp">
                         <img class="icon2" src="./images/fancy_150x150.png">
                         <span class="brand-name">Persa</span>
                         <div>지갑만들기</div>
@@ -91,70 +98,109 @@
             <div class="padding-40"></div>
 
             <!-- New Section 1: 나의 공정 예약 내역 -->
-             <div class="comment-mypage">
-                <div>나의 공정 예약 내역 <i class="bi bi-calendar-check-fill res-title-icon"></i></div>
+            <div class="comment-mypage">
+                <div>나의 일 예약 내역 <i class="bi bi-calendar-check-fill res-title-icon"></i></div>
                 <div><a href="#">더 보기</a></div>
-             </div>
-            <div class="mypage-box2">
-                 
-                <div class="reservation-list" id="reservation-container">
-                    <div class="box-partner reservation-item">
-                        <div class="box-corp res-date-box">
-                             <span class="res-date-time">2026년 6월 19일</span>
-                             <span class="res-date-time">금요일</span>
-                        </div>
-                        <div class="box-corp res-time-box">
-                             <span class="res-date-time">10:00 ~ 12:00</span>
-                             
-                        </div>
-                        <div class="box-value res-job-box">
-                            <div><img class="icon fix" src="./images/k-icon.png"></div>
-                            <div><span class="brand-name">AFood</span></div>
-                            <div>김치만들기</div>
-                        </div>
-                        <div class="box-value res-btn-box">   
-                            <span class="box-time">2h</span>
-                            <span class="badge01">일반</span>
-                            <button type="button" class="res-cancel-btn">예약 취소</button>
-                        </div>
-                    </div>
-                    
-                </div>
             </div>
             <div class="mypage-box2">
-                 
-                <div class="reservation-list" id="reservation-container">
-                    <div class="box-partner reservation-item">
-                        <div class="box-corp res-date-box">
-                             <span class="res-date-time">2026년 6월 19일</span>
-                             <span class="res-date-time">금요일</span>
-                        </div>
-                        <div class="box-corp res-time-box">
-                             <span class="res-date-time">10:00 ~ 12:00</span>
-                             
-                        </div>
-                        <div class="box-value res-job-box">
-                            <div><img class="icon fix" src="./images/k-icon.png"></div>
-                            <div><span class="brand-name">AFood</span></div>
-                            <div>김치만들기</div>
-                        </div>
-                        <div class="box-value res-btn-box">   
-                            <span class="box-time">2h</span>
-                            <span class="badge01">일반</span>
-                            <button type="button" class="res-cancel-btn">예약 취소</button>
-                        </div>
+
+
+                <div class="box-partner reservation-item">
+                    <div class="box-corp res-date-box">
+                        <span class="res-date-time">2026년 6월 19일</span>
+                        <span class="res-date-time">금요일</span>
                     </div>
-                    
+                    <div class="box-corp res-time-box">
+                        <span class="res-date-time">10:00 ~ 12:00</span>
+
+                    </div>
+                    <div class="box-value res-job-box">
+                         <img class="icon" src="./images/k-icon_150x150.png"> 
+                         <span class="brand-name">AFood</span> 
+                         김치만들기
+                    </div>
+                    <div class="box-value res-btn-box">
+                        <span class="box-time">2h</span>
+                        <span class="badge01">일반</span>
+                        <button type="button" class="res-cancel-btn">예약 취소</button>
+                    </div>
                 </div>
+
+
+            </div>
+            <div class="mypage-box2">
+
+
+                <div class="box-partner reservation-item">
+                    <div class="box-corp res-date-box">
+                        <span class="res-date-time">2026년 6월 19일</span>
+                        <span class="res-date-time">금요일</span>
+                    </div>
+                    <div class="box-corp res-time-box">
+                        <span class="res-date-time">13:00 ~ 15:00</span>
+
+                    </div>
+                    <div class="box-value res-job-box">
+                        <img class="icon" src="./images/k-icon_150x150.png">
+                        <span class="brand-name">AFood</span>
+                        김치만들기
+                    </div>
+                    <div class="box-value res-btn-box">
+                        <span class="box-time">2h</span>
+                        <span class="badge01">일반</span>
+                        <button type="button" class="res-cancel-btn">예약 취소</button>
+                    </div>
+                </div>
+
+
             </div>
 
             <div class="padding-40"></div>
+            <div class="comment-mypage">
+                <div>내가 했던 일 <i class="bi bi-clock-history hist-title-icon"></i></div>
+                <div><a href="#">더 보기</a></div>
+            </div>
 
             <!-- New Section 2: 내가 했던 일 -->
             <div class="mypage-box2">
-                <div class="mtext-sm"><i class="bi bi-clock-history hist-title-icon"></i>내가 했던 일</div>
-                <div class="history-list" id="history-container">
-                    <!-- Dynamic History -->
+
+                <div class="box-partner reservation-item">
+                    <div class="box-corp res-date-box">
+                        <span class="res-date-time">2026년 6월 15일</span>
+                        <span class="res-date-time">월요일</span>
+                    </div>
+                    <div class="box-corp res-time-box">
+                        <span class="res-date-time">13:00 ~ 15:00</span>
+                    </div>
+                    <div class="box-value res-job-box">
+                         <img class="icon" src="./images/k-icon_150x150.png"> 
+                         <span class="brand-name">AFood</span> 
+                       김치만들기 
+                    </div>
+                    <div class="box-value res-btn-box">
+                        <span class="box-time">2h</span>
+                        <span class="badge01">일반</span>
+                        <span class="box-time">₩ 15,000</span>
+                    </div>
+                </div>
+                <div class="box-partner reservation-item">
+                    <div class="box-corp res-date-box">
+                        <span class="res-date-time">2026년 6월 15일</span>
+                        <span class="res-date-time">월요일</span>
+                    </div>
+                    <div class="box-corp res-time-box">
+                        <span class="res-date-time">10:00 ~ 12:00</span>
+                    </div>
+                    <div class="box-value res-job-box">
+                      <img class="icon" src="./images/k-icon_150x150.png"> 
+                         <span class="brand-name">AFood</span> 
+                         김치만들기 
+                    </div>
+                    <div class="box-value res-btn-box">
+                        <span class="box-time">2h</span>
+                        <span class="badge01">일반</span>
+                        <span class="box-time">₩ 15,000</span>
+                    </div>
                 </div>
             </div>
 
@@ -181,279 +227,279 @@
                 </div>
                 <button type="button" class="btn-logout-mypage" onclick="resetSession()">세션 초기화 및 로그아웃</button>
             </div>
-            
+
             <div class="padding-20"></div>
         </main>
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="./js/jquery-3.7.1.min.js"></script>
-<script src="./js/simulator.js" type="text/javascript"></script>
-<script>
-    let currentUser = null;
-    let workerProfile = null;
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/simulator.js" type="text/javascript"></script>
+    <script>
+        let currentUser = null;
+        let workerProfile = null;
 
-    // Load initial user session
-    $(document).ready(function() {
-        // Back Navigation
-        $('.bi-chevron-left.back').click(function() {
-            window.location.href = './main.html';
+        // Load initial user session
+        $(document).ready(function () {
+            // Back Navigation
+            $('.bi-chevron-left.back').click(function () {
+                window.location.href = './main.html';
+            });
+
+            // Initialize user details
+            initUserSession();
         });
 
-        // Initialize user details
-        initUserSession();
-    });
+        function initUserSession() {
+            const userJson = sessionStorage.getItem("user");
+            if (!userJson) {
+                alert("로그인이 필요합니다.");
+                window.location.href = "./login.html";
+                return;
+            }
 
-    function initUserSession() {
-        const userJson = sessionStorage.getItem("user");
-        if (!userJson) {
-            alert("로그인이 필요합니다.");
-            window.location.href = "./login.html";
-            return;
-        }
+            currentUser = JSON.parse(userJson);
 
-        currentUser = JSON.parse(userJson);
-        
-        // Render basic profile info
-        $('#user-name-display').text(currentUser.name + ' 님');
-        $('#user-email-display').text(currentUser.email);
-        
-        // Avatar initials
-        const initials = currentUser.name ? currentUser.name.substring(0, 2) : 'US';
-        $('#user-avatar-initials').text(initials);
+            // Render basic profile info
+            $('#user-name-display').text(currentUser.name + ' 님');
+            $('#user-email-display').text(currentUser.email);
 
-        // Fetch worker profile (Kimchi making)
-        let profileStr = sessionStorage.getItem("kimp_worker_profile");
-        if (profileStr) {
-            workerProfile = JSON.parse(profileStr);
-        } else {
-            workerProfile = getDefaultProfileByName(currentUser.name);
-            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
-        }
+            // Avatar initials
+            const initials = currentUser.name ? currentUser.name.substring(0, 2) : 'US';
+            $('#user-avatar-initials').text(initials);
 
-        // Initialize simulated task history if not stored
-        const historyKey = "mypage_history_" + currentUser.id;
-        const storedHistory = localStorage.getItem(historyKey);
-        if (!storedHistory) {
-            const defaultHistory = getDefaultHistoryByName(currentUser.name);
-            localStorage.setItem(historyKey, JSON.stringify(defaultHistory));
-        }
-
-        // Seed mock reservation for 2026-06-17 10:00 ~ 12:00
-        let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
-        const hasMockRes = db.some(r => r.date === "2026-06-17" && r.slot === 0 && (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name || r.userId === "local-" + currentUser.email));
-        if (!hasMockRes) {
-            let role = 'general';
-            if (currentUser.name === '최현일') role = 'manager';
-            else if (currentUser.name === '김영희') role = 'helper';
-            
-            const newId = db.length > 0 ? Math.max.apply(null, db.map(r => r.id)) + 1 : 1;
-            db.push({
-                id: newId,
-                userId: "local-" + currentUser.email,
-                userName: currentUser.name,
-                date: "2026-06-17",
-                slot: 0,
-                role: role
-            });
-            setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
-        }
-
-        // Render UI panels
-        renderAll();
-    }
-
-    function getDefaultProfileByName(name) {
-        if (name === '최현일') {
-            return { userId: 1, userName: "최현일", healthCertificateImage: "choi_cert.png", healthCertificateStatus: "approved", workedHours: 133 };
-        } else if (name === '최수아') {
-            return { userId: 2, userName: "최수아", healthCertificateImage: "sua_cert.png", healthCertificateStatus: "approved", workedHours: 22 };
-        } else if (name === '김수민') {
-            return { userId: 3, userName: "김수민", healthCertificateImage: null, healthCertificateStatus: null, workedHours: 0 };
-        } else if (name === '김영희') {
-            return { userId: 4, userName: "김영희", healthCertificateImage: "younghee_cert.png", healthCertificateStatus: "approved", workedHours: 45 };
-        }
-        return { userId: "guest", userName: name || "손님", healthCertificateImage: null, healthCertificateStatus: null, workedHours: 5 };
-    }
-
-    function getDefaultHistoryByName(name) {
-        const today = new Date();
-        const formatDate = (daysAgo) => {
-            const d = new Date();
-            d.setDate(today.getDate() - daysAgo);
-            return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-        };
-
-        if (name === '최현일') {
-            return [
-                { date: formatDate(1), job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
-                { date: formatDate(3), job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
-                { date: formatDate(5), job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
-            ];
-        } else if (name === '최수아') {
-            return [
-                { date: formatDate(2), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                { date: formatDate(6), job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
-                { date: formatDate(10), job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
-            ];
-        } else if (name === '김수민') {
-            return [
-                { date: formatDate(4), job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
-            ];
-        } else if (name === '김영희') {
-            return [
-                { date: formatDate(1), job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
-                { date: formatDate(3), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                { date: formatDate(8), job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
-            ];
-        }
-        return [
-            { date: formatDate(2), job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
-        ];
-    }
-
-    function renderAll() {
-        renderEarnings();
-        renderPartnerGrades();
-        renderReservations();
-        renderHistory();
-        updateSimControls();
-    }
-
-    function renderEarnings() {
-        // base salary is calculated based on history and current status
-        const historyKey = "mypage_history_" + currentUser.id;
-        const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-        let baseSum = history.reduce((sum, item) => sum + item.pay, 0);
-
-        // helper base salary & bonus from partitioned items (kimp_helper_base_salary, kimp_helper_bonus)
-        const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
-        const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
-
-        const totalSum = baseSum + helperBase + helperBonus;
-
-        $('#total-earnings-display').text(totalSum.toLocaleString());
-    }
-
-    function renderPartnerGrades() {
-        const kimchiHours = workerProfile.workedHours || 0;
-        
-        // Mock Udon and Wallet hours based on user or localstorage
-        const udonHoursKey = "mypage_hours_udon_" + currentUser.id;
-        const walletHoursKey = "mypage_hours_wallet_" + currentUser.id;
-        
-        if (!localStorage.getItem(udonHoursKey)) {
-            let defH = 0;
-            if (currentUser.name === '최현일') defH = 150;
-            else if (currentUser.name === '최수아') defH = 40;
-            else if (currentUser.name === '김수민') defH = 5;
-            else if (currentUser.name === '김영희') defH = 35;
-            localStorage.setItem(udonHoursKey, defH);
-        }
-        if (!localStorage.getItem(walletHoursKey)) {
-            let defH = 0;
-            if (currentUser.name === '최현일') defH = 125;
-            else if (currentUser.name === '최수아') defH = 10;
-            else if (currentUser.name === '김수민') defH = 0;
-            else if (currentUser.name === '김영희') defH = 30;
-            localStorage.setItem(walletHoursKey, defH);
-        }
-
-        const udonHours = parseInt(localStorage.getItem(udonHoursKey));
-        const walletHours = parseInt(localStorage.getItem(walletHoursKey));
-
-        // Helper function to return grade badge and HTML
-        function getGradeBadgeHtml(hours, isKimchi) {
-            let label = "일반";
-            let badgeClass = "badge01";
-
-            if (hours >= 120) {
-                label = "매니저";
-                badgeClass = "badge03";
-            } else if (hours >= 30) {
-                label = "헬퍼";
-                badgeClass = "badge02";
+            // Fetch worker profile (Kimchi making)
+            let profileStr = sessionStorage.getItem("kimp_worker_profile");
+            if (profileStr) {
+                workerProfile = JSON.parse(profileStr);
             } else {
-                label = "일반";
-                badgeClass = "badge01";
+                workerProfile = getDefaultProfileByName(currentUser.name);
+                sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
             }
 
-            let html = `<span class="box-time">${hours}h</span><span class="${badgeClass}">${label}</span>`;
-            
-            // For Kimchi, append Warning Badge if health certificate is required
-            if (isKimchi && workerProfile.healthCertificateStatus !== 'approved') {
-                html += ` <span class="badge01 badge-health-warning">보건증 필요</span>`;
+            // Initialize simulated task history if not stored
+            const historyKey = "mypage_history_" + currentUser.id;
+            const storedHistory = localStorage.getItem(historyKey);
+            if (!storedHistory) {
+                const defaultHistory = getDefaultHistoryByName(currentUser.name);
+                localStorage.setItem(historyKey, JSON.stringify(defaultHistory));
             }
 
-            return html;
-        }
+            // Seed mock reservation for 2026-06-17 10:00 ~ 12:00
+            let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            const hasMockRes = db.some(r => r.date === "2026-06-17" && r.slot === 0 && (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name || r.userId === "local-" + currentUser.email));
+            if (!hasMockRes) {
+                let role = 'general';
+                if (currentUser.name === '최현일') role = 'manager';
+                else if (currentUser.name === '김영희') role = 'helper';
 
-        // 1. Kimchi Making
-        $('#hours-kimchi').remove();
-        $('#badge-kimchi').remove();
-        $('#grade-row-kimchi').html(getGradeBadgeHtml(kimchiHours, true));
-
-        // 2. Udon Making
-        $('#hours-udon').remove();
-        $('#badge-udon').remove();
-        $('#grade-row-udon').html(getGradeBadgeHtml(udonHours, false));
-
-        // 3. Wallet Making
-        if (walletHours === 0) {
-            $('#grade-row-wallet').html('<span class="box-time">-</span>');
-        } else {
-            $('#grade-row-wallet').html(getGradeBadgeHtml(walletHours, false));
-        }
-    }
-
-    function renderReservations() {
-        // Rendered statically in HTML directly for CSS design customization
-    }
-
-    function cancelReservation(id) {
-        if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
-
-        let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
-        const targetRes = db.find(r => r.id === id);
-        
-        db = db.filter(r => r.id !== id);
-        setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
-
-        if (targetRes && typeof window.addAppLog === 'function') {
-            const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
-            const slotText = slotLabels[targetRes.slot] || '지정 시간';
-            window.addAppLog(`김치만들기 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
-        }
-
-        alert("예약이 정상적으로 취소되었습니다.");
-        renderReservations();
-        renderEarnings();
-    }
-
-    function renderHistory() {
-        const container = $('#history-container');
-        container.empty();
-
-        const historyKey = "mypage_history_" + currentUser.id;
-        const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-
-        if (history.length === 0) {
-            container.html('<div class="empty-state">참여 이력이 없습니다.</div>');
-            return;
-        }
-
-        history.forEach(item => {
-            let brandLogo = './images/k-icon.png';
-            let brandName = 'AFood';
-            if (item.job.includes('우동')) {
-                brandLogo = './images/Uton_150x150.png';
-                brandName = 'Uton';
-            } else if (item.job.includes('지갑')) {
-                brandLogo = './images/fancy_150x150.png';
-                brandName = 'Persa';
+                const newId = db.length > 0 ? Math.max.apply(null, db.map(r => r.id)) + 1 : 1;
+                db.push({
+                    id: newId,
+                    userId: "local-" + currentUser.email,
+                    userName: currentUser.name,
+                    date: "2026-06-17",
+                    slot: 0,
+                    role: role
+                });
+                setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
             }
 
-            let row = `
+            // Render UI panels
+            renderAll();
+        }
+
+        function getDefaultProfileByName(name) {
+            if (name === '최현일') {
+                return { userId: 1, userName: "최현일", healthCertificateImage: "choi_cert.png", healthCertificateStatus: "approved", workedHours: 133 };
+            } else if (name === '최수아') {
+                return { userId: 2, userName: "최수아", healthCertificateImage: "sua_cert.png", healthCertificateStatus: "approved", workedHours: 22 };
+            } else if (name === '김수민') {
+                return { userId: 3, userName: "김수민", healthCertificateImage: null, healthCertificateStatus: null, workedHours: 0 };
+            } else if (name === '김영희') {
+                return { userId: 4, userName: "김영희", healthCertificateImage: "younghee_cert.png", healthCertificateStatus: "approved", workedHours: 45 };
+            }
+            return { userId: "guest", userName: name || "손님", healthCertificateImage: null, healthCertificateStatus: null, workedHours: 5 };
+        }
+
+        function getDefaultHistoryByName(name) {
+            const today = new Date();
+            const formatDate = (daysAgo) => {
+                const d = new Date();
+                d.setDate(today.getDate() - daysAgo);
+                return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+            };
+
+            if (name === '최현일') {
+                return [
+                    { date: formatDate(1), job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
+                    { date: formatDate(3), job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
+                    { date: formatDate(5), job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
+                ];
+            } else if (name === '최수아') {
+                return [
+                    { date: formatDate(2), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
+                    { date: formatDate(6), job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
+                    { date: formatDate(10), job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
+                ];
+            } else if (name === '김수민') {
+                return [
+                    { date: formatDate(4), job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
+                ];
+            } else if (name === '김영희') {
+                return [
+                    { date: formatDate(1), job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
+                    { date: formatDate(3), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
+                    { date: formatDate(8), job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
+                ];
+            }
+            return [
+                { date: formatDate(2), job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
+            ];
+        }
+
+        function renderAll() {
+            renderEarnings();
+            renderPartnerGrades();
+            renderReservations();
+            renderHistory();
+            updateSimControls();
+        }
+
+        function renderEarnings() {
+            // base salary is calculated based on history and current status
+            const historyKey = "mypage_history_" + currentUser.id;
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            let baseSum = history.reduce((sum, item) => sum + item.pay, 0);
+
+            // helper base salary & bonus from partitioned items (kimp_helper_base_salary, kimp_helper_bonus)
+            const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
+            const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+
+            const totalSum = baseSum + helperBase + helperBonus;
+
+            $('#total-earnings-display').text(totalSum.toLocaleString());
+        }
+
+        function renderPartnerGrades() {
+            const kimchiHours = workerProfile.workedHours || 0;
+
+            // Mock Udon and Wallet hours based on user or localstorage
+            const udonHoursKey = "mypage_hours_udon_" + currentUser.id;
+            const walletHoursKey = "mypage_hours_wallet_" + currentUser.id;
+
+            if (!localStorage.getItem(udonHoursKey)) {
+                let defH = 0;
+                if (currentUser.name === '최현일') defH = 150;
+                else if (currentUser.name === '최수아') defH = 40;
+                else if (currentUser.name === '김수민') defH = 5;
+                else if (currentUser.name === '김영희') defH = 35;
+                localStorage.setItem(udonHoursKey, defH);
+            }
+            if (!localStorage.getItem(walletHoursKey)) {
+                let defH = 0;
+                if (currentUser.name === '최현일') defH = 125;
+                else if (currentUser.name === '최수아') defH = 10;
+                else if (currentUser.name === '김수민') defH = 0;
+                else if (currentUser.name === '김영희') defH = 30;
+                localStorage.setItem(walletHoursKey, defH);
+            }
+
+            const udonHours = parseInt(localStorage.getItem(udonHoursKey));
+            const walletHours = parseInt(localStorage.getItem(walletHoursKey));
+
+            // Helper function to return grade badge and HTML
+            function getGradeBadgeHtml(hours, isKimchi) {
+                let label = "일반";
+                let badgeClass = "badge01";
+
+                if (hours >= 120) {
+                    label = "매니저";
+                    badgeClass = "badge03";
+                } else if (hours >= 30) {
+                    label = "헬퍼";
+                    badgeClass = "badge02";
+                } else {
+                    label = "일반";
+                    badgeClass = "badge01";
+                }
+
+                let html = `<span class="box-time">${hours}h</span><span class="${badgeClass}">${label}</span>`;
+
+                // For Kimchi, append Warning Badge if health certificate is required
+                if (isKimchi && workerProfile.healthCertificateStatus !== 'approved') {
+                    html += ` <span class="badge01 badge-health-warning">보건증 필요</span>`;
+                }
+
+                return html;
+            }
+
+            // 1. Kimchi Making
+            $('#hours-kimchi').remove();
+            $('#badge-kimchi').remove();
+            $('#grade-row-kimchi').html(getGradeBadgeHtml(kimchiHours, true));
+
+            // 2. Udon Making
+            $('#hours-udon').remove();
+            $('#badge-udon').remove();
+            $('#grade-row-udon').html(getGradeBadgeHtml(udonHours, false));
+
+            // 3. Wallet Making
+            if (walletHours === 0) {
+                $('#grade-row-wallet').html('<span class="box-time">-</span>');
+            } else {
+                $('#grade-row-wallet').html(getGradeBadgeHtml(walletHours, false));
+            }
+        }
+
+        function renderReservations() {
+            // Rendered statically in HTML directly for CSS design customization
+        }
+
+        function cancelReservation(id) {
+            if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
+
+            let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            const targetRes = db.find(r => r.id === id);
+
+            db = db.filter(r => r.id !== id);
+            setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
+
+            if (targetRes && typeof window.addAppLog === 'function') {
+                const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                const slotText = slotLabels[targetRes.slot] || '지정 시간';
+                window.addAppLog(`김치만들기 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
+            }
+
+            alert("예약이 정상적으로 취소되었습니다.");
+            renderReservations();
+            renderEarnings();
+        }
+
+        function renderHistory() {
+            const container = $('#history-container');
+            container.empty();
+
+            const historyKey = "mypage_history_" + currentUser.id;
+            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+
+            if (history.length === 0) {
+                container.html('<div class="empty-state">참여 이력이 없습니다.</div>');
+                return;
+            }
+
+            history.forEach(item => {
+                let brandLogo = './images/k-icon_150x150.png';
+                let brandName = 'AFood';
+                if (item.job.includes('우동')) {
+                    brandLogo = './images/Uton_150x150.png';
+                    brandName = 'Uton';
+                } else if (item.job.includes('지갑')) {
+                    brandLogo = './images/fancy_150x150.png';
+                    brandName = 'Persa';
+                }
+
+                let row = `
                 <div class="box-partner history-item">
                     <div class="hist-date">${item.date}</div>
                     <div class="box-corp">
@@ -464,76 +510,77 @@
                     <div class="hist-pay">+₩ ${item.pay.toLocaleString()}</div>
                 </div>
             `;
-            container.append(row);
-        });
-    }
-
-    // SIMULATOR PANEL LOGIC
-    function toggleSimPanel() {
-        $('#sim-panel').slideToggle();
-    }
-
-    function updateSimControls() {
-        const curHours = workerProfile.workedHours;
-        $('.sim-btn').each(function() {
-            const text = $(this).text();
-            if (text.includes(curHours + '시간')) {
-                $(this).addClass('active');
-            } else {
-                $(this).removeClass('active');
-            }
-        });
-    }
-
-    function setWorkedHours(hours) {
-        workerProfile.workedHours = hours;
-        sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
-        
-        if (typeof window.addAppLog === 'function') {
-            window.addAppLog(`김치만들기 시뮬레이션 근무 시간을 ${hours}시간으로 설정했습니다.`);
+                container.append(row);
+            });
         }
 
-        renderAll();
-    }
-
-    function setHealthStatus(status) {
-        workerProfile.healthCertificateStatus = status;
-        workerProfile.healthCertificateImage = status ? "simulated_cert.png" : null;
-        sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
-
-        if (typeof window.addAppLog === 'function') {
-            const statusText = status === 'approved' ? '승인완료' : '미등록/필요';
-            window.addAppLog(`시뮬레이션 보건증 상태를 [${statusText}]로 설정했습니다.`);
+        // SIMULATOR PANEL LOGIC
+        function toggleSimPanel() {
+            $('#sim-panel').slideToggle();
         }
 
-        renderAll();
-    }
-
-    function resetSession() {
-        if (confirm("세션을 초기화하시겠습니까? 로그인 정보 및 진행 데이터가 모두 삭제됩니다.")) {
-            const userId = sessionStorage.getItem("user-id") || "guest";
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && (key.includes("_" + userId) || key.startsWith("kimp_") || key.startsWith("mypage_"))) {
-                    keysToRemove.push(key);
+        function updateSimControls() {
+            const curHours = workerProfile.workedHours;
+            $('.sim-btn').each(function () {
+                const text = $(this).text();
+                if (text.includes(curHours + '시간')) {
+                    $(this).addClass('active');
+                } else {
+                    $(this).removeClass('active');
                 }
-            }
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-            
-            if (typeof window.addAppLog === 'function') {
-                window.addAppLog("세션을 초기화(로그아웃) 하였습니다.");
-            }
-            
-            sessionStorage.clear();
-            alert("로그아웃 되었습니다. 로그인 페이지로 이동합니다.");
-            window.location.href = "./login.html";
+            });
         }
-    }
 
-    function toggleSettings() {
-        alert("기본 설정 메뉴입니다.\n현재 버전: v1.2.0 (스마트팩토리 체험관 마이페이지)");
-    }
-</script>
+        function setWorkedHours(hours) {
+            workerProfile.workedHours = hours;
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog(`김치만들기 시뮬레이션 근무 시간을 ${hours}시간으로 설정했습니다.`);
+            }
+
+            renderAll();
+        }
+
+        function setHealthStatus(status) {
+            workerProfile.healthCertificateStatus = status;
+            workerProfile.healthCertificateImage = status ? "simulated_cert.png" : null;
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+
+            if (typeof window.addAppLog === 'function') {
+                const statusText = status === 'approved' ? '승인완료' : '미등록/필요';
+                window.addAppLog(`시뮬레이션 보건증 상태를 [${statusText}]로 설정했습니다.`);
+            }
+
+            renderAll();
+        }
+
+        function resetSession() {
+            if (confirm("세션을 초기화하시겠습니까? 로그인 정보 및 진행 데이터가 모두 삭제됩니다.")) {
+                const userId = sessionStorage.getItem("user-id") || "guest";
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.includes("_" + userId) || key.startsWith("kimp_") || key.startsWith("mypage_"))) {
+                        keysToRemove.push(key);
+                    }
+                }
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+
+                if (typeof window.addAppLog === 'function') {
+                    window.addAppLog("세션을 초기화(로그아웃) 하였습니다.");
+                }
+
+                sessionStorage.clear();
+                alert("로그아웃 되었습니다. 로그인 페이지로 이동합니다.");
+                window.location.href = "./login.html";
+            }
+        }
+
+        function toggleSettings() {
+            alert("기본 설정 메뉴입니다.\n현재 버전: v1.2.0 (스마트팩토리 체험관 마이페이지)");
+        }
+    </script>
 </body>
+
 </html>

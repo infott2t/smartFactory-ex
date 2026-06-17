@@ -21,7 +21,8 @@
 
 .menu-bar>img {
     width: 20x;
-    height: 23px;
+    height: 20px;
+    padding-right: 3px;
 }
 
 .menu-bar>i.bi.bi-star {
