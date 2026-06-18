@@ -392,6 +392,7 @@
 
         // 헬퍼 기능 관련 상태 관리
         var supportInterval = null;
+        var requestHistory = []; // 요청 이력 최신순 누적
 
         function updateDashboard() {
             var reqStr = getPartitionedItem('kimp_help_request');
@@ -399,14 +400,25 @@
             if (!card) return;
 
             if (!reqStr) {
-                // 요청 없음 (대기 중)
+                // 요청 없음 (대기 중) - 이력 있으면 함께 표시
                 card.className = "card";
-                card.innerHTML = `
-                    <div style="text-align: center; padding: 20px 0; color: var(--text-sub);">
-                        <i class="bi bi-hourglass-split" style="font-size: 32px; display: block; margin-bottom: 12px; color: var(--text-sub);"></i>
-                        <span style="font-size: 13px;">대기 중... (체험자의 도움 요청을 기다리고 있습니다)</span>
-                    </div>
-                `;
+                var historyHtml = requestHistory.length > 0
+                    ? '<div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.07); padding-top:12px;">' +
+                      '<div style="font-size:11px; font-weight:700; color:var(--text-sub); margin-bottom:8px; letter-spacing:0.5px;">— 최근 지원 이력 (최신순) —</div>' +
+                      requestHistory.map(function(h) {
+                          return '<div style="font-size:11px; color:var(--text-sub); padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:6px; margin-bottom:4px; line-height:1.5;">' +
+                              '<span style="color:#fff; font-weight:600;">' + h.time + '</span> &nbsp;·&nbsp; ' +
+                              '<span style="color:var(--neon-blue);">' + h.requester + '</span> &nbsp;·&nbsp; ' +
+                              'Stage ' + h.stage + ' ' + h.stageName +
+                          '</div>';
+                      }).join('') +
+                      '</div>'
+                    : '';
+                card.innerHTML =
+                    '<div style="text-align: center; padding: 20px 0; color: var(--text-sub);">' +
+                        '<i class="bi bi-hourglass-split" style="font-size: 32px; display: block; margin-bottom: 12px; color: var(--text-sub);"></i>' +
+                        '<span style="font-size: 13px;">대기 중... (체험자의 도움 요청을 기다리고 있습니다)</span>' +
+                    '</div>' + historyHtml;
                 if (supportInterval) {
                     clearInterval(supportInterval);
                     supportInterval = null;
@@ -417,42 +429,49 @@
             var req = JSON.parse(reqStr);
 
             if (req.status === "requested") {
-                // 요청 들어옴 (수락 전)
+                // 요청 들어옴 - 이력에 추가 (중복 방지)
+                var alreadyLogged = requestHistory.some(function(h) {
+                    return h.time === req.time && h.requester === req.requester;
+                });
+                if (!alreadyLogged) {
+                    requestHistory.unshift({ time: req.time, requester: req.requester, stage: req.stage, stageName: req.stageName });
+                    if (requestHistory.length > 20) requestHistory.pop();
+                }
+
+                var prevHistHtml = requestHistory.length > 1
+                    ? '<div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.07); padding-top:8px;">' +
+                      '<div style="font-size:10px; color:var(--text-sub); margin-bottom:5px;">— 이전 요청 이력 (최신순) —</div>' +
+                      requestHistory.slice(1).map(function(h) {
+                          return '<div style="font-size:10px; color:#666; padding:2px 0;">' + h.time + ' · ' + h.requester + ' · Stage ' + h.stage + '</div>';
+                      }).join('') +
+                      '</div>'
+                    : '';
+
                 card.className = "card active-card";
-                card.innerHTML = `
-                    <div class="notice-banner">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        <span>누군가 도움 요청을 했습니다. 해당 공정으로 이동하세요!</span>
-                    </div>
-                    <div class="meta-grid">
-                        <div class="meta-item">
-                            <span class="meta-label">도움 요청자</span>
-                            <span class="meta-value">${req.requester} 님</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">요청 공정</span>
-                            <span class="meta-value" style="color: var(--neon-blue);">${req.stageName} (Stage ${req.stage})</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">작업 중인 지시서</span>
-                            <span class="meta-value">${req.order}</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">요청 접수 시간</span>
-                            <span class="meta-value">${req.time}</span>
-                        </div>
-                    </div>
-                    <button class="btn-action" onclick="acceptRequest()">
-                        <i class="bi bi-check-circle-fill"></i> 현장 이동 및 지원 시작
-                    </button>
-                `;
+                card.innerHTML =
+                    '<div class="notice-banner">' +
+                        '<i class="bi bi-exclamation-triangle-fill"></i>' +
+                        '<span>도움 요청했습니다. 해당 자리로 이동해주세요.</span>' +
+                    '</div>' +
+                    '<div class="meta-grid">' +
+                        '<div class="meta-item"><span class="meta-label">도움 요청자</span><span class="meta-value">' + req.requester + ' 님</span></div>' +
+                        '<div class="meta-item"><span class="meta-label">요청 공정 (Task)</span><span class="meta-value" style="color: var(--neon-blue);">' + req.stageName + ' (Stage ' + req.stage + ')</span></div>' +
+                        '<div class="meta-item"><span class="meta-label">작업 중인 지시서</span><span class="meta-value">' + req.order + '</span></div>' +
+                        '<div class="meta-item"><span class="meta-label">요청 접수 시간</span><span class="meta-value">' + req.time + '</span></div>' +
+                    '</div>' +
+                    '<div style="display: flex; gap: 10px;">' +
+                        '<button class="btn-action" onclick="goToHelp()" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #02b667);"><i class="bi bi-person-walking"></i> 지금 가서 도와주기</button>' +
+                        '<button class="btn-action btn-secondary" onclick="tellWait()" style="flex: 1;"><i class="bi bi-hourglass-split"></i> 기다리라고 하기</button>' +
+                    '</div>' +
+                    prevHistHtml;
+
             } else if (req.status === "accepted") {
                 // 수락됨 (이동 중)
                 card.className = "card active-card";
                 card.innerHTML = `
                     <div class="notice-banner" style="background: rgba(123, 92, 245, 0.1); border-color: rgba(123, 92, 245, 0.3); color: var(--neon-blue); animation: none;">
                         <i class="bi bi-geo-alt-fill"></i>
-                        <span>${req.requester}님의 공정(Stage ${req.stage})으로 신속히 이동하여 지원해 주세요.</span>
+                        <span>${req.requester}님의 공정(Stage ${req.stage})으로 이동 중입니다. 도착하면 아래 버튼을 눌러주세요.</span>
                     </div>
                     <div class="meta-grid">
                         <div class="meta-item">
@@ -464,16 +483,17 @@
                             <span class="meta-value">${req.stageName}</span>
                         </div>
                     </div>
-                    <button class="btn-action" onclick="arriveAtTask()" style="background: linear-gradient(135deg, var(--neon-green), #02b667);">
-                        <i class="bi bi-pin-map-fill"></i> 도착 완료 & 도움 시작
+                    <button class="btn-action" onclick="arriveAtTask()" style="background: linear-gradient(135deg, #f5a623, #e08c10);">
+                        <i class="bi bi-pin-map-fill"></i> 도착후 도와주기 시작
                     </button>
                 `;
             } else if (req.status === "advising") {
-                // 도움 제공 중 (타이머)
+                // 도움 제공 중 (카운트업 타이머)
                 card.className = "card active-card";
-                var min = Math.floor(req.remainingTime / 60);
-                var sec = req.remainingTime % 60;
-                var timerText = String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
+                var advSec = req.advisingTime !== undefined ? req.advisingTime : 0;
+                var adv_min = Math.floor(advSec / 60);
+                var adv_sec = advSec % 60;
+                var timerText = String(adv_min).padStart(2, '0') + ":" + String(adv_sec).padStart(2, '0');
 
                 card.innerHTML = `
                     <div style="font-size: 13px; color: var(--text-sub); text-align: center;">
@@ -481,20 +501,15 @@
                         <strong>${req.requester}</strong> 님에게 어드바이스 지원 중...
                     </div>
                     <div class="support-timer-box">
-                        <span style="font-size: 11px; color: var(--text-sub); margin-bottom: 4px;">남은 도움 시간</span>
+                        <span style="font-size: 11px; color: var(--text-sub); margin-bottom: 4px;">도움 시간</span>
                         <span id="support-timer-value" class="support-timer-value">${timerText}</span>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn-action btn-secondary" onclick="extendSupportTime()" style="flex: 1;">
-                            <i class="bi bi-plus-circle-fill"></i> 시간 연장 (+5분)
-                        </button>
-                        <button class="btn-action" onclick="completeSupport()" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #02b667);">
-                            <i class="bi bi-check-circle-fill"></i> 도움 완료
-                        </button>
-                    </div>
+                    <button class="btn-action" onclick="completeSupport()" style="background: linear-gradient(135deg, var(--neon-green), #02b667);">
+                        <i class="bi bi-check-circle-fill"></i> 도움 완료
+                    </button>
                 `;
                 
-                // 타이머 작동 개시 (이미 동작 중이 아니면)
+                // 카운트업 타이머 작동 개시 (이미 동작 중이 아니면)
                 if (!supportInterval) {
                     supportInterval = setInterval(function() {
                         var r = getPartitionedItem('kimp_help_request');
@@ -511,23 +526,17 @@
                             updateDashboard();
                             return;
                         }
-                        if (rq.remainingTime > 0) {
-                            rq.remainingTime--;
-                            setPartitionedItem('kimp_help_request', JSON.stringify(rq));
-                            window.dispatchEvent(new Event('storage'));
-                            
-                            // UI 직접 갱신
-                            var min_u = Math.floor(rq.remainingTime / 60);
-                            var sec_u = rq.remainingTime % 60;
-                            var timerEl = document.getElementById('support-timer-value');
-                            if (timerEl) {
-                                timerEl.textContent = String(min_u).padStart(2, '0') + ":" + String(sec_u).padStart(2, '0');
-                            }
-                        } else {
-                            // 시간 만료 자동 완료
-                            clearInterval(supportInterval);
-                            supportInterval = null;
-                            completeSupport();
+                        // 카운트업: advisingTime 증가
+                        rq.advisingTime = (rq.advisingTime || 0) + 1;
+                        setPartitionedItem('kimp_help_request', JSON.stringify(rq));
+                        window.dispatchEvent(new Event('storage'));
+                        
+                        // UI 직접 갱신
+                        var min_u = Math.floor(rq.advisingTime / 60);
+                        var sec_u = rq.advisingTime % 60;
+                        var timerEl = document.getElementById('support-timer-value');
+                        if (timerEl) {
+                            timerEl.textContent = String(min_u).padStart(2, '0') + ":" + String(sec_u).padStart(2, '0');
                         }
                     }, 1000);
                 }
@@ -543,11 +552,33 @@
                     removePartitionedItem('kimp_help_request');
                     updateDashboard();
                 }, 2000);
+            } else if (req.status === "waiting_helper") {
+                // 기다리라고 한 상태 - 헬퍼 화면에는 여전히 요청 정보 + 지금 가기 버튼
+                card.className = "card active-card";
+                card.innerHTML = `
+                    <div class="notice-banner" style="background: rgba(255,170,80,0.08); border-color: rgba(255,170,80,0.3); color: var(--amber-accent); animation: none;">
+                        <i class="bi bi-hourglass-split"></i>
+                        <span>${req.requester}님에게 잠시 기다려 달라고 전달했습니다. 준비되면 이동하세요.</span>
+                    </div>
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">도움 요청자</span>
+                            <span class="meta-value">${req.requester} 님</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">요청 공정 (Task)</span>
+                            <span class="meta-value" style="color: var(--neon-blue);">${req.stageName} (Stage ${req.stage})</span>
+                        </div>
+                    </div>
+                    <button class="btn-action" onclick="goToHelp()" style="background: linear-gradient(135deg, var(--neon-green), #02b667);">
+                        <i class="bi bi-person-walking"></i> 지금 가서 도와주기
+                    </button>
+                `;
             }
         }
 
-        // 도움 요청 수락
-        function acceptRequest() {
+        // 지금 가서 도와주기 - 헬퍼가 이동 시작
+        function goToHelp() {
             var reqStr = getPartitionedItem('kimp_help_request');
             if (!reqStr) return;
             var req = JSON.parse(reqStr);
@@ -555,39 +586,42 @@
             setPartitionedItem('kimp_help_request', JSON.stringify(req));
             
             // 타임라인 로그 기록
-            addTimelineLog("김영희 헬퍼님이 김태호님의 Stage " + req.stage + " 도움 지원을 시작했습니다.");
+            addTimelineLog("김영희 헬퍼님이 " + req.requester + "님의 Stage " + req.stage + " 도움 지원을 위해 이동 중입니다.");
             
             updateDashboard();
             window.dispatchEvent(new Event('storage'));
         }
 
-        // 도착 완료 및 도움 시작
+        // 기다리라고 하기 - 체험자에게 대기 메시지 전달
+        function tellWait() {
+            var reqStr = getPartitionedItem('kimp_help_request');
+            if (!reqStr) return;
+            var req = JSON.parse(reqStr);
+            req.status = "waiting_helper"; // 헬퍼가 곧 가겠다는 대기 상태
+            setPartitionedItem('kimp_help_request', JSON.stringify(req));
+            
+            addTimelineLog("김영희 헬퍼님이 " + req.requester + "님에게 잠시 기다려달라고 전달했습니다.");
+            
+            updateDashboard();
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        // 도착후 도와주기 시작 (advisingTime 카운트업)
         function arriveAtTask() {
             var reqStr = getPartitionedItem('kimp_help_request');
             if (!reqStr) return;
             var req = JSON.parse(reqStr);
             req.status = "advising";
-            req.remainingTime = 300; // 5분
+            req.advisingTime = 0; // 카운트업 시작
             setPartitionedItem('kimp_help_request', JSON.stringify(req));
+            
+            addTimelineLog("김영희 헬퍼님이 " + req.requester + "님의 Stage " + req.stage + " 현장에 도착하여 도움을 시작했습니다.");
             
             updateDashboard();
             window.dispatchEvent(new Event('storage'));
         }
 
-        // 도움 연장 (+5분)
-        function extendSupportTime() {
-            var reqStr = getPartitionedItem('kimp_help_request');
-            if (!reqStr) return;
-            var req = JSON.parse(reqStr);
-            req.remainingTime += 300; // 5분 추가
-            setPartitionedItem('kimp_help_request', JSON.stringify(req));
-            
-            // 타임라인 로그 기록
-            addTimelineLog("김영희 헬퍼님이 Stage " + req.stage + " 도움 시간을 5분 연장했습니다.");
-            
-            updateDashboard();
-            window.dispatchEvent(new Event('storage'));
-        }
+
 
         // 도움 완료 및 500원 지급
         function completeSupport() {

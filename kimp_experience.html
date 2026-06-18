@@ -1977,6 +1977,9 @@
                         setPartitionedItem('kimp_help_request', JSON.stringify(helperReq));
                         syncHelpRequest();
                         renderTaskCards();
+                    } else if (helperReq.status === "waiting_helper" || helperReq.status === "accepted") {
+                        // 헬퍼가 상태를 바꾸면 즉시 반영되도록 주기적으로 싱크
+                        syncHelpRequest();
                     }
                 }
         }, 1000);
@@ -4162,7 +4165,27 @@
 
         function updateSalaryAndBreakTime() {
             var elapsedSeconds = totalSeconds - remainingSeconds;
-            var workSeconds = elapsedSeconds - accumBreakSeconds;
+
+            // 출근 시간(kimp_check_in_time)부터 현재까지의 실제 경과 시간 계산
+            var checkInTimeStr = getPartitionedItem('kimp_check_in_time');
+            var elapsedSinceCheckIn = elapsedSeconds; // 기본값: 시프트 기준
+            if (checkInTimeStr && checkInTimeStr !== '-') {
+                var parts = checkInTimeStr.split(':');
+                if (parts.length >= 2) {
+                    var ciH = parseInt(parts[0]) || 0;
+                    var ciM = parseInt(parts[1]) || 0;
+                    var ciS = parts.length > 2 ? (parseInt(parts[2]) || 0) : 0;
+                    var checkInSecs = ciH * 3600 + ciM * 60 + ciS;
+                    var now = new Date();
+                    var nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                    var diff = nowSecs - checkInSecs;
+                    // 자정 넘김 처리
+                    if (diff < 0) diff += 86400;
+                    elapsedSinceCheckIn = diff;
+                }
+            }
+
+            var workSeconds = elapsedSinceCheckIn - accumBreakSeconds;
             if (workSeconds < 0) workSeconds = 0;
             
             // 12,384 KRW/hr -> 3.44 KRW/sec
@@ -4171,7 +4194,7 @@
             // 화면 업데이트 (역할별 급여 표시)
             if (currentUser === 'kimyounghee') {
                 var helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
-                var baseHelperSalary = Math.floor(elapsedSeconds * (12384 / 3600));
+                var baseHelperSalary = Math.floor(elapsedSinceCheckIn * (12384 / 3600));
                 var totalHelperSalary = baseHelperSalary + helperBonus;
                 document.getElementById('accum-salary-display').textContent = totalHelperSalary.toLocaleString() + ' KRW';
             } else {
@@ -4191,7 +4214,7 @@
             setPartitionedItem('kimp_salary_younghee', salaryYounghee);
             
             // 김영희 (헬퍼)의 기본 급여 동기화
-            var baseHelperSalary = Math.floor(elapsedSeconds * (12384 / 3600));
+            var baseHelperSalary = Math.floor(elapsedSinceCheckIn * (12384 / 3600));
             setPartitionedItem('kimp_helper_base_salary', baseHelperSalary);
             var helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
             setPartitionedItem('kimp_salary_kimyounghee', baseHelperSalary + helperBonus);
@@ -4402,6 +4425,19 @@
             if (isOnBreak) {
                 alert("현재 휴식 중입니다. [다시 참여하기]를 누른 후 공정을 변경할 수 있습니다.");
                 return;
+            }
+
+            // 도움 요청이 진행 중이면 다른 Stage 이동 차단
+            if (activeStageNum !== null && activeStageNum !== stageNum) {
+                var activeReqStr = getPartitionedItem('kimp_help_request');
+                if (activeReqStr) {
+                    var activeReq = JSON.parse(activeReqStr);
+                    var blockStatuses = ["requested", "accepted", "waiting_helper", "advising"];
+                    if (blockStatuses.indexOf(activeReq.status) !== -1) {
+                        alert("도움 지원을 취소하고 이동해주세요.");
+                        return;
+                    }
+                }
             }
 
             // 되도록 작업을 끝낸 상태에서 다른 Stage에 참여하도록 경고 메시지 표시
@@ -4667,16 +4703,9 @@
                                 `;
                             } else {
                                 helperBtnHtml = `
-                                    <div style="margin-top: 8px; font-size: 11px; color: #55efc4; line-height: 1.4; padding: 4px; background: rgba(0, 184, 148, 0.05); border-radius: 6px; margin-bottom: 6px;">
-                                        <i class="bi bi-person-fill-check" style="color: var(--neon-green);"></i> 헬퍼가 현장에 도착했습니다! 아래 버튼을 눌러 도움 지원을 개시하세요.
-                                    </div>
-                                    <div style="display: flex; gap: 4px; margin-bottom: 6px;">
-                                        <button class="btn-task-action" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #02b667); border: none; color: white; margin-top: 0;" onclick="receiveHelperSupport(${i})">
-                                            <i class="bi bi-person-check-fill"></i> 도움 요청 받기
-                                        </button>
-                                        <button class="btn-task-action" style="flex: 1; background-color: #331a1a; border: 1px solid #552222; color: #ff6b6b; margin-top: 0;" onclick="cancelHelperRequest(${i})">
-                                            <i class="bi bi-x-circle-fill"></i> 취소
-                                        </button>
+                                    <div style="margin-top: 8px; font-size: 11px; color: #55efc4; line-height: 1.5; padding: 8px 10px; background: rgba(0, 184, 148, 0.07); border: 1px solid rgba(0,255,136,0.2); border-radius: 8px; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 6px;">
+                                        <i class="bi bi-person-walking" style="color: var(--neon-green); font-size: 14px; flex-shrink:0; margin-top:1px;"></i>
+                                        <span><strong>헬퍼가 현장에 도착합니다.</strong><br>잠시 기다려 주세요.</span>
                                     </div>
                                 `;
                             }
@@ -4743,6 +4772,25 @@
                 alert("휴식을 끝내신 뒤에 도움을 요청해주세요.");
                 return;
             }
+
+            // 헬퍼 출근 여부 확인 (kimp_workers_progress에서 isHelper && checkInTime 검사)
+            var helperCheckedIn = false;
+            try {
+                var workersProgress = JSON.parse(localStorage.getItem('kimp_workers_progress') || '{}');
+                for (var uid in workersProgress) {
+                    var w = workersProgress[uid];
+                    if (w.isHelper && w.checkInTime) {
+                        helperCheckedIn = true;
+                        break;
+                    }
+                }
+            } catch(e) {}
+
+            if (!helperCheckedIn) {
+                alert("헬퍼가 아직 작업에 참여중이 아닙니다. 전화해보세요.");
+                return;
+            }
+
             var targetStage = stageNum || activeStageNum;
             if (targetStage === null) return;
             var m = stagesModel[targetStage];
@@ -4765,6 +4813,21 @@
                 return;
             }
 
+            // 도움 요청 시 헬퍼 위치 정보 수집
+            var helperLocationLines = [];
+            try {
+                var wpMap = JSON.parse(localStorage.getItem('kimp_workers_progress') || '{}');
+                for (var uid in wpMap) {
+                    var wp = wpMap[uid];
+                    if (wp.isHelper && wp.checkInTime) {
+                        helperLocationLines.push(wp.userName + " 헬퍼: " + (wp.location || '위치 미확인'));
+                    }
+                }
+            } catch(e) {}
+            var helperLocationMsg = helperLocationLines.length > 0
+                ? "\n\n[현재 헬퍼 위치]\n" + helperLocationLines.join("\n")
+                : "";
+
             var req = {
                 status: "requested",
                 stage: targetStage,
@@ -4778,14 +4841,11 @@
             
             setPartitionedItem('kimp_help_request', JSON.stringify(req));
             
-            // 기존 상세 로그 코드 (나중에 앱 프로그래밍 시 활용할 수 있도록 주석 처리 보관)
-            // addTimelineLog(currentUserName + "님이 Stage " + targetStage + "에서 도움을 요청했습니다. (헬퍼가 곧 도착합니다. 대기시간 약 2분 소요 예상)");
-            
             // 현재 요청 로그 포맷 적용
             var logText = String(clockHour) + "시 " + String(clockMinute).padStart(2, '0') + "분, " + currentUserName + "님이 Stage " + targetStage + "에서 헬퍼를 요청하였습니다. 대기 중.";
             addTimelineLog(logText);
             
-            alert("도움을 요청했습니다. 헬퍼가 도착중입니다. (예상 대기시간: 10초)");
+            alert("도움을 요청했습니다. 헬퍼가 도착중입니다. (예상 대기시간: 10초)" + helperLocationMsg);
             
             syncHelpRequest();
             renderTaskCards();
@@ -4869,13 +4929,16 @@
                 panel.style.display = 'none';
                 return;
             }
-            
+
+            // 진행 중인 도움 요청이 있으면 step1Done 여부와 무관하게 패널 표시
+            var hasActiveRequest = !!reqStr;
+
             var state = getStageState(activeStageNum);
-            if (!state.step1Done || state.statusSubmitted) {
+            if (!hasActiveRequest && (!state.step1Done || state.statusSubmitted)) {
                 panel.style.display = 'none';
                 return;
             }
-            
+
             panel.style.display = 'flex';
             
             if (!reqStr) {
@@ -4908,30 +4971,70 @@
                         </div>
                     `;
                 } else {
+                    // 헬퍼 현황 정보 수집
+                    var helperInfoLines = [];
+                    try {
+                        var wpMap2 = JSON.parse(localStorage.getItem('kimp_workers_progress') || '{}');
+                        var now2 = new Date();
+                        var nowTimeStr = String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
+                        for (var uid2 in wpMap2) {
+                            var wp2 = wpMap2[uid2];
+                            if (wp2.isHelper && wp2.checkInTime) {
+                                helperInfoLines.push('<span style="color:#fff; font-weight:600;">' + wp2.userName + '</span> — ' + (wp2.location || '위치 미확인') + ' / ' + (wp2.stepName || '대기 중') + ' <span style="color:#aaa; font-size:10px;">[' + nowTimeStr + ']</span>');
+                            }
+                        }
+                    } catch(e) {}
+                    var helperCount = helperInfoLines.length;
+                    var helperCountText = helperCount > 0 ? helperCount + '명' : '정보 없음';
+                    var helperListHtml = helperInfoLines.length > 0
+                        ? helperInfoLines.map(function(l){ return '<div style="margin-bottom:4px;">' + l + '</div>'; }).join('')
+                        : '<div style="color:#777;">헬퍼 정보를 불러올 수 없습니다.</div>';
+
                     content.innerHTML = `
-                        <div style="font-size: 12px; color: #55efc4; line-height: 1.5; margin-bottom: 10px;">
-                            <i class="bi bi-person-fill-check" style="color: var(--neon-green); margin-right: 4px; font-size: 14px;"></i>
-                            헬퍼가 현장에 도착했습니다! 도움을 시작하려면 아래 '도움 요청 받기' 버튼을 클릭해주세요.
+                        <div style="font-size: 12px; color: #55efc4; line-height: 1.5; padding: 10px 12px; background: rgba(0,184,148,0.06); border: 1px solid rgba(0,255,136,0.15); border-radius: 8px; margin-bottom: 8px;">
+                            <div style="font-weight:700; color:var(--neon-green); margin-bottom:6px; font-size:13px;">
+                                <i class="bi bi-person-walking" style="margin-right:4px;"></i>헬퍼가 도착하는 것을 기다려 주세요.
+                            </div>
+                            <div style="font-size:11px; color:#aaa; margin-bottom:8px;">
+                                도움 요청 시간: <strong style="color:#fff;">${req.time}</strong>
+                            </div>
+                            <div style="font-size:11px; color:#bbb; margin-bottom:4px;">
+                                현재 헬퍼 <strong style="color:var(--neon-green);">${helperCountText}</strong>이 참가 중이며 다음 작업을 하고 있습니다:
+                            </div>
+                            <div style="font-size:11px; padding: 6px 8px; background: rgba(255,255,255,0.04); border-radius:6px; line-height:1.7;">
+                                ${helperListHtml}
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 8px; width: 100%;">
-                            <button class="btn-widget-action" onclick="receiveHelperSupport()" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #02b667); border: none; height: 40px; border-radius: 8px; color: white;">
-                                <i class="bi bi-person-check-fill" style="margin-right: 6px;"></i>도움 요청 받기
-                            </button>
-                            <button class="btn-widget-action" onclick="cancelHelperRequest()" style="flex: 1; background-color: #331a1a; border: 1px solid #552222; color: #ff6b6b; height: 40px; border-radius: 8px;">
-                                <i class="bi bi-x-circle-fill" style="margin-right: 6px;"></i>도움 요청 취소
-                            </button>
-                        </div>
+                        <button class="btn-widget-action" onclick="alert('관리자에게 전화를 연결합니다.\\n\\n관리자 전화번호: 000-0000-0000')" style="width: 100%; background: linear-gradient(135deg, #4a90e2, #2563c7); border: none; color: white; height: 40px; border-radius: 8px;">
+                            <i class="bi bi-telephone-fill" style="margin-right: 6px;"></i>관리자에게 전화하기 <span style="font-size:10px; opacity:0.85;">(000-0000-0000)</span>
+                        </button>
                     `;
                 }
             } else if (req.status === "accepted") {
                 content.innerHTML = `
-                    <div style="font-size: 12px; color: var(--neon-blue); line-height: 1.5; display: flex; align-items: center; gap: 6px;">
-                        <span class="spinner" style="border-top-color: var(--neon-blue);"></span>
-                        <strong>김영희 헬퍼</strong>가 곧 도착합니다. (이동 중)
+                    <div style="font-size: 12px; color: var(--neon-green); line-height: 1.6; display: flex; align-items: flex-start; gap: 8px; padding: 10px; background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); border-radius: 8px;">
+                        <i class="bi bi-person-walking" style="color: var(--neon-green); font-size: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+                        <span><strong>헬퍼가 곳 도착중입니다.</strong><br>그 자리에서 기다려주세요.</span>
                     </div>
                 `;
+            } else if (req.status === "waiting_helper") {
+                content.innerHTML = `
+                    <div style="font-size: 12px; color: var(--amber-accent); line-height: 1.7; display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: rgba(255,170,80,0.07); border: 1px solid rgba(255,170,80,0.25); border-radius: 8px; margin-bottom: 10px;">
+                        <i class="bi bi-hourglass-split" style="color: var(--amber-accent); font-size: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+                        <span>현재 헬퍼가 잠시 기다려 달라고 하고 있습니다...<br>기다려주세요....</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <button class="btn-widget-action" onclick="alert('매니저에게 전화를 연결합니다. (010-1234-5678)')" style="flex: 1; background: linear-gradient(135deg, #4a90e2, #2563c7); border: none; color: white; height: 40px; border-radius: 8px;">
+                            <i class="bi bi-telephone-fill" style="margin-right: 6px;"></i>관리자 전화하기
+                        </button>
+                        <button class="btn-widget-action" onclick="cancelHelperRequest()" style="flex: 1; background-color: #331a1a; border: 1px solid #552222; color: #ff6b6b; height: 40px; border-radius: 8px;">
+                            <i class="bi bi-x-circle-fill" style="margin-right: 6px;"></i>도움 취소
+                        </button>
+                    </div>
+                `;
+
             } else if (req.status === "advising") {
-                var advTime = req.advisingTime !== undefined ? req.advisingTime : 1;
+                var advTime = req.advisingTime !== undefined ? req.advisingTime : 0;
                 var min = Math.floor(advTime / 60);
                 var sec = advTime % 60;
                 var timerText = String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');

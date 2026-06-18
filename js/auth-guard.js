@@ -20,8 +20,8 @@
 
 // Global Partitioned LocalStorage helpers
 window.getStorageKey = function(key) {
-    // Keep reservations and production orders database global/shared
-    if (key === 'kimp_reservations_db' || key === 'kimp_production_orders') {
+    // Keep reservations, production orders, and help request as global/shared
+    if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request') {
         return key;
     }
     const userId = sessionStorage.getItem("user-id") || "guest";
