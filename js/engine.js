@@ -192,6 +192,19 @@
             if (typeof isOnBreak !== 'undefined') {
                 isOnBreak = worker.isOnBreak || false;
             }
+            if (typeof productionOrders !== 'undefined' && state.productionOrders) {
+                for (var key in state.productionOrders) {
+                    productionOrders[key] = {
+                        ...(productionOrders[key] || {}),
+                        ...state.productionOrders[key]
+                    };
+                }
+                for (var key in productionOrders) {
+                    if (!state.productionOrders[key]) {
+                        delete productionOrders[key];
+                    }
+                }
+            }
 
             // Trigger page update/render functions
             if (typeof updateClocks === 'function') {

@@ -2501,7 +2501,7 @@
             // Status progress priority helper
             var getStatusPriority = function(status) {
                 if (status === 'completed') return 2;
-                if (status === 'in_progress') return 1;
+                if (status === 'in_progress' || status === 'assigned' || status === 'task1_ready' || status === 'ready') return 1;
                 return 0; // pending or other
             };
 
@@ -3324,7 +3324,7 @@
                 if (defaultIds.indexOf(key) === -1) {
                     var o = productionOrders[key];
                     console.log("[DEBUG-QR] Checking order key:", key, "status:", o ? o.status : "null", "stages:", o ? JSON.stringify(o.stages) : "null");
-                    if (o && o.status === "in_progress") {
+                    if (o && (o.status === "in_progress" || o.status === "assigned" || o.status === "task1_ready" || o.status === "ready")) {
                         var isStage1Done = o.stages && o.stages[1] && o.stages[1].statusSubmitted;
                         console.log("[DEBUG-QR] -> isStage1Done:", isStage1Done);
                         if (!isStage1Done) {
@@ -3582,6 +3582,7 @@
                         window.removeEventListener("storage", defectStorageHandler);
                         state.step2Status = "approved";
                         state.step2Done = true;
+                        saveProductionOrders();
                         renderWorkflow();
                     } else if (myReq.status === "rejected") {
                         clearInterval(defectTimer);
@@ -3589,6 +3590,7 @@
                         state.step2Status = "rejected";
                         alert("매니저가 불량 감액 사진을 반려했습니다. 다시 확인해 주세요.");
                         state.step2Status = "none";
+                        saveProductionOrders();
                         renderWorkflow();
                     }
                 }
@@ -3665,6 +3667,7 @@
                         window.removeEventListener("storage", cleanStorageHandler);
                         state.step3Status = "approved";
                         state.step3Done = true;
+                        saveProductionOrders();
                         renderWorkflow();
                     } else if (myReq.status === "rejected") {
                         clearInterval(cleanTimer);
@@ -3672,6 +3675,7 @@
                         state.step3Status = "rejected";
                         alert("매니저가 청소 사진을 반려했습니다. 다시 청소 후 제출해 주세요.");
                         state.step3Status = "none";
+                        saveProductionOrders();
                         renderWorkflow();
                     }
                 }

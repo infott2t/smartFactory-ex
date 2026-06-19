@@ -1,4 +1,7 @@
 (function() {
+    const localStorage = window.localStorage;
+    let isSaving = false;
+
     // Partitioning helper functions (matching js/auth-guard.js)
     if (!window.getStorageKey) {
         window.getStorageKey = function(key) {
@@ -238,7 +241,7 @@
 
             const getStatusPriority = function(status) {
                 if (status === 'completed') return 2;
-                if (status === 'in_progress') return 1;
+                if (status === 'in_progress' || status === 'assigned' || status === 'task1_ready' || status === 'ready') return 1;
                 return 0; // pending or other
             };
 
@@ -317,6 +320,9 @@
     loadFromStorage();
 
     window.FactoryStore = {
+        isSaving: function() {
+            return isSaving;
+        },
         getState: function() {
             // Return copy to prevent direct mutations
             return {
@@ -507,55 +513,60 @@
             }
 
             if (action.type !== 'SYNC_FROM_STORAGE') {
-                let keysToSave = null;
-                switch (action.type) {
-                    case 'SET_WORKED_HOURS':
-                    case 'SET_UDON_HOURS':
-                    case 'SET_WALLET_HOURS':
-                    case 'INCREMENT_WORKED_HOURS':
-                    case 'UPDATE_WORKER_STATE':
-                        keysToSave = ['workers'];
-                        break;
-                    case 'ADD_RESERVATION':
-                    case 'SET_RESERVATIONS':
-                        keysToSave = ['reservations'];
-                        break;
-                    case 'SET_HISTORY':
-                    case 'ADD_HISTORY_ITEM':
-                        keysToSave = ['history'];
-                        break;
-                    case 'UPDATE_EXPERIENCE_TIME':
-                    case 'DECREMENT_EXPERIENCE_TIME':
-                        keysToSave = ['experience_time'];
-                        break;
-                    case 'SET_CHECK_IN_TIME':
-                        keysToSave = ['workers', 'check_in_time'];
-                        break;
-                    case 'SET_PRODUCTION_ORDERS':
-                    case 'UPDATE_PRODUCTION_ORDER':
-                        keysToSave = ['production_orders'];
-                        break;
-                    case 'SET_ACCUM_BREAK_SECONDS':
-                    case 'SET_BREAK_REMAINING_SECONDS':
-                    case 'SET_IS_ON_BREAK':
-                    case 'SET_HELPER_BONUS':
-                    case 'SET_HELPER_BASE_SALARY':
-                    case 'SET_BREAK_TIME':
-                        keysToSave = ['workers', 'break_times'];
-                        break;
-                    case 'SET_WORKERS_PROGRESS':
-                    case 'UPDATE_WORKER_PROGRESS':
-                        keysToSave = ['workers_progress'];
-                        break;
-                    case 'SET_SHIFT_TIME':
-                    case 'DECREMENT_SHIFT_TIME':
-                        keysToSave = ['shift_timer'];
-                        break;
-                    default:
-                        keysToSave = null; // Save all
+                isSaving = true;
+                try {
+                    let keysToSave = null;
+                    switch (action.type) {
+                        case 'SET_WORKED_HOURS':
+                        case 'SET_UDON_HOURS':
+                        case 'SET_WALLET_HOURS':
+                        case 'INCREMENT_WORKED_HOURS':
+                        case 'UPDATE_WORKER_STATE':
+                            keysToSave = ['workers'];
+                            break;
+                        case 'ADD_RESERVATION':
+                        case 'SET_RESERVATIONS':
+                            keysToSave = ['reservations'];
+                            break;
+                        case 'SET_HISTORY':
+                        case 'ADD_HISTORY_ITEM':
+                            keysToSave = ['history'];
+                            break;
+                        case 'UPDATE_EXPERIENCE_TIME':
+                        case 'DECREMENT_EXPERIENCE_TIME':
+                            keysToSave = ['experience_time'];
+                            break;
+                        case 'SET_CHECK_IN_TIME':
+                            keysToSave = ['workers', 'check_in_time'];
+                            break;
+                        case 'SET_PRODUCTION_ORDERS':
+                        case 'UPDATE_PRODUCTION_ORDER':
+                            keysToSave = ['production_orders'];
+                            break;
+                        case 'SET_ACCUM_BREAK_SECONDS':
+                        case 'SET_BREAK_REMAINING_SECONDS':
+                        case 'SET_IS_ON_BREAK':
+                        case 'SET_HELPER_BONUS':
+                        case 'SET_HELPER_BASE_SALARY':
+                        case 'SET_BREAK_TIME':
+                            keysToSave = ['workers', 'break_times'];
+                            break;
+                        case 'SET_WORKERS_PROGRESS':
+                        case 'UPDATE_WORKER_PROGRESS':
+                            keysToSave = ['workers_progress'];
+                            break;
+                        case 'SET_SHIFT_TIME':
+                        case 'DECREMENT_SHIFT_TIME':
+                            keysToSave = ['shift_timer'];
+                            break;
+                        default:
+                            keysToSave = null; // Save all
+                    }
+                    saveToStorage(keysToSave);
+                    window.dispatchEvent(new Event('storage'));
+                } finally {
+                    isSaving = false;
                 }
-                saveToStorage(keysToSave);
-                window.dispatchEvent(new Event('storage'));
             }
 
             const currentState = JSON.parse(JSON.stringify(state));
@@ -779,6 +790,7 @@
 
     // Cross-tab sync
     window.addEventListener('storage', function(e) {
+        if (isSaving) return;
         if (!e.key) return;
 
         const key = e.key;

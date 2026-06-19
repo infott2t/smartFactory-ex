@@ -2081,6 +2081,10 @@
                 return window.localStorage.getItem(key);
             },
             setItem: function(key, value) {
+                if (!window.FactoryStore || (typeof window.FactoryStore.isSaving === 'function' && window.FactoryStore.isSaving())) {
+                    window.localStorage.setItem(key, value);
+                    return;
+                }
                 if (key === 'kimp_reservations_db') {
                     window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: JSON.parse(value) });
                     return;
