@@ -30,7 +30,10 @@
     <link rel="stylesheet" href="./css/kimp_bot.css?v=1.0.1">
     <link rel="stylesheet" href="./css/bottom2.css">
     <link href="./css/underCover.css" rel="stylesheet" type="text/css">
+    <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/engine.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -90,9 +93,6 @@
                             <i class="bi bi-calendar-check"></i> 예약하기
                         </button>
                     </div>
-                    <button class="btn-try-experience btn-helper-login" id="btn-helper-login" onclick="openHelperModal()">
-                        <i class="bi bi-person-fill-gear"></i> 현장 헬퍼 지원 및 로그인 (김영희)
-                    </button>
                 </div>
 
                 <!-- 생산되는 제품 카드 추가 (Chart 탭 아래) -->
@@ -679,7 +679,7 @@
             if (!container) return;
 
             var db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
-            var userId = getPartitionedItem('kimp_logged_in_user') || 'kimtaeho';
+            var userId = getPartitionedItem('kimp_logged_in_user') || (window.AuthManager && window.AuthManager.getCurrentUser() ? window.AuthManager.getCurrentUser().id : '2');
 
             var html = '';
             var slotInfos = [
@@ -772,12 +772,27 @@
         }
 
         // 보건증 증빙 제출 정보 카드 렌더링
+        function getWorkerProfile() {
+            var profileStr = sessionStorage.getItem('kimp_worker_profile');
+            var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            var fallbackId = sessionUser ? sessionUser.id : '2';
+            var fallbackName = sessionUser ? sessionUser.name : '최수아';
+            var fallbackWorkedHours = sessionUser ? sessionUser.workedHours : 22;
+            
+            return profileStr ? JSON.parse(profileStr) : { 
+                userId: fallbackId, 
+                userName: fallbackName, 
+                healthCertificateImage: null, 
+                healthCertificateStatus: null, 
+                workedHours: fallbackWorkedHours 
+            };
+        }
+
         function renderHealthCertificateStatus() {
             var area = document.getElementById('health-certificate-status-area');
             if (!area) return;
 
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 15 };
+            var profile = getWorkerProfile();
             
             // 기존 보건증 정보 호환성 마이그레이션
             if (profile.healthCertificateImage && !profile.healthCertificateStatus) {
@@ -898,8 +913,7 @@
         function uploadHealthCertificate(input) {
             if (input.files && input.files[0]) {
                 var fileName = input.files[0].name;
-                var profileStr = sessionStorage.getItem('kimp_worker_profile');
-                var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+                var profile = getWorkerProfile();
                 
                 profile.healthCertificateImage = fileName;
                 profile.healthCertificateStatus = 'pending';
@@ -911,8 +925,7 @@
         }
 
         function approveHealthCertificateByAdmin() {
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+            var profile = getWorkerProfile();
             
             if (profile.healthCertificateImage) {
                 profile.healthCertificateStatus = 'approved';
@@ -925,8 +938,7 @@
         }
 
         function removeHealthCertificate() {
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+            var profile = getWorkerProfile();
             
             profile.healthCertificateImage = null;
             profile.healthCertificateStatus = null;
@@ -944,8 +956,7 @@
             var area = document.getElementById('role-selection-area');
             if (!area) return;
 
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 15 };
+            var profile = getWorkerProfile();
             
             var hours = profile.workedHours !== undefined ? profile.workedHours : 15;
 
@@ -1049,8 +1060,7 @@
         }
 
         function setTestWorkedHours(hours) {
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null };
+            var profile = getWorkerProfile();
             profile.workedHours = hours;
             sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
             alert("근무 경력이 " + hours + "시간으로 설정되었습니다.");
@@ -1096,25 +1106,18 @@
             if (typeof window.addAppLog === 'function') {
                 window.addAppLog("김치만들기 가상체험관 진입을 요청했습니다.");
             }
-            var sessionUser = null;
-            try {
-                const userJson = sessionStorage.getItem("user");
-                if (userJson) {
-                    sessionUser = JSON.parse(userJson);
-                }
-            } catch(e) {}
-            var loggedInUser = sessionUser ? sessionUser.email : 'kimtaeho';
+            var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (!sessionUser) {
+                try {
+                    const userJson = sessionStorage.getItem("user");
+                    if (userJson) {
+                        sessionUser = JSON.parse(userJson);
+                    }
+                } catch(e) {}
+            }
+            var loggedInUser = sessionUser ? sessionUser.id : '2';
             setPartitionedItem('kimp_logged_in_user', loggedInUser);
 
-            // 헬퍼인 경우 헬퍼 대시보드로 이동
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            if (profileStr) {
-                var profile = JSON.parse(profileStr);
-                if (profile.workedHours >= 30 && profile.healthCertificateStatus === 'approved') {
-                    window.location.href = "kimp_helper.html?t=" + Date.now();
-                    return;
-                }
-            }
             openExperienceModeModal();
         }
 
@@ -1139,20 +1142,12 @@
             if (typeof window.addAppLog === 'function') {
                 window.addAppLog("현장 헬퍼 자격 검증 승인 및 헬퍼 대시보드에 입장했습니다.");
             }
-            setPartitionedItem('kimp_logged_in_user', 'kimyounghee');
+            setPartitionedItem('kimp_logged_in_user', window.AuthManager && window.AuthManager.getCurrentUser() ? window.AuthManager.getCurrentUser().id : '4');
             window.location.href = "kimp_helper.html";
         }
 
         // 확인해보기 버튼 → 모달 팝업 호출
         function tryExperience() {
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            if (profileStr) {
-                var profile = JSON.parse(profileStr);
-                if (profile.workedHours >= 30 && profile.healthCertificateStatus === 'approved') {
-                    window.location.href = "kimp_helper.html?t=" + Date.now();
-                    return;
-                }
-            }
             openExperienceModeModal();
         }
 
@@ -1168,7 +1163,8 @@
                 var mgrBtnId = 'btn-modal-mgr-exp';
                 var mgrBtn = document.getElementById(mgrBtnId);
                 
-                if (profile && profile.isManagerQualified) {
+                var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                if (profile && profile.isManagerQualified && (!sessionUser || sessionUser.role !== '헬퍼')) {
                     if (!mgrBtn) {
                         var container = document.querySelector('.modal-buttons-container');
                         if (container) {
@@ -1214,7 +1210,12 @@
         function goToWorkExperience() {
             var isCheckinCompleted = getPartitionedItem('kimp_checkin_prep_completed');
             if (isCheckinCompleted === 'true') {
-                window.location.href = "kimp_experience.html?t=" + Date.now();
+                var user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                if (user && user.role === '헬퍼') {
+                    window.location.href = "kimp_helper.html?t=" + Date.now();
+                } else {
+                    window.location.href = "kimp_experience.html?t=" + Date.now();
+                }
             } else {
                 var warning = document.getElementById('sequence-warning-msg');
                 if (warning) {
@@ -1291,13 +1292,7 @@
 
             // 보건증 초기 세팅 및 동적 뷰 렌더링
             if (!sessionStorage.getItem('kimp_worker_profile')) {
-                var defaultProfile = {
-                    userId: "kimtaeho",
-                    userName: "김태호",
-                    healthCertificateImage: null,
-                    healthCertificateStatus: null,
-                    workedHours: 15
-                };
+                var defaultProfile = getWorkerProfile();
                 sessionStorage.setItem('kimp_worker_profile', JSON.stringify(defaultProfile));
             }
 
@@ -1346,8 +1341,7 @@
             if (selectedSlot === null) return;
 
             // 1. 보건증 확인 검사 (파일 업로드 여부 및 심사 완료 여부)
-            var profileStr = sessionStorage.getItem('kimp_worker_profile');
-            var profile = profileStr ? JSON.parse(profileStr) : { userId: 'kimtaeho', userName: '김태호', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 15 };
+            var profile = getWorkerProfile();
 
             if (!profile.healthCertificateImage || profile.healthCertificateStatus !== 'approved') {
                 alert("보건증을 만드셨나요? 음식조리에는 보건증이 필요합니다. 만드시고 예약부탁드림니다.");

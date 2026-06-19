@@ -26,7 +26,10 @@
     <title>김치만들기 - 헬퍼 대시보드</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/engine.js" type="text/javascript"></script>
     <style>
         :root {
             --bg-color: #0b0b16;
@@ -253,6 +256,39 @@
             color: var(--neon-green);
             font-variant-numeric: tabular-nums;
         }
+
+        /* ── Overall Progress 카드 ── */
+        .overall-progress-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background-color: #1a1a33;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7b5cf5, var(--neon-green));
+            border-radius: 3px;
+            transition: width 1s linear;
+        }
     </style>
 </head>
 <body>
@@ -271,18 +307,52 @@
         </div>
 
         <!-- ── 급여 요약 카드 ── -->
-        <div class="salary-row">
-            <div class="salary-card">
-                <span class="salary-label">헬퍼 기본 급여</span>
-                <span class="salary-value" id="helper-base-salary-display">0<span>KRW</span></span>
+        <div class="salary-row" style="grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px;">
+            <div class="salary-card" style="padding: 12px 8px; text-align: center;">
+                <span class="salary-label" style="font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">현재 시간당 급여량</span>
+                <span class="salary-value" style="font-size: 15px; font-weight: bold; white-space: nowrap;">12,384<span style="font-size: 9px;">KRW/h</span></span>
             </div>
-            <div class="salary-card">
-                <span class="salary-label">누적 헬퍼 보너스</span>
-                <span class="salary-value" id="helper-bonus-display" style="color: var(--neon-green);">0<span>KRW</span></span>
+            <div class="salary-card" style="padding: 12px 8px; text-align: center;">
+                <span class="salary-label" style="font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">급여 배수 최저임금대비</span>
+                <span class="salary-value" style="font-size: 15px; font-weight: bold; white-space: nowrap;">1.2배</span>
             </div>
-            <div class="salary-card" style="grid-column: span 2; border-color: var(--neon-green);">
-                <span class="salary-label" style="color: var(--neon-green);">실시간 헬퍼 총급여 (기본+보너스)</span>
-                <span class="salary-value" id="helper-total-salary-display" style="font-size: 24px;">0<span>KRW</span></span>
+            <div class="salary-card" style="padding: 12px 8px; border-color: var(--neon-green); text-align: center;">
+                <span class="salary-label" style="font-size: 9px; color: var(--neon-green); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">누적 헬퍼 보너스</span>
+                <span class="salary-value" id="helper-bonus-display" style="font-size: 15px; font-weight: bold; color: var(--neon-green); white-space: nowrap;">0<span style="font-size: 9px; color: var(--text-sub);">KRW</span></span>
+            </div>
+        </div>
+
+        <!-- 사용자 정보 배너 -->
+        <div id="user-info-banner" style="background-color: rgba(123, 92, 245, 0.1); border: 1px solid rgba(123, 92, 245, 0.2); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span><i class="bi bi-person-fill"></i> 로그인 사용자: <strong id="logged-in-user-name" style="color: var(--neon-blue);">--- (헬퍼)</strong></span>
+            </div>
+            <div style="border-top: 1px solid rgba(123, 92, 245, 0.15); padding-top: 6px; display: flex; align-items: center; gap: 6px; width: 100%;">
+                <i class="bi bi-clock-fill" style="color: var(--neon-green);"></i>
+                <span>출근 등록 시간: <strong id="logged-in-checkin-time" style="color: var(--neon-green);">--:--:--</strong></span>
+            </div>
+        </div>
+
+        <!-- ── Overall Progress 카드 ── -->
+        <div class="overall-progress-card">
+            <div class="progress-info">
+                <span>Overall Progress</span>
+                <span id="progress-pct-label">3%</span>
+            </div>
+            <div class="progress-bar-bg" style="margin-bottom: 12px;">
+                <div class="progress-bar-fill" id="overall-progress-bar" style="width: 3%;"></div>
+            </div>
+            <!-- 추가된 급여 및 쉰 시간 정보 영역 -->
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 10px; color: var(--text-sub);">총 쉰 시간 (급여 제외)</span>
+                    <span style="font-size: 14px; font-weight: 700; color: #ff6b6b;" id="total-break-time-display">00분 00초</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
+                    <span style="font-size: 10px; color: var(--text-sub);" id="accum-salary-label">현재 누적급여</span>
+                    <span id="helper-bonus-text-experience" style="display: none; font-size: 10px; color: var(--neon-green); margin-bottom: 2px; font-weight: bold;"></span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--neon-green);" id="accum-salary-display">0 KRW</span>
+                </div>
             </div>
         </div>
 
@@ -294,7 +364,7 @@
             </div>
             <div class="header-meta">
                 <i class="bi bi-star-fill"></i>
-                <strong>김영희 헬퍼</strong>
+                <strong id="header-helper-name">헬퍼</strong>
             </div>
         </header>
 
@@ -336,6 +406,14 @@
     </div>
 
     <script>
+        // 현재 로그인 헬퍼 사용자 정보 초기화
+        var _helperSessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+        if (!_helperSessionUser) {
+            try { _helperSessionUser = JSON.parse(sessionStorage.getItem('user')); } catch(e) {}
+        }
+        var currentUserName = _helperSessionUser ? (_helperSessionUser.name || '헬퍼') : '헬퍼';
+        var currentUserId = _helperSessionUser ? (_helperSessionUser.id || _helperSessionUser.email || 'guest') : 'guest';
+
         // 전역 시계 관리 (localStorage로부터 싱크)
         var clockHour = 15;
         var clockMinute = 4;
@@ -364,20 +442,77 @@
             document.getElementById('current-clock').textContent = 
                 '·' + String(clockHour).padStart(2, '0') + ':' + 
                 String(clockMinute).padStart(2, '0');
+
+            // Overall Progress 업데이트
+            var totalSeconds = 7200;
+            var elapsedSeconds = totalSeconds - remainingSeconds;
+            var pct = Math.round((elapsedSeconds / totalSeconds) * 100);
+            if (pct > 100) pct = 100;
+            if (pct < 0) pct = 0;
+
+            var pctLabel = document.getElementById('progress-pct-label');
+            var barFill = document.getElementById('overall-progress-bar');
+            if (pctLabel) pctLabel.textContent = pct + '%';
+            if (barFill) barFill.style.width = pct + '%';
         }
 
         // 급여 연동
         function syncSalary() {
-            var base = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
+            // 출근 시간(kimp_check_in_time)부터 현재까지의 실제 경과 시간 계산하여 base_salary 갱신
+            var checkInTimeStr = getPartitionedItem('kimp_check_in_time');
+            var elapsedSinceCheckIn = 0;
+            if (checkInTimeStr && checkInTimeStr !== '-') {
+                var parts = checkInTimeStr.split(':');
+                if (parts.length >= 2) {
+                    var ciH = parseInt(parts[0]) || 0;
+                    var ciM = parseInt(parts[1]) || 0;
+                    var ciS = parts.length > 2 ? (parseInt(parts[2]) || 0) : 0;
+                    var checkInSecs = ciH * 3600 + ciM * 60 + ciS;
+                    var now = new Date();
+                    var nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                    var diff = nowSecs - checkInSecs;
+                    if (diff < 0) diff += 86400;
+                    elapsedSinceCheckIn = diff;
+                }
+            }
+            var base = Math.floor(elapsedSinceCheckIn * (12384 / 3600));
+            if (window.SimulationEngine && window.SimulationEngine.isMaster()) {
+                setPartitionedItem('kimp_helper_base_salary', base);
+            }
+
             var bonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
             var total = base + bonus;
 
-            document.getElementById('helper-base-salary-display').innerHTML = base.toLocaleString() + '<span>KRW</span>';
-            document.getElementById('helper-bonus-display').innerHTML = bonus.toLocaleString() + '<span>KRW</span>';
-            document.getElementById('helper-total-salary-display').innerHTML = total.toLocaleString() + '<span>KRW</span>';
+            var baseEl = document.getElementById('helper-base-salary-display');
+            var bonusEl = document.getElementById('helper-bonus-display');
+            var totalEl = document.getElementById('helper-total-salary-display');
+            if (baseEl) baseEl.innerHTML = base.toLocaleString() + '<span>KRW</span>';
+            if (bonusEl) bonusEl.innerHTML = bonus.toLocaleString() + '<span>KRW</span>';
+            if (totalEl) totalEl.innerHTML = total.toLocaleString() + '<span>KRW</span>';
 
-            // 김영희 총급여 다시 동기화
-            setPartitionedItem('kimp_salary_kimyounghee', total);
+            // 헬퍼 총급여 동기화 (현재 로그인 사용자 기반)
+            if (window.SimulationEngine && window.SimulationEngine.isMaster()) {
+                setPartitionedItem('kimp_salary', total);
+            }
+
+            // Overall Progress 카드의 필드 업데이트
+            var accumSalaryDisplay = document.getElementById('accum-salary-display');
+            if (accumSalaryDisplay) {
+                accumSalaryDisplay.textContent = total.toLocaleString() + ' KRW';
+            }
+            var bonusTextEl = document.getElementById('helper-bonus-text-experience');
+            if (bonusTextEl) {
+                bonusTextEl.style.display = 'block';
+                bonusTextEl.textContent = '보너스 +' + bonus.toLocaleString() + ' KRW';
+            }
+
+            var accumBreakSeconds = parseInt(getPartitionedItem('kimp_accum_break_seconds') || '0');
+            var breakMin = Math.floor(accumBreakSeconds / 60);
+            var breakSec = accumBreakSeconds % 60;
+            var breakDisplay = document.getElementById('total-break-time-display');
+            if (breakDisplay) {
+                breakDisplay.textContent = String(breakMin).padStart(2, '0') + "분 " + String(breakSec).padStart(2, '0') + "초";
+            }
         }
 
         function addTimelineLog(text) {
@@ -526,10 +661,11 @@
                             updateDashboard();
                             return;
                         }
-                        // 카운트업: advisingTime 증가
-                        rq.advisingTime = (rq.advisingTime || 0) + 1;
-                        setPartitionedItem('kimp_help_request', JSON.stringify(rq));
-                        window.dispatchEvent(new Event('storage'));
+                        // 카운트업: advisingTime is dynamically updated by SimulationEngine in engine.js
+                        var fresh = getPartitionedItem('kimp_help_request');
+                        if (fresh) {
+                            rq = JSON.parse(fresh);
+                        }
                         
                         // UI 직접 갱신
                         var min_u = Math.floor(rq.advisingTime / 60);
@@ -586,7 +722,7 @@
             setPartitionedItem('kimp_help_request', JSON.stringify(req));
             
             // 타임라인 로그 기록
-            addTimelineLog("김영희 헬퍼님이 " + req.requester + "님의 Stage " + req.stage + " 도움 지원을 위해 이동 중입니다.");
+            addTimelineLog(currentUserName + " 헬퍼님이 " + req.requester + "님의 Stage " + req.stage + " 도움 지원을 위해 이동 중입니다.");
             
             updateDashboard();
             window.dispatchEvent(new Event('storage'));
@@ -600,7 +736,7 @@
             req.status = "waiting_helper"; // 헬퍼가 곧 가겠다는 대기 상태
             setPartitionedItem('kimp_help_request', JSON.stringify(req));
             
-            addTimelineLog("김영희 헬퍼님이 " + req.requester + "님에게 잠시 기다려달라고 전달했습니다.");
+            addTimelineLog(currentUserName + " 헬퍼님이 " + req.requester + "님에게 잠시 기다려달라고 전달했습니다.");
             
             updateDashboard();
             window.dispatchEvent(new Event('storage'));
@@ -615,7 +751,7 @@
             req.advisingTime = 0; // 카운트업 시작
             setPartitionedItem('kimp_help_request', JSON.stringify(req));
             
-            addTimelineLog("김영희 헬퍼님이 " + req.requester + "님의 Stage " + req.stage + " 현장에 도착하여 도움을 시작했습니다.");
+            addTimelineLog(currentUserName + " 헬퍼님이 " + req.requester + "님의 Stage " + req.stage + " 현장에 도착하여 도움을 시작했습니다.");
             
             updateDashboard();
             window.dispatchEvent(new Event('storage'));
@@ -642,7 +778,7 @@
             setPartitionedItem('kimp_helper_bonus', bonus);
             
             // 타임라인 로그 기록
-            addTimelineLog("김영희 헬퍼님이 도움을 조기 완료했습니다. (도움 완료하여 500원의 보너스를 받았습니다.)");
+            addTimelineLog(currentUserName + " 헬퍼님이 도움을 조기 완료했습니다. (도움 완료하여 500원의 보너스를 받았습니다.)");
             
             syncSalary();
             updateDashboard();
@@ -657,7 +793,13 @@
         }
 
         function enterTaskWork() {
-            setPartitionedItem('kimp_logged_in_user', 'kimyounghee');
+            // 헬퍼가 체험장으로 이동 시 현재 사용자 ID 사용 (하드코딩 금지)
+            var helperUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (!helperUser) {
+                try { helperUser = JSON.parse(sessionStorage.getItem('user')); } catch(e) {}
+            }
+            var helperId = helperUser ? (helperUser.id || helperUser.email || 'guest') : 'guest';
+            setPartitionedItem('kimp_logged_in_user', helperId);
             window.location.href = "kimp_experience.html?t=" + Date.now();
         }
 
@@ -686,7 +828,7 @@
                 progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
             } catch(e) {}
             
-            const helperId = "local-helper-kim";
+            const helperId = window.AuthManager && window.AuthManager.getCurrentUser() ? window.AuthManager.getCurrentUser().id : "4";
             
             // 아직 출근 전이거나 checkInTime이 null인 경우에만 갱신
             if (progressMap[helperId] && !progressMap[helperId].checkInTime) {
@@ -716,10 +858,34 @@
         syncSalary();
         updateDashboard();
 
-        // 1초 주기로 클락 재동기화
+        // 사용자 정보 배너 업데이트
+        (function() {
+            var userBadge = document.getElementById('logged-in-user-name');
+            if (userBadge) {
+                const currentHelperName = _helperSessionUser ? (_helperSessionUser.name || '헬퍼') : '헬퍼';
+                userBadge.textContent = currentHelperName + ' (헬퍼)';
+                var headerName = document.getElementById('header-helper-name');
+                if (headerName) headerName.textContent = currentHelperName + ' 헬퍼';
+            }
+
+            var checkinBadge = document.getElementById('logged-in-checkin-time');
+            if (checkinBadge) {
+                var savedTime = getPartitionedItem('kimp_check_in_time');
+                if (savedTime) {
+                    checkinBadge.textContent = savedTime;
+                } else {
+                    checkinBadge.textContent = '15:00:15';
+                }
+            }
+        })();
+
+        // 1초 주기로 클락 재동기화 및 UI 갱신
         setInterval(function() {
             syncClock();
             syncSalary();
+            if (typeof updateDashboard === 'function') {
+                updateDashboard();
+            }
         }, 1000);
     </script>
 </body>

@@ -29,7 +29,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/store.js?v=20260619_2313" type="text/javascript"></script>
+    <script src="./js/engine.js" type="text/javascript"></script>
     <script src="./js/simulator.js" type="text/javascript"></script>
     
     <style>
@@ -1434,6 +1437,7 @@
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
                     <span style="font-size: 10px; color: var(--text-sub);" id="accum-salary-label">현재 누적급여</span>
+                    <span id="helper-bonus-text-experience" style="display: none; font-size: 10px; color: var(--neon-green); margin-bottom: 2px; font-weight: bold;"></span>
                     <span style="font-size: 14px; font-weight: 700; color: var(--neon-green);" id="accum-salary-display">0 KRW</span>
                 </div>
             </div>
@@ -1750,21 +1754,22 @@
 
     <script>
         // 로그인한 사용자 감지
-        var sessionUser = null;
-        try {
-            const userJson = sessionStorage.getItem("user");
-            if (userJson) {
-                sessionUser = JSON.parse(userJson);
-            }
-        } catch(e) {}
-
-        var currentUser = 'kimtaeho';
-        var currentUserName = '김태호';
-        if (sessionUser) {
-            currentUser = sessionUser.email;
-            currentUserName = sessionUser.name;
+        // 현재 로그인 사용자 로드 (AuthManager 우선 사용)
+        var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+        if (!sessionUser) {
+            try {
+                const userJson = sessionStorage.getItem("user");
+                if (userJson) sessionUser = JSON.parse(userJson);
+            } catch(e) {}
         }
-        setPartitionedItem('kimp_logged_in_user', currentUser);
+
+        // 항상 role을 통해 헬퍼 여부 판단 - 이름/ID 하드코딩 금지
+        var isHelperUser = sessionUser && sessionUser.role === '헬퍼';
+        var currentUserId = sessionUser ? (sessionUser.id || sessionUser.email || 'guest') : 'guest';
+        var currentUserName = sessionUser ? (sessionUser.name || '손님') : '손님';
+        // 레거시 호환: currentUser 변수 유지
+        var currentUser = currentUserId;
+        setPartitionedItem('kimp_logged_in_user', currentUserId);
 
         // ── 1. 시간 타이머 및 남은 시간 기반 Overall Progress 100% 처리 ──
         var totalSeconds = 7200; // 2시간 (7200초)
@@ -1855,133 +1860,76 @@
 
         var secondCounter = parseInt(getPartitionedItem('kimp_second_counter') || '0');
         setInterval(function() {
-            var now = new Date();
-            clockHour = now.getHours();
-            clockMinute = now.getMinutes();
-            secondCounter = now.getSeconds();
-            
-            remainingSeconds = getShiftTimeRemaining();
 
-            // 로컬스토리지에 실시간 시간 저장
-            setPartitionedItem('kimp_remaining_seconds', remainingSeconds);
-            setPartitionedItem('kimp_clock_hour', clockHour);
-            setPartitionedItem('kimp_clock_minute', clockMinute);
-            setPartitionedItem('kimp_second_counter', secondCounter);
-            setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
-            setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
-            setPartitionedItem('kimp_is_on_break', isOnBreak);
-
-            if (remainingSeconds > 0) {
-                if (isOnBreak) {
-                    breakRemainingSeconds--;
-                    accumBreakSeconds++;
-                    updateBreakButtonText();
-                    // 휴식 기록 UI 실시간 갱신
-                    if (activeStageNum !== null) {
-                        var bm = getStageState(activeStageNum);
-                        if (bm.breakStartTime) {
-                            var breakHistoryContainer = document.getElementById('work-break-history');
-                            if (breakHistoryContainer) {
-                                var bhHtml = '';
-                                if (bm.breakHistory) {
-                                    for (var bhi = 0; bhi < bm.breakHistory.length; bhi++) {
-                                        var br = bm.breakHistory[bhi];
-                                        var brText = br.duration >= 60 
-                                            ? Math.floor(br.duration / 60) + '분 ' + (br.duration % 60) + '초'
-                                            : br.duration + '초';
-                                        bhHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + br.startTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + brText + '간 휴식</div>';
-                                    }
-                                }
-                                var curElapsed = (bm.currentBreakStartRemaining !== undefined && bm.currentBreakStartRemaining !== null)
-                                    ? (bm.currentBreakStartRemaining - breakRemainingSeconds)
-                                    : (1800 - breakRemainingSeconds);
-                                var ceText = curElapsed >= 60 
-                                    ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
-                                    : curElapsed + '초';
-                                bhHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + bm.breakStartTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + ceText + ' 휴식중...</div>';
-                                breakHistoryContainer.innerHTML = bhHtml;
-                            }
-                        }
-                    }
+            // Sync helper support timer UI if advising
+            var helperReqStr = getPartitionedItem('kimp_help_request');
+            if (helperReqStr) {
+                var helperReq = JSON.parse(helperReqStr);
+                if (helperReq.status === "waiting_helper" || helperReq.status === "accepted" || helperReq.status === "requested" || helperReq.status === "advising") {
+                    syncHelpRequest();
+                    renderTaskCards();
                 }
-                
-                updateClocks();
-                updateSalaryAndBreakTime();
-
-                // 활성 스테이지의 진행중인 세션 시간 증가 및 경과시간 표시
-                if (activeStageNum !== null) {
-                    var curStageState = getStageState(activeStageNum);
-                    if (curStageState.step1Done && !curStageState.statusSubmitted) {
-                        if (curStageState.sessions && curStageState.sessions.length > 0) {
-                            var lastSession = curStageState.sessions[curStageState.sessions.length - 1];
-                            if (!lastSession.endTime) {
-                                lastSession.duration++;
-                            }
-                        }
-                        // 총 경과 시간 계산 및 표시
-                        var totalElapsed = 0;
-                        if (curStageState.sessions) {
-                            for (var si = 0; si < curStageState.sessions.length; si++) {
-                                totalElapsed += (curStageState.sessions[si].duration || 0);
-                            }
-                        }
-                        var elH = Math.floor(totalElapsed / 3600);
-                        var elM = Math.floor((totalElapsed % 3600) / 60);
-                        var elS = totalElapsed % 60;
-                        var elapsedEl = document.getElementById('work-elapsed-time');
-                        if (elapsedEl) {
-                            elapsedEl.textContent = String(elH).padStart(2, '0') + ':' + String(elM).padStart(2, '0') + ':' + String(elS).padStart(2, '0');
-                        }
-                    }
-                }
-
-                // 만약 생산지시서 상세 오버레이 팝업이 열려있으면 테이블 행 실시간 업데이트
-                var overlay = document.getElementById('order-sheet-overlay');
-                if (overlay && overlay.style.display === "flex") {
-                    updateOrderSheetOverlayRows(overlay.getAttribute('data-order-id'));
-                }
-                
-                // 생산지시서 상태 실시간 세션 저장
-                saveProductionOrders();
-                
-                // 근로자 실시간 진행 상태 매니저 대시보드 동기화
-                syncWorkerProgress();
             }
 
-            // 체험 3분 최소 제한 타이머 감소 (전체 실습 시간과 무관하게 독립적으로 작동)
-            if (experienceRemainingSeconds > 0) {
-                experienceRemainingSeconds--;
-                setPartitionedItem('kimp_experience_remaining_seconds', experienceRemainingSeconds);
-                updateCompleteButtonText();
-            } else {
-                updateCompleteButtonText();
-            }
+            // Trigger UI updates
+            updateClocks();
+            updateSalaryAndBreakTime();
+            updateCompleteButtonText();
 
-                // 헬퍼 도움 지원 실시간 타이머 처리 및 자동완료, 헬퍼 도착 카운트다운 처리
-                var helperReqStr = getPartitionedItem('kimp_help_request');
-                if (helperReqStr) {
-                    var helperReq = JSON.parse(helperReqStr);
-                    if (helperReq.status === "requested") {
-                        var arrivalSec = helperReq.arrivalCountdown !== undefined ? helperReq.arrivalCountdown : 10;
-                        if (arrivalSec > 0) {
-                            helperReq.arrivalCountdown = arrivalSec - 1;
-                            setPartitionedItem('kimp_help_request', JSON.stringify(helperReq));
-                            syncHelpRequest();
-                            renderTaskCards();
+            // Sync breakdown history UI locally if on break
+            if (isOnBreak && activeStageNum !== null) {
+                updateBreakButtonText();
+                var bm = getStageState(activeStageNum);
+                if (bm.breakStartTime) {
+                    var breakHistoryContainer = document.getElementById('work-break-history');
+                    if (breakHistoryContainer) {
+                        var bhHtml = '';
+                        if (bm.breakHistory) {
+                            for (var bhi = 0; bhi < bm.breakHistory.length; bhi++) {
+                                var br = bm.breakHistory[bhi];
+                                var brText = br.duration >= 60 
+                                    ? Math.floor(br.duration / 60) + '분 ' + (br.duration % 60) + '초'
+                                    : br.duration + '초';
+                                bhHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + br.startTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + brText + '간 휴식</div>';
+                            }
                         }
-                    } else if (helperReq.status === "advising") {
-                        if (helperReq.advisingTime === undefined) {
-                            helperReq.advisingTime = 0;
-                        }
-                        helperReq.advisingTime++;
-                        setPartitionedItem('kimp_help_request', JSON.stringify(helperReq));
-                        syncHelpRequest();
-                        renderTaskCards();
-                    } else if (helperReq.status === "waiting_helper" || helperReq.status === "accepted") {
-                        // 헬퍼가 상태를 바꾸면 즉시 반영되도록 주기적으로 싱크
-                        syncHelpRequest();
+                        var curElapsed = (bm.currentBreakStartRemaining !== undefined && bm.currentBreakStartRemaining !== null)
+                            ? (bm.currentBreakStartRemaining - breakRemainingSeconds)
+                            : (1800 - breakRemainingSeconds);
+                        var ceText = curElapsed >= 60 
+                            ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
+                            : curElapsed + '초';
+                        bhHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + bm.breakStartTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + ceText + ' 휴식중...</div>';
+                        breakHistoryContainer.innerHTML = bhHtml;
                     }
                 }
+            }
+
+            // Sync active session duration display
+            if (activeStageNum !== null) {
+                var curStageState = getStageState(activeStageNum);
+                if (curStageState.step1Done && !curStageState.statusSubmitted) {
+                    var totalElapsed = 0;
+                    if (curStageState.sessions) {
+                        for (var si = 0; si < curStageState.sessions.length; si++) {
+                            totalElapsed += (curStageState.sessions[si].duration || 0);
+                        }
+                    }
+                    var elH = Math.floor(totalElapsed / 3600);
+                    var elM = Math.floor((totalElapsed % 3600) / 60);
+                    var elS = totalElapsed % 60;
+                    var elapsedEl = document.getElementById('work-elapsed-time');
+                    if (elapsedEl) {
+                        elapsedEl.textContent = String(elH).padStart(2, '0') + ':' + String(elM).padStart(2, '0') + ':' + String(elS).padStart(2, '0');
+                    }
+                }
+            }
+
+            // Live refresh overlay details if open
+            var overlay = document.getElementById('order-sheet-overlay');
+            if (overlay && overlay.style.display === "flex") {
+                updateOrderSheetOverlayRows(overlay.getAttribute('data-order-id'));
+            }
         }, 1000);
 
         updateClocks();
@@ -2427,15 +2375,29 @@
             }
         };
 
+        function parseProductionOrders(stored) {
+            if (!stored || stored === "{}" || stored === "[]") return {};
+            try {
+                var parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    var obj = {};
+                    parsed.forEach(function(o) {
+                        if (o && o.orderId) obj[o.orderId] = o;
+                    });
+                    return obj;
+                }
+                return parsed || {};
+            } catch(e) {
+                return {};
+            }
+        }
+
         var productionOrders = {};
         try {
-            var storedOrders = getPartitionedItem('kimp_production_orders');
-            if (storedOrders && storedOrders !== "{}" && storedOrders !== "[]") {
-                productionOrders = JSON.parse(storedOrders);
-            } else {
-                productionOrders = defaultProductionOrders;
-                setPartitionedItem('kimp_production_orders', JSON.stringify(productionOrders));
-            }
+            var storedOrders = localStorage.getItem('kimp_production_orders');
+            var parsed = parseProductionOrders(storedOrders);
+            productionOrders = { ...defaultProductionOrders, ...parsed };
+            localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
 
             // DB Cleanup: Delete 260530-5-10~12 and ensure 260530-5-9 & 260612-5-1 are Stage 1 completed
             var dbChanged = false;
@@ -2520,7 +2482,7 @@
             }
 
             if (dbChanged) {
-                setPartitionedItem('kimp_production_orders', JSON.stringify(productionOrders));
+                localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
             }
         } catch(e) {
             productionOrders = defaultProductionOrders;
@@ -2529,27 +2491,43 @@
         function saveProductionOrders() {
             var currentOrders = {};
             try {
-                var storedOrders = getPartitionedItem('kimp_production_orders');
-                if (storedOrders && storedOrders !== "{}" && storedOrders !== "[]") {
-                    currentOrders = JSON.parse(storedOrders);
-                } else {
-                    currentOrders = defaultProductionOrders;
-                }
+                var storedOrders = localStorage.getItem('kimp_production_orders');
+                var parsed = parseProductionOrders(storedOrders);
+                currentOrders = { ...defaultProductionOrders, ...parsed };
             } catch(e) {
                 currentOrders = defaultProductionOrders;
             }
 
+            // Status progress priority helper
+            var getStatusPriority = function(status) {
+                if (status === 'completed') return 2;
+                if (status === 'in_progress') return 1;
+                return 0; // pending or other
+            };
+
             // Merge status, currentTask and progressStatus from local productionOrders
             for (var key in productionOrders) {
                 if (currentOrders[key]) {
-                    if (productionOrders[key].status) {
+                    var localPriority = getStatusPriority(productionOrders[key].status);
+                    var storagePriority = getStatusPriority(currentOrders[key].status);
+                    
+                    if (localPriority > storagePriority) {
                         currentOrders[key].status = productionOrders[key].status;
-                    }
-                    if (productionOrders[key].currentTask !== undefined) {
-                        currentOrders[key].currentTask = productionOrders[key].currentTask;
-                    }
-                    if (productionOrders[key].progressStatus) {
-                        currentOrders[key].progressStatus = productionOrders[key].progressStatus;
+                        if (productionOrders[key].currentTask !== undefined) {
+                            currentOrders[key].currentTask = productionOrders[key].currentTask;
+                        }
+                        if (productionOrders[key].progressStatus) {
+                            currentOrders[key].progressStatus = productionOrders[key].progressStatus;
+                        }
+                    } else {
+                        // Keep storage state and sync it back to local productionOrders
+                        productionOrders[key].status = currentOrders[key].status;
+                        if (currentOrders[key].currentTask !== undefined) {
+                            productionOrders[key].currentTask = currentOrders[key].currentTask;
+                        }
+                        if (currentOrders[key].progressStatus) {
+                            productionOrders[key].progressStatus = currentOrders[key].progressStatus;
+                        }
                     }
                 } else {
                     currentOrders[key] = productionOrders[key];
@@ -2578,7 +2556,7 @@
             }
 
             productionOrders = currentOrders;
-            setPartitionedItem('kimp_production_orders', JSON.stringify(productionOrders));
+            localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
         }
 
         // 로컬스토리지 기반으로 완료된 지시서 목록(completedOrders) 복구
@@ -3142,7 +3120,7 @@
             // 페이지 로드/새로고침 시 step5가 pending이면 승인 체크 폴링 재시작
             if (state.step5Status === "pending" && !window._completionPollingActive) {
                 window._completionPollingActive = true;
-                var userId = sessionStorage.getItem("user-id") || "guest";
+                var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
                 var capturedStage = activeStageNum;
                 var capturedState = state;
                 var capturedModel = m;
@@ -3290,10 +3268,9 @@
 
         function syncActiveOrders() {
             try {
-                var storedOrders = getPartitionedItem('kimp_production_orders');
-                if (storedOrders && storedOrders !== "{}" && storedOrders !== "[]") {
-                    productionOrders = JSON.parse(storedOrders);
-                }
+                var storedOrders = localStorage.getItem('kimp_production_orders');
+                var parsed = parseProductionOrders(storedOrders);
+                productionOrders = { ...defaultProductionOrders, ...parsed };
             } catch(e) {}
             syncCompletedOrdersFromProductionOrders();
             
@@ -3331,37 +3308,45 @@
 
         function findActiveProductionOrder() {
             try {
-                var storedOrders = getPartitionedItem('kimp_production_orders');
-                if (storedOrders && storedOrders !== "{}" && storedOrders !== "[]") {
-                    productionOrders = JSON.parse(storedOrders);
-                }
-            } catch(e) {}
+                var storedOrders = localStorage.getItem('kimp_production_orders');
+                console.log("[DEBUG-QR] storedOrders from localStorage:", storedOrders);
+                var parsed = parseProductionOrders(storedOrders);
+                console.log("[DEBUG-QR] parsed orders:", JSON.stringify(parsed));
+                productionOrders = { ...defaultProductionOrders, ...parsed };
+                console.log("[DEBUG-QR] merged productionOrders keys:", Object.keys(productionOrders));
+            } catch(e) {
+                console.error("[DEBUG-QR] Failed to parse/merge production orders:", e);
+            }
             syncCompletedOrdersFromProductionOrders();
 
             var defaultIds = ["260530-5-8", "260530-5-5", "260530-5-3", "260530-5-2", "260530-5-1"];
             for (var key in productionOrders) {
                 if (defaultIds.indexOf(key) === -1) {
                     var o = productionOrders[key];
+                    console.log("[DEBUG-QR] Checking order key:", key, "status:", o ? o.status : "null", "stages:", o ? JSON.stringify(o.stages) : "null");
                     if (o && o.status === "in_progress") {
                         var isStage1Done = o.stages && o.stages[1] && o.stages[1].statusSubmitted;
+                        console.log("[DEBUG-QR] -> isStage1Done:", isStage1Done);
                         if (!isStage1Done) {
                             var completedByCur = stagesModel[1].completedOrders || [];
+                            console.log("[DEBUG-QR] -> completedByCur:", completedByCur);
                             if (completedByCur.indexOf(key) === -1) {
+                                console.log("[DEBUG-QR] -> MATCHED and returning order:", key);
                                 return o;
                             }
                         }
                     }
                 }
             }
+            console.log("[DEBUG-QR] No active orders matched for Stage 1. Returning null.");
             return null;
         }
 
         function getAvailableOrderForStage(stageNum) {
             try {
-                var storedOrders = getPartitionedItem('kimp_production_orders');
-                if (storedOrders && storedOrders !== "{}" && storedOrders !== "[]") {
-                    productionOrders = JSON.parse(storedOrders);
-                }
+                var storedOrders = localStorage.getItem('kimp_production_orders');
+                var parsed = parseProductionOrders(storedOrders);
+                productionOrders = { ...defaultProductionOrders, ...parsed };
             } catch(e) {}
             syncCompletedOrdersFromProductionOrders();
 
@@ -3420,18 +3405,14 @@
             } else if (activeStageNum === 1) {
                 var activeOrder = findActiveProductionOrder();
                 if (!activeOrder) {
-                    alert("생산지시서를 기다려주세요. 또는 시간이 걸릴수 있으니, 다른 Task작업을 해보세요.");
-                    
-                    // Add order_required request to kimp_approval_requests
+                    // Add order_required request to kimp_approval_requests BEFORE showing the alert to avoid thread blocking
                     var requests = [];
                     try {
                         requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
                     } catch(e) {}
                     
-                    var userId = sessionStorage.getItem("user-id") || "guest";
-                    var userJson = sessionStorage.getItem("user");
-                    var userName = "최수아";
-                    try { userName = JSON.parse(userJson).name || "최수아"; } catch(e) {}
+                    var userId = currentUserId;
+                    var userName = currentUserName;
                     
                     var exists = false;
                     for (var i = 0; i < requests.length; i++) {
@@ -3454,6 +3435,8 @@
                         });
                         localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
                     }
+                    
+                    alert("생산지시서를 기다려주세요. 또는 시간이 걸릴수 있으니, 다른 Task작업을 해보세요.");
                     return;
                 } else {
                     // Set the order ID dynamically to the newly registered order!
@@ -3492,7 +3475,7 @@
             ];
             
             // 타임라인 로그 기록
-            addTimelineLog("김태호님이 Stage " + activeStageNum + "공정, 생산지시서 " + m.order + "의 작업을 시작했습니다.");
+            addTimelineLog(currentUserName + "님이 Stage " + activeStageNum + "공정, 생산지시서 " + m.order + "의 작업을 시작했습니다.");
             
             renderWorkflow();
         }
@@ -3558,10 +3541,14 @@
             renderWorkflow();
             
             // 매니저에게 불량 감액 사진 심사 요청 등록
-            var userId = sessionStorage.getItem("user-id") || "guest";
-            var userJson = sessionStorage.getItem("user");
+            var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+            var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
             var userName = "손님";
-            try { userName = JSON.parse(userJson).name || "손님"; } catch(e) {}
+            if (sessionUser) {
+                userName = sessionUser.name;
+            } else {
+                try { userName = JSON.parse(sessionStorage.getItem("user")).name || "손님"; } catch(e) {}
+            }
             
             var reqId = userId + "_defect_" + activeStageNum + "_" + Date.now();
             var approvalReq = {
@@ -3639,10 +3626,14 @@
             renderWorkflow();
             
             // 매니저에게 청소 사진 심사 요청 등록
-            var userId = sessionStorage.getItem("user-id") || "guest";
-            var userJson = sessionStorage.getItem("user");
+            var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+            var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
             var userName = "손님";
-            try { userName = JSON.parse(userJson).name || "손님"; } catch(e) {}
+            if (sessionUser) {
+                userName = sessionUser.name;
+            } else {
+                try { userName = JSON.parse(sessionStorage.getItem("user")).name || "손님"; } catch(e) {}
+            }
             
             var reqId = userId + "_cleaning_" + activeStageNum + "_" + Date.now();
             var approvalReq = {
@@ -3808,10 +3799,14 @@
             saveProductionOrders();
             renderWorkflow();
             
-            var userId = sessionStorage.getItem("user-id") || "guest";
-            var userJson = sessionStorage.getItem("user");
+            var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+            var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
             var userName = "손님";
-            try { userName = JSON.parse(userJson).name || "손님"; } catch(e) {}
+            if (sessionUser) {
+                userName = sessionUser.name;
+            } else {
+                try { userName = JSON.parse(sessionStorage.getItem("user")).name || "손님"; } catch(e) {}
+            }
             
             var reqId = userId + "_completion_" + activeStageNum + "_" + Date.now();
             var approvalReq = {
@@ -3869,7 +3864,7 @@
                         saveProductionOrders();
                         
                         // 타임라인 로그 기록
-                        addTimelineLog("김태호님이 Stage " + capturedStage + "공정, 생산지시서 " + m.order + " 작업을 최종 완료했습니다.");
+                        addTimelineLog(currentUserName + "님이 Stage " + capturedStage + "공정, 생산지시서 " + m.order + " 작업을 최종 완료했습니다.");
                         
                         renderWorkflow();
                         alert("공정 실습 상태 전송이 매니저에 의해 승인 및 완료되었습니다.");
@@ -3927,18 +3922,14 @@
                 if (nextOrderId && nextOrderId !== "없음") {
                     alert("Stage 1이 초기화되었습니다! 새로운 생산지시서(" + nextOrderId + ")가 배정되었습니다. QR코드를 스캔하여 작업을 시작하세요.");
                 } else {
-                    alert("Stage 1이 초기화되었습니다. 현재 대기 중인 생산지시서가 없습니다. 매니저에게 새 지시서 발행을 요청해 주세요.");
-                    
-                    // Add order_required request to kimp_approval_requests
+                    // Add order_required request to kimp_approval_requests BEFORE showing alert to avoid thread blocking
                     var requests = [];
                     try {
                         requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
                     } catch(e) {}
                     
-                    var userId = sessionStorage.getItem("user-id") || "guest";
-                    var userJson = sessionStorage.getItem("user");
-                    var userName = "최수아";
-                    try { userName = JSON.parse(userJson).name || "최수아"; } catch(e) {}
+                    var userId = currentUserId;
+                    var userName = currentUserName;
                     
                     var exists = false;
                     for (var i = 0; i < requests.length; i++) {
@@ -3959,8 +3950,11 @@
                             noPhoto: true,
                             submittedTime: new Date().toLocaleTimeString().slice(0, 8)
                         });
+                        
                         localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
                     }
+                    
+                    alert("Stage 1이 초기화되었습니다. 현재 대기 중인 생산지시서가 없습니다. 매니저에게 새 지시서 발행을 요청해 주세요.");
                 }
                 return;
             }
@@ -4012,10 +4006,14 @@
 
         // ── 3.0 근로자 실시간 진행 상태 동기화 (매니저 대시보드 연동) ──
         function syncWorkerProgress() {
-            var userId = sessionStorage.getItem("user-id") || "guest";
-            var userJson = sessionStorage.getItem("user");
+            var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+            var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
             var userName = "손님";
-            try { userName = JSON.parse(userJson).name || "손님"; } catch(e) {}
+            if (sessionUser) {
+                userName = sessionUser.name;
+            } else {
+                try { userName = JSON.parse(sessionStorage.getItem("user")).name || "손님"; } catch(e) {}
+            }
             
             var progressMap = {};
             try { progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); } catch(e) {}
@@ -4048,13 +4046,7 @@
             if (workSeconds < 0) workSeconds = 0;
             var checkInTime = getPartitionedItem('kimp_check_in_time') || null;
 
-            var targetId = userId;
-            var existingKey = Object.keys(progressMap).find(function(k) {
-                return progressMap[k] && progressMap[k].userName === userName;
-            });
-            if (existingKey) {
-                targetId = existingKey;
-            }
+            var targetId = currentUserId;
             
             var oldData = progressMap[targetId] || {};
             progressMap[targetId] = {
@@ -4192,12 +4184,20 @@
             var accumSalary = Math.floor(workSeconds * (12384 / 3600));
             
             // 화면 업데이트 (역할별 급여 표시)
-            if (currentUser === 'kimyounghee') {
+            if (isHelperUser) {
                 var helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
                 var baseHelperSalary = Math.floor(elapsedSinceCheckIn * (12384 / 3600));
                 var totalHelperSalary = baseHelperSalary + helperBonus;
+
+                var bonusTextEl = document.getElementById('helper-bonus-text-experience');
+                if (bonusTextEl) {
+                    bonusTextEl.style.display = 'block';
+                    bonusTextEl.textContent = '낙너스 +' + helperBonus.toLocaleString() + ' KRW';
+                }
                 document.getElementById('accum-salary-display').textContent = totalHelperSalary.toLocaleString() + ' KRW';
             } else {
+                var bonusTextEl = document.getElementById('helper-bonus-text-experience');
+                if (bonusTextEl) bonusTextEl.style.display = 'none';
                 document.getElementById('accum-salary-display').textContent = accumSalary.toLocaleString() + ' KRW';
             }
             
@@ -4206,18 +4206,6 @@
             document.getElementById('total-break-time-display').textContent = 
                 String(breakMin).padStart(2, '0') + "분 " + String(breakSec).padStart(2, '0') + "초";
                 
-            // 로컬스토리지에 저장하여 실시간 동기화
-            setPartitionedItem('kimp_salary_taeho', accumSalary);
-            
-            // 이영희는 쉬지 않고 꾸준히 일하는 것으로 시뮬레이션
-            var salaryYounghee = Math.floor(elapsedSeconds * (12384 / 3600));
-            setPartitionedItem('kimp_salary_younghee', salaryYounghee);
-            
-            // 김영희 (헬퍼)의 기본 급여 동기화
-            var baseHelperSalary = Math.floor(elapsedSinceCheckIn * (12384 / 3600));
-            setPartitionedItem('kimp_helper_base_salary', baseHelperSalary);
-            var helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
-            setPartitionedItem('kimp_salary_kimyounghee', baseHelperSalary + helperBonus);
         }
 
         // ── 3.2 생산지시서 상세 조회 기능 ──
@@ -4331,7 +4319,7 @@
                                 </td>
                             `;
                         }
-                        var displayOperator = (session.operator === '김태호' || session.operator === 'kimtaeho') ? currentUserName : session.operator;
+                        var displayOperator = (session.operator === currentUserName || session.operator === currentUserId) ? currentUserName : session.operator;
                         html += `
                                 <td style="text-align: center;">${displayOperator}</td>
                                 <td style="text-align: center;">${session.startTime}</td>
@@ -4674,7 +4662,7 @@
                 
                 // 도움 요청 상태 HTML 생성
                 var helperBtnHtml = "";
-                if (isActive && currentUser !== 'kimyounghee') {
+                if (isActive && !isHelperUser) {
                     var reqStr = getPartitionedItem('kimp_help_request');
                     if (!reqStr) {
                         helperBtnHtml = `
@@ -4925,7 +4913,7 @@
             var content = document.getElementById('helper-request-content');
             if (!panel || !content) return;
 
-            if (activeStageNum === null || currentUser === 'kimyounghee') {
+            if (activeStageNum === null || isHelperUser) {
                 panel.style.display = 'none';
                 return;
             }
@@ -5064,19 +5052,12 @@
         function getParticipantsHTML(stageNum) {
             var m = stagesModel[stageNum];
             if (!m) return "";
-            if (currentUserName === '김영희') {
-                if (stageNum === 1) return "<span class='participant-badge'>본인</span> 김영희(본인), 박준호";
-                if (stageNum === 2) return "<span class='participant-badge'>본인</span> 김영희(본인), 최은지";
-                if (stageNum === 3) return "<span class='participant-badge'>본인</span> 김영희(본인), 김태호";
-                if (stageNum === 4) return "<span class='participant-badge'>본인</span> 김영희(본인), 정다은, 윤민수";
-                if (stageNum === 5) return "<span class='participant-badge'>본인</span> 김영희(본인), 황정민";
-            } else {
-                if (stageNum === 1) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 박준호";
-                if (stageNum === 2) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 최은지";
-                if (stageNum === 3) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 이영희";
-                if (stageNum === 4) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 정다은, 윤민수";
-                if (stageNum === 5) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 황정민";
-            }
+            // 역할 무관 - 항상 currentUserName 동적 사용 (하드코딩 금지)
+            if (stageNum === 1) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 박준호";
+            if (stageNum === 2) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 최은지";
+            if (stageNum === 3) return "<span class='participant-badge'>본인</span> " + currentUserName + (isHelperUser ? "(본인), 김태호" : "(본인), 이영희");
+            if (stageNum === 4) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 정다은, 윤민수";
+            if (stageNum === 5) return "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), 황정민";
             return m.participants;
         }
 
@@ -5101,9 +5082,9 @@
         var userBadge = document.getElementById('logged-in-user-name');
         var backBtn = document.getElementById('btn-back-to-dashboard');
         if (userBadge) {
-            userBadge.textContent = currentUserName + (currentUser === 'kimyounghee' ? ' (헬퍼)' : ' (체험자)');
+            userBadge.textContent = currentUserName + (isHelperUser ? ' (헬퍼)' : ' (체험자)');
         }
-        if (backBtn && currentUser === 'kimyounghee') {
+        if (backBtn && isHelperUser) {
             backBtn.style.display = 'block';
         }
 
@@ -5227,9 +5208,7 @@
                 removePartitionedItem('kimp_clock_hour');
                 removePartitionedItem('kimp_clock_minute');
                 removePartitionedItem('kimp_second_counter');
-                removePartitionedItem('kimp_salary_taeho');
-                removePartitionedItem('kimp_salary_younghee');
-                removePartitionedItem('kimp_salary_kimyounghee');
+                removePartitionedItem('kimp_salary');
                 removePartitionedItem('kimp_helper_base_salary');
                 removePartitionedItem('kimp_helper_bonus');
                 removePartitionedItem('kimp_help_request');
@@ -5242,14 +5221,16 @@
                 removePartitionedItem('kimp_experience_remaining_seconds');
                 
                 // 로그인 사용자는 세션 유지 및 복구
-                var sessionUser = null;
-                try {
-                    const userJson = sessionStorage.getItem("user");
-                    if (userJson) {
-                        sessionUser = JSON.parse(userJson);
-                    }
-                } catch(e) {}
-                setPartitionedItem('kimp_logged_in_user', sessionUser ? sessionUser.email : 'kimtaeho');
+                var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                if (!sessionUser) {
+                    try {
+                        const userJson = sessionStorage.getItem("user");
+                        if (userJson) {
+                            sessionUser = JSON.parse(userJson);
+                        }
+                    } catch(e) {}
+                }
+                setPartitionedItem('kimp_logged_in_user', currentUserId);
                 
                 alert("세션이 성공적으로 초기화되었습니다. 페이지를 새로고침합니다.");
                 window.location.reload();

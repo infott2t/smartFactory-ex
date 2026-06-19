@@ -1,19 +1,23 @@
 (function() {
-    const userJson = sessionStorage.getItem("user");
-    const currentPath = window.location.pathname;
-    
-    const isLoginPage = currentPath.includes("login.html");
-    const isIndexPage = currentPath.includes("index.html") || currentPath.endsWith("/smart2/") || currentPath.endsWith("/smartf2-html/") || currentPath.endsWith("/");
-    const isMainPage = currentPath.includes("main.html");
-    
-    if (!userJson) {
-        if (!isLoginPage && !isIndexPage && !isMainPage) {
-            alert("로그인이 필요합니다. 로그인 페이지로 이동합니다.");
-            window.location.href = "login.html";
-        }
+    if (window.AuthManager) {
+        window.AuthManager.checkGuard();
     } else {
-        if (isLoginPage) {
-            window.location.href = "main.html";
+        // Fallback if AuthManager is not loaded
+        const userJson = sessionStorage.getItem("user");
+        const currentPath = window.location.pathname;
+        const isLoginPage = currentPath.includes("login.html");
+        const isIndexPage = currentPath.includes("index.html") || currentPath.endsWith("/smart2/") || currentPath.endsWith("/smartf2-html/") || currentPath.endsWith("/");
+        const isMainPage = currentPath.includes("main.html");
+        
+        if (!userJson) {
+            if (!isLoginPage && !isIndexPage && !isMainPage) {
+                alert("로그인이 필요합니다. 로그인 페이지로 이동합니다.");
+                window.location.href = "login.html";
+            }
+        } else {
+            if (isLoginPage) {
+                window.location.href = "main.html";
+            }
         }
     }
 })();

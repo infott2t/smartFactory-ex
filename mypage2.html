@@ -12,7 +12,10 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/engine.js" type="text/javascript"></script>
     <title>마이페이지 | 스마트팩토리</title>
 </head>
 
@@ -102,57 +105,8 @@
                 <div>나의 일 예약 내역 <i class="bi bi-calendar-check-fill res-title-icon"></i></div>
                 <div><a href="#">더 보기</a></div>
             </div>
-            <div class="mypage-box2">
-
-
-                <div class="box-partner reservation-item">
-                    <div class="box-corp res-date-box">
-                        <span class="res-date-time">2026년 6월 19일</span>
-                        <span class="res-date-time">금요일</span>
-                    </div>
-                    <div class="box-corp res-time-box">
-                        <span class="res-date-time">10:00 ~ 12:00</span>
-
-                    </div>
-                    <div class="box-value res-job-box">
-                         <img class="icon" src="./images/k-icon_150x150.png"> 
-                         <span class="brand-name">AFood</span> 
-                         김치만들기
-                    </div>
-                    <div class="box-value res-btn-box">
-                        <span class="box-time">2h</span>
-                        <span class="badge01">일반</span>
-                        <button type="button" class="res-cancel-btn">예약 취소</button>
-                    </div>
-                </div>
-
-
-            </div>
-            <div class="mypage-box2">
-
-
-                <div class="box-partner reservation-item">
-                    <div class="box-corp res-date-box">
-                        <span class="res-date-time">2026년 6월 19일</span>
-                        <span class="res-date-time">금요일</span>
-                    </div>
-                    <div class="box-corp res-time-box">
-                        <span class="res-date-time">13:00 ~ 15:00</span>
-
-                    </div>
-                    <div class="box-value res-job-box">
-                        <img class="icon" src="./images/k-icon_150x150.png">
-                        <span class="brand-name">AFood</span>
-                        김치만들기
-                    </div>
-                    <div class="box-value res-btn-box">
-                        <span class="box-time">2h</span>
-                        <span class="badge01">일반</span>
-                        <button type="button" class="res-cancel-btn">예약 취소</button>
-                    </div>
-                </div>
-
-
+            <div id="reservations-container">
+                <!-- Dynamic reservations render here -->
             </div>
 
             <div class="padding-40"></div>
@@ -204,6 +158,9 @@
                 </div>
             </div>
 
+            <!-- User Logout Button -->
+            <button type="button" class="btn-logout-mypage" onclick="AuthManager.logout()" style="margin-bottom: 25px; background: #e74c3c; color: #fff; border: none; font-size: 14px; padding: 12px; border-radius: 8px;">로그아웃</button>
+
             <!-- Simulation and Logout -->
             <div class="sim-panel-toggle" onclick="toggleSimPanel()">
                 개발 테스트 데이터 조정 패널
@@ -251,14 +208,18 @@
         });
 
         function initUserSession() {
-            const userJson = sessionStorage.getItem("user");
-            if (!userJson) {
+            currentUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (!currentUser) {
+                const userJson = sessionStorage.getItem("user");
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            }
+            if (!currentUser) {
                 alert("로그인이 필요합니다.");
                 window.location.href = "./login.html";
                 return;
             }
-
-            currentUser = JSON.parse(userJson);
 
             // Render basic profile info
             $('#user-name-display').text(currentUser.name + ' 님');
@@ -277,35 +238,63 @@
                 sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
             }
 
-            // Initialize simulated task history if not stored
-            const historyKey = "mypage_history_" + currentUser.id;
-            const storedHistory = localStorage.getItem(historyKey);
-            if (!storedHistory) {
-                const defaultHistory = getDefaultHistoryByName(currentUser.name);
-                localStorage.setItem(historyKey, JSON.stringify(defaultHistory));
+            // Sync with FactoryStore
+            if (FactoryStore.getState().workedHours === 0 && workerProfile.workedHours > 0) {
+                FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: workerProfile.workedHours });
             }
 
-            // Seed mock reservation for 2026-06-17 10:00 ~ 12:00
-            let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
-            const hasMockRes = db.some(r => r.date === "2026-06-17" && r.slot === 0 && (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name || r.userId === "local-" + currentUser.email));
+            if (FactoryStore.getState().history.length === 0) {
+                const defaultHistory = getDefaultHistoryByName(currentUser.name);
+                FactoryStore.dispatch({ type: 'SET_HISTORY', payload: defaultHistory });
+            }
+
+            // Seed mock reservation in store if not present
+            let db = FactoryStore.getState().reservations;
+            const hasMockRes = db.some(r => r.date === "2026-06-17" && r.slot === 0 && (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name));
             if (!hasMockRes) {
                 let role = 'general';
                 if (currentUser.name === '최현일') role = 'manager';
                 else if (currentUser.name === '김영희') role = 'helper';
 
                 const newId = db.length > 0 ? Math.max.apply(null, db.map(r => r.id)) + 1 : 1;
-                db.push({
-                    id: newId,
-                    userId: "local-" + currentUser.email,
-                    userName: currentUser.name,
-                    date: "2026-06-17",
-                    slot: 0,
-                    role: role
+                FactoryStore.dispatch({
+                    type: 'ADD_RESERVATION',
+                    payload: {
+                        id: newId,
+                        userId: currentUser.id,
+                        userName: currentUser.name,
+                        date: "2026-06-17",
+                        slot: 0,
+                        role: role
+                    }
                 });
-                setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
             }
 
-            // Render UI panels
+            if (FactoryStore.getState().udonHours === 0) {
+                let defH = 0;
+                if (currentUser.name === '최현일') defH = 150;
+                else if (currentUser.name === '최수아') defH = 40;
+                else if (currentUser.name === '김수민') defH = 5;
+                else if (currentUser.name === '김영희') defH = 35;
+                FactoryStore.dispatch({ type: 'SET_UDON_HOURS', payload: defH });
+            }
+
+            if (FactoryStore.getState().walletHours === 0) {
+                let defH = 0;
+                if (currentUser.name === '최현일') defH = 125;
+                else if (currentUser.name === '최수아') defH = 10;
+                else if (currentUser.name === '김수민') defH = 0;
+                else if (currentUser.name === '김영희') defH = 30;
+                FactoryStore.dispatch({ type: 'SET_WALLET_HOURS', payload: defH });
+            }
+
+            // Subscribe to store updates to dynamically trigger re-renders
+            FactoryStore.subscribe(function() {
+                workerProfile.workedHours = FactoryStore.getState().workedHours;
+                renderAll();
+            });
+
+            // Initial render
             renderAll();
         }
 
@@ -367,12 +356,9 @@
         }
 
         function renderEarnings() {
-            // base salary is calculated based on history and current status
-            const historyKey = "mypage_history_" + currentUser.id;
-            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const history = FactoryStore.getState().history;
             let baseSum = history.reduce((sum, item) => sum + item.pay, 0);
 
-            // helper base salary & bonus from partitioned items (kimp_helper_base_salary, kimp_helper_bonus)
             const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
             const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
 
@@ -382,33 +368,10 @@
         }
 
         function renderPartnerGrades() {
-            const kimchiHours = workerProfile.workedHours || 0;
+            const kimchiHours = FactoryStore.getState().workedHours || 0;
+            const udonHours = FactoryStore.getState().udonHours || 0;
+            const walletHours = FactoryStore.getState().walletHours || 0;
 
-            // Mock Udon and Wallet hours based on user or localstorage
-            const udonHoursKey = "mypage_hours_udon_" + currentUser.id;
-            const walletHoursKey = "mypage_hours_wallet_" + currentUser.id;
-
-            if (!localStorage.getItem(udonHoursKey)) {
-                let defH = 0;
-                if (currentUser.name === '최현일') defH = 150;
-                else if (currentUser.name === '최수아') defH = 40;
-                else if (currentUser.name === '김수민') defH = 5;
-                else if (currentUser.name === '김영희') defH = 35;
-                localStorage.setItem(udonHoursKey, defH);
-            }
-            if (!localStorage.getItem(walletHoursKey)) {
-                let defH = 0;
-                if (currentUser.name === '최현일') defH = 125;
-                else if (currentUser.name === '최수아') defH = 10;
-                else if (currentUser.name === '김수민') defH = 0;
-                else if (currentUser.name === '김영희') defH = 30;
-                localStorage.setItem(walletHoursKey, defH);
-            }
-
-            const udonHours = parseInt(localStorage.getItem(udonHoursKey));
-            const walletHours = parseInt(localStorage.getItem(walletHoursKey));
-
-            // Helper function to return grade badge and HTML
             function getGradeBadgeHtml(hours, isKimchi) {
                 let label = "일반";
                 let badgeClass = "badge01";
@@ -424,9 +387,8 @@
                     badgeClass = "badge01";
                 }
 
-                let html = `<span class="box-time">${hours}h</span><span class="${badgeClass}">${label}</span>`;
+                let html = `<span class="box-time">${Math.floor(hours)}h</span><span class="${badgeClass}">${label}</span>`;
 
-                // For Kimchi, append Warning Badge if health certificate is required
                 if (isKimchi && workerProfile.healthCertificateStatus !== 'approved') {
                     html += ` <span class="badge01 badge-health-warning">보건증 필요</span>`;
                 }
@@ -434,17 +396,9 @@
                 return html;
             }
 
-            // 1. Kimchi Making
-            $('#hours-kimchi').remove();
-            $('#badge-kimchi').remove();
             $('#grade-row-kimchi').html(getGradeBadgeHtml(kimchiHours, true));
-
-            // 2. Udon Making
-            $('#hours-udon').remove();
-            $('#badge-udon').remove();
             $('#grade-row-udon').html(getGradeBadgeHtml(udonHours, false));
 
-            // 3. Wallet Making
             if (walletHours === 0) {
                 $('#grade-row-wallet').html('<span class="box-time">-</span>');
             } else {
@@ -453,17 +407,64 @@
         }
 
         function renderReservations() {
-            // Rendered statically in HTML directly for CSS design customization
+            const container = $('#reservations-container');
+            container.empty();
+
+            const db = FactoryStore.getState().reservations;
+            const myReservations = db.filter(r => String(r.userId) === String(currentUser.id) || r.userName === currentUser.name);
+
+            if (myReservations.length === 0) {
+                container.html('<div class="empty-state" style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">예약된 일정이 없습니다.</div>');
+                return;
+            }
+
+            const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+
+            myReservations.forEach(r => {
+                const parts = r.date.split('-');
+                let dayName = '';
+                if (parts.length === 3) {
+                    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                    dayName = dayNames[d.getDay()];
+                }
+
+                const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
+                const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
+
+                let row = `
+                <div class="box-partner reservation-item" style="margin-bottom: 12px;">
+                    <div class="box-corp res-date-box">
+                        <span class="res-date-time">${parts[1]}월 ${parts[2]}일</span>
+                        <span class="res-date-time">${dayName}</span>
+                    </div>
+                    <div class="box-corp res-time-box">
+                        <span class="res-date-time">${slotLabels[r.slot] || '지정 시간'}</span>
+                    </div>
+                    <div class="box-value res-job-box">
+                         <img class="icon" src="./images/k-icon_150x150.png"> 
+                         <span class="brand-name">AFood</span> 
+                         김치만들기
+                    </div>
+                    <div class="box-value res-btn-box">
+                        <span class="box-time">2h</span>
+                        <span class="${badgeClass}">${roleLabel}</span>
+                        <button type="button" class="res-cancel-btn" onclick="cancelReservation(${r.id})">예약 취소</button>
+                    </div>
+                </div>
+                `;
+                container.append(row);
+            });
         }
 
         function cancelReservation(id) {
             if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
 
-            let db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            let db = FactoryStore.getState().reservations;
             const targetRes = db.find(r => r.id === id);
 
-            db = db.filter(r => r.id !== id);
-            setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
+            const updatedReservations = db.filter(r => r.id !== id);
+            FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: updatedReservations });
 
             if (targetRes && typeof window.addAppLog === 'function') {
                 const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
@@ -472,16 +473,13 @@
             }
 
             alert("예약이 정상적으로 취소되었습니다.");
-            renderReservations();
-            renderEarnings();
         }
 
         function renderHistory() {
             const container = $('#history-container');
             container.empty();
 
-            const historyKey = "mypage_history_" + currentUser.id;
-            const history = JSON.parse(localStorage.getItem(historyKey) || "[]");
+            const history = FactoryStore.getState().history;
 
             if (history.length === 0) {
                 container.html('<div class="empty-state">참여 이력이 없습니다.</div>');
@@ -500,7 +498,7 @@
                 }
 
                 let row = `
-                <div class="box-partner history-item">
+                <div class="box-partner history-item" style="margin-bottom: 12px;">
                     <div class="hist-date">${item.date}</div>
                     <div class="box-corp">
                         <img class="icon2" src="${brandLogo}">
@@ -514,13 +512,12 @@
             });
         }
 
-        // SIMULATOR PANEL LOGIC
         function toggleSimPanel() {
             $('#sim-panel').slideToggle();
         }
 
         function updateSimControls() {
-            const curHours = workerProfile.workedHours;
+            const curHours = FactoryStore.getState().workedHours || 0;
             $('.sim-btn').each(function () {
                 const text = $(this).text();
                 if (text.includes(curHours + '시간')) {
@@ -532,14 +529,11 @@
         }
 
         function setWorkedHours(hours) {
-            workerProfile.workedHours = hours;
-            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+            FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: hours });
 
             if (typeof window.addAppLog === 'function') {
                 window.addAppLog(`김치만들기 시뮬레이션 근무 시간을 ${hours}시간으로 설정했습니다.`);
             }
-
-            renderAll();
         }
 
         function setHealthStatus(status) {
@@ -557,15 +551,7 @@
 
         function resetSession() {
             if (confirm("세션을 초기화하시겠습니까? 로그인 정보 및 진행 데이터가 모두 삭제됩니다.")) {
-                const userId = sessionStorage.getItem("user-id") || "guest";
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && (key.includes("_" + userId) || key.startsWith("kimp_") || key.startsWith("mypage_"))) {
-                        keysToRemove.push(key);
-                    }
-                }
-                keysToRemove.forEach(key => localStorage.removeItem(key));
+                FactoryStore.dispatch({ type: 'RESET_ALL_DATA' });
 
                 if (typeof window.addAppLog === 'function') {
                     window.addAppLog("세션을 초기화(로그아웃) 하였습니다.");

@@ -198,6 +198,7 @@
     </div>
 
     <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/auth.js" type="text/javascript"></script>
     <script type="text/javascript">
         function resetSession() {
             if (confirm("세션을 초기화하시겠습니까? 로그인 정보 및 진행 데이터가 모두 삭제됩니다.")) {
@@ -212,9 +213,8 @@
 
         $(document).ready(function () {
             // Check logged in status for header display
-            const userJson = sessionStorage.getItem("user");
-            if (userJson) {
-                const user = JSON.parse(userJson);
+            const user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (user) {
                 if (user.picture) {
                     $(".h-open-btn").html('<img src="' + user.picture + '" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ffffff; object-fit: cover; vertical-align: middle;" alt="' + user.name + '" />');
                 } else {
@@ -224,7 +224,8 @@
 
             $(".h-open-btn").click(function (e) {
                 e.stopPropagation();
-                if (sessionStorage.getItem("user")) {
+                const isLoggedIn = window.AuthManager ? !!window.AuthManager.getCurrentUser() : !!sessionStorage.getItem("user");
+                if (isLoggedIn) {
                     location.href = "./main.html";
                 } else {
                     location.href = "./login.html";

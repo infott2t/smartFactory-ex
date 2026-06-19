@@ -26,7 +26,10 @@
     <title>김치만들기 - 실시간 실습 현황</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/engine.js" type="text/javascript"></script>
     <style>
         :root {
             --bg-color: #0b0b16;
@@ -250,49 +253,8 @@
             <span>참여자 실시간 누적 급여</span>
         </div>
 
-        <div class="salary-list">
-            <!-- 김태호 (체험자) -->
-            <div class="salary-item">
-                <div class="user-info">
-                    <div class="user-icon"><i class="bi bi-person-fill"></i></div>
-                    <div class="user-details">
-                        <span class="user-name">김태호</span>
-                        <span class="user-role">가상 체험자 (본인)</span>
-                    </div>
-                </div>
-                <div class="user-salary">
-                    <span id="salary-taeho" class="user-salary-val">0 KRW</span>
-                </div>
-            </div>
-
-            <!-- 이영희 (체험자) -->
-            <div class="salary-item">
-                <div class="user-info">
-                    <div class="user-icon"><i class="bi bi-person"></i></div>
-                    <div class="user-details">
-                        <span class="user-name">이영희</span>
-                        <span class="user-role">가상 체험자</span>
-                    </div>
-                </div>
-                <div class="user-salary">
-                    <span id="salary-younghee" class="user-salary-val">0 KRW</span>
-                </div>
-            </div>
-
-            <!-- 김영희 (헬퍼) -->
-            <div class="salary-item" style="border-color: var(--neon-green);">
-                <div class="user-info">
-                    <div class="user-icon helper"><i class="bi bi-person-workspace"></i></div>
-                    <div class="user-details">
-                        <span class="user-name">김영희</span>
-                        <span class="user-role" style="color: var(--neon-green);">현장 지원 헬퍼</span>
-                    </div>
-                </div>
-                <div class="user-salary">
-                    <span id="salary-kimyounghee" class="user-salary-val" style="color: var(--neon-green);">0 KRW</span>
-                    <div id="bonus-kimyounghee" class="user-salary-bonus">보너스 수당: 0 KRW (0회)</div>
-                </div>
-            </div>
+        <div class="salary-list" id="salary-list-container">
+            <!-- 동적으로 참여자 급여 목록이 렌더링됩니다. -->
         </div>
 
         <!-- ── 실시간 타임라인 로그 ── -->
@@ -308,6 +270,12 @@
     </div>
 
     <script>
+        // 현재 로그인 사용자 정보
+        var _statusSessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+        if (!_statusSessionUser) {
+            try { _statusSessionUser = JSON.parse(sessionStorage.getItem('user')); } catch(e) {}
+        }
+
         // 시계 동기화
         function syncClock() {
             var remaining = getPartitionedItem('kimp_remaining_seconds');
@@ -333,20 +301,88 @@
             }
         }
 
-        // 급여 동기화
+        // 급여 동기화 - store.js의 state.workers 기반 동적 렌더링
         function syncSalaries() {
-            var taeho = parseInt(getPartitionedItem('kimp_salary_taeho') || '0');
-            var younghee = parseInt(getPartitionedItem('kimp_salary_younghee') || '0');
-            var kimyounghee = parseInt(getPartitionedItem('kimp_salary_kimyounghee') || '0');
-            var helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+            var container = document.getElementById('salary-list-container');
+            if (!container) return;
 
-            document.getElementById('salary-taeho').textContent = taeho.toLocaleString() + ' KRW';
-            document.getElementById('salary-younghee').textContent = younghee.toLocaleString() + ' KRW';
-            document.getElementById('salary-kimyounghee').textContent = kimyounghee.toLocaleString() + ' KRW';
-            
-            var bonusCount = Math.floor(helperBonus / 500);
-            document.getElementById('bonus-kimyounghee').textContent = 
-                '보너스 수당: ' + helperBonus.toLocaleString() + ' KRW (' + bonusCount + '회)';
+            var store = window.FactoryStore;
+            if (!store) return;
+
+            var state = store.getState();
+            var workers = state.workers || {};
+            var currentUserId = state.currentUser ? state.currentUser.id : null;
+
+            var html = '';
+
+            // workers에 등록된 모든 근로자 순회
+            Object.keys(workers).forEach(function(uId) {
+                var w = workers[uId];
+                if (!w) return;
+                // 매니저(ID=1)는 급여 전광판에 표시하지 않음 (생산지시서 관리를 담당하기 때문)
+                if (String(uId) === "1") return;
+
+                var isSelf = currentUserId && String(uId) === String(currentUserId);
+                var isHelper = String(uId) === "4"; // 김영희 헬퍼 고유 ID
+                var userRole = isHelper ? '현장 지원 헬퍼' : '가상 체험자';
+                if (isSelf) {
+                    userRole += ' (본인)';
+                }
+
+                // 급여 계산
+                var salaryVal = 0;
+                
+                // _calcElapsedSinceCheckIn과 동일하게 계산
+                function calcSalary(targetWorker) {
+                    const elapsedSeconds = 7200 - state.remainingSeconds;
+                    if (!targetWorker.checkInTime || targetWorker.checkInTime === '-') return 0;
+                    const parts = targetWorker.checkInTime.split(':');
+                    if (parts.length < 2) return 0;
+                    const ciH = parseInt(parts[0]) || 0;
+                    const ciM = parseInt(parts[1]) || 0;
+                    const ciS = parts.length > 2 ? (parseInt(parts[2]) || 0) : 0;
+                    const checkInSecs = ciH * 3600 + ciM * 60 + ciS;
+                    const now = new Date();
+                    const nowSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                    let diff = nowSecs - checkInSecs;
+                    if (diff < 0) diff += 86400;
+                    
+                    if (isHelper) {
+                        const baseSalary = Math.floor(diff * (12384 / 3600));
+                        return baseSalary + (targetWorker.helperBonus || 0);
+                    } else {
+                        const workSeconds = Math.max(0, diff - (targetWorker.accumBreakSeconds || 0));
+                        return Math.floor(workSeconds * (12384 / 3600));
+                    }
+                }
+
+                salaryVal = calcSalary(w);
+
+                var salaryColor = isHelper ? 'var(--neon-green)' : '#fff';
+                var borderStyle = isSelf ? 'border: 2px solid var(--neon-blue);' : '';
+                var helperBonus = w.helperBonus || 0;
+
+                html += `
+                    <div class="salary-item" style="${borderStyle}">
+                        <div class="user-info">
+                            <div class="user-icon ${isHelper ? 'helper' : ''}"><i class="bi bi-${isHelper ? 'person-workspace' : 'person-fill'}"></i></div>
+                            <div class="user-details">
+                                <span class="user-name">${w.name || '참여자'}</span>
+                                <span class="user-role" ${isHelper ? 'style="color: var(--neon-green);"' : ''}>${userRole}</span>
+                            </div>
+                        </div>
+                        <div class="user-salary">
+                            <span class="user-salary-val" style="color: ${salaryColor};">${salaryVal.toLocaleString()} KRW</span>
+                            ${isHelper && helperBonus > 0 ? `<div class="user-salary-bonus" id="helper-bonus-row">보너스 수당: ${helperBonus.toLocaleString()} KRW (${Math.floor(helperBonus/500)}회)</div>` : ''}
+                        </div>
+                    </div>`;
+            });
+
+            if (!html) {
+                html = '<div style="text-align: center; color: var(--text-sub); padding: 20px 0;">참여자 데이터가 없습니다.</div>';
+            }
+
+            container.innerHTML = html;
         }
 
         // 타임라인 동기화
@@ -361,12 +397,10 @@
             }
 
             var list = JSON.parse(timelineStr);
-            // 최신 로그가 맨 위로 오도록 역순 정렬
             var chronological = list.slice();
 
             var html = "";
             chronological.forEach(function(item) {
-                // 로그 특성에 맞춰 클래스 지정
                 var logClass = "timeline-item";
                 if (item.text.indexOf("시작했습니다") !== -1) {
                     logClass += " highlight";
@@ -393,7 +427,11 @@
             if (e.key === window.getStorageKey('kimp_remaining_seconds') || e.key === window.getStorageKey('kimp_clock_hour')) {
                 syncClock();
             }
-            if (e.key === window.getStorageKey('kimp_salary_taeho') || e.key === window.getStorageKey('kimp_salary_younghee') || e.key === window.getStorageKey('kimp_salary_kimyounghee') || e.key === window.getStorageKey('kimp_helper_bonus')) {
+            // kimp_salary, kimp_helper_bonus, kimp_workers_progress 변경 시 급여 재렌더링
+            if (e.key === null ||
+                e.key === window.getStorageKey('kimp_salary') ||
+                e.key === window.getStorageKey('kimp_helper_bonus') ||
+                e.key === 'kimp_workers_progress') {
                 syncSalaries();
             }
             if (e.key === window.getStorageKey('kimp_session_timeline')) {
