@@ -245,13 +245,48 @@
                 return 0; // pending or other
             };
 
+            const getProgressPriority = function(progress) {
+                if (!progress || progress === "대기 중") return 0;
+                if (progress === "QR코드 스캔 전") return 1;
+                if (progress === "투입 후 생산 중") return 2;
+                if (progress === "검사 대기 중") return 3;
+                if (progress.indexOf("생산중 (Stage") !== -1) {
+                    const match = progress.match(/Stage(\d+)완료/);
+                    if (match) {
+                        return 4 + parseInt(match[1]); // Stage1완료=5, Stage2완료=6, ...
+                    }
+                    return 4;
+                }
+                if (progress === "생산 완료") return 15;
+                return 0;
+            };
+
             // Merge local state.productionOrders into currentOrders safely
             for (let key in state.productionOrders) {
                 if (currentOrders[key]) {
-                    let localPriority = getStatusPriority(state.productionOrders[key].status);
-                    let storagePriority = getStatusPriority(currentOrders[key].status);
+                    let localStatusPriority = getStatusPriority(state.productionOrders[key].status);
+                    let storageStatusPriority = getStatusPriority(currentOrders[key].status);
                     
-                    if (localPriority > storagePriority) {
+                    let localProgressPriority = getProgressPriority(state.productionOrders[key].progressStatus);
+                    let storageProgressPriority = getProgressPriority(currentOrders[key].progressStatus);
+
+                    let localTask = state.productionOrders[key].currentTask || 0;
+                    let storageTask = currentOrders[key].currentTask || 0;
+
+                    let isLocalNewer = false;
+                    if (localStatusPriority > storageStatusPriority) {
+                        isLocalNewer = true;
+                    } else if (localStatusPriority === storageStatusPriority) {
+                        if (localProgressPriority > storageProgressPriority) {
+                            isLocalNewer = true;
+                        } else if (localProgressPriority === storageProgressPriority) {
+                            if (localTask > storageTask) {
+                                isLocalNewer = true;
+                            }
+                        }
+                    }
+
+                    if (isLocalNewer) {
                         currentOrders[key].status = state.productionOrders[key].status;
                         if (state.productionOrders[key].currentTask !== undefined) {
                             currentOrders[key].currentTask = state.productionOrders[key].currentTask;

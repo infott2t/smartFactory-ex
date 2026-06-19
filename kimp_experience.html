@@ -2505,13 +2505,48 @@
                 return 0; // pending or other
             };
 
+            var getProgressPriority = function(progress) {
+                if (!progress || progress === "대기 중") return 0;
+                if (progress === "QR코드 스캔 전") return 1;
+                if (progress === "투입 후 생산 중") return 2;
+                if (progress === "검사 대기 중") return 3;
+                if (progress.indexOf("생산중 (Stage") !== -1) {
+                    var match = progress.match(/Stage(\d+)완료/);
+                    if (match) {
+                        return 4 + parseInt(match[1]); // Stage1완료=5, Stage2완료=6, ...
+                    }
+                    return 4;
+                }
+                if (progress === "생산 완료") return 15;
+                return 0;
+            };
+
             // Merge status, currentTask and progressStatus from local productionOrders
             for (var key in productionOrders) {
                 if (currentOrders[key]) {
-                    var localPriority = getStatusPriority(productionOrders[key].status);
-                    var storagePriority = getStatusPriority(currentOrders[key].status);
+                    var localStatusPriority = getStatusPriority(productionOrders[key].status);
+                    var storageStatusPriority = getStatusPriority(currentOrders[key].status);
                     
-                    if (localPriority > storagePriority) {
+                    var localProgressPriority = getProgressPriority(productionOrders[key].progressStatus);
+                    var storageProgressPriority = getProgressPriority(currentOrders[key].progressStatus);
+
+                    var localTask = productionOrders[key].currentTask || 0;
+                    var storageTask = currentOrders[key].currentTask || 0;
+
+                    var isLocalNewer = false;
+                    if (localStatusPriority > storageStatusPriority) {
+                        isLocalNewer = true;
+                    } else if (localStatusPriority === storageStatusPriority) {
+                        if (localProgressPriority > storageProgressPriority) {
+                            isLocalNewer = true;
+                        } else if (localProgressPriority === storageProgressPriority) {
+                            if (localTask > storageTask) {
+                                isLocalNewer = true;
+                            }
+                        }
+                    }
+
+                    if (isLocalNewer) {
                         currentOrders[key].status = productionOrders[key].status;
                         if (productionOrders[key].currentTask !== undefined) {
                             currentOrders[key].currentTask = productionOrders[key].currentTask;
@@ -3134,8 +3169,9 @@
                             window.removeEventListener("storage", window._completionStorageHandler);
                             window._completionPollingActive = false;
                             
-                            capturedState.step5Status = "approved";
-                            capturedState.statusSubmitted = true;
+                            var latestState = getStageState(capturedStage);
+                            latestState.step5Status = "approved";
+                            latestState.statusSubmitted = true;
                             
                             if (!capturedModel.completedOrders) capturedModel.completedOrders = [];
                             if (capturedModel.order && capturedModel.completedOrders.indexOf(capturedModel.order) === -1) {
@@ -3160,7 +3196,9 @@
                             clearInterval(window._completionPollingTimer);
                             window.removeEventListener("storage", window._completionStorageHandler);
                             window._completionPollingActive = false;
-                            capturedState.step5Status = "none";
+                            
+                            var latestState = getStageState(capturedStage);
+                            latestState.step5Status = "none";
                             alert("매니저가 최종 공정 실습 완료 심사를 반려했습니다. 다시 확인해 주세요.");
                             if (productionOrders[capturedModel.order]) {
                                 productionOrders[capturedModel.order].progressStatus = "투입 후 생산 중";
@@ -3580,16 +3618,18 @@
                     if (myReq.status === "approved") {
                         clearInterval(defectTimer);
                         window.removeEventListener("storage", defectStorageHandler);
-                        state.step2Status = "approved";
-                        state.step2Done = true;
+                        var latestState = getStageState(capturedStage);
+                        latestState.step2Status = "approved";
+                        latestState.step2Done = true;
                         saveProductionOrders();
                         renderWorkflow();
                     } else if (myReq.status === "rejected") {
                         clearInterval(defectTimer);
                         window.removeEventListener("storage", defectStorageHandler);
-                        state.step2Status = "rejected";
+                        var latestState = getStageState(capturedStage);
+                        latestState.step2Status = "rejected";
                         alert("매니저가 불량 감액 사진을 반려했습니다. 다시 확인해 주세요.");
-                        state.step2Status = "none";
+                        latestState.step2Status = "none";
                         saveProductionOrders();
                         renderWorkflow();
                     }
@@ -3665,16 +3705,18 @@
                     if (myReq.status === "approved") {
                         clearInterval(cleanTimer);
                         window.removeEventListener("storage", cleanStorageHandler);
-                        state.step3Status = "approved";
-                        state.step3Done = true;
+                        var latestState = getStageState(capturedStage);
+                        latestState.step3Status = "approved";
+                        latestState.step3Done = true;
                         saveProductionOrders();
                         renderWorkflow();
                     } else if (myReq.status === "rejected") {
                         clearInterval(cleanTimer);
                         window.removeEventListener("storage", cleanStorageHandler);
-                        state.step3Status = "rejected";
+                        var latestState = getStageState(capturedStage);
+                        latestState.step3Status = "rejected";
                         alert("매니저가 청소 사진을 반려했습니다. 다시 청소 후 제출해 주세요.");
-                        state.step3Status = "none";
+                        latestState.step3Status = "none";
                         saveProductionOrders();
                         renderWorkflow();
                     }
@@ -3844,8 +3886,9 @@
                         clearInterval(completionTimer);
                         window.removeEventListener("storage", completionStorageHandler);
                         
-                        state.step5Status = "approved";
-                        state.statusSubmitted = true;
+                        var latestState = getStageState(capturedStage);
+                        latestState.step5Status = "approved";
+                        latestState.statusSubmitted = true;
                         
                         if (!m.completedOrders) {
                             m.completedOrders = [];
@@ -3875,7 +3918,8 @@
                     } else if (myReq.status === "rejected") {
                         clearInterval(completionTimer);
                         window.removeEventListener("storage", completionStorageHandler);
-                        state.step5Status = "none";
+                        var latestState = getStageState(capturedStage);
+                        latestState.step5Status = "none";
                         alert("매니저가 최종 공정 실습 완료 심사를 반려했습니다. 다시 확인해 주세요.");
                         
                         if (productionOrders[m.order]) {
