@@ -57,18 +57,18 @@
             };
             localStorage.setItem("kimp_factory_products", JSON.stringify(initialCatalog));
 
-            // 냉장 숙성/절임실 초기 배치 (6시간 절임 타이머 테스트용)
+            // 냉장 숙성/절임실 초기 배치 (17시간 절임 타이머 테스트용)
             // 시작 시간을 밀리초 단위로 역산하여 저장
             const now = Date.now();
             const initialSaltingBatches = [
-                { id: "SALT-260610-01", orderId: "20260610-5-1", cabbageHeads: 5, startTime: now - 5.8 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, status: "salting" },
-                { id: "SALT-260610-02", orderId: "20260610-5-2", cabbageHeads: 10, startTime: now - 2.5 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, status: "salting" },
-                { id: "SALT-260610-03", orderId: "20260609-5-3", cabbageHeads: 8, startTime: now - 3.2 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, status: "salting" },
-                { id: "SALT-260610-04", orderId: "20260609-5-1", cabbageHeads: 6, startTime: now - 7.5 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, status: "matured", maturedTime: now - 1.5 * 3600 * 1000 },
-                { id: "SALT-260610-05", orderId: "20260609-5-2", cabbageHeads: 7, startTime: now - 9.0 * 3600 * 1000, saltingTimeLimit: 6 * 3600 * 1000, status: "matured", maturedTime: now - 3.0 * 3600 * 1000 }
+                { id: "SALT-260610-01", orderId: "260619-15-1", cabbageHeads: 15, startTime: now - 16.8 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
+                { id: "SALT-260610-02", orderId: "260619-15-2", cabbageHeads: 15, startTime: now - 10.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
+                { id: "SALT-260610-03", orderId: "260619-15-3", cabbageHeads: 15, startTime: now - 5.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
+                { id: "SALT-260610-04", orderId: "SALT-EXP-04", cabbageHeads: 15, startTime: now - 19.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "matured", maturedTime: now - 2.0 * 3600 * 1000 },
+                { id: "SALT-260610-05", orderId: "SALT-EXP-05", cabbageHeads: 15, startTime: now - 22.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "matured", maturedTime: now - 5.0 * 3600 * 1000 }
             ];
             localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSaltingBatches));
-            localStorage.setItem("kimp_factory_matured_cabbages", "28"); // 이미 숙성 완료된 배추 포기 수 (기존 15 + 배치4: 6 + 배치5: 7)
+            localStorage.setItem("kimp_factory_matured_cabbages", "30"); // 이미 숙성 완료된 배추 포기 수 (배치4: 15 + 배치5: 15)
 
             // 당일 주문/출하/배송 현황 (포장 규격 5종)
             const initialDailyOrders = {

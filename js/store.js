@@ -1,4 +1,166 @@
 (function() {
+    window.defaultProductionOrders = {
+        "260619-15-3": {
+            orderId: "260619-15-3",
+            productId: "raw_cabbage",
+            productName: "절임용 원배추",
+            quantity: 15,
+            status: "in_progress",
+            currentTask: 3,
+            progressStatus: "생산 중 (Task 3)",
+            cabbageOrigin: "충남 태안 황토 배추",
+            supplier: "서해안 청과",
+            deliveryRoute: "루트-3",
+            createdTime: "10:00:00",
+            stages: {
+                1: {
+                    operator: "최수아",
+                    startTime: "10:00:00",
+                    endTime: "10:15:00",
+                    postWorkQty: 15,
+                    postWorkWeight: 37.5,
+                    sessions: [
+                        { operator: "최수아", startTime: "10:00:00", endTime: "10:15:00", duration: 900 }
+                    ],
+                    defectCount: 0,
+                    weight: 37.5,
+                    step1Done: true,
+                    step2Done: true,
+                    step2Status: "approved",
+                    step3Done: true,
+                    step3Status: "approved",
+                    step4Done: true,
+                    statusSubmitted: true
+                },
+                2: {
+                    operator: "최수아",
+                    startTime: "10:15:00",
+                    endTime: null,
+                    postWorkQty: 15,
+                    postWorkWeight: 37.5,
+                    sessions: [
+                        { operator: "최수아", startTime: "10:15:00", endTime: null, duration: 0 }
+                    ],
+                    defectCount: 0,
+                    weight: 37.5,
+                    step1Done: true,
+                    step2Done: false,
+                    step2Status: "pending",
+                    step3Done: false,
+                    step3Status: "pending",
+                    step4Done: false,
+                    statusSubmitted: false
+                }
+            }
+        },
+        "260619-15-2": {
+            orderId: "260619-15-2",
+            productId: "raw_cabbage",
+            productName: "절임용 원배추",
+            quantity: 15,
+            status: "in_progress",
+            currentTask: 3,
+            progressStatus: "생산 중 (Task 3)",
+            cabbageOrigin: "제주 서귀포 산지",
+            supplier: "제주 영농조합",
+            deliveryRoute: "루트-2",
+            createdTime: "09:00:00",
+            stages: {
+                1: {
+                    operator: "김태호",
+                    startTime: "09:00:00",
+                    endTime: "09:15:00",
+                    postWorkQty: 15,
+                    postWorkWeight: 37.5,
+                    sessions: [
+                        { operator: "김태호", startTime: "09:00:00", endTime: "09:15:00", duration: 900 }
+                    ],
+                    defectCount: 0,
+                    weight: 37.5,
+                    step1Done: true,
+                    step2Done: true,
+                    step2Status: "approved",
+                    step3Done: true,
+                    step3Status: "approved",
+                    step4Done: true,
+                    statusSubmitted: true
+                },
+                2: {
+                    operator: "김태호",
+                    startTime: "09:15:00",
+                    endTime: null,
+                    postWorkQty: 15,
+                    postWorkWeight: 37.5,
+                    sessions: [
+                        { operator: "김태호", startTime: "09:15:00", endTime: null, duration: 0 }
+                    ],
+                    defectCount: 0,
+                    weight: 37.5,
+                    step1Done: true,
+                    step2Done: false,
+                    step2Status: "pending",
+                    step3Done: false,
+                    step3Status: "pending",
+                    step4Done: false,
+                    statusSubmitted: false
+                }
+            }
+        },
+        "260619-15-1": {
+            orderId: "260619-15-1",
+            productId: "raw_cabbage",
+            productName: "절임용 원배추",
+            quantity: 15,
+            status: "in_progress",
+            currentTask: 3,
+            progressStatus: "생산 중 (Task 3)",
+            cabbageOrigin: "강원 평창 고랭지",
+            supplier: "대관령 유통",
+            deliveryRoute: "루트-1",
+            createdTime: "08:00:00",
+            stages: {
+                1: {
+                    operator: "박준호",
+                    startTime: "08:00:00",
+                    endTime: "08:15:00",
+                    postWorkQty: 15,
+                    postWorkWeight: 37.5,
+                    sessions: [
+                        { operator: "박준호", startTime: "08:00:00", endTime: "08:15:00", duration: 900 }
+                    ],
+                    defectCount: 0,
+                    weight: 37.5,
+                    step1Done: true,
+                    step2Done: true,
+                    step2Status: "approved",
+                    step3Done: true,
+                    step3Status: "approved",
+                    step4Done: true,
+                    statusSubmitted: true
+                },
+                2: {
+                    operator: "박준호",
+                    startTime: "08:15:00",
+                    endTime: null,
+                    postWorkQty: 15,
+                    postWorkWeight: 37.5,
+                    sessions: [
+                        { operator: "박준호", startTime: "08:15:00", endTime: null, duration: 0 }
+                    ],
+                    defectCount: 0,
+                    weight: 37.5,
+                    step1Done: true,
+                    step2Done: false,
+                    step2Status: "pending",
+                    step3Done: false,
+                    step3Status: "pending",
+                    step4Done: false,
+                    statusSubmitted: false
+                }
+            }
+        }
+    };
+
     const localStorage = window.localStorage;
     let isSaving = false;
 
@@ -361,7 +523,34 @@
                     obj[k] = mapOrderToFrontend(parsed[k]);
                 }
             }
+
+            // Centralized cleanup of legacy keys
+            let dbChanged = false;
+            for (let k in obj) {
+                if (k.startsWith("260530-") || k.startsWith("260612-")) {
+                    delete obj[k];
+                    dbChanged = true;
+                }
+            }
+
+            // Ensure cabbage orders exist
+            const newKeys = ["260619-15-1", "260619-15-2", "260619-15-3"];
+            newKeys.forEach(k => {
+                if (!obj[k] && window.defaultProductionOrders[k]) {
+                    obj[k] = mapOrderToFrontend(window.defaultProductionOrders[k]);
+                    dbChanged = true;
+                }
+            });
+
             state.productionOrders = obj;
+
+            if (dbChanged) {
+                let dbOrders = {};
+                for (let k in state.productionOrders) {
+                    dbOrders[k] = mapOrderToDatabase(state.productionOrders[k]);
+                }
+                localStorage.setItem('kimp_production_orders', JSON.stringify(dbOrders));
+            }
         } catch(e) {
             state.productionOrders = {};
         }

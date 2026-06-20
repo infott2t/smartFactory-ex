@@ -1472,7 +1472,7 @@
                     <div class="work-meta-item">
                         <span class="work-meta-label">내가 작업 중인 생산지시서</span>
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <span class="work-meta-value work-order-link" id="work-order-id" onclick="openOrderSheetOverlay()">260530-5-3</span>
+                            <span class="work-meta-value work-order-link" id="work-order-id" onclick="openOrderSheetOverlay()">없음</span>
                             <i class="bi bi-info-circle" id="order-id-info-icon" onclick="toggleOrderIdExplanation(event)" style="color: var(--text-sub); cursor: pointer; font-size: 13px; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-sub)'"></i>
                         </div>
                     </div>
@@ -1679,7 +1679,7 @@
         <div class="guide-content-box">
             <div class="guide-section-title" style="margin-bottom: 8px;">
                 <i class="bi bi-file-text-fill"></i>
-                <span id="overlay-order-id-title">지시서 ID: 260530-5-3</span>
+                <span id="overlay-order-id-title">지시서 ID: 없음</span>
             </div>
             
             <table class="order-table" style="font-size: 8.5px; width: 100%;">
@@ -1694,7 +1694,7 @@
                         <th style="width: 28px; text-align: center;">후 수량</th>
                         <th style="width: 32px; text-align: center;">전 무게</th>
                         <th style="width: 32px; text-align: center;">후 무게</th>
-                        <th style="width: 22px; text-align: center;">불량</th>
+                        <th style="width: 45px; text-align: center;">불량</th>
                         <th style="width: 30px; text-align: center;">상태</th>
                     </tr>
                 </thead>
@@ -1943,29 +1943,29 @@
                 num: 1,
                 name: "Stage 1. 배추 1/2컷팅하기",
                 title: "현재 작업중: 배추 적재",
-                order: "260530-5-9",
+                order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 박준호",
                 prevLocation: "야외 하차장 (원재료 하차 구역)",
                 nextLocation: "AFood-Stage 1-적재데크 (Stage 1 결과물)",
                 production: "생산 수량: 적재 배차 1대 ",
-                completedOrders: ["260530-5-8"]
+                completedOrders: []
             },
             2: {
                 num: 2,
                 name: "Stage 2. 배추 절이기",
                 title: "현재 작업중: 배추 절이기",
-                order: "260530-5-8",
+                order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 최은지",
                 prevLocation: "AFood-Stage 1-적재데크 (Stage 1 결과물)",
                 nextLocation: "AFood-Stage 2-적재데크 (Stage 2 결과물)",
                 production: "생산 수량:절인 배추 ",
-                completedOrders: ["260530-5-5"]
+                completedOrders: []
             },
             3: {
                 num: 3,
                 name: "Stage 3. 절인배추 세척후 보관하기",
                 title: "현재 작업중: 절인배추 세척후 보관하기",
-                order: "260530-5-3",
+                order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 이영희",
                 prevLocation: "AFood-Stage 2-적재데크 (Stage 2 결과물)",
                 nextLocation: "AFood-Stage 3-적재데크 (Stage 3 결과물)",
@@ -1976,7 +1976,7 @@
                 num: 4,
                 name: "Stage 4. 양념제조와 양념을 묻히는 작업",
                 title: "현재 작업중: 양념 배합 및 묻히기",
-                order: "260530-5-2",
+                order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 정다은, 윤민수",
                 prevLocation: "AFood-Stage 3-적재데크 (Stage 3 결과물)",
                 nextLocation: "AFood-Stage 4-적재데크 (Stage 4 결과물)",
@@ -1987,7 +1987,7 @@
                 num: 5,
                 name: "Stage 5. 포장용기에 담는 작업",
                 title: "현재 작업중: 용기 담기 및 포장",
-                order: "260530-5-1",
+                order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 황정민",
                 prevLocation: "AFood-Stage 4-적재데크 (Stage 4 결과물)",
                 nextLocation: "AFood-Stage 5-적재데크 (Stage 5 결과물)",
@@ -1997,383 +1997,7 @@
         };
 
         // 생산지시서 데이터베이스 (중앙 데이터 스토어)
-        // 생산지시서 데이터베이스 (중앙 데이터 스토어 - 기본값)
-        // 생산지시서 데이터베이스 (중앙 데이터 스토어 - 기본값)
-        var defaultProductionOrders = {
-            "260530-5-9": {
-                orderId: "260530-5-9",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 2,
-                progressStatus: "생산중 (Stage1완료)",
-                cabbageOrigin: "강원도 평창 고랭지",
-                supplier: "대관령 유통",
-                deliveryRoute: "루트-1",
-                createdTime: "15:00:00",
-                stages: {
-                    1: {
-                        operator: "최수아",
-                        startTime: "15:00:00",
-                        endTime: "15:15:00",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "최수아", startTime: "15:00:00", endTime: "15:15:00", duration: 900 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            },
-            "260612-5-1": {
-                orderId: "260612-5-1",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 2,
-                progressStatus: "생산중 (Stage1완료)",
-                cabbageOrigin: "강원도 평창 고랭지",
-                supplier: "대관령 유통",
-                deliveryRoute: "루트-1",
-                createdTime: "오후 9:46",
-                stages: {
-                    1: {
-                        operator: "최수아",
-                        startTime: "21:46:00",
-                        endTime: "22:01:00",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "최수아", startTime: "21:46:00", endTime: "22:01:00", duration: 900 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            },
-            "260530-5-8": {
-                orderId: "260530-5-8",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 2,
-                progressStatus: "생산중 (Stage1완료)",
-                cabbageOrigin: "강원도 평창 고랭지",
-                supplier: "대관령 유통",
-                deliveryRoute: "루트-1",
-                createdTime: "14:00:00",
-                stages: {
-                    1: {
-                        operator: "김태호",
-                        startTime: "14:00:12",
-                        endTime: "14:30:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "김태호", startTime: "14:00:12", endTime: "14:18:12", duration: 1080 },
-                            { operator: "박준호", startTime: "14:18:12", endTime: "14:30:12", duration: 720 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            },
-            "260530-5-5": {
-                orderId: "260530-5-5",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 3,
-                progressStatus: "생산중 (Stage2완료)",
-                cabbageOrigin: "전라남도 해남 겨울배추",
-                supplier: "남도 농산",
-                deliveryRoute: "루트-2",
-                createdTime: "14:00:00",
-                stages: {
-                    1: {
-                        operator: "김태호",
-                        startTime: "14:00:12",
-                        endTime: "14:30:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "김태호", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    2: {
-                        operator: "김태호",
-                        startTime: "14:30:12",
-                        endTime: "15:00:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "최은지", startTime: "14:30:12", endTime: "14:45:12", duration: 900 },
-                            { operator: "김태호", startTime: "14:45:12", endTime: "15:00:12", duration: 900 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            },
-            "260530-5-3": {
-                orderId: "260530-5-3",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 3,
-                progressStatus: "생산중 (Stage2완료)",
-                cabbageOrigin: "충청북도 괴산 가을배추",
-                supplier: "태백 농협",
-                deliveryRoute: "루트-3",
-                createdTime: "14:00:00",
-                stages: {
-                    1: {
-                        operator: "김태호",
-                        startTime: "14:00:12",
-                        endTime: "14:30:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "김태호", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    2: {
-                        operator: "최은지",
-                        startTime: "14:30:12",
-                        endTime: "15:00:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "최은지", startTime: "14:30:12", endTime: "15:00:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            },
-            "260530-5-2": {
-                orderId: "260530-5-2",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 4,
-                progressStatus: "생산중 (Stage3완료)",
-                cabbageOrigin: "강원도 정선 고랭지",
-                supplier: "대구 유통",
-                deliveryRoute: "루트-1",
-                createdTime: "13:30:00",
-                stages: {
-                    1: {
-                        operator: "김태호",
-                        startTime: "13:30:12",
-                        endTime: "14:00:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "김태호", startTime: "13:30:12", endTime: "14:00:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    2: {
-                        operator: "최은지",
-                        startTime: "14:00:12",
-                        endTime: "14:30:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "최은지", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    3: {
-                        operator: "이영희",
-                        startTime: "14:30:12",
-                        endTime: "15:00:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "이영희", startTime: "14:30:12", endTime: "15:00:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            },
-            "260530-5-1": {
-                orderId: "260530-5-1",
-                productId: "p1kg",
-                productName: "1kg 포기김치",
-                quantity: 5,
-                status: "in_progress",
-                currentTask: 5,
-                progressStatus: "생산중 (Stage4완료)",
-                cabbageOrigin: "강원도 태백 고랭지",
-                supplier: "태백 농협",
-                deliveryRoute: "루트-2",
-                createdTime: "13:00:00",
-                stages: {
-                    1: {
-                        operator: "김태호",
-                        startTime: "13:00:12",
-                        endTime: "13:30:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "김태호", startTime: "13:00:12", endTime: "13:30:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    2: {
-                        operator: "최은지",
-                        startTime: "13:30:12",
-                        endTime: "14:00:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "최은지", startTime: "13:30:12", endTime: "14:00:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    3: {
-                        operator: "이영희",
-                        startTime: "14:00:12",
-                        endTime: "14:30:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "이영희", startTime: "14:00:12", endTime: "14:30:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    },
-                    4: {
-                        operator: "정다은",
-                        startTime: "14:30:12",
-                        endTime: "15:00:12",
-                        postWorkQty: 5,
-                        postWorkWeight: 4.0,
-                        sessions: [
-                            { operator: "정다은", startTime: "14:30:12", endTime: "15:00:12", duration: 1800 }
-                        ],
-                        defectCount: 0,
-                        weight: 4.0,
-                        step1Done: true,
-                        step2Done: true,
-                        step2Status: "approved",
-                        step3Done: true,
-                        step3Status: "approved",
-                        step4Done: true,
-                        statusSubmitted: true
-                    }
-                }
-            }
-        };
+        var defaultProductionOrders = window.defaultProductionOrders;
 
         function parseProductionOrders(stored) {
             if (!stored || stored === "{}" || stored === "[]") return {};
@@ -2392,108 +2016,31 @@
             }
         }
 
-        var productionOrders = {};
-        try {
-            var storedOrders = localStorage.getItem('kimp_production_orders');
-            var parsed = parseProductionOrders(storedOrders);
-            productionOrders = { ...defaultProductionOrders, ...parsed };
-            localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
-
-            // DB Cleanup: Delete 260530-5-10~12 and ensure 260530-5-9 & 260612-5-1 are Stage 1 completed
-            var dbChanged = false;
-            if (productionOrders["260530-5-10"]) { delete productionOrders["260530-5-10"]; dbChanged = true; }
-            if (productionOrders["260530-5-11"]) { delete productionOrders["260530-5-11"]; dbChanged = true; }
-            if (productionOrders["260530-5-12"]) { delete productionOrders["260530-5-12"]; dbChanged = true; }
-
-            if (!productionOrders["260530-5-9"]) {
-                productionOrders["260530-5-9"] = {
-                    orderId: "260530-5-9",
-                    productId: "p1kg",
-                    productName: "1kg 포기김치",
-                    quantity: 5,
-                    status: "in_progress",
-                    currentTask: 2,
-                    progressStatus: "생산중 (Stage1완료)",
-                    cabbageOrigin: "강원도 평창 고랭지",
-                    supplier: "대관령 유통",
-                    deliveryRoute: "루트-1",
-                    createdTime: "15:00:00",
-                    stages: {
-                        1: {
-                            operator: "최수아",
-                            startTime: "15:00:00",
-                            endTime: "15:15:00",
-                            postWorkQty: 5,
-                            postWorkWeight: 4.0,
-                            sessions: [
-                                { operator: "최수아", startTime: "15:00:00", endTime: "15:15:00", duration: 900 }
-                            ],
-                            defectCount: 0,
-                            weight: 4.0,
-                            step1Done: true,
-                            step2Done: true,
-                            step2Status: "approved",
-                            step3Done: true,
-                            step3Status: "approved",
-                            step4Done: true,
-                            statusSubmitted: true
-                        }
-                    }
-                };
-                dbChanged = true;
+        function loadProductionOrders() {
+            if (window.FactoryStore) {
+                return window.FactoryStore.getState().productionOrders || {};
             }
-
-            if (!productionOrders["260612-5-1"]) {
-                productionOrders["260612-5-1"] = {
-                    orderId: "260612-5-1",
-                    productId: "p1kg",
-                    productName: "1kg 포기김치",
-                    quantity: 5,
-                    status: "in_progress",
-                    currentTask: 2,
-                    progressStatus: "생산중 (Stage1완료)",
-                    cabbageOrigin: "강원도 평창 고랭지",
-                    supplier: "대관령 유통",
-                    deliveryRoute: "루트-1",
-                    createdTime: "오후 9:46",
-                    stages: {
-                        1: {
-                            operator: "최수아",
-                            startTime: "21:46:00",
-                            endTime: "22:01:00",
-                            postWorkQty: 5,
-                            postWorkWeight: 4.0,
-                            sessions: [
-                                { operator: "최수아", startTime: "21:46:00", endTime: "22:01:00", duration: 900 }
-                            ],
-                            defectCount: 0,
-                            weight: 4.0,
-                            step1Done: true,
-                            step2Done: true,
-                            step2Status: "approved",
-                            step3Done: true,
-                            step3Status: "approved",
-                            step4Done: true,
-                            statusSubmitted: true
-                        }
-                    }
-                };
-                dbChanged = true;
+            try {
+                var storedOrders = localStorage.getItem('kimp_production_orders');
+                var parsed = parseProductionOrders(storedOrders);
+                return { ...defaultProductionOrders, ...parsed };
+            } catch(e) {
+                return defaultProductionOrders;
             }
-
-            if (dbChanged) {
-                localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
-            }
-        } catch(e) {
-            productionOrders = defaultProductionOrders;
         }
+
+        var productionOrders = loadProductionOrders();
 
         function saveProductionOrders() {
             var currentOrders = {};
             try {
-                var storedOrders = localStorage.getItem('kimp_production_orders');
-                var parsed = parseProductionOrders(storedOrders);
-                currentOrders = { ...defaultProductionOrders, ...parsed };
+                if (window.FactoryStore) {
+                    currentOrders = window.FactoryStore.getState().productionOrders || {};
+                } else {
+                    var storedOrders = localStorage.getItem('kimp_production_orders');
+                    var parsed = parseProductionOrders(storedOrders);
+                    currentOrders = { ...defaultProductionOrders, ...parsed };
+                }
             } catch(e) {
                 currentOrders = defaultProductionOrders;
             }
@@ -2591,7 +2138,11 @@
             }
 
             productionOrders = currentOrders;
-            localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
+            if (window.FactoryStore) {
+                window.FactoryStore.dispatch({ type: 'SET_PRODUCTION_ORDERS', payload: productionOrders });
+            } else {
+                localStorage.setItem('kimp_production_orders', JSON.stringify(productionOrders));
+            }
         }
 
         // 로컬스토리지 기반으로 완료된 지시서 목록(completedOrders) 복구
@@ -2643,6 +2194,9 @@
         // 직전 공정의 최종 완료 수량을 가져오는 헬퍼 함수
         function getPrevStagePostQty(stageNum, orderId) {
             if (stageNum <= 1 || !orderId || orderId === "없음") {
+                if (orderId && orderId !== "없음" && productionOrders[orderId]) {
+                    return productionOrders[orderId].quantity || 15;
+                }
                 return 5;
             }
             if (productionOrders[orderId] && productionOrders[orderId].stages && productionOrders[orderId].stages[stageNum - 1]) {
@@ -2839,7 +2393,7 @@
             } else if (state.preWorkQty > maxQty) {
                 state.preWorkQty = maxQty;
             }
-            state.defectCount = 5 - state.preWorkQty;
+            state.defectCount = maxQty - state.preWorkQty;
             if (state.weight === undefined) state.weight = parseFloat((state.preWorkQty * 0.8).toFixed(1));
             if (state.postWorkQty === undefined) state.postWorkQty = null;
             if (state.postWorkWeight === undefined) state.postWorkWeight = null;
@@ -2955,14 +2509,14 @@
             var step2Class = state.step2Done ? "completed" : (state.step1Done ? "pending" : "waiting");
             var step2Icon = state.step2Done ? "bi-check-circle-fill" : (state.step1Done ? "bi-arrow-repeat" : "bi-circle");
             
-            var step2Widget = "";
+             var step2Widget = "";
             if (!state.step2Done && state.step1Done) {
                 if (state.step2Status === "none") {
                     step2Widget = `
                         <div class="defect-subcard">
                             <div class="defect-row">
                                 <span class="defect-label">기본 지시 수량</span>
-                                <span class="defect-value">5포기</span>
+                                <span class="defect-value">${maxQty}포기</span>
                             </div>
                             <div class="defect-row">
                                 <span class="defect-label">작업 전 배추 포기 수량 입력</span>
@@ -2989,7 +2543,7 @@
                         <div class="defect-subcard" style="opacity: 0.6;">
                             <div class="defect-row">
                                 <span class="defect-label">기본 지시 수량</span>
-                                <span class="defect-value">5포기</span>
+                                <span class="defect-value">${maxQty}포기</span>
                             </div>
                             <div class="defect-row">
                                 <span class="defect-label">작업 전 배추 포기 수량 입력</span>
@@ -3004,9 +2558,12 @@
                                 <input type="number" class="defect-input" value="${state.weight !== undefined ? state.weight : (validQty * 0.8).toFixed(1)}" disabled style="width: 70px;">
                             </div>
                         </div>
+                        <div class="widget-area">
+                            <button class="btn-widget-action" disabled><i class="bi bi-camera"></i> 수량 확인 및 사진 촬영 전송</button>
+                        </div>
                         <div class="pending-status-box">
                             <div class="spinner"></div>
-                            <span>수량/무게 사진 전송 완료... 관리자 심사 대기 중 (Pending)</span>
+                            <span>아직 스캔 심사중입니다. 기다려주세요.</span>
                         </div>
                     `;
                 }
@@ -3306,9 +2863,7 @@
 
         function syncActiveOrders() {
             try {
-                var storedOrders = localStorage.getItem('kimp_production_orders');
-                var parsed = parseProductionOrders(storedOrders);
-                productionOrders = { ...defaultProductionOrders, ...parsed };
+                productionOrders = loadProductionOrders();
             } catch(e) {}
             syncCompletedOrdersFromProductionOrders();
             
@@ -3317,27 +2872,38 @@
                 var m = stagesModel[sNum];
                 if (!m) continue;
                 
-                // 만약 해당 스테이지가 현재 진행 중인 스테이지이고, 이미 시작(step1Done)되었다면 UI 상태 복구
-                if (m.order && m.order !== "없음" && productionOrders[m.order] && productionOrders[m.order].stages && productionOrders[m.order].stages[sNum]) {
-                    var stageState = productionOrders[m.order].stages[sNum];
-                    if (stageState.step1Done && !stageState.statusSubmitted) {
-                        m.step1Done = true;
+                // 1. First, find if there is an active order in productionOrders for this stage
+                var foundActiveOrder = "없음";
+                for (var key in productionOrders) {
+                    var orderObj = productionOrders[key];
+                    if (orderObj.stages && orderObj.stages[sNum]) {
+                        var stageState = orderObj.stages[sNum];
+                        if (stageState.step1Done && !stageState.statusSubmitted) {
+                            foundActiveOrder = key;
+                            break;
+                        }
                     }
                 }
                 
-                var state = getStageState(sNum);
-                // 만약 아직 QR 스캔을 완료하지 않았다면 (작업 시작 전)
-                if (!state.step1Done) {
-                    if (sNum === 1) {
-                        var activeOrder = findActiveProductionOrder();
-                        m.order = activeOrder ? activeOrder.orderId : "없음";
-                    } else {
-                        var readyOrders = (stagesModel[sNum - 1].completedOrders || []).filter(function(id) {
-                            return (stagesModel[sNum].completedOrders || []).indexOf(id) === -1;
-                        });
-                        var currentOrder = m.order;
-                        if (readyOrders.indexOf(currentOrder) === -1) {
-                            m.order = readyOrders.length > 0 ? readyOrders[0] : "없음";
+                if (foundActiveOrder !== "없음") {
+                    m.order = foundActiveOrder;
+                    m.step1Done = true;
+                } else {
+                    // No active in-progress order found in storage.
+                    // If the stage is not started yet (step1Done is false in memory), determine which order should be assigned
+                    var state = getStageState(sNum);
+                    if (!state.step1Done) {
+                        if (sNum === 1) {
+                            var activeOrder = findActiveProductionOrder();
+                            m.order = activeOrder ? activeOrder.orderId : "없음";
+                        } else {
+                            var readyOrders = (stagesModel[sNum - 1].completedOrders || []).filter(function(id) {
+                                return (stagesModel[sNum].completedOrders || []).indexOf(id) === -1;
+                            });
+                            var currentOrder = m.order;
+                            if (readyOrders.indexOf(currentOrder) === -1) {
+                                m.order = readyOrders.length > 0 ? readyOrders[0] : "없음";
+                            }
                         }
                     }
                 }
@@ -3346,18 +2912,14 @@
 
         function findActiveProductionOrder() {
             try {
-                var storedOrders = localStorage.getItem('kimp_production_orders');
-                console.log("[DEBUG-QR] storedOrders from localStorage:", storedOrders);
-                var parsed = parseProductionOrders(storedOrders);
-                console.log("[DEBUG-QR] parsed orders:", JSON.stringify(parsed));
-                productionOrders = { ...defaultProductionOrders, ...parsed };
-                console.log("[DEBUG-QR] merged productionOrders keys:", Object.keys(productionOrders));
+                productionOrders = loadProductionOrders();
+                console.log("[DEBUG-QR] loaded productionOrders keys:", Object.keys(productionOrders));
             } catch(e) {
-                console.error("[DEBUG-QR] Failed to parse/merge production orders:", e);
+                console.error("[DEBUG-QR] Failed to load production orders:", e);
             }
             syncCompletedOrdersFromProductionOrders();
 
-            var defaultIds = ["260530-5-8", "260530-5-5", "260530-5-3", "260530-5-2", "260530-5-1"];
+            var defaultIds = Object.keys(window.defaultProductionOrders || {});
             for (var key in productionOrders) {
                 if (defaultIds.indexOf(key) === -1) {
                     var o = productionOrders[key];
@@ -3382,9 +2944,7 @@
 
         function getAvailableOrderForStage(stageNum) {
             try {
-                var storedOrders = localStorage.getItem('kimp_production_orders');
-                var parsed = parseProductionOrders(storedOrders);
-                productionOrders = { ...defaultProductionOrders, ...parsed };
+                productionOrders = loadProductionOrders();
             } catch(e) {}
             syncCompletedOrdersFromProductionOrders();
 
@@ -3515,6 +3075,7 @@
             // 타임라인 로그 기록
             addTimelineLog(currentUserName + "님이 Stage " + activeStageNum + "공정, 생산지시서 " + m.order + "의 작업을 시작했습니다.");
             
+            saveProductionOrders();
             renderWorkflow();
         }
 
@@ -3531,7 +3092,7 @@
             
             var state = getStageState(activeStageNum);
             state.preWorkQty = qty;
-            state.defectCount = 5 - qty;
+            state.defectCount = maxQty - qty;
             
             var suggestedWeight = parseFloat((qty * 0.8).toFixed(1));
             state.weight = suggestedWeight;
@@ -3551,15 +3112,18 @@
             if (prodInfo) {
                 prodInfo.textContent = "생산 수량: 배추 " + qty + "포기 (불량 " + state.defectCount + "포기 제외)";
             }
+            saveProductionOrders();
         }
 
         // 불량 수량 갱신 (하위 호환용)
         function updateDefectCount(val) {
             if (activeStageNum === null) return;
+            var m = stagesModel[activeStageNum];
+            var maxQty = getPrevStagePostQty(activeStageNum, m.order);
             var count = parseInt(val);
             if (isNaN(count) || count < 0) count = 0;
-            if (count > 5) count = 5;
-            updatePreWorkQty(5 - count);
+            if (count > maxQty) count = maxQty;
+            updatePreWorkQty(maxQty - count);
         }
 
         // 측정 무게 입력 갱신
@@ -3569,6 +3133,7 @@
             if (isNaN(w) || w < 0) w = 0;
             var state = getStageState(activeStageNum);
             state.weight = parseFloat(w.toFixed(1));
+            saveProductionOrders();
         }
 
         // 수량 및 무게 확인 및 불량 감액 사진 심사 요청 (매니저 승인 연동)
@@ -3576,6 +3141,7 @@
             if (activeStageNum === null) return;
             var state = getStageState(activeStageNum);
             state.step2Status = "pending";
+            saveProductionOrders();
             renderWorkflow();
             
             // 매니저에게 불량 감액 사진 심사 요청 등록
@@ -3764,6 +3330,7 @@
             var state = getStageState(activeStageNum);
             state.step4Done = true;
             closeGuidePage();
+            saveProductionOrders();
             renderWorkflow();
         }
 
@@ -3772,8 +3339,10 @@
             if (activeStageNum === null) return;
             var count = parseInt(val);
             
+            var m = stagesModel[activeStageNum];
+            var maxQty = getPrevStagePostQty(activeStageNum, m.order);
             var state = getStageState(activeStageNum);
-            var limit = state.preWorkQty !== undefined ? state.preWorkQty : 5;
+            var limit = state.preWorkQty !== undefined ? state.preWorkQty : maxQty;
             
             if (isNaN(count) || count < 0) count = limit;
             if (count > limit) count = limit;
@@ -3788,6 +3357,7 @@
             if (postWeightInput) {
                 postWeightInput.value = suggestedWeight;
             }
+            saveProductionOrders();
         }
 
         // 작업 후 무게 입력 갱신
@@ -3797,6 +3367,7 @@
             if (isNaN(w) || w < 0) w = 0;
             var state = getStageState(activeStageNum);
             state.postWorkWeight = parseFloat(w.toFixed(1));
+            saveProductionOrders();
         }
 
         // 작업 후 생산지시서 스캔 완료 및 제출
@@ -3804,20 +3375,21 @@
             if (activeStageNum === null) return;
             var m = stagesModel[activeStageNum];
             var state = getStageState(activeStageNum);
+            var maxQty = getPrevStagePostQty(activeStageNum, m.order);
             
             // 입력창 값 읽기 및 갱신 (onchange 미발생 대비)
             var qtyInput = document.getElementById('post-qty-input-box');
             if (qtyInput) {
                 updatePostWorkQty(qtyInput.value);
             } else if (state.postWorkQty === null) {
-                state.postWorkQty = state.preWorkQty !== undefined ? state.preWorkQty : (5 - state.defectCount);
+                state.postWorkQty = state.preWorkQty !== undefined ? state.preWorkQty : (maxQty - state.defectCount);
             }
             
             var weightInput = document.getElementById('post-weight-input-box');
             if (weightInput) {
                 updatePostWorkWeight(weightInput.value);
             } else if (state.postWorkWeight === null) {
-                var preQty = state.preWorkQty !== undefined ? state.preWorkQty : (5 - state.defectCount);
+                var preQty = state.preWorkQty !== undefined ? state.preWorkQty : (maxQty - state.defectCount);
                 state.postWorkWeight = state.weight !== undefined ? state.weight : parseFloat((preQty * 0.8).toFixed(1));
             }
             
@@ -4399,7 +3971,7 @@
                         if (stageState.postWorkQty !== null) {
                             finalDefect = Math.max(0, preQty - stageState.postWorkQty);
                         }
-                        sumDefect = initialDefect + finalDefect;
+                        sumDefect = "전:" + initialDefect + " / 후:" + finalDefect;
                     }
                     
                     var statusBadge = "";
@@ -4436,11 +4008,10 @@
             var titleEl = document.getElementById('overlay-order-id-title');
             
             var m = stagesModel[activeStageNum];
-            var state = getStageState(activeStageNum);
             
-            // 아직 스캔을 안 해서 orderId가 없거나 "없음"인 경우 팝업을 열지 않고 경고
-            if (!state.step1Done || !m.order || m.order === "없음") {
-                alert("아직 지시서를 스캔하지 않아 작업 이력이 존재하지 않습니다. 1단계 [QR코드 지시서 스캔]을 먼저 완료해 주세요.");
+            // 아직 배정된 생산지시서가 없거나 "없음"인 경우 경고
+            if (!m.order || m.order === "없음" || !productionOrders[m.order]) {
+                alert("아직 배정된 생산지시서가 없거나 해당 지시서 정보가 존재하지 않습니다.");
                 return;
             }
             
@@ -5121,10 +4692,19 @@
                 renderTaskCards();
             }
             if (e.key === window.getStorageKey('kimp_production_orders')) {
-                syncActiveOrders();
-                renderWorkflow();
+                if (!window.FactoryStore) {
+                    syncActiveOrders();
+                    renderWorkflow();
+                }
             }
         });
+
+        if (window.FactoryStore) {
+            window.FactoryStore.subscribe(function() {
+                syncActiveOrders();
+                renderWorkflow();
+            });
+        }
 
         // 사용자 정보 배너 업데이트
         var userBadge = document.getElementById('logged-in-user-name');
@@ -5154,8 +4734,8 @@
                 { time: "15:00:15", text: currentUserName + "님이 실습장(AFood KimchiA)에 입장했습니다." },
                 { time: "15:00:20", text: "이영희님이 실습장에 입장했습니다." },
                 { time: "15:00:30", text: "김영희 헬퍼님이 현장 지원 대기를 시작했습니다." },
-                { time: "15:01:05", text: currentUserName + "님이 Stage 1공정, 생산지시서 260530-5-9 작업을 시작했습니다." },
-                { time: "15:03:50", text: currentUserName + "님이 Stage 1공정, 생산지시서 260530-5-9 작업을 완료했습니다." }
+                { time: "15:01:05", text: currentUserName + "님이 Stage 1공정, 생산지시서 260619-15-2 작업을 시작했습니다." },
+                { time: "15:03:50", text: currentUserName + "님이 Stage 1공정, 생산지시서 260619-15-2 작업을 완료했습니다." }
             ];
             setPartitionedItem('kimp_session_timeline', JSON.stringify(initialTimeline));
         }
