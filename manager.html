@@ -1645,11 +1645,8 @@
                                 <input type="number" id="order-form-quantity" class="sim-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" min="1" max="50" value="5" oninput="calculateFormWeights()">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">배추 크기/규격</label>
-                                <select id="order-form-spec" class="sim-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" onchange="calculateFormWeights()">
-                                    <option value="2.5" selected>2.5 kg (표준형)</option>
-                                    <option value="3.0">3.0 kg (대형)</option>
-                                </select>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">1포기당 무게 (kg)</label>
+                                <input type="number" id="order-form-spec" class="sim-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" min="0.1" max="10" step="0.1" value="2.5" oninput="calculateFormWeights()">
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px;">
@@ -1676,6 +1673,60 @@
                                     <option value="루트-2">루트-2 (B구역 입고)</option>
                                     <option value="루트-3">루트-3 (C구역 입고)</option>
                                 </select>
+                            </div>
+                        </div>
+                        
+                        <!-- 2단계 절임 공정 세팅 -->
+                        <div style="margin-top: 18px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: var(--accent-purple); border-bottom: 1px dashed var(--border-color); padding-bottom: 4px;">
+                            <i class="bi bi-gear-fill"></i> 2단계 절임 공정 세팅
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">목표 절임 시간 (시간)</label>
+                                <input type="number" id="order-form-salting-duration" class="sim-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" min="1" value="12" oninput="onSaltingDurationChange()">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">목표 염도 (%)</label>
+                                <input type="number" id="order-form-salting-salinity" class="sim-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" min="1" max="99" value="12" oninput="calculateFormWeights()">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">
+                                    투입 물의 양 (L) 
+                                    <span style="font-size: 10px; color: var(--accent-blue); font-weight: normal;">(권장: <span id="order-form-recommended-water">0.0 L</span>)</span>
+                                </label>
+                                <input type="number" id="order-form-salting-water" class="sim-input" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;" min="0.1" step="0.1" value="6.0" oninput="this.dataset.userEdited='true'; calculateFormWeights()">
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-primary); margin-bottom: 14px; padding: 8px 12px; background-color: var(--card-bg-hover); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <i class="bi bi-calculator"></i> 실시간 소금 계산값: 
+                            <span style="font-weight: 700; color: var(--accent-purple);" id="order-form-salt-calc">0.00 kg</span> 
+                            <span style="font-size: 11px; color: var(--text-secondary); margin-left: 6px;">(공식: (염도 * 물의 양) / (100 - 염도))</span>
+                        </div>
+
+                        <!-- 4단계 포장 수량 세팅 -->
+                        <div style="margin-top: 18px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: var(--accent-purple); border-bottom: 1px dashed var(--border-color); padding-bottom: 4px;">
+                            <i class="bi bi-box-seam-fill"></i> 4단계 포장 규격 및 목표 수량 지시
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px;">
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">300g 수량</label>
+                                <input type="number" id="order-form-pkg-300g" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="this.dataset.userEdited='true';">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">1kg 수량</label>
+                                <input type="number" id="order-form-pkg-1kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="this.dataset.userEdited='true';">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">3kg 수량</label>
+                                <input type="number" id="order-form-pkg-3kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="this.dataset.userEdited='true';">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">5kg 수량</label>
+                                <input type="number" id="order-form-pkg-5kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="this.dataset.userEdited='true';">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">10kg 수량</label>
+                                <input type="number" id="order-form-pkg-10kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="this.dataset.userEdited='true';">
                             </div>
                         </div>
                         <div style="padding: 12px; background-color: var(--accent-blue-bg); border: 1px solid var(--accent-blue); border-radius: 8px; font-size: 12px; color: var(--accent-blue); font-weight: 600; margin-bottom: 14px;" id="order-form-calc-result">
@@ -2985,6 +3036,20 @@
             popup.document.close();
         }
 
+        function onSaltingDurationChange() {
+            const durationInput = document.getElementById("order-form-salting-duration");
+            const salinityInput = document.getElementById("order-form-salting-salinity");
+            if (durationInput && salinityInput) {
+                const duration = parseFloat(durationInput.value) || 0;
+                if (duration >= 24) {
+                    salinityInput.value = 8;
+                } else {
+                    salinityInput.value = 12;
+                }
+            }
+            calculateFormWeights();
+        }
+
         function calculateFormWeights() {
             const productSelect = document.getElementById("order-form-product");
             const qtyInput = document.getElementById("order-form-quantity");
@@ -2999,6 +3064,32 @@
             const cabbageWeight = qty * spec;
             const seasoningWeight = qty * 0.5;
             const kimchiWeight = cabbageWeight + seasoningWeight;
+
+            // Smart Recommended Water Calculation: cabbage total weight * 1.2
+            const recommendedWater = cabbageWeight * 1.2;
+            const recommendedWaterSpan = document.getElementById("order-form-recommended-water");
+            if (recommendedWaterSpan) {
+                recommendedWaterSpan.textContent = recommendedWater.toFixed(1) + " L";
+            }
+
+            // Auto-fill actual water input if not manually modified
+            const waterInput = document.getElementById("order-form-salting-water");
+            if (waterInput && !waterInput.dataset.userEdited) {
+                waterInput.value = recommendedWater.toFixed(1);
+            }
+
+            // Smart Dry Salt calculation: (salinity * water) / (100 - salinity)
+            const salinityInput = document.getElementById("order-form-salting-salinity");
+            const saltCalcSpan = document.getElementById("order-form-salt-calc");
+            if (salinityInput && waterInput && saltCalcSpan) {
+                const salinity = parseFloat(salinityInput.value) || 0;
+                const water = parseFloat(waterInput.value) || 0;
+                let saltKg = 0;
+                if (100 - salinity > 0) {
+                    saltKg = (salinity * water) / (100 - salinity);
+                }
+                saltCalcSpan.textContent = saltKg.toFixed(2) + " kg";
+            }
 
             // Get product name
             const names = {
@@ -3047,6 +3138,29 @@
             const expectedStock = currentStock + packsProduced;
             const afterDeliveryStock = expectedStock - remainingOrders;
 
+            // Auto-fill target packaging values if not manually modified
+            const pkg300g = document.getElementById("order-form-pkg-300g");
+            const pkg1kg = document.getElementById("order-form-pkg-1kg");
+            const pkg3kg = document.getElementById("order-form-pkg-3kg");
+            const pkg5kg = document.getElementById("order-form-pkg-5kg");
+            const pkg10kg = document.getElementById("order-form-pkg-10kg");
+            if (pkg300g && pkg1kg && pkg3kg && pkg5kg && pkg10kg) {
+                const someEdited = pkg300g.dataset.userEdited || pkg1kg.dataset.userEdited || pkg3kg.dataset.userEdited || pkg5kg.dataset.userEdited || pkg10kg.dataset.userEdited;
+                if (!someEdited) {
+                    pkg300g.value = 0;
+                    pkg1kg.value = 0;
+                    pkg3kg.value = 0;
+                    pkg5kg.value = 0;
+                    pkg10kg.value = 0;
+
+                    if (productVal === "p300g") pkg300g.value = packsProduced;
+                    else if (productVal === "p1kg") pkg1kg.value = packsProduced;
+                    else if (productVal === "p3kg") pkg3kg.value = packsProduced;
+                    else if (productVal === "p5kg") pkg5kg.value = packsProduced;
+                    else if (productVal === "p10kg") pkg10kg.value = packsProduced;
+                }
+            }
+
             resultDiv.innerHTML = `
                 <div style="margin-bottom: 6px;">
                     <i class="bi bi-info-circle-fill"></i> 배추 ${cabbageWeight.toFixed(1)}kg 처리 가능 (양념 ${seasoningWeight.toFixed(1)}kg 배합 후 김치 ${kimchiWeight.toFixed(1)}kg 생산 예상 / <strong>약 ${packsProduced}팩 생산</strong>)
@@ -3068,6 +3182,17 @@
             const supplierSelect = document.getElementById("order-form-supplier");
             const routeSelect = document.getElementById("order-form-route");
 
+            const durationInput = document.getElementById("order-form-salting-duration");
+            const salinityInput = document.getElementById("order-form-salting-salinity");
+            const waterInput = document.getElementById("order-form-salting-water");
+            const saltCalcSpan = document.getElementById("order-form-salt-calc");
+
+            const pkg300g = document.getElementById("order-form-pkg-300g");
+            const pkg1kg = document.getElementById("order-form-pkg-1kg");
+            const pkg3kg = document.getElementById("order-form-pkg-3kg");
+            const pkg5kg = document.getElementById("order-form-pkg-5kg");
+            const pkg10kg = document.getElementById("order-form-pkg-10kg");
+
             if (!productSelect || !qtyInput || !specSelect || !originSelect || !supplierSelect || !routeSelect) return;
 
             const productVal = productSelect.value;
@@ -3076,6 +3201,17 @@
             const origin = originSelect.value;
             const supplier = supplierSelect.value;
             const route = routeSelect.value;
+
+            const duration = parseFloat(durationInput ? durationInput.value : 12) || 12;
+            const salinity = parseFloat(salinityInput ? salinityInput.value : 12) || 12;
+            const water = parseFloat(waterInput ? waterInput.value : (quantity * spec * 1.2)) || (quantity * spec * 1.2);
+            const salt = parseFloat(saltCalcSpan ? saltCalcSpan.textContent : 0) || 0;
+
+            const t300g = parseInt(pkg300g ? pkg300g.value : 0) || 0;
+            const t1kg = parseInt(pkg1kg ? pkg1kg.value : 0) || 0;
+            const t3kg = parseInt(pkg3kg ? pkg3kg.value : 0) || 0;
+            const t5kg = parseInt(pkg5kg ? pkg5kg.value : 0) || 0;
+            const t10kg = parseInt(pkg10kg ? pkg10kg.value : 0) || 0;
 
             if (quantity <= 0) {
                 alert("수량은 1포기 이상이어야 합니다.");
@@ -3125,7 +3261,68 @@
                 supplier: supplier,
                 deliveryRoute: route,
                 createdTime: new Date().toLocaleTimeString().slice(0, 8),
-                stages: {}
+                rawMaterial: {
+                    cabbageQty: quantity,
+                    cabbageWeightPerPiece: spec,
+                    origin: origin,
+                    supplier: supplier
+                },
+                stages: {
+                    1: {
+                        operators: [],
+                        startTime: null,
+                        endTime: null,
+                        defectCount: 0,
+                        step1_cutting: {
+                            yieldQty: 0
+                        }
+                    },
+                    2: {
+                        operators: [],
+                        startTime: null,
+                        endTime: null,
+                        defectCount: 0,
+                        step2_salting: {
+                            brineSalinity: salinity,
+                            brineVolumeLiters: water,
+                            extraSaltAmountKg: salt,
+                            isTurnedOver: false,
+                            saltingStartTime: null,
+                            targetDuration: duration
+                        }
+                    },
+                    3: {
+                        operators: [],
+                        startTime: null,
+                        endTime: null,
+                        defectCount: 0,
+                        step3_washing_drying: {
+                            isWashedThreeTimes: false,
+                            dryingDurationHours: 0,
+                            isDryingTimeMet: false
+                        }
+                    },
+                    4: {
+                        operators: [],
+                        startTime: null,
+                        endTime: null,
+                        defectCount: 0,
+                        step4_seasoning_packing: {
+                            subTasks: {
+                                cabbagesTakenOut: false,
+                                seasoningApplied: false,
+                                putInContainers: false
+                            },
+                            targetPackaging: [
+                                { type: "300g", targetQty: t300g, actualQty: 0 },
+                                { type: "1kg", targetQty: t1kg, actualQty: 0 },
+                                { type: "3kg", targetQty: t3kg, actualQty: 0 },
+                                { type: "5kg", targetQty: t5kg, actualQty: 0 },
+                                { type: "10kg", targetQty: t10kg, actualQty: 0 }
+                            ]
+                        }
+                    }
+                }
             };
 
             ordersObj[newId] = newOrder;
@@ -3141,6 +3338,14 @@
             } catch(e) {}
             requests = requests.filter(r => r.type !== "order_required");
             localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
+
+            // Reset userEdited flags on inputs
+            if (waterInput) delete waterInput.dataset.userEdited;
+            if (pkg300g) delete pkg300g.dataset.userEdited;
+            if (pkg1kg) delete pkg1kg.dataset.userEdited;
+            if (pkg3kg) delete pkg3kg.dataset.userEdited;
+            if (pkg5kg) delete pkg5kg.dataset.userEdited;
+            if (pkg10kg) delete pkg10kg.dataset.userEdited;
 
             refreshAllData();
         }
@@ -4394,17 +4599,104 @@
                     p10kg: "10kg 업소용 김치"
                 };
 
+                const quantity = Math.floor(Math.random() * 5) + 3; // 3~7포기
+                const spec = 2.5;
+                const cabbageWeight = quantity * spec;
+                const water = cabbageWeight * 1.2;
+                const duration = 12;
+                const salinity = 12;
+                const salt = (salinity * water) / (100 - salinity);
+
+                let unitWeight = 1.0;
+                if (randSize === "p300g") unitWeight = 0.3;
+                else if (randSize === "p3kg") unitWeight = 3.0;
+                else if (randSize === "p5kg") unitWeight = 5.0;
+                else if (randSize === "p10kg") unitWeight = 10.0;
+                const expectedKimchi = cabbageWeight * 1.2;
+                const packs = Math.round(expectedKimchi / unitWeight);
+
+                const t300g = randSize === "p300g" ? packs : 0;
+                const t1kg = randSize === "p1kg" ? packs : 0;
+                const t3kg = randSize === "p3kg" ? packs : 0;
+                const t5kg = randSize === "p5kg" ? packs : 0;
+                const t10kg = randSize === "p10kg" ? packs : 0;
+
+                const selectedOrigin = origins[Math.floor(Math.random() * origins.length)];
+                const selectedSupplier = suppliers[Math.floor(Math.random() * suppliers.length)];
+
                 const newOrder = {
                     orderId: newOrderId,
                     productId: randSize,
                     productName: names[randSize],
-                    quantity: Math.floor(Math.random() * 5) + 3, // 3~7포기
+                    quantity: quantity,
                     status: "pending",
-                    cabbageOrigin: origins[Math.floor(Math.random() * origins.length)],
-                    supplier: suppliers[Math.floor(Math.random() * suppliers.length)],
+                    progressStatus: "대기 중",
+                    cabbageOrigin: selectedOrigin,
+                    supplier: selectedSupplier,
                     deliveryRoute: routes[Math.floor(Math.random() * routes.length)],
                     createdTime: timeStr,
-                    stages: {}
+                    rawMaterial: {
+                        cabbageQty: quantity,
+                        cabbageWeightPerPiece: spec,
+                        origin: selectedOrigin,
+                        supplier: selectedSupplier
+                    },
+                    stages: {
+                        1: {
+                            operators: [],
+                            startTime: null,
+                            endTime: null,
+                            defectCount: 0,
+                            step1_cutting: {
+                                yieldQty: 0
+                            }
+                        },
+                        2: {
+                            operators: [],
+                            startTime: null,
+                            endTime: null,
+                            defectCount: 0,
+                            step2_salting: {
+                                brineSalinity: salinity,
+                                brineVolumeLiters: water,
+                                extraSaltAmountKg: salt,
+                                isTurnedOver: false,
+                                saltingStartTime: null,
+                                targetDuration: duration
+                            }
+                        },
+                        3: {
+                            operators: [],
+                            startTime: null,
+                            endTime: null,
+                            defectCount: 0,
+                            step3_washing_drying: {
+                                isWashedThreeTimes: false,
+                                dryingDurationHours: 0,
+                                isDryingTimeMet: false
+                            }
+                        },
+                        4: {
+                            operators: [],
+                            startTime: null,
+                            endTime: null,
+                            defectCount: 0,
+                            step4_seasoning_packing: {
+                                subTasks: {
+                                    cabbagesTakenOut: false,
+                                    seasoningApplied: false,
+                                    putInContainers: false
+                                },
+                                targetPackaging: [
+                                    { type: "300g", targetQty: t300g, actualQty: 0 },
+                                    { type: "1kg", targetQty: t1kg, actualQty: 0 },
+                                    { type: "3kg", targetQty: t3kg, actualQty: 0 },
+                                    { type: "5kg", targetQty: t5kg, actualQty: 0 },
+                                    { type: "10kg", targetQty: t10kg, actualQty: 0 }
+                                ]
+                            }
+                        }
+                    }
                 };
                 
                 ordersObj[newOrderId] = newOrder;

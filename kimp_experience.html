@@ -1941,35 +1941,35 @@
         var stagesModel = {
             1: {
                 num: 1,
-                name: "Stage 1. 배추 5단위 적재하기",
+                name: "Stage 1. 배추 1/2컷팅하기",
                 title: "현재 작업중: 배추 적재",
                 order: "260530-5-9",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 박준호",
                 prevLocation: "야외 하차장 (원재료 하차 구역)",
                 nextLocation: "AFood-Stage 1-적재데크 (Stage 1 결과물)",
-                production: "생산 수량: 적재 배차 1대 (배추 5개 싣기)",
+                production: "생산 수량: 적재 배차 1대 ",
                 completedOrders: ["260530-5-8"]
             },
             2: {
                 num: 2,
-                name: "Stage 2. 배추 손질하기",
-                title: "현재 작업중: 배추 손질",
+                name: "Stage 2. 배추 절이기",
+                title: "현재 작업중: 배추 절이기",
                 order: "260530-5-8",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 최은지",
                 prevLocation: "AFood-Stage 1-적재데크 (Stage 1 결과물)",
                 nextLocation: "AFood-Stage 2-적재데크 (Stage 2 결과물)",
-                production: "생산 수량: 다듬은 배추 5포기",
+                production: "생산 수량:절인 배추 ",
                 completedOrders: ["260530-5-5"]
             },
             3: {
                 num: 3,
-                name: "Stage 3. 배추를 절이는 작업",
-                title: "현재 작업중: 절이기",
+                name: "Stage 3. 절인배추 세척후 보관하기",
+                title: "현재 작업중: 절인배추 세척후 보관하기",
                 order: "260530-5-3",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 이영희",
                 prevLocation: "AFood-Stage 2-적재데크 (Stage 2 결과물)",
                 nextLocation: "AFood-Stage 3-적재데크 (Stage 3 결과물)",
-                production: "생산 수량: 배추 5포기 절이기",
+                production: "생산 수량: 절인배추 세척후 보관하기",
                 completedOrders: []
             },
             4: {
@@ -2755,7 +2755,7 @@
         // 상세 가이드 설명서 내용
         var guidesContent = {
             1: {
-                title: "Stage 1. 배추 5단위 적재하기 상세 가이드",
+                title: "Stage 1. 배추 1/2컷팅하기 상세 가이드",
                 steps: [
                     "야외 하차 구역에서 적재용 파레트의 청결 상태를 점검합니다.",
                     "파레트에 이물질이나 흙이 묻어 있다면 비치된 빗자루와 전용 위생 행주로 닦아야 합니다.",
@@ -2765,7 +2765,7 @@
                 ]
             },
             2: {
-                title: "Stage 2. 배추 손질하기 상세 가이드",
+                title: "Stage 2. 배추 절이기 상세 가이드",
                 steps: [
                     "손질 작업대 위에 칼, 도마 등 위생 도구의 청결 상태를 확인합니다.",
                     "도구에 이전 잔여물이 보인다면 알코올 세척액과 전용 타올로 살균 청소합니다.",
@@ -4258,9 +4258,9 @@
 
         // ── 3.2 생산지시서 상세 조회 기능 ──
         var stageShortNames = {
-            1: "Stage 1 (적재)",
-            2: "Stage 2 (손질)",
-            3: "Stage 3 (절임)",
+            1: "Stage 1 (컷팅)",
+            2: "Stage 2 (절이기)",
+            3: "Stage 3 (세척)",
             4: "Stage 4 (양념)",
             5: "Stage 5 (포장)"
         };

@@ -2,6 +2,219 @@
     const localStorage = window.localStorage;
     let isSaving = false;
 
+    function mapOrderToFrontend(order) {
+        if (!order) return order;
+        const cloned = JSON.parse(JSON.stringify(order));
+        if (!cloned.stages) cloned.stages = {};
+
+        // Construct rawMaterial if missing for legacy orders
+        if (!cloned.rawMaterial) {
+            cloned.rawMaterial = {
+                cabbageQty: cloned.quantity || 5,
+                cabbageWeightPerPiece: 2.5,
+                origin: cloned.cabbageOrigin || "강원도 평창 고랭지",
+                supplier: cloned.supplier || "대관령 유통"
+            };
+        }
+
+        // Construct stage 1 frontend view
+        const s1 = cloned.stages[1] || {};
+        s1.operator = s1.operator || (s1.operators && s1.operators[0]) || null;
+        s1.postWorkQty = s1.postWorkQty || (s1.step1_cutting && s1.step1_cutting.yieldQty) || cloned.quantity || 0;
+        cloned.stages[1] = s1;
+
+        // Construct stage 2 frontend view
+        const s2 = cloned.stages[2] || {};
+        s2.operator = s2.operator || (s2.operators && s2.operators[0]) || null;
+        if (s2.step2_salting) {
+            s2.brineSalinity = s2.brineSalinity !== undefined ? s2.brineSalinity : s2.step2_salting.brineSalinity;
+            s2.brineVolumeLiters = s2.brineVolumeLiters !== undefined ? s2.brineVolumeLiters : s2.step2_salting.brineVolumeLiters;
+            s2.extraSaltAmountKg = s2.extraSaltAmountKg !== undefined ? s2.extraSaltAmountKg : s2.step2_salting.extraSaltAmountKg;
+            s2.isTurnedOver = s2.isTurnedOver !== undefined ? s2.isTurnedOver : s2.step2_salting.isTurnedOver;
+            s2.saltingStartTime = s2.saltingStartTime !== undefined ? s2.saltingStartTime : s2.step2_salting.saltingStartTime;
+            s2.targetDuration = s2.targetDuration !== undefined ? s2.targetDuration : s2.step2_salting.targetDuration;
+        }
+        cloned.stages[2] = s2;
+
+        // Construct stage 3 frontend view
+        const s3 = cloned.stages[3] || {};
+        s3.operator = s3.operator || (s3.operators && s3.operators[0]) || null;
+        if (s3.step3_washing_drying) {
+            s3.isWashedThreeTimes = s3.isWashedThreeTimes !== undefined ? s3.isWashedThreeTimes : s3.step3_washing_drying.isWashedThreeTimes;
+            s3.dryingDurationHours = s3.dryingDurationHours !== undefined ? s3.dryingDurationHours : s3.step3_washing_drying.dryingDurationHours;
+            s3.isDryingTimeMet = s3.isDryingTimeMet !== undefined ? s3.isDryingTimeMet : s3.step3_washing_drying.isDryingTimeMet;
+        }
+        cloned.stages[3] = s3;
+
+        // Construct stage 4 frontend view from s4 seasoning part
+        const s4 = cloned.stages[4] || {};
+        s4.operator = s4.operator || (s4.operators && s4.operators[0]) || null;
+        if (s4.step4_seasoning_packing) {
+            s4.cabbagesTakenOut = s4.cabbagesTakenOut !== undefined ? s4.cabbagesTakenOut : s4.step4_seasoning_packing.subTasks.cabbagesTakenOut;
+            s4.seasoningApplied = s4.seasoningApplied !== undefined ? s4.seasoningApplied : s4.step4_seasoning_packing.subTasks.seasoningApplied;
+            s4.endTime = s4.step4_seasoning_packing.seasoningEndTime || s4.endTime;
+            s4.defectCount = s4.step4_seasoning_packing.seasoningDefectCount !== undefined ? s4.step4_seasoning_packing.seasoningDefectCount : s4.defectCount;
+        }
+        cloned.stages[4] = s4;
+
+        // Construct stage 5 frontend view from s4 packing part
+        if (s4.step4_seasoning_packing) {
+            const s5 = {};
+            s5.operator = s4.step4_seasoning_packing.packingOperator || s4.operator;
+            s5.startTime = s4.step4_seasoning_packing.packingStartTime || null;
+            s5.endTime = s4.step4_seasoning_packing.packingEndTime || null;
+            s5.defectCount = s4.step4_seasoning_packing.packingDefectCount || 0;
+            s5.putInContainers = s4.step4_seasoning_packing.subTasks.putInContainers || false;
+            s5.statusSubmitted = s4.step4_seasoning_packing.packingStatusSubmitted || false;
+            s5.sessions = s4.step4_seasoning_packing.packingSessions || [];
+
+            // Find actual packaging quantities
+            const pkg = s4.step4_seasoning_packing.targetPackaging || [];
+            let matchingType = cloned.productId === 'p300g' ? '300g' : cloned.productId === 'p1kg' ? '1kg' : cloned.productId === 'p3kg' ? '3kg' : cloned.productId === 'p5kg' ? '5kg' : '10kg';
+            let matchingPkg = pkg.find(p => p.type === matchingType);
+            s5.postWorkQty = matchingPkg ? matchingPkg.actualQty : 0;
+            cloned.stages[5] = s5;
+        }
+
+        return cloned;
+    }
+
+    function mapOrderToDatabase(order) {
+        if (!order) return order;
+        const cloned = JSON.parse(JSON.stringify(order));
+        if (!cloned.stages) return cloned;
+
+        const dbStages = {};
+
+        // Stage 1
+        if (cloned.stages[1]) {
+            const s1 = cloned.stages[1];
+            dbStages[1] = {
+                ...s1,
+                operators: s1.operators || (s1.operator ? [s1.operator] : []),
+                startTime: s1.startTime || null,
+                endTime: s1.endTime || null,
+                defectCount: parseInt(s1.defectCount) || 0,
+                step1_cutting: {
+                    yieldQty: parseInt(s1.postWorkQty) || 0
+                }
+            };
+        }
+
+        // Stage 2
+        if (cloned.stages[2]) {
+            const s2 = cloned.stages[2];
+            const saltingStartTime = s2.saltingStartTime || s2.startTime || null;
+            const isTurnedOver = s2.isTurnedOver !== undefined ? s2.isTurnedOver : (s2.endTime ? true : false);
+            dbStages[2] = {
+                ...s2,
+                operators: s2.operators || (s2.operator ? [s2.operator] : []),
+                startTime: s2.startTime || null,
+                endTime: s2.endTime || null,
+                defectCount: parseInt(s2.defectCount) || 0,
+                step2_salting: {
+                    brineSalinity: parseFloat(s2.brineSalinity) || 0,
+                    brineVolumeLiters: parseFloat(s2.brineVolumeLiters) || 0,
+                    extraSaltAmountKg: parseFloat(s2.extraSaltAmountKg) || 0,
+                    isTurnedOver: !!isTurnedOver,
+                    saltingStartTime: saltingStartTime,
+                    targetDuration: parseFloat(s2.targetDuration) || 0
+                }
+            };
+        }
+
+        // Stage 3
+        if (cloned.stages[3]) {
+            const s3 = cloned.stages[3];
+            const isWashedThreeTimes = s3.isWashedThreeTimes !== undefined ? s3.isWashedThreeTimes : (s3.endTime ? true : false);
+            const isDryingTimeMet = s3.isDryingTimeMet !== undefined ? s3.isDryingTimeMet : (s3.endTime ? true : false);
+
+            let dryingDurationHours = 2.5;
+            if (s3.sessions && s3.sessions.length > 0) {
+                let totalSec = 0;
+                s3.sessions.forEach(sess => {
+                    totalSec += sess.duration || 0;
+                });
+                if (totalSec > 0) {
+                    dryingDurationHours = parseFloat((totalSec / 3600).toFixed(2));
+                }
+            }
+            if (s3.dryingDurationHours !== undefined) {
+                dryingDurationHours = parseFloat(s3.dryingDurationHours);
+            }
+
+            dbStages[3] = {
+                ...s3,
+                operators: s3.operators || (s3.operator ? [s3.operator] : []),
+                startTime: s3.startTime || null,
+                endTime: s3.endTime || null,
+                defectCount: parseInt(s3.defectCount) || 0,
+                step3_washing_drying: {
+                    isWashedThreeTimes: !!isWashedThreeTimes,
+                    dryingDurationHours: dryingDurationHours,
+                    isDryingTimeMet: !!isDryingTimeMet
+                }
+            };
+        }
+
+        // Stage 4 (merging 4 & 5)
+        const s4 = cloned.stages[4] || {};
+        const s5 = cloned.stages[5] || {};
+
+        let targetPackaging = [];
+        if (s4.step4_seasoning_packing && s4.step4_seasoning_packing.targetPackaging) {
+            targetPackaging = JSON.parse(JSON.stringify(s4.step4_seasoning_packing.targetPackaging));
+        } else {
+            targetPackaging = [
+                { type: "300g", targetQty: 0, actualQty: 0 },
+                { type: "1kg", targetQty: 0, actualQty: 0 },
+                { type: "3kg", targetQty: 0, actualQty: 0 },
+                { type: "5kg", targetQty: 0, actualQty: 0 },
+                { type: "10kg", targetQty: 0, actualQty: 0 }
+            ];
+        }
+
+        if (s5.postWorkQty !== undefined && s5.postWorkQty !== null) {
+            let matchingType = cloned.productId === 'p300g' ? '300g' : cloned.productId === 'p1kg' ? '1kg' : cloned.productId === 'p3kg' ? '3kg' : cloned.productId === 'p5kg' ? '5kg' : '10kg';
+            let pkgItem = targetPackaging.find(p => p.type === matchingType);
+            if (pkgItem) {
+                pkgItem.actualQty = parseInt(s5.postWorkQty) || 0;
+            }
+        }
+
+        const s4Ops = s4.operators || (s4.operator ? [s4.operator] : []);
+        const s5Ops = s5.operators || (s5.operator ? [s5.operator] : []);
+        const mergedOps = Array.from(new Set([...s4Ops, ...s5Ops]));
+
+        dbStages[4] = {
+            ...s4,
+            operators: mergedOps,
+            startTime: s4.startTime || null,
+            endTime: s5.endTime || s4.endTime || null,
+            defectCount: (parseInt(s4.defectCount) || 0) + (parseInt(s5.defectCount) || 0),
+            step4_seasoning_packing: {
+                subTasks: {
+                    cabbagesTakenOut: !!(s4.cabbagesTakenOut || (s4.step4_seasoning_packing && s4.step4_seasoning_packing.subTasks && s4.step4_seasoning_packing.subTasks.cabbagesTakenOut)),
+                    seasoningApplied: !!(s4.seasoningApplied || (s4.step4_seasoning_packing && s4.step4_seasoning_packing.subTasks && s4.step4_seasoning_packing.subTasks.seasoningApplied)),
+                    putInContainers: !!(s5.putInContainers || (s4.step4_seasoning_packing && s4.step4_seasoning_packing.subTasks && s4.step4_seasoning_packing.subTasks.putInContainers))
+                },
+                targetPackaging: targetPackaging,
+
+                seasoningEndTime: s4.endTime || null,
+                seasoningDefectCount: parseInt(s4.defectCount) || 0,
+                packingOperator: s5.operator || null,
+                packingStartTime: s5.startTime || null,
+                packingEndTime: s5.endTime || null,
+                packingDefectCount: parseInt(s5.defectCount) || 0,
+                packingStatusSubmitted: !!s5.statusSubmitted,
+                packingSessions: s5.sessions || []
+            }
+        };
+
+        cloned.stages = dbStages;
+        return cloned;
+    }
+
     // Partitioning helper functions (matching js/auth-guard.js)
     if (!window.getStorageKey) {
         window.getStorageKey = function(key) {
@@ -138,15 +351,17 @@
         // 6. Production orders
         try {
             let parsed = JSON.parse(localStorage.getItem('kimp_production_orders') || '{}');
+            let obj = {};
             if (parsed && Array.isArray(parsed)) {
-                let obj = {};
                 parsed.forEach(o => {
-                    if (o && o.orderId) obj[o.orderId] = o;
+                    if (o && o.orderId) obj[o.orderId] = mapOrderToFrontend(o);
                 });
-                state.productionOrders = obj;
             } else {
-                state.productionOrders = parsed || {};
+                for (let k in parsed) {
+                    obj[k] = mapOrderToFrontend(parsed[k]);
+                }
             }
+            state.productionOrders = obj;
         } catch(e) {
             state.productionOrders = {};
         }
@@ -227,13 +442,13 @@
                 let storedOrders = localStorage.getItem('kimp_production_orders');
                 let parsed = storedOrders ? JSON.parse(storedOrders) : {};
                 if (parsed && Array.isArray(parsed)) {
-                    let obj = {};
                     parsed.forEach(o => {
-                        if (o && o.orderId) obj[o.orderId] = o;
+                        if (o && o.orderId) currentOrders[o.orderId] = mapOrderToFrontend(o);
                     });
-                    currentOrders = obj;
                 } else {
-                    currentOrders = parsed || {};
+                    for (let k in parsed) {
+                        currentOrders[k] = mapOrderToFrontend(parsed[k]);
+                    }
                 }
             } catch(e) {
                 currentOrders = {};
@@ -322,7 +537,12 @@
 
             // Sync back to state just in case
             state.productionOrders = currentOrders;
-            localStorage.setItem('kimp_production_orders', JSON.stringify(state.productionOrders));
+
+            let dbOrders = {};
+            for (let k in state.productionOrders) {
+                dbOrders[k] = mapOrderToDatabase(state.productionOrders[k]);
+            }
+            localStorage.setItem('kimp_production_orders', JSON.stringify(dbOrders));
         }
 
         // 7. Workers progress
