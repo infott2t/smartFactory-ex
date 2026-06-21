@@ -41,20 +41,18 @@
                 },
                 2: {
                     operator: "최수아",
-                    startTime: "10:15:00",
+                    startTime: "10:17:00",
                     endTime: null,
-                    postWorkQty: 15,
-                    postWorkWeight: 37.5,
-                    sessions: [
-                        { operator: "최수아", startTime: "10:15:00", endTime: null, duration: 0 }
-                    ],
+                    postWorkQty: null,
+                    postWorkWeight: null,
+                    sessions: [],
                     defectCount: 0,
                     weight: 37.5,
-                    step1Done: true,
+                    step1Done: false,
                     step2Done: false,
-                    step2Status: "pending",
+                    step2Status: "none",
                     step3Done: false,
-                    step3Status: "pending",
+                    step3Status: "none",
                     step4Done: false,
                     statusSubmitted: false
                 }
@@ -93,21 +91,19 @@
                     statusSubmitted: true
                 },
                 2: {
-                    operator: "김태호",
-                    startTime: "09:15:00",
+                    operator: null,
+                    startTime: null,
                     endTime: null,
-                    postWorkQty: 15,
-                    postWorkWeight: 37.5,
-                    sessions: [
-                        { operator: "김태호", startTime: "09:15:00", endTime: null, duration: 0 }
-                    ],
+                    postWorkQty: null,
+                    postWorkWeight: null,
+                    sessions: [],
                     defectCount: 0,
                     weight: 37.5,
-                    step1Done: true,
+                    step1Done: false,
                     step2Done: false,
-                    step2Status: "pending",
+                    step2Status: "none",
                     step3Done: false,
-                    step3Status: "pending",
+                    step3Status: "none",
                     step4Done: false,
                     statusSubmitted: false
                 }
@@ -146,21 +142,19 @@
                     statusSubmitted: true
                 },
                 2: {
-                    operator: "박준호",
-                    startTime: "08:15:00",
+                    operator: null,
+                    startTime: null,
                     endTime: null,
-                    postWorkQty: 15,
-                    postWorkWeight: 37.5,
-                    sessions: [
-                        { operator: "박준호", startTime: "08:15:00", endTime: null, duration: 0 }
-                    ],
+                    postWorkQty: null,
+                    postWorkWeight: null,
+                    sessions: [],
                     defectCount: 0,
                     weight: 37.5,
-                    step1Done: true,
+                    step1Done: false,
                     step2Done: false,
-                    step2Status: "pending",
+                    step2Status: "none",
                     step3Done: false,
-                    step3Status: "pending",
+                    step3Status: "none",
                     step4Done: false,
                     statusSubmitted: false
                 }
@@ -199,11 +193,14 @@
         const s1 = cloned.stages[1] || {};
         s1.operator = s1.operator || (s1.operators && s1.operators[0]) || null;
         s1.postWorkQty = s1.postWorkQty || (s1.step1_cutting && s1.step1_cutting.yieldQty) || cloned.quantity || 0;
+        s1.step5Status = s1.step5Status || "none";
+        s1.statusSubmitted = s1.statusSubmitted !== undefined ? !!s1.statusSubmitted : false;
         cloned.stages[1] = s1;
 
         // Construct stage 2 frontend view
         const s2 = cloned.stages[2] || {};
         s2.operator = s2.operator || (s2.operators && s2.operators[0]) || null;
+        s2.step5Status = s2.step5Status || "none";
 
         // Fetch details from manager.html#salting (kimp_factory_salting)
         let saltingBatches = [];
@@ -227,7 +224,7 @@
             s2.isTurnedOver = matchedBatch.status === "matured" || elapsed >= limit;
             
             // Map status properties
-            if (matchedBatch.status === "matured" || elapsed >= limit) {
+            if (matchedBatch.status === "matured" || elapsed >= limit || s2.step5Status === "approved" || s2.statusSubmitted) {
                 s2.step2Done = true;
                 s2.step2Status = "approved";
                 s2.step3Done = true;
@@ -260,11 +257,18 @@
             s2.saltingStartTime = s2.saltingStartTime !== undefined ? s2.saltingStartTime : s2.step2_salting.saltingStartTime;
             s2.targetDuration = s2.targetDuration !== undefined ? s2.targetDuration : s2.step2_salting.targetDuration;
         }
+        s2.statusSubmitted = s2.statusSubmitted !== undefined ? !!s2.statusSubmitted : false;
         cloned.stages[2] = s2;
 
         // Construct stage 3 frontend view
         const s3 = cloned.stages[3] || {};
         s3.operator = s3.operator || (s3.operators && s3.operators[0]) || null;
+        s3.step5Status = s3.step5Status || "none";
+        s3.statusSubmitted = s3.statusSubmitted !== undefined ? !!s3.statusSubmitted : false;
+        if (s3.stage32) {
+            s3.stage32.step5Status = s3.stage32.step5Status || "none";
+            s3.stage32.statusSubmitted = s3.stage32.statusSubmitted !== undefined ? !!s3.stage32.statusSubmitted : false;
+        }
         if (s3.step3_washing_drying) {
             s3.isWashedThreeTimes = s3.isWashedThreeTimes !== undefined ? s3.isWashedThreeTimes : s3.step3_washing_drying.isWashedThreeTimes;
             s3.dryingDurationHours = s3.dryingDurationHours !== undefined ? s3.dryingDurationHours : s3.step3_washing_drying.dryingDurationHours;
@@ -294,6 +298,21 @@
             s5.statusSubmitted = s4.step4_seasoning_packing.packingStatusSubmitted || false;
             s5.sessions = s4.step4_seasoning_packing.packingSessions || [];
 
+            // Restore Stage 5 properties
+            s5.step1Done = s4.step4_seasoning_packing.packingStep1Done || false;
+            s5.step2Done = s4.step4_seasoning_packing.packingStep2Done || false;
+            s5.step2Status = s4.step4_seasoning_packing.packingStep2Status || "none";
+            s5.step3Done = s4.step4_seasoning_packing.packingStep3Done || false;
+            s5.step3Status = s4.step4_seasoning_packing.packingStep3Status || "none";
+            s5.step4Done = s4.step4_seasoning_packing.packingStep4Done || false;
+            s5.step5Status = s4.step4_seasoning_packing.packingStep5Status || "none";
+            s5.preWorkQty = s4.step4_seasoning_packing.packingPreWorkQty !== undefined ? s4.step4_seasoning_packing.packingPreWorkQty : null;
+            s5.weight = s4.step4_seasoning_packing.packingWeight !== undefined ? s4.step4_seasoning_packing.packingWeight : null;
+            s5.postWorkWeight = s4.step4_seasoning_packing.packingPostWorkWeight !== undefined ? s4.step4_seasoning_packing.packingPostWorkWeight : null;
+            s5.breakStartTime = s4.step4_seasoning_packing.packingBreakStartTime || null;
+            s5.breakHistory = s4.step4_seasoning_packing.packingBreakHistory || [];
+            s5.currentBreakStartRemaining = s4.step4_seasoning_packing.packingCurrentBreakStartRemaining !== undefined ? s4.step4_seasoning_packing.packingCurrentBreakStartRemaining : null;
+
             // Find actual packaging quantities
             const pkg = s4.step4_seasoning_packing.targetPackaging || [];
             let matchingType = cloned.productId === 'p300g' ? '300g' : cloned.productId === 'p1kg' ? '1kg' : cloned.productId === 'p3kg' ? '3kg' : cloned.productId === 'p5kg' ? '5kg' : '10kg';
@@ -321,6 +340,8 @@
                 startTime: s1.startTime || null,
                 endTime: s1.endTime || null,
                 defectCount: parseInt(s1.defectCount) || 0,
+                step5Status: s1.step5Status || "none",
+                statusSubmitted: !!s1.statusSubmitted,
                 step1_cutting: {
                     yieldQty: parseInt(s1.postWorkQty) || 0
                 }
@@ -338,6 +359,8 @@
                 startTime: s2.startTime || null,
                 endTime: s2.endTime || null,
                 defectCount: parseInt(s2.defectCount) || 0,
+                step5Status: s2.step5Status || "none",
+                statusSubmitted: !!s2.statusSubmitted,
                 step2_salting: {
                     brineSalinity: parseFloat(s2.brineSalinity) || 0,
                     brineVolumeLiters: parseFloat(s2.brineVolumeLiters) || 0,
@@ -375,6 +398,8 @@
                 startTime: s3.startTime || null,
                 endTime: s3.endTime || null,
                 defectCount: parseInt(s3.defectCount) || 0,
+                step5Status: s3.step5Status || "none",
+                statusSubmitted: !!s3.statusSubmitted,
                 step3_washing_drying: {
                     isWashedThreeTimes: !!isWashedThreeTimes,
                     dryingDurationHours: dryingDurationHours,
@@ -433,7 +458,22 @@
                 packingEndTime: s5.endTime || null,
                 packingDefectCount: parseInt(s5.defectCount) || 0,
                 packingStatusSubmitted: !!s5.statusSubmitted,
-                packingSessions: s5.sessions || []
+                packingSessions: s5.sessions || [],
+
+                // Map missing Stage 5 properties
+                packingStep1Done: s5.step1Done !== undefined ? !!s5.step1Done : false,
+                packingStep2Done: s5.step2Done !== undefined ? !!s5.step2Done : false,
+                packingStep2Status: s5.step2Status || "none",
+                packingStep3Done: s5.step3Done !== undefined ? !!s5.step3Done : false,
+                packingStep3Status: s5.step3Status || "none",
+                packingStep4Done: s5.step4Done !== undefined ? !!s5.step4Done : false,
+                packingStep5Status: s5.step5Status || "none",
+                packingPreWorkQty: s5.preWorkQty !== undefined ? parseInt(s5.preWorkQty) : null,
+                packingWeight: s5.weight !== undefined ? parseFloat(s5.weight) : null,
+                packingPostWorkWeight: s5.postWorkWeight !== undefined ? parseFloat(s5.postWorkWeight) : null,
+                packingBreakStartTime: s5.breakStartTime || null,
+                packingBreakHistory: s5.breakHistory || [],
+                packingCurrentBreakStartRemaining: s5.currentBreakStartRemaining !== undefined ? parseInt(s5.currentBreakStartRemaining) : null
             }
         };
 
@@ -682,6 +722,32 @@
                     dbChanged = true;
                 }
             });
+
+            // Self-healing database consistency: If Stage 2 is pending but no matching request exists, reset it.
+            let requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+            
+            for (let k in obj) {
+                if (obj[k] && obj[k].stages && obj[k].stages[2]) {
+                    let s2 = obj[k].stages[2];
+                    if (s2.step2Status === "pending" || s2.step3Status === "pending") {
+                        let hasReq = requests.some(r => r.orderId === k && r.stageNum === 2);
+                        if (!hasReq) {
+                            s2.step1Done = false;
+                            s2.step2Done = false;
+                            s2.step2Status = "none";
+                            s2.step3Done = false;
+                            s2.step3Status = "none";
+                            s2.startTime = null;
+                            s2.sessions = [];
+                            s2.operator = null;
+                            dbChanged = true;
+                        }
+                    }
+                }
+            }
 
             state.productionOrders = obj;
 

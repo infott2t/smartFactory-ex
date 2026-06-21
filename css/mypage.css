@@ -145,6 +145,13 @@ justify-content: end;
     justify-content: space-between;
     padding-bottom: 6px;
 }
+.box-partner.reservation-item {
+ 
+    background-color: #111622 !important;
+    border: 1px solid #1a2030 !important;
+    border-radius: 5px;
+    padding: 5px;
+}
 .box-corp{
     display: flex;
     width: 62%;
@@ -164,6 +171,9 @@ justify-content: end;
     column-gap: 15px;
     align-items: center;
     padding-right: 13px;
+}
+.brand-work-name {
+    color: rgb(124 123 166);
 }
 .badge01, .badge02, .badge03 {
     background-color: #1a202c !important; /* 배경은 어두운 칩 형태로 통일 */
@@ -521,6 +531,10 @@ html, body {
 .bi.bi-award{
     color: yellow;
 }
+#reservations-container {
+        margin-left: 15px;
+        margin-right: 15px;
+}
 
 @media (max-width: 425px) {
     .box-partner.reservation-item {
@@ -528,6 +542,7 @@ html, body {
         align-items: flex-start;
         gap: 6px;
     }
+    
     .box-corp,
     .box-value {
         justify-content: space-between;
@@ -556,5 +571,5 @@ html, body {
         width: 100%;
         justify-content: right;
     }
-    
+   
 }

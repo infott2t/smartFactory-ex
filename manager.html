@@ -3222,6 +3222,8 @@
                 return;
             }
 
+            const prodOrders = loadProductionOrders();
+
             let html = "";
             pkgOrders.forEach(o => {
                 let targetsText = [];
@@ -3238,6 +3240,22 @@
                 let statusBadge = `<span class="badge badge-gray">대기 중</span>`;
                 if (o.status === 'Task 4 전송 완료') {
                     statusBadge = `<span class="badge badge-blue">Task 4 전송 완료</span>`;
+                    
+                    const prodOrder = prodOrders[o.orderId];
+                    if (prodOrder) {
+                        let progress = prodOrder.progressStatus || "";
+                        if (prodOrder.status === "completed" || progress === "생산 완료") {
+                            statusBadge = `<span class="badge badge-green">생산 완료</span>`;
+                        } else if (progress.includes("Stage 4") || progress.includes("Stage4")) {
+                            statusBadge = `<span class="badge badge-blue">${progress}</span>`;
+                        } else if (progress.includes("Stage 5") || progress.includes("Stage5")) {
+                            statusBadge = `<span class="badge badge-purple">${progress}</span>`;
+                        } else if (prodOrder.currentTask === 4) {
+                            statusBadge = `<span class="badge badge-blue">생산중 (Stage 4)</span>`;
+                        } else if (prodOrder.currentTask === 5) {
+                            statusBadge = `<span class="badge badge-purple">생산중 (Stage 5)</span>`;
+                        }
+                    }
                 }
 
                 html += `
@@ -3990,13 +4008,21 @@
                 if (req.type === "defect") {
                     title = `Stage${req.stageNum || ''}. 작업 전 수량확인`;
                 } else if (req.type === "completion") {
-                    title = `Stage${req.stageNum || ''}. 작업 후 수량확인`;
+                    var displayStage = (req.stageNum === 32) ? "3-2" : req.stageNum;
+                    title = `Stage${displayStage || ''}. 작업 후 수량확인`;
                 } else if (req.type === "cleaning") {
                     title = `Stage${req.stageNum || ''} 특별 위생 청소 승인 요청`;
                 } else if (req.type === "hygiene") {
                     title = "위생 검사 및 서류 제출 요청";
                 } else if (req.type === "order_required") {
                     title = `Stage 1에 생산지시서가 필요합니다.`;
+                }
+
+                let approveText = "승인";
+                let rejectText = "반려";
+                if (req.type === "cleaning" && req.stageNum === 2) {
+                    approveText = "작업진행";
+                    rejectText = "청소 필요";
                 }
 
                 html += `
@@ -4010,8 +4036,8 @@
                         <div class="approval-title">${title}</div>
                         <div style="font-size:11px; color: var(--text-secondary);">ID: ${req.userId}</div>
                         <div class="approval-footer-btns">
-                            <button class="approval-btn approve" onclick="approveHygiene('${req.id}', true)">승인</button>
-                            <button class="approval-btn reject" onclick="approveHygiene('${req.id}', false)">반려</button>
+                            <button class="approval-btn approve" onclick="approveHygiene('${req.id}', true)">${approveText}</button>
+                            <button class="approval-btn reject" onclick="approveHygiene('${req.id}', false)">${rejectText}</button>
                         </div>
                     </div>
                 </div>
@@ -4077,34 +4103,85 @@
                             if (!orders[orderId].stages) {
                                 orders[orderId].stages = {};
                             }
-                            if (!orders[orderId].stages[stageNum]) {
-                                orders[orderId].stages[stageNum] = {};
-                            }
-                            orders[orderId].stages[stageNum].statusSubmitted = true;
-                            orders[orderId].stages[stageNum].step1Done = true;
-                            orders[orderId].stages[stageNum].step2Done = true;
-                            orders[orderId].stages[stageNum].step3Done = true;
-                            orders[orderId].stages[stageNum].step4Done = true;
-                            orders[orderId].stages[stageNum].step5Done = true;
-                            orders[orderId].stages[stageNum].step2Status = "approved";
-                            orders[orderId].stages[stageNum].step3Status = "approved";
-                            orders[orderId].stages[stageNum].postWorkQty = req.postWorkQty || 5;
-                            orders[orderId].stages[stageNum].postWorkWeight = req.weight || 4.0;
-                            orders[orderId].stages[stageNum].endTime = new Date().toLocaleTimeString();
-
-                            if (stageNum === 5) {
-                                orders[orderId].status = "completed";
-                                orders[orderId].progressStatus = "생산 완료";
+                            if (stageNum === 3) {
+                                if (!orders[orderId].stages[3]) {
+                                    orders[orderId].stages[3] = {};
+                                }
+                                orders[orderId].stages[3].statusSubmitted = true;
+                                orders[orderId].stages[3].step1Done = true;
+                                orders[orderId].stages[3].step2Done = true;
+                                orders[orderId].stages[3].step3Done = true;
+                                orders[orderId].stages[3].step4Done = true;
+                                orders[orderId].stages[3].step5Done = true;
+                                orders[orderId].stages[3].step2Status = "approved";
+                                orders[orderId].stages[3].step3Status = "approved";
+                                orders[orderId].stages[3].postWorkQty = req.postWorkQty || 30;
+                                orders[orderId].stages[3].postWorkWeight = req.weight || 24.0;
+                                orders[orderId].stages[3].endTime = new Date().toLocaleTimeString();
+                                
+                                orders[orderId].stages[3].dryingStatus = "drying";
+                                orders[orderId].stages[3].dryingStartTime = Date.now();
+                                orders[orderId].stages[3].dryingEndTime = Date.now() + 3600000;
+                                
+                                orders[orderId].currentTask = 3;
+                                orders[orderId].progressStatus = "생산중 (Stage 3 말리기 진행)";
+                            } else if (stageNum === 32) {
+                                if (!orders[orderId].stages[3]) {
+                                    orders[orderId].stages[3] = {};
+                                }
+                                if (!orders[orderId].stages[3].stage32) {
+                                    orders[orderId].stages[3].stage32 = {};
+                                }
+                                let s32 = orders[orderId].stages[3].stage32;
+                                s32.statusSubmitted = true;
+                                s32.step1Done = true;
+                                s32.step2Done = true;
+                                s32.step3Done = true;
+                                s32.step4Done = true;
+                                s32.step5Done = true;
+                                s32.step2Status = "approved";
+                                s32.step3Status = "approved";
+                                s32.postWorkQty = req.postWorkQty || 15;
+                                s32.postWorkWeight = req.weight || 12.0;
+                                s32.endTime = new Date().toLocaleTimeString();
+                                
+                                orders[orderId].stages[3].dryingStatus = "completed";
+                                orders[orderId].stages[3].refrigeratorStoredTime = Date.now();
+                                
+                                orders[orderId].currentTask = 4;
+                                orders[orderId].progressStatus = "생산중 (Stage 3 완료)";
                             } else {
-                                orders[orderId].currentTask = stageNum + 1;
-                                orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`;
+                                if (!orders[orderId].stages[stageNum]) {
+                                    orders[orderId].stages[stageNum] = {};
+                                }
+                                orders[orderId].stages[stageNum].statusSubmitted = true;
+                                orders[orderId].stages[stageNum].step1Done = true;
+                                orders[orderId].stages[stageNum].step2Done = true;
+                                orders[orderId].stages[stageNum].step3Done = true;
+                                orders[orderId].stages[stageNum].step4Done = true;
+                                orders[orderId].stages[stageNum].step5Done = true;
+                                orders[orderId].stages[stageNum].step2Status = "approved";
+                                orders[orderId].stages[stageNum].step3Status = "approved";
+                                orders[orderId].stages[stageNum].postWorkQty = req.postWorkQty || 5;
+                                orders[orderId].stages[stageNum].postWorkWeight = req.weight || 4.0;
+                                orders[orderId].stages[stageNum].endTime = new Date().toLocaleTimeString();
+
+                                if (stageNum === 5) {
+                                    orders[orderId].status = "completed";
+                                    orders[orderId].progressStatus = "생산 완료";
+                                } else {
+                                    orders[orderId].currentTask = stageNum + 1;
+                                    orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`;
+                                }
                             }
-                            addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 승인하였습니다.`);
-                            window.addAppLog(`생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 승인 처리하였습니다.`);
+                            var displayStage = (stageNum === 32) ? "3-2" : stageNum;
+                            addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${displayStage} 완료 요청을 승인하였습니다.`);
+                            window.addAppLog(`생산지시서 ${orderId}의 Stage ${displayStage} 완료 요청을 승인 처리하였습니다.`);
                         } else {
                             orders[orderId].progressStatus = "투입 후 생산 중";
-                            addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 반려하였습니다.`);
-                            window.addAppLog(`생산지시서 ${orderId}의 Stage ${stageNum} 완료 요청을 반려 처리하였습니다.`);
+                            var displayStage = (stageNum === 32) ? "3-2" : stageNum;
+                            addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${displayStage} 완료 요청을 반려하였습니다.`);
+                            window.addAppLog(`생산지시서 ${orderId}의 Stage ${displayStage} 완료 요청을 반려 처리하였습니다.`);
                         }
                         saveProductionOrders(orders);
                     }
@@ -4722,6 +4799,86 @@
                 </div>
                 `;
             });
+
+            // Append Stage 3 drying / storage cards from productionOrders
+            let ordersObj = {};
+            try {
+                ordersObj = loadProductionOrders();
+            } catch(e) {}
+            
+            for (let orderId in ordersObj) {
+                let o = ordersObj[orderId];
+                if (o && o.stages && o.stages[3]) {
+                    let s3 = o.stages[3];
+                    let dryingStatus = s3.dryingStatus;
+                    let cabbageHeads = s3.postWorkQty || o.quantity || 15;
+                    
+                    if (dryingStatus === "drying") {
+                        let remaining = Math.max(0, s3.dryingEndTime - now);
+                        let mins = Math.floor(remaining / 60000);
+                        let secs = Math.floor((remaining % 60000) / 1000);
+                        let countdownStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                        
+                        html += `
+                        <div class="salting-card" style="border-color: var(--accent-purple); background: rgba(156, 39, 176, 0.05);">
+                            <div class="salting-batch-id" style="background: var(--accent-purple); color: #fff;">${orderId}</div>
+                            <div class="salting-title" style="color: var(--accent-purple);"><i class="bi bi-water"></i> 세척배추 타이머 (탈수)</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                대용량: 배추 <b>${cabbageHeads}포기</b>
+                            </div>
+                            <div class="salting-countdown" style="color: #fff; font-size: 24px; margin: 10px 0;">${countdownStr}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">탈수 진행 중 (1시간)</div>
+                            <button class="top-action-btn" style="width: 100%; padding: 6px 0; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); border-radius: 6px;" onclick="window.cheatCompleteDrying('${orderId}')">즉시 완료 (치트)</button>
+                        </div>
+                        `;
+                    } else if (dryingStatus === "ready") {
+                        html += `
+                        <div class="salting-card" style="border-color: var(--accent-purple); background: rgba(156, 39, 176, 0.05);">
+                            <div class="salting-batch-id" style="background: var(--accent-purple); color: #fff;">${orderId}</div>
+                            <div class="salting-title" style="color: var(--accent-purple);"><i class="bi bi-clock-history"></i> 세척배추 말리기 완료</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+                                배추 <b>${cabbageHeads}포기</b> 탈수 완료
+                            </div>
+                            <button class="top-action-btn" style="width: 100%; padding: 8px 0; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, var(--accent-purple), #7b5cf5); color: #fff; border: none; border-radius: 6px; cursor: pointer;" onclick="window.sendOrderToStage32('${orderId}')">Stage 3-2로 옮기기</button>
+                        </div>
+                        `;
+                    } else if (dryingStatus === "ready_for_3_2") {
+                        html += `
+                        <div class="salting-card" style="border-color: var(--accent-orange); background: rgba(255, 152, 0, 0.05);">
+                            <div class="salting-batch-id" style="background: var(--accent-orange); color: #000;">${orderId}</div>
+                            <div class="salting-title" style="color: var(--accent-orange);"><i class="bi bi-arrow-right-circle"></i> Stage 3-2 이송 완료</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+                                배추 <b>${cabbageHeads}포기</b>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">작업자가 Stage 3-2에서 스캔하여 밀봉 포장을 대기 중입니다.</div>
+                        </div>
+                        `;
+                    } else if (dryingStatus === "completed" && !s3.sentToStage4) {
+                        let storedTime = s3.refrigeratorStoredTime || now;
+                        let elapsedStorage = now - storedTime;
+                        let stgHrs = Math.floor(elapsedStorage / 3600000);
+                        let stgMins = Math.floor((elapsedStorage % 3600000) / 60000);
+                        let stgSecs = Math.floor((elapsedStorage % 60000) / 1000);
+                        let elapsedStorageStr = `${String(stgHrs).padStart(2, '0')}:${String(stgMins).padStart(2, '0')}:${String(stgSecs).padStart(2, '0')}`;
+                        
+                        html += `
+                        <div class="salting-card" style="border-color: var(--accent-green); background: rgba(0, 200, 83, 0.05);">
+                            <div class="salting-batch-id" style="background: var(--accent-green); color: #000;">${orderId}</div>
+                            <div class="salting-title" style="color: var(--accent-green);"><i class="bi bi-box-seam"></i> 절임 세척완료</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                냉장고 보관: 배추 <b>${cabbageHeads}포기</b>
+                            </div>
+                            <div style="font-size: 12px; font-weight: bold; color: var(--accent-blue); margin: 6px 0;">
+                                <i class="bi bi-clock-history"></i> 보관 경과 시간: <span style="font-family: var(--font-outfit);">${elapsedStorageStr}</span>
+                            </div>
+                            <div style="font-size: 11px; color: var(--accent-green); font-weight: bold; margin-bottom: 8px;">Stage 4(양념) 바로 작업가능 대기중</div>
+                            <button class="top-action-btn" style="width: 100%; padding: 8px 0; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, var(--accent-green), #00e676); color: #000; border: none; border-radius: 6px; cursor: pointer;" onclick="window.sendOrderToStage4('${orderId}')">Stage 4로 보내기</button>
+                        </div>
+                        `;
+                    }
+                }
+            }
+
             container.innerHTML = html;
         }
 
@@ -4780,6 +4937,40 @@
             
             // 3. 화면 갱신
             refreshAllData();
+        };
+
+        window.cheatCompleteDrying = function(orderId) {
+            let ordersObj = loadProductionOrders();
+            if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
+                ordersObj[orderId].stages[3].dryingStatus = "ready";
+                ordersObj[orderId].stages[3].dryingEndTime = Date.now();
+                ordersObj[orderId].progressStatus = "생산중 (Stage 3 말리기 완료)";
+                saveProductionOrders(ordersObj);
+                addConsoleLog(`[치트] 지시서 ${orderId}의 건조망 물기 빼기가 완료 처리되었습니다.`);
+                refreshAllData();
+            }
+        };
+
+        window.sendOrderToStage32 = function(orderId) {
+            let ordersObj = loadProductionOrders();
+            if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
+                ordersObj[orderId].stages[3].dryingStatus = "ready_for_3_2";
+                saveProductionOrders(ordersObj);
+                addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 3-2로 옮겼습니다. 작업자 스캔 대기 중.`);
+                refreshAllData();
+            }
+        };
+
+        window.sendOrderToStage4 = function(orderId) {
+            let ordersObj = loadProductionOrders();
+            if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
+                ordersObj[orderId].stages[3].sentToStage4 = true;
+                ordersObj[orderId].currentTask = 4;
+                ordersObj[orderId].progressStatus = "양념 대기 중";
+                saveProductionOrders(ordersObj);
+                addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 4(양념)로 보냈습니다.`);
+                refreshAllData();
+            }
         };
 
         // ── M. 설비 전원 스위치 & 오너 결재 대기열 렌더링 ──

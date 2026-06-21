@@ -1930,6 +1930,32 @@
             if (overlay && overlay.style.display === "flex") {
                 updateOrderSheetOverlayRows(overlay.getAttribute('data-order-id'));
             }
+
+            // Drying timer countdown update for Stage 3-1
+            if (activeStageNum === 3) {
+                var curStageState = getStageState(3);
+                if (curStageState && curStageState.dryingStatus === "drying") {
+                    var remaining = Math.max(0, curStageState.dryingEndTime - Date.now());
+                    if (remaining <= 0) {
+                        curStageState.dryingStatus = "ready";
+                        if (stagesModel[3] && stagesModel[3].order) {
+                            var orderId = stagesModel[3].order;
+                            if (productionOrders[orderId]) {
+                                productionOrders[orderId].progressStatus = "생산중 (Stage 3 말리기 완료)";
+                            }
+                        }
+                        saveProductionOrders();
+                        renderWorkflow();
+                    } else {
+                        var timerTextEl = document.getElementById("drying-timer-countdown");
+                        if (timerTextEl) {
+                            var mins = Math.floor(remaining / 60000);
+                            var secs = Math.floor((remaining % 60000) / 1000);
+                            timerTextEl.textContent = String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                        }
+                    }
+                }
+            }
         }, 1000);
 
         updateClocks();
@@ -1963,13 +1989,24 @@
             },
             3: {
                 num: 3,
-                name: "Stage 3. 절인배추 세척후 보관하기",
-                title: "현재 작업중: 절인배추 세척후 보관하기",
+                name: "Stage 3-1. 절인배추 세척 및 물기빼기",
+                title: "현재 작업중: 절인배추 세척 및 물기빼기",
                 order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 이영희",
                 prevLocation: "AFood-Stage 2-적재데크 (Stage 2 결과물)",
-                nextLocation: "AFood-Stage 3-적재데크 (Stage 3 결과물)",
-                production: "생산 수량: 절인배추 세척후 보관하기",
+                nextLocation: "AFood-Stage 3-1-말리기구역",
+                production: "생산 수량: 세척 및 말리는 배추",
+                completedOrders: []
+            },
+            32: {
+                num: 32,
+                name: "Stage 3-2. 세척배추 밀봉 및 보관",
+                title: "현재 작업중: 세척배추 밀봉 및 보관",
+                order: "없음",
+                participants: "<span class='participant-badge'>본인</span> 김태호(본인), 이영희",
+                prevLocation: "AFood-Stage 3-1-말리기구역",
+                nextLocation: "AFood-Stage 3-저장고",
+                production: "생산 수량: 밀봉 저장 배추",
                 completedOrders: []
             },
             4: {
@@ -1978,7 +2015,7 @@
                 title: "현재 작업중: 양념 배합 및 묻히기",
                 order: "없음",
                 participants: "<span class='participant-badge'>본인</span> 김태호(본인), 정다은, 윤민수",
-                prevLocation: "AFood-Stage 3-적재데크 (Stage 3 결과물)",
+                prevLocation: "AFood-Stage 3-저장고",
                 nextLocation: "AFood-Stage 4-적재데크 (Stage 4 결과물)",
                 production: "생산 수량: 양념 묻힌 배추 5포기",
                 completedOrders: []
@@ -2030,10 +2067,36 @@
                 }
             }
             // Sanitize each order to ensure .stages exists and is an object
+            var requests = [];
+            try {
+                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+
             for (var key in orders) {
                 if (orders[key]) {
                     if (!orders[key].stages || typeof orders[key].stages !== 'object') {
                         orders[key].stages = {};
+                    }
+                    var s2 = orders[key].stages[2];
+                    if (s2 && (s2.step2Status === "pending" || s2.step3Status === "pending")) {
+                        var hasReq = requests.some(function(r) {
+                            return r.orderId === key && r.stageNum === 2;
+                        });
+                        if (!hasReq) {
+                            s2.step1Done = false;
+                            s2.step2Done = false;
+                            s2.step2Status = "none";
+                            s2.step3Done = false;
+                            s2.step3Status = "none";
+                            s2.startTime = null;
+                            s2.sessions = [];
+                            s2.operator = null;
+                            if (!window.FactoryStore) {
+                                try {
+                                    localStorage.setItem('kimp_production_orders', JSON.stringify(orders));
+                                } catch(e) {}
+                            }
+                        }
                     }
                 }
             }
@@ -2143,7 +2206,14 @@
                         if (!currentOrders[m.order].stages) {
                             currentOrders[m.order].stages = {};
                         }
-                        currentOrders[m.order].stages[sNum] = localState;
+                        if (sNum === 32) {
+                            if (!currentOrders[m.order].stages[3]) {
+                                currentOrders[m.order].stages[3] = {};
+                            }
+                            currentOrders[m.order].stages[3].stage32 = localState;
+                        } else {
+                            currentOrders[m.order].stages[sNum] = localState;
+                        }
                     }
                 }
             }
@@ -2227,10 +2297,21 @@
                 }
                 return 5;
             }
-            if (productionOrders[orderId] && productionOrders[orderId].stages && productionOrders[orderId].stages[stageNum - 1]) {
-                var prevQty = productionOrders[orderId].stages[stageNum - 1].postWorkQty;
-                if (prevQty !== null && prevQty !== undefined) {
-                    return prevQty;
+            var prevStageNum = stageNum - 1;
+            if (stageNum === 32) prevStageNum = 3;
+            if (stageNum === 4) prevStageNum = 32;
+
+            if (productionOrders[orderId] && productionOrders[orderId].stages) {
+                if (prevStageNum === 32) {
+                    var s3 = productionOrders[orderId].stages[3];
+                    if (s3 && s3.stage32 && s3.stage32.postWorkQty !== null && s3.stage32.postWorkQty !== undefined) {
+                        return s3.stage32.postWorkQty;
+                    }
+                } else if (productionOrders[orderId].stages[prevStageNum]) {
+                    var prevQty = productionOrders[orderId].stages[prevStageNum].postWorkQty;
+                    if (prevQty !== null && prevQty !== undefined) {
+                        return prevQty;
+                    }
                 }
             }
             return 5;
@@ -2267,17 +2348,18 @@
             
             // 만약 아직 QR 스캔을 안 했거나 지시서 ID가 없으면 임시 저장소 반환
             if (!m.step1Done || !orderId || orderId === "없음") {
-                if (!tempStageStates[stageNum]) {
+                if (!tempStageStates[stageNum] || tempStageStates[stageNum].orderId !== orderId) {
                     var initialQty = getPrevStagePostQty(stageNum, orderId);
                     tempStageStates[stageNum] = {
+                        orderId: orderId,
                         startTime: null,
                         endTime: null,
                         step1Done: false,
-                        step2Done: false,
-                        step2Status: "none",
-                        step3Done: false,
-                        step3Status: "none",
-                        step4Done: false,
+                        step2Done: stageNum === 32,
+                        step2Status: stageNum === 32 ? "approved" : "none",
+                        step3Done: stageNum === 32,
+                        step3Status: stageNum === 32 ? "approved" : "none",
+                        step4Done: stageNum === 32,
                         step5Status: "none",
                         defectCount: 5 - initialQty,
                         preWorkQty: initialQty,
@@ -2305,12 +2387,44 @@
                 productionOrders[orderId].stages = {};
             }
             
+            if (stageNum === 32) {
+                if (!productionOrders[orderId].stages[3]) {
+                    productionOrders[orderId].stages[3] = {};
+                }
+                if (!productionOrders[orderId].stages[3].stage32) {
+                    var initialQty = getPrevStagePostQty(32, orderId);
+                    productionOrders[orderId].stages[3].stage32 = {
+                        startTime: null,
+                        endTime: null,
+                        step1Done: false,
+                        step2Done: true,
+                        step2Status: "approved",
+                        step3Done: true,
+                        step3Status: "approved",
+                        step4Done: true,
+                        step5Status: "none",
+                        defectCount: 0,
+                        preWorkQty: initialQty,
+                        weight: parseFloat((initialQty * 0.8).toFixed(1)),
+                        operator: null,
+                        postWorkQty: null,
+                        postWorkWeight: null,
+                        sessions: [],
+                        statusSubmitted: false,
+                        breakStartTime: null,
+                        breakHistory: [],
+                        currentBreakStartRemaining: null
+                    };
+                }
+                return productionOrders[orderId].stages[3].stage32;
+            }
+            
             if (!productionOrders[orderId].stages[stageNum]) {
                 var initialQty = getPrevStagePostQty(stageNum, orderId);
                 productionOrders[orderId].stages[stageNum] = {
                     startTime: null,
                     endTime: null,
-                    step1Done: true,
+                    step1Done: false,
                     step2Done: false,
                     step2Status: "none",
                     step3Done: false,
@@ -2343,28 +2457,35 @@
                     "파레트에 이물질이나 흙이 묻어 있다면 비치된 빗자루와 전용 위생 행주로 닦아야 합니다.",
                     "청소가 끝나면 <strong>[청소 완료 사진]</strong>을 촬영하여 관리자 서버에 전송합니다.",
                     "심사 승인(Pending 해제)을 받은 후, 원재료 배추 5포기의 먼지와 겉 흙을 안전하게 털어냅니다.",
+                    "배추를 1/2로 컷팅하고, 흙이나 이물질이 묻었을 경우, 물에 잠깐 세척해주세요.",
                     "배추를 파레트에 5포기 단위로 규격에 맞춰 안전하게 상차 적재합니다."
                 ]
             },
             2: {
                 title: "Stage 2. 배추 절이기 상세 가이드",
                 steps: [
-                    "손질 작업대 위에 칼, 도마 등 위생 도구의 청결 상태를 확인합니다.",
-                    "도구에 이전 잔여물이 보인다면 알코올 세척액과 전용 타올로 살균 청소합니다.",
-                    "청결 상태를 확인하기 위해 <strong>[작업대 살균 사진]</strong>을 촬영하고 심사를 요청합니다.",
-                    "심사가 승인되면, 배추의 누렇게 시든 겉잎을 1~2겹 안전하게 벗겨냅니다.",
-                    "밑동 뿌리 부분을 칼로 깨끗하게 도려내고, 깨끗한 물로 이물질을 세척합니다.",
-                    "세척된 배추를 도마 위에 올려 정확히 절반(1/2)으로 썰어 이송 박스에 담습니다."
+                    "배추는 17시간 절여집니다. 수조가 깨끗한지 확인하고 사진을 찍어서 전송해 주세요.",
+                    "사진 전송하기(전송하면 관리자가 사진을 확인하고 [작업진행]이나 [청소 필요] 버튼을 눌러서 알려줍니다. 청소가 필요한 경우 청소 후 다시 사진 전송하기를 클릭해주면 됩니다.)",
+                    "우선 수조에 물과 소금의 비율을 맞추어서 넣습니다. 물과 소금의 비율, 몇 리터, 몇 kg인지 정확히 계량 후 잘 저어줍니다.",
+                    "배추를 차곡차곡 잘 쌓아줍니다.",
+                    "배추 속심부분이 잘 익을 수 있게 소금을 덧대어 뿌려줍니다."
                 ]
             },
             3: {
-                title: "Stage 3. 배추를 절이는 작업 상세 가이드",
+                title: "Stage 3-1. 절인배추 세척 및 물기빼기 상세 가이드",
                 steps: [
-                    "절임 수조와 소금통 주변의 청결 상태를 점검합니다.",
-                    "수조 옆 보관함에서 <strong>천일염 소금</strong>의 위치를 확인합니다.",
-                    "계량컵을 사용하여 <strong>소금의 양 1.5kg</strong>을 정량 측정하여 염도 10%의 소금물을 배합합니다.",
-                    "작업대 및 수조의 위생 청소 상태 사진을 촬영하여 전송하고 <strong>[심사 대기]</strong>를 거칩니다.",
-                    "심사 승인이 떨어지면, 절반으로 잘린 배추 5포기를 수조 소금물에 고르게 침지하여 절임 작업을 개시합니다."
+                    "절임 배추를 위생 통에다가 옮겨줍니다.",
+                    "찬물을 3군데 받고 차례차례 담그었다가 빼서 배추의 염도를 낮추어 줍니다.",
+                    "통은 배추 30포기 정도 했다면 물을 다시 갈아줍니다. (배추 세척은 1회 최대 30포기 제한)",
+                    "배추를 세척한 후, 그 이후 건조망에 차례로 놓아 1시간 정도 물기를 빼내줍니다."
+                ]
+            },
+            32: {
+                title: "Stage 3-2. 세척배추 밀봉 및 보관 상세 가이드",
+                steps: [
+                    "물기를 충분히 뺀 배추를 보관용 비닐봉지에 나누어 담습니다.",
+                    "비닐에 배추를 10포기 ~ 15포기 정도 적정량 담고 밀봉을 해줍니다.",
+                    "밀봉 완료 후 사진을 촬영하여 전송하고, 밀봉된 배추를 저장소 냉장고에 넣어 보관합니다."
                 ]
             },
             4: {
@@ -2404,13 +2525,19 @@
             // Stage 4 전송 검증
             if (activeStageNum === 4) {
                 var orderId = m.order;
-                if (orderId && orderId !== "없음" && !isTask4Sent(orderId)) {
-                    alert("포장 생산지시서가 아직 Task 4로 전송되지 않았습니다. 매니저의 'Task 4로 보내기' 승인을 기다려 주세요.");
-                    activeStageNum = null;
-                    document.getElementById('active-work-section').style.display = 'none';
-                    document.getElementById('no-active-work-placeholder').style.display = 'block';
-                    renderTaskCards();
-                    return;
+                if (orderId && orderId !== "없음") {
+                    var sentTo4 = false;
+                    if (productionOrders[orderId] && productionOrders[orderId].stages && productionOrders[orderId].stages[3] && productionOrders[orderId].stages[3].sentToStage4) {
+                        sentTo4 = true;
+                    }
+                    if (!sentTo4) {
+                        alert("매니저가 아직 이 지시서를 Stage 4로 보내지 않았습니다. 매니저의 'Stage 4로 보내기' 승인을 기다려 주세요.");
+                        activeStageNum = null;
+                        document.getElementById('active-work-section').style.display = 'none';
+                        document.getElementById('no-active-work-placeholder').style.display = 'block';
+                        renderTaskCards();
+                        return;
+                    }
                 }
             }
 
@@ -2692,43 +2819,138 @@
             var step5Icon = state.statusSubmitted ? "bi-check-circle-fill" : ((state.step4Done || state.step5Status === "pending") ? "bi-arrow-repeat" : "bi-circle");
             
             var step5Widget = "";
-            if (state.step5Status === "pending") {
+            
+            // Check Stage 3-1 drying state first!
+            if (activeStageNum === 3 && state.dryingStatus === "drying") {
+                var remaining = Math.max(0, state.dryingEndTime - Date.now());
+                var mins = Math.floor(remaining / 60000);
+                var secs = Math.floor((remaining % 60000) / 1000);
+                var timeText = String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                
+                step5Widget = `
+                    <div class="pending-status-box" style="flex-direction: column; gap: 8px; padding: 16px; background: rgba(156, 39, 176, 0.07); border: 1px solid rgba(156, 39, 176, 0.25);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="spinner" style="border-top-color: var(--accent-purple); width:18px; height:18px;"></div>
+                            <span style="font-weight: 700; color: var(--accent-purple); font-size:13px;">배추 물기 빼는 중 (말리기 진행 중)</span>
+                        </div>
+                        <div style="font-size: 26px; font-weight: 700; color: #fff; font-family: var(--font-outfit); margin: 6px 0;" id="drying-timer-countdown">
+                            ${timeText}
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">건조망에 올려놓고 1시간 동안 물기를 뺍니다.</div>
+                        <button class="btn-widget-action" style="background: linear-gradient(135deg, var(--accent-purple), #7b5cf5); border: none; font-size: 11px; padding: 6px 12px; margin-top: 6px; width: 100%; font-weight:600;" onclick="cheatCompleteDryingSelf()"><i class="bi bi-clock-history"></i> 즉시 완료 (치트)</button>
+                    </div>
+                `;
+            } else if (activeStageNum === 3 && state.dryingStatus === "ready") {
+                var resetBtnHtml = `
+                    <div style="margin-top: 14px; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04)); border: 1px solid rgba(0,200,83,0.25);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <i class="bi bi-patch-check-fill" style="font-size: 20px; color: var(--neon-green);"></i>
+                            <span style="font-weight: 700; color: var(--neon-green); font-size: 14px;">Stage 3-1 건조 완료!</span>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">물기 말리기(1시간)가 완료되었습니다. 매니저가 이 지시서를 [Stage 3-2로 옮기기] 처리하면 Stage 3-2에서 스캔하여 밀봉 보관을 할 수 있습니다.<br>현재 화면을 초기화하고 다른 생산지시서 작업을 진행할 수 있습니다.</p>
+                        <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, #00c853, #00e676); color: #000; width: 100%; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,200,83,0.3); transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(0,200,83,0.45)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,200,83,0.3)'">
+                            <i class="bi bi-arrow-clockwise"></i>&nbsp; 초기화하기 · 다음 생산지시서 작업하기
+                        </button>
+                    </div>`;
+                step5Widget = `
+                    <span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 물기 빼기 승인 및 건조 완료</span>
+                    <span class="workflow-subtext">완료 수량: ${state.postWorkQty}포기 / 최종 무게: ${state.postWorkWeight}kg</span>
+                    ${resetBtnHtml}
+                `;
+            } else if (state.step5Status === "pending") {
+                var pendingText = "실습 완료 전송 완료... 관리자 심사 대기 중 (Pending)";
+                if (activeStageNum === 1 || activeStageNum === 4 || activeStageNum === 5) {
+                    pendingText = "QR코드 완료 스캔 및 전송 완료... 관리자 심사 대기 중 (Pending)";
+                } else if (activeStageNum === 3 || activeStageNum === 32) {
+                    pendingText = "작업 완료 사진 전송 완료... 관리자 심사 대기 중 (Pending)";
+                }
                 step5Widget = `
                     <div class="pending-status-box">
                         <div class="spinner"></div>
-                        <span>작업 완료 사진 전송 완료... 관리자 심사 대기 중 (Pending)</span>
+                        <span>${pendingText}</span>
                     </div>
                 `;
             } else if (!state.statusSubmitted && state.step4Done) {
                 var suggestedQty = state.postWorkQty !== null ? state.postWorkQty : state.preWorkQty;
                 var suggestedWeight = state.postWorkWeight !== null ? state.postWorkWeight : (state.weight !== undefined ? state.weight : (state.preWorkQty * 0.8).toFixed(1));
-                step5Widget = `
-                    <div class="defect-subcard">
-                        <div class="defect-row">
-                            <span class="defect-label">작업 후 완료 수량 (포기)</span>
-                            <input type="number" class="defect-input" id="post-qty-input-box" min="0" max="${state.preWorkQty}" value="${suggestedQty}" onchange="updatePostWorkQty(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 60px;">
+                
+                if (activeStageNum === 3) {
+                    var maxVal = Math.min(30, maxQty);
+                    step5Widget = `
+                        <div class="defect-subcard">
+                            <div style="font-size: 11px; color: var(--amber-accent); margin-bottom: 6px; font-weight:500;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 세척 배추는 최대 30포기까지만 작업 가능합니다.
+                            </div>
+                            <div class="defect-row">
+                                <span class="defect-label">세척 완료 수량 (포기, 최대 30)</span>
+                                <input type="number" class="defect-input" id="post-qty-input-box" min="0" max="${maxVal}" value="${suggestedQty}" onchange="updatePostWorkQty(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 60px;">
+                            </div>
+                            <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                                <span class="defect-label">세척 후 최종 무게 (kg)</span>
+                                <input type="number" class="defect-input" id="post-weight-input-box" step="0.1" min="0" value="${suggestedWeight}" onchange="updatePostWorkWeight(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 70px;">
+                            </div>
+                            <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                                <span class="defect-label" style="font-weight: 500;">작업 완료 후 이동 구역</span>
+                                <span class="defect-value" style="color: var(--neon-blue); font-size:11px;">${m.nextLocation}</span>
+                            </div>
                         </div>
-                        <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
-                            <span class="defect-label">작업 후 최종 무게 (kg)</span>
-                            <input type="number" class="defect-input" id="post-weight-input-box" step="0.1" min="0" max="10" value="${suggestedWeight}" onchange="updatePostWorkWeight(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 70px;">
+                        <div class="widget-area">
+                            <button class="btn-widget-action" onclick="submitPostWorkScan()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-camera"></i> 세척 완료 및 말리기 시작 사진 전송</button>
                         </div>
-                        <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
-                            <span class="defect-label" style="font-weight: 500;">작업 완료 후 이동 구역</span>
-                            <span class="defect-value" style="color: var(--neon-blue); font-size:11px;">${m.nextLocation}</span>
+                    `;
+                } else if (activeStageNum === 32) {
+                    step5Widget = `
+                        <div class="defect-subcard">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.4;">
+                                <i class="bi bi-info-circle-fill" style="color: var(--neon-blue);"></i> <b>작업 안내:</b> 물기가 충분히 빠진 배추를 비닐봉지에 10포기~15포기씩 고르게 나누어 담고 밀봉 실링한 뒤 숙성 냉장고에 정돈하여 입고해 주세요.
+                            </div>
+                            <div class="defect-row">
+                                <span class="defect-label">보관 배추 수량 (포기)</span>
+                                <input type="number" class="defect-input" id="post-qty-input-box" min="0" value="${suggestedQty}" onchange="updatePostWorkQty(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 60px;">
+                            </div>
+                            <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                                <span class="defect-label">보관 최종 무게 (kg)</span>
+                                <input type="number" class="defect-input" id="post-weight-input-box" step="0.1" min="0" value="${suggestedWeight}" onchange="updatePostWorkWeight(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 70px;">
+                            </div>
+                            <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                                <span class="defect-label" style="font-weight: 500;">보관 이송 위치</span>
+                                <span class="defect-value" style="color: var(--neon-blue); font-size:11px;">${m.nextLocation}</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="widget-area">
-                        <button class="btn-widget-action" onclick="submitPostWorkScan()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-qr-code-scan"></i> QR코드 완료 스캔 및 전송</button>
-                    </div>
-                `;
+                        <div class="widget-area">
+                            <button class="btn-widget-action" onclick="submitPostWorkScan()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-camera"></i> 밀봉 완료 및 냉장실 보관 사진 전송</button>
+                        </div>
+                    `;
+                } else {
+                    step5Widget = `
+                        <div class="defect-subcard">
+                            <div class="defect-row">
+                                <span class="defect-label">작업 후 완료 수량 (포기)</span>
+                                <input type="number" class="defect-input" id="post-qty-input-box" min="0" max="${state.preWorkQty}" value="${suggestedQty}" onchange="updatePostWorkQty(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 60px;">
+                            </div>
+                            <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                                <span class="defect-label">작업 후 최종 무게 (kg)</span>
+                                <input type="number" class="defect-input" id="post-weight-input-box" step="0.1" min="0" max="10" value="${suggestedWeight}" onchange="updatePostWorkWeight(this.value)" ${isOnBreak ? 'disabled' : ''} style="width: 70px;">
+                            </div>
+                            <div class="defect-row" style="margin-top: 4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+                                <span class="defect-label" style="font-weight: 500;">작업 완료 후 이동 구역</span>
+                                <span class="defect-value" style="color: var(--neon-blue); font-size:11px;">${m.nextLocation}</span>
+                            </div>
+                        </div>
+                        <div class="widget-area">
+                            <button class="btn-widget-action" onclick="submitPostWorkScan()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-qr-code-scan"></i> QR코드 완료 스캔 및 전송</button>
+                        </div>
+                    `;
+                }
             } else if (state.statusSubmitted) {
+                var displayStage = (activeStageNum === 32) ? "3-2" : activeStageNum;
                 var resetBtnHtml = `
                     <div style="margin-top: 14px; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04)); border: 1px solid rgba(0,200,83,0.25);">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                             <i class="bi bi-patch-check-fill" style="font-size: 20px; color: var(--neon-green);"></i>
-                            <span style="font-weight: 700; color: var(--neon-green); font-size: 14px;">Stage ${activeStageNum} 공정 완료!</span>
+                            <span style="font-weight: 700; color: var(--neon-green); font-size: 14px;">Stage ${displayStage} 공정 완료!</span>
                         </div>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">이 생산지시서의 Stage ${activeStageNum} 작업이 승인 완료되었습니다.<br>아래 버튼을 눌러 다음 생산지시서로 새 작업을 시작하세요.</p>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 0; line-height: 1.5;">이 생산지시서의 Stage ${displayStage} 작업이 승인 완료되었습니다.<br>아래 버튼을 눌러 다음 생산지시서로 새 작업을 시작하세요.</p>
                         <button class="btn-widget-action" onclick="resetStageAndStartNew()" style="background: linear-gradient(135deg, #00c853, #00e676); color: #000; width: 100%; font-weight: 700; font-size: 14px; padding: 12px; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,200,83,0.3); transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(0,200,83,0.45)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,200,83,0.3)'">
                             <i class="bi bi-arrow-clockwise"></i>&nbsp; 초기화하기 · 다음 생산지시서 작업하기
                         </button>
@@ -2806,7 +3028,19 @@
                                 }
                                 
                                 if (productionOrders[capturedModel.order]) {
-                                    if (capturedStage === 5) {
+                                    if (capturedStage === 3) {
+                                        productionOrders[capturedModel.order].progressStatus = "생산중 (Stage 3 말리기 진행)";
+                                        if (!productionOrders[capturedModel.order].stages[3].dryingStatus) {
+                                            productionOrders[capturedModel.order].stages[3].dryingStatus = "drying";
+                                            productionOrders[capturedModel.order].stages[3].dryingStartTime = Date.now();
+                                            productionOrders[capturedModel.order].stages[3].dryingEndTime = Date.now() + 3600000;
+                                        }
+                                    } else if (capturedStage === 32) {
+                                        productionOrders[capturedModel.order].stages[3].dryingStatus = "completed";
+                                        productionOrders[capturedModel.order].stages[3].refrigeratorStoredTime = Date.now();
+                                        productionOrders[capturedModel.order].currentTask = 4;
+                                        productionOrders[capturedModel.order].progressStatus = "생산중 (Stage 3 완료)";
+                                    } else if (capturedStage === 5) {
                                         productionOrders[capturedModel.order].status = "completed";
                                         productionOrders[capturedModel.order].progressStatus = "생산 완료";
                                     } else {
@@ -2817,9 +3051,14 @@
                                 }
                                 
                                 saveProductionOrders();
-                                addTimelineLog(currentUserName + "님이 Stage " + capturedStage + "공정, 생산지시서 " + capturedModel.order + " 작업을 최종 완료했습니다.");
+                                var displayStage = (capturedStage === 32) ? "3-2" : capturedStage;
+                                addTimelineLog(currentUserName + "님이 Stage " + displayStage + "공정, 생산지시서 " + capturedModel.order + " 작업을 최종 완료했습니다.");
                                 renderWorkflow();
-                                alert("관리자 심사가 완료되었습니다! 아래 버튼을 눌러 다음 생산지시서 작업을 시작하세요.");
+                                if (capturedStage === 3) {
+                                    alert("배추 세척 및 말리기 시작 승인이 완료되었습니다. 1시간 동안 물기를 뺍니다. 현재 공정을 초기화하고 다른 작업을 하실 수 있습니다.");
+                                } else {
+                                    alert("관리자 심사가 완료되었습니다! 아래 버튼을 눌러 다음 생산지시서 작업을 시작하세요.");
+                                }
                             } else if (myReq.status === "rejected") {
                                 if (window._completionPollingTimer) {
                                     clearInterval(window._completionPollingTimer);
@@ -3020,10 +3259,30 @@
                                 }
                             }
                         }
+                        if (o.stages[3] && o.stages[3].stage32 && o.stages[3].stage32.statusSubmitted) {
+                            if (stagesModel[32].completedOrders.indexOf(key) === -1) {
+                                stagesModel[32].completedOrders.push(key);
+                            }
+                        }
                     }
                 }
             } catch(err) {
                 console.error("Error rebuilding completedOrders:", err);
+            }
+        }
+
+        function isStageStarted(orderId, stageNum) {
+            try {
+                var o = productionOrders[orderId];
+                if (!o || !o.stages) return false;
+                if (stageNum === 32) {
+                    var s3 = o.stages[3];
+                    return !!(s3 && s3.stage32 && (s3.stage32.step1Done || s3.stage32.statusSubmitted));
+                }
+                var sState = o.stages[stageNum];
+                return !!(sState && (sState.step1Done || sState.statusSubmitted));
+            } catch(e) {
+                return false;
             }
         }
 
@@ -3042,7 +3301,15 @@
                 var foundActiveOrder = "없음";
                 for (var key in productionOrders) {
                     var orderObj = productionOrders[key];
-                    if (orderObj.stages && orderObj.stages[sNum]) {
+                    if (sNum === 32) {
+                        if (orderObj.stages && orderObj.stages[3] && orderObj.stages[3].stage32) {
+                            var stageState = orderObj.stages[3].stage32;
+                            if (stageState.step1Done && !stageState.statusSubmitted) {
+                                foundActiveOrder = key;
+                                break;
+                            }
+                        }
+                    } else if (orderObj.stages && orderObj.stages[sNum]) {
                         var stageState = orderObj.stages[sNum];
                         if (stageState.step1Done && !stageState.statusSubmitted) {
                             foundActiveOrder = key;
@@ -3062,9 +3329,18 @@
                         if (sNum === 1) {
                             var activeOrder = findActiveProductionOrder();
                             m.order = activeOrder ? activeOrder.orderId : "없음";
+                        } else if (sNum === 32) {
+                            m.order = getAvailableOrderForStage(32) || "없음";
                         } else {
-                            var readyOrders = (stagesModel[sNum - 1].completedOrders || []).filter(function(id) {
-                                return (stagesModel[sNum].completedOrders || []).indexOf(id) === -1;
+                            var prevStageNum = sNum - 1;
+                            if (sNum === 4) prevStageNum = 32;
+                            if (sNum === 32) prevStageNum = 3;
+
+                            var prevStage = stagesModel[prevStageNum];
+                            var completedByPrev = prevStage ? (prevStage.completedOrders || []) : [];
+                            var workedByCur = m.completedOrders || [];
+                            var readyOrders = completedByPrev.filter(function(id) {
+                                return workedByCur.indexOf(id) === -1 && !isStageStarted(id, sNum);
                             });
                             var currentOrder = m.order;
                             if (readyOrders.indexOf(currentOrder) === -1) {
@@ -3122,13 +3398,43 @@
                 return "없음";
             }
             
-            var prevStage = stagesModel[stageNum - 1];
-            var completedByPrev = prevStage.completedOrders || [];
+            if (stageNum === 32) {
+                for (var key in productionOrders) {
+                    var o = productionOrders[key];
+                    if (o.stages && o.stages[3] && o.stages[3].dryingStatus === "ready_for_3_2" && o.currentTask === 3) {
+                        var workedByCur32 = stagesModel[32].completedOrders || [];
+                        if (workedByCur32.indexOf(key) === -1 && stagesModel[32].order !== key && !isStageStarted(key, 32)) {
+                            return key;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            if (stageNum === 4) {
+                for (var key in productionOrders) {
+                    var o = productionOrders[key];
+                    if (o.stages && o.stages[3] && o.stages[3].sentToStage4 === true && o.currentTask === 4) {
+                        var workedByCur4 = stagesModel[4].completedOrders || [];
+                        if (workedByCur4.indexOf(key) === -1 && stagesModel[4].order !== key && !isStageStarted(key, 4)) {
+                            return key;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            var prevStageNum = stageNum - 1;
+            if (stageNum === 32) prevStageNum = 3;
+            if (stageNum === 4) prevStageNum = 32;
+
+            var prevStage = stagesModel[prevStageNum];
+            var completedByPrev = prevStage ? (prevStage.completedOrders || []) : [];
             var workedByCur = stagesModel[stageNum].completedOrders || [];
             
             for (var i = 0; i < completedByPrev.length; i++) {
                 var order = completedByPrev[i];
-                if (workedByCur.indexOf(order) === -1 && stagesModel[stageNum].order !== order) {
+                if (workedByCur.indexOf(order) === -1 && stagesModel[stageNum].order !== order && !isStageStarted(order, stageNum)) {
                     return order;
                 }
             }
@@ -3154,37 +3460,56 @@
             // 이전 Stage 완료 검증
             if (activeStageNum > 1) {
                 var prevStageNum = activeStageNum - 1;
+                if (activeStageNum === 32) prevStageNum = 3;
+                if (activeStageNum === 4) prevStageNum = 32;
+
                 var hasPrevCompleted = false;
-                
-                if (productionOrders[m.order] && 
-                    productionOrders[m.order].stages && 
-                    productionOrders[m.order].stages[prevStageNum] && 
-                    productionOrders[m.order].stages[prevStageNum].statusSubmitted) {
-                    hasPrevCompleted = true;
+                if (productionOrders[m.order] && productionOrders[m.order].stages) {
+                    if (prevStageNum === 32) {
+                        var s3 = productionOrders[m.order].stages[3];
+                        if (s3 && s3.stage32 && s3.stage32.statusSubmitted) {
+                            hasPrevCompleted = true;
+                        }
+                    } else if (productionOrders[m.order].stages[prevStageNum] && 
+                               productionOrders[m.order].stages[prevStageNum].statusSubmitted) {
+                        hasPrevCompleted = true;
+                    }
                 }
                 
                 if (!hasPrevCompleted) {
-                    alert("이전 공정(Stage " + prevStageNum + ")이 완료되지 않은 생산지시서(" + m.order + ")입니다. 이전 공정 완료 후 진행해 주세요.");
+                    var displayPrev = (prevStageNum === 32) ? "3-2" : prevStageNum;
+                    alert("이전 공정(Stage " + displayPrev + ")이 완료되지 않은 생산지시서(" + m.order + ")입니다. 이전 공정 완료 후 진행해 주세요.");
                     return;
                 }
 
                 // 매니저 승인/전달 대기 검증 (현재 currentTask가 이 Stage 번호와 같거나 더 진행되어야 함)
                 var currentTask = productionOrders[m.order] ? (productionOrders[m.order].currentTask || 0) : 0;
-                if (currentTask < activeStageNum) {
+                
+                if (activeStageNum === 32) {
+                    var dryingStatus = "";
+                    if (productionOrders[m.order] && productionOrders[m.order].stages && productionOrders[m.order].stages[3]) {
+                        dryingStatus = productionOrders[m.order].stages[3].dryingStatus;
+                    }
+                    if (dryingStatus !== "ready_for_3_2") {
+                        alert("아직 매니저가 이 지시서를 Stage 3-2로 인계하지 않았습니다. 매니저의 'Stage 3-2로 옮기기' 승인을 기다려 주세요.");
+                        return;
+                    }
+                } else if (activeStageNum === 4) {
+                    var sentTo4 = false;
+                    if (productionOrders[m.order] && productionOrders[m.order].stages && productionOrders[m.order].stages[3] && productionOrders[m.order].stages[3].sentToStage4) {
+                        sentTo4 = true;
+                    }
+                    if (!sentTo4) {
+                        alert("매니저가 아직 이 지시서를 Stage 4로 보내지 않았습니다. 매니저의 'Stage 4로 보내기' 승인을 기다려 주세요.");
+                        return;
+                    }
+                } else if (currentTask < activeStageNum) {
                     if (activeStageNum === 3) {
                         alert("관리자가 절임 완료 배치를 Stage 3으로 전달하지 않았습니다. 매니저의 'Stage 3으로 전달' 승인을 기다려 주세요.");
                     } else {
                         alert("아직 Stage " + activeStageNum + " 작업이 할당되지 않았습니다. 관리자 승인을 기다려 주세요.");
                     }
                     return;
-                }
-
-                // Stage 4 (양념) 진행 시 포장 지시서 전송 확인 검증
-                if (activeStageNum === 4) {
-                    if (!isTask4Sent(m.order)) {
-                        alert("포장 생산지시서가 아직 Task 4로 전송되지 않았습니다. 매니저의 'Task 4로 보내기' 승인을 기다려 주세요.");
-                        return;
-                    }
                 }
             } else if (activeStageNum === 1) {
                 var activeOrder = findActiveProductionOrder();
@@ -3247,7 +3572,6 @@
                 let scanTask = activeStageNum;
                 productionOrders[m.order].currentTask = scanTask;
                 productionOrders[m.order].progressStatus = "생산중 (Stage " + activeStageNum + " 스캔완료)";
-                saveProductionOrders();
             }
             
             // 3. 마이그레이션된 정식 상태 객체 가져오기
@@ -3334,6 +3658,14 @@
         function confirmQuantity() {
             if (activeStageNum === null) return;
             var state = getStageState(activeStageNum);
+
+            if (activeStageNum === 3) {
+                if (state.preWorkQty > 30) {
+                    alert("세척배추는 최대 30포기까지만 작업 가능합니다. 수량을 30포기 이하로 조절해주세요.");
+                    return;
+                }
+            }
+
             state.step2Status = "pending";
             saveProductionOrders();
             renderWorkflow();
@@ -3557,6 +3889,13 @@
                 var preQty = state.preWorkQty !== undefined ? state.preWorkQty : (maxQty - state.defectCount);
                 state.postWorkWeight = state.weight !== undefined ? state.weight : parseFloat((preQty * 0.8).toFixed(1));
             }
+
+            if (activeStageNum === 3) {
+                if (state.postWorkQty > 30) {
+                    alert("세척배추는 최대 30포기까지만 작업 가능합니다. 수량을 30포기 이하로 조절해주세요.");
+                    return;
+                }
+            }
             
             // 세션 종료 시간 수집
             var curTimeStr = String(clockHour).padStart(2, '0') + ':' + 
@@ -3647,7 +3986,19 @@
                         
                         // 생산지시서 상태 및 현재진행상태 최신화
                         if (productionOrders[m.order]) {
-                            if (capturedStage === 5) {
+                            if (capturedStage === 3) {
+                                productionOrders[m.order].progressStatus = "생산중 (Stage 3 말리기 진행)";
+                                if (!productionOrders[m.order].stages[3].dryingStatus) {
+                                    productionOrders[m.order].stages[3].dryingStatus = "drying";
+                                    productionOrders[m.order].stages[3].dryingStartTime = Date.now();
+                                    productionOrders[m.order].stages[3].dryingEndTime = Date.now() + 3600000;
+                                }
+                            } else if (capturedStage === 32) {
+                                productionOrders[m.order].stages[3].dryingStatus = "completed";
+                                productionOrders[m.order].stages[3].refrigeratorStoredTime = Date.now();
+                                productionOrders[m.order].currentTask = 4;
+                                productionOrders[m.order].progressStatus = "생산중 (Stage 3 완료)";
+                            } else if (capturedStage === 5) {
                                 productionOrders[m.order].status = "completed";
                                 productionOrders[m.order].progressStatus = "생산 완료";
                             } else {
@@ -3660,10 +4011,15 @@
                         saveProductionOrders();
                         
                         // 타임라인 로그 기록
-                        addTimelineLog(currentUserName + "님이 Stage " + capturedStage + "공정, 생산지시서 " + m.order + " 작업을 최종 완료했습니다.");
+                        var displayStage = (capturedStage === 32) ? "3-2" : capturedStage;
+                        addTimelineLog(currentUserName + "님이 Stage " + displayStage + "공정, 생산지시서 " + m.order + " 작업을 최종 완료했습니다.");
                         
                         renderWorkflow();
-                        alert("공정 실습 상태 전송이 매니저에 의해 승인 및 완료되었습니다.");
+                        if (capturedStage === 3) {
+                            alert("배추 세척 및 말리기 시작 승인이 완료되었습니다. 1시간 동안 물기를 뺍니다. 현재 공정을 초기화하고 다른 작업을 하실 수 있습니다.");
+                        } else {
+                            alert("공정 실습 상태 전송이 매니저에 의해 승인 및 완료되었습니다.");
+                        }
                     } else if (myReq.status === "rejected") {
                         clearInterval(completionTimer);
                         window.removeEventListener("storage", completionStorageHandler);
@@ -3688,6 +4044,31 @@
             };
             window.addEventListener("storage", completionStorageHandler);
         }
+
+        window.cheatCompleteDryingSelf = function() {
+            var m = stagesModel[3];
+            if (m && m.order && m.order !== "없음") {
+                var orderId = m.order;
+                try {
+                    productionOrders = loadProductionOrders();
+                } catch(e) {}
+                if (productionOrders[orderId] && productionOrders[orderId].stages && productionOrders[orderId].stages[3]) {
+                    productionOrders[orderId].stages[3].dryingStatus = "ready";
+                    productionOrders[orderId].stages[3].dryingEndTime = Date.now();
+                    productionOrders[orderId].progressStatus = "생산중 (Stage 3 말리기 완료)";
+                    saveProductionOrders();
+                    
+                    var curStageState = getStageState(3);
+                    if (curStageState) {
+                        curStageState.dryingStatus = "ready";
+                        curStageState.dryingEndTime = Date.now();
+                    }
+                    
+                    renderWorkflow();
+                    alert("건조(물기빼기) 타이머가 즉시 만료(치트)되었습니다. 매니저 화면에서 'Stage 3-2로 옮기기'를 클릭해 주세요.");
+                }
+            }
+        };
 
         // 공정 재시작 및 초기화
         function resetStageAndStartNew() {
@@ -3760,7 +4141,30 @@
             var nextOrder = getAvailableOrderForStage(activeStageNum);
             
             if (activeStageNum > 1 && !nextOrder) {
-                alert("이전 공정(Stage " + (activeStageNum - 1) + ")에서 완료된 새로운 생산지시서가 없습니다. 이전 공정 작업을 먼저 완료해 주세요.");
+                m.order = "없음";
+                m.step1Done = false;
+                var state = getStageState(activeStageNum);
+                state.step1Done = false;
+                state.step2Done = false;
+                state.step2Status = "none";
+                state.step3Done = false;
+                state.step3Status = "none";
+                state.step4Done = false;
+                state.statusSubmitted = false;
+                state.defectCount = 0;
+                state.preWorkQty = 5;
+                state.weight = 4.0;
+                state.postWorkQty = null;
+                state.postWorkWeight = null;
+                state.startTime = null;
+                state.endTime = null;
+                state.sessions = [];
+                state.operator = null;
+                state.breakHistory = [];
+                state.breakStartTime = null;
+                
+                renderWorkflow();
+                alert("공정이 초기화되었습니다. 진행할 수 있는 생산지시서가 없어 스캔 대기 상태로 변경되었습니다.");
                 return;
             }
             
@@ -4213,9 +4617,15 @@
 
             if (stageNum === 4) {
                 var orderId = stagesModel[4].order;
-                if (orderId && orderId !== "없음" && !isTask4Sent(orderId)) {
-                    alert("포장 생산지시서가 아직 Task 4로 전송되지 않았습니다. 매니저의 'Task 4로 보내기' 승인을 기다려 주세요.");
-                    return;
+                if (orderId && orderId !== "없음") {
+                    var sentTo4 = false;
+                    if (productionOrders[orderId] && productionOrders[orderId].stages && productionOrders[orderId].stages[3] && productionOrders[orderId].stages[3].sentToStage4) {
+                        sentTo4 = true;
+                    }
+                    if (!sentTo4) {
+                        alert("매니저가 아직 이 지시서를 Stage 4로 보내지 않았습니다. 매니저의 'Stage 4로 보내기' 승인을 기다려 주세요.");
+                        return;
+                    }
                 }
             }
 
@@ -4446,7 +4856,9 @@
             if (!taskListContainer) return;
             
             var html = "";
-            for (var i = 1; i <= 5; i++) {
+            var stageKeys = [1, 2, 3, 32, 4, 5];
+            for (var k = 0; k < stageKeys.length; k++) {
+                var i = stageKeys[k];
                 var stage = stagesModel[i];
                 var isActive = (activeStageNum !== null && i === activeStageNum);
                 var hasOrder = stage.step1Done;
