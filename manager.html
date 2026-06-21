@@ -4173,6 +4173,26 @@
                                     orders[orderId].currentTask = stageNum + 1;
                                     orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`;
                                 }
+
+                                if (stageNum === 2) {
+                                    let saltingBatches = [];
+                                    try {
+                                        saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                                    } catch(e) {}
+                                    
+                                    const existingBatch = saltingBatches.find(b => b.orderId === orderId);
+                                    if (!existingBatch) {
+                                        saltingBatches.push({
+                                            id: orderId,
+                                            orderId: orderId,
+                                            cabbageHeads: req.postWorkQty || orders[orderId].stages[stageNum].postWorkQty || 15,
+                                            startTime: Date.now(),
+                                            saltingTimeLimit: 17 * 3600 * 1000,
+                                            status: "salting"
+                                        });
+                                        localStorage.setItem("kimp_factory_salting", JSON.stringify(saltingBatches));
+                                    }
+                                }
                             }
                             var displayStage = (stageNum === 32) ? "3-2" : stageNum;
                             addConsoleLog(`[심사 결과] 생산지시서 ${orderId}의 Stage ${displayStage} 완료 요청을 승인하였습니다.`);

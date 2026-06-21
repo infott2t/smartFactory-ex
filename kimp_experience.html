@@ -3299,7 +3299,9 @@
                 
                 // 1. First, find if there is an active order in productionOrders for this stage
                 var foundActiveOrder = "없음";
+                var defaultIds = Object.keys(window.defaultProductionOrders || {});
                 for (var key in productionOrders) {
+                    if (defaultIds.indexOf(key) !== -1) continue;
                     var orderObj = productionOrders[key];
                     if (sNum === 32) {
                         if (orderObj.stages && orderObj.stages[3] && orderObj.stages[3].stage32) {
@@ -3366,21 +3368,77 @@
                 if (defaultIds.indexOf(key) === -1) {
                     var o = productionOrders[key];
                     console.log("[DEBUG-QR] Checking order key:", key, "status:", o ? o.status : "null", "stages:", o ? JSON.stringify(o.stages) : "null");
-                    if (o && (o.status === "in_progress" || o.status === "assigned" || o.status === "task1_ready" || o.status === "ready")) {
-                        var isStage1Done = o.stages && o.stages[1] && o.stages[1].statusSubmitted;
-                        console.log("[DEBUG-QR] -> isStage1Done:", isStage1Done);
-                        if (!isStage1Done) {
-                            var completedByCur = stagesModel[1].completedOrders || [];
-                            console.log("[DEBUG-QR] -> completedByCur:", completedByCur);
-                            if (completedByCur.indexOf(key) === -1) {
-                                console.log("[DEBUG-QR] -> MATCHED and returning order:", key);
-                                return o;
+                    
+                    if (activeStageNum === 1) {
+                        if (o && (o.status === "in_progress" || o.status === "assigned" || o.status === "task1_ready" || o.status === "ready")) {
+                            var isStage1Done = o.stages && o.stages[1] && o.stages[1].statusSubmitted;
+                            var isStage1Started = o.stages && o.stages[1] && o.stages[1].startTime;
+                            if (!isStage1Done && !isStage1Started) {
+                                var completedByCur = stagesModel[1].completedOrders || [];
+                                if (completedByCur.indexOf(key) === -1) {
+                                    return o;
+                                }
+                            }
+                        }
+                    } else if (activeStageNum === 2) {
+                        if (o && o.currentTask === 2) {
+                            var isStage1Done = o.stages && o.stages[1] && o.stages[1].statusSubmitted;
+                            var isStage2Started = o.stages && o.stages[2] && o.stages[2].startTime;
+                            var isStep2None = !o.stages[2] || o.stages[2].step2Status === "none" || !o.stages[2].step2Status;
+                            if (isStage1Done && (!o.stages[2] || !isStage2Started) && isStep2None) {
+                                var completedByCur = stagesModel[2].completedOrders || [];
+                                if (completedByCur.indexOf(key) === -1) {
+                                    return o;
+                                }
+                            }
+                        }
+                    } else if (activeStageNum === 3) {
+                        if (o && o.currentTask === 3) {
+                            var isStage2Done = o.stages && o.stages[2] && o.stages[2].statusSubmitted;
+                            var isStage3Started = o.stages && o.stages[3] && o.stages[3].startTime;
+                            if (isStage2Done && (!o.stages[3] || !isStage3Started)) {
+                                var completedByCur = stagesModel[3].completedOrders || [];
+                                if (completedByCur.indexOf(key) === -1) {
+                                    return o;
+                                }
+                            }
+                        }
+                    } else if (activeStageNum === 32) {
+                        if (o && o.currentTask === 3 && o.stages && o.stages[3] && o.stages[3].dryingStatus === "ready_for_3_2") {
+                            var isStage32Started = o.stages && o.stages[3] && o.stages[3].stage32 && o.stages[3].stage32.startTime;
+                            if (!isStage32Started) {
+                                var completedByCur = stagesModel[32].completedOrders || [];
+                                if (completedByCur.indexOf(key) === -1) {
+                                    return o;
+                                }
+                            }
+                        }
+                    } else if (activeStageNum === 4) {
+                        if (o && o.currentTask === 4 && o.stages && o.stages[3] && o.stages[3].sentToStage4 === true) {
+                            var isStage4Started = o.stages && o.stages[4] && o.stages[4].startTime;
+                            if (!o.stages[4] || !isStage4Started) {
+                                var completedByCur = stagesModel[4].completedOrders || [];
+                                if (completedByCur.indexOf(key) === -1) {
+                                    return o;
+                                }
+                            }
+                        }
+                    } else if (activeStageNum > 1) { // 5, 6 등
+                        var prevStageNum = activeStageNum === 5 ? 4 : activeStageNum - 1;
+                        if (o && o.currentTask === activeStageNum) {
+                            var isPrevDone = o.stages && o.stages[prevStageNum] && o.stages[prevStageNum].statusSubmitted;
+                            var isCurrentStarted = o.stages && o.stages[activeStageNum] && o.stages[activeStageNum].startTime;
+                            if (isPrevDone && (!o.stages[activeStageNum] || !isCurrentStarted)) {
+                                var completedByCur = stagesModel[activeStageNum].completedOrders || [];
+                                if (completedByCur.indexOf(key) === -1) {
+                                    return o;
+                                }
                             }
                         }
                     }
                 }
             }
-            console.log("[DEBUG-QR] No active orders matched for Stage 1. Returning null.");
+            console.log("[DEBUG-QR] No active orders matched for Stage " + activeStageNum + ". Returning null.");
             return null;
         }
 
@@ -3390,53 +3448,13 @@
             } catch(e) {}
             syncCompletedOrdersFromProductionOrders();
 
-            if (stageNum === 1) {
-                var activeOrder = findActiveProductionOrder();
-                if (activeOrder) {
-                    return activeOrder.orderId;
-                }
-                return "없음";
-            }
+            var prevActiveStageNum = window.activeStageNum;
+            window.activeStageNum = stageNum;
+            var activeOrder = findActiveProductionOrder();
+            window.activeStageNum = prevActiveStageNum;
             
-            if (stageNum === 32) {
-                for (var key in productionOrders) {
-                    var o = productionOrders[key];
-                    if (o.stages && o.stages[3] && o.stages[3].dryingStatus === "ready_for_3_2" && o.currentTask === 3) {
-                        var workedByCur32 = stagesModel[32].completedOrders || [];
-                        if (workedByCur32.indexOf(key) === -1 && stagesModel[32].order !== key && !isStageStarted(key, 32)) {
-                            return key;
-                        }
-                    }
-                }
-                return null;
-            }
-
-            if (stageNum === 4) {
-                for (var key in productionOrders) {
-                    var o = productionOrders[key];
-                    if (o.stages && o.stages[3] && o.stages[3].sentToStage4 === true && o.currentTask === 4) {
-                        var workedByCur4 = stagesModel[4].completedOrders || [];
-                        if (workedByCur4.indexOf(key) === -1 && stagesModel[4].order !== key && !isStageStarted(key, 4)) {
-                            return key;
-                        }
-                    }
-                }
-                return null;
-            }
-
-            var prevStageNum = stageNum - 1;
-            if (stageNum === 32) prevStageNum = 3;
-            if (stageNum === 4) prevStageNum = 32;
-
-            var prevStage = stagesModel[prevStageNum];
-            var completedByPrev = prevStage ? (prevStage.completedOrders || []) : [];
-            var workedByCur = stagesModel[stageNum].completedOrders || [];
-            
-            for (var i = 0; i < completedByPrev.length; i++) {
-                var order = completedByPrev[i];
-                if (workedByCur.indexOf(order) === -1 && stagesModel[stageNum].order !== order && !isStageStarted(order, stageNum)) {
-                    return order;
-                }
+            if (activeOrder) {
+                return activeOrder.orderId;
             }
             return null;
         }
@@ -3687,6 +3705,7 @@
                 userName: userName,
                 type: "defect",
                 stageNum: activeStageNum,
+                orderId: stagesModel[activeStageNum].order,
                 status: "pending",
                 weight: state.weight || 0,
                 postWorkQty: state.postWorkQty || 0,
@@ -3775,6 +3794,7 @@
                 userName: userName,
                 type: "cleaning",
                 stageNum: activeStageNum,
+                orderId: stagesModel[activeStageNum].order,
                 status: "pending",
                 submittedTime: new Date().toLocaleTimeString(),
                 imageUrl: "./images/cabbage_zone_a.png"
