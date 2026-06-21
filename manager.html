@@ -1386,7 +1386,7 @@
             <li class="sidebar-menu-item">
                 <a href="#salting" class="sidebar-link" onclick="switchTab('salting')">
                     <i class="bi bi-thermometer-snow"></i>
-                    <span>절임 및 숙성실</span>
+                    <span>절임 및 숙성 & 물기제거 관리</span>
                 </a>
             </li>
             <li class="sidebar-menu-item">
@@ -1612,6 +1612,7 @@
                                             <th>현재 재고</th>
                                             <th>주문 대비 추가 생산 필요</th>
                                             <th>오늘 목표 생산량 설정</th>
+                                            <th>현재 생산중</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbl-body-production-needed">
@@ -1951,22 +1952,27 @@
                             <div>
                                 <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">300g 수량 (개)</label>
                                 <input type="number" id="pkg-input-300g" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="calculatePkgWeights()">
+                                <div id="order-form-target-300g" style="font-size: 10px; color: var(--accent-purple); margin-top: 4px; font-weight: bold;">대시보드 목표: 0개</div>
                             </div>
                             <div>
                                 <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">1kg 수량 (개)</label>
                                 <input type="number" id="pkg-input-1kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="calculatePkgWeights()">
+                                <div id="order-form-target-1kg" style="font-size: 10px; color: var(--accent-purple); margin-top: 4px; font-weight: bold;">대시보드 목표: 0개</div>
                             </div>
                             <div>
                                 <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">3kg 수량 (개)</label>
                                 <input type="number" id="pkg-input-3kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="calculatePkgWeights()">
+                                <div id="order-form-target-3kg" style="font-size: 10px; color: var(--accent-purple); margin-top: 4px; font-weight: bold;">대시보드 목표: 0개</div>
                             </div>
                             <div>
                                 <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">5kg 수량 (개)</label>
                                 <input type="number" id="pkg-input-5kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="calculatePkgWeights()">
+                                <div id="order-form-target-5kg" style="font-size: 10px; color: var(--accent-purple); margin-top: 4px; font-weight: bold;">대시보드 목표: 0개</div>
                             </div>
                             <div>
                                 <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">10kg 수량 (개)</label>
                                 <input type="number" id="pkg-input-10kg" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="0" oninput="calculatePkgWeights()">
+                                <div id="order-form-target-10kg" style="font-size: 10px; color: var(--accent-purple); margin-top: 4px; font-weight: bold;">대시보드 목표: 0개</div>
                             </div>
                         </div>
 
@@ -2138,7 +2144,7 @@
             <div id="panel-salting" class="tab-panel">
                 <div class="section-card">
                     <div class="card-header">
-                        <h3><i class="bi bi-snow2"></i> 냉장 절임(Stage2) & 절임 세척 배추보관용(Stage3) 냉장고</h3>
+                        <h3><i class="bi bi-snow2"></i> 냉장 절임(Stage2) & 절임 세척 배추보관용(Stage3) 냉장고와 물기제거 상황</h3>
                         <span class="badge badge-blue" id="salting-batch-total-lbl">진행 중 0개</span>
                     </div>
                     <p style="font-size: 13px; color: var(--text-secondary);">
@@ -2677,7 +2683,7 @@
                 orders: { title: "생산 지시서 제어판", desc: "오늘 대기 중인 생산 지시서 목록을 조회하고 배추 입고루트에 맞춰 공정에 전달합니다." },
                 workers: { title: "실시간 공정 및 근로자 모니터", desc: "작업자들의 실제 근무/휴식 상태, 실시간 시급 누적, 생산 효율성을 실시간으로 대조합니다." },
                 inventory: { title: "원부재료 및 소모품 재고 자산", desc: "공장의 배추, 양념 제조 필요량, 각종 위생 소품의 실시간 남은 양과 유통기한을 통제합니다." },
-                salting: { title: "냉장 절임실 6시간 숙성고", desc: "원자재인 배추의 절임 소요 시간 카운트다운과 가용 배추 수준을 감시합니다." },
+                salting: { title: "냉장 절임실 관리 & 배추 물기 제거 관리", desc: "원자재인 배추의 절임 소요 시간 카운트다운과 가용 배추 수준을 감시합니다." },
                 facility: { title: "오너 결재 및 기기 전원 제어", desc: "긴급 상황 시 공정 전원 스위치 차단 및 오너에게 자금 및 최종 작업량 마감 결재를 요청합니다." },
                 simulation: { title: "1인 시나리오 테스트 시뮬레이터", desc: "기능 테스트를 위해 가상의 체험자들의 행동을 강제 모사하여 실시간 반응을 확인합니다." },
                 analytics: { title: "누적 매출 및 지출 재정 통계", desc: "비용과 수익 트렌드 곡선, 작업자 생산 속도 편차, 상품 판매 비율을 그래프로 정밀 분석합니다." }
@@ -3573,21 +3579,23 @@
             
             let ordersObj = loadProductionOrders();
             
-            // Generate the next sequence number for this date and quantity!
+            // Generate the next sequence number based ONLY on quantity, ignoring date prefix
             let maxSeq = 0;
-            const prefix = `${dateStr}-${quantity}-`;
+            const targetQtyStr = `-${quantity}-`;
             Object.keys(ordersObj).forEach(key => {
-                if (key.startsWith(prefix)) {
-                    const suffixPart = key.slice(prefix.length);
-                    const seq = parseInt(suffixPart);
-                    if (!isNaN(seq) && seq > maxSeq) {
-                        maxSeq = seq;
+                if (key.includes(targetQtyStr)) {
+                    const parts = key.split('-');
+                    if (parts.length === 3 && parseInt(parts[1]) === quantity) {
+                        const seq = parseInt(parts[2]);
+                        if (!isNaN(seq) && seq > maxSeq) {
+                            maxSeq = seq;
+                        }
                     }
                 }
             });
             
             const nextSeq = maxSeq + 1;
-            const newId = `${prefix}${nextSeq}`; // e.g. "260612-5-1"
+            const newId = `${dateStr}-${quantity}-${nextSeq}`; // e.g. "260622-15-3"
 
             const names = {
                 raw_cabbage: "절임용 원배추",
@@ -4826,6 +4834,7 @@
                 ordersObj = loadProductionOrders();
             } catch(e) {}
             
+            let dryingUpdated = false;
             for (let orderId in ordersObj) {
                 let o = ordersObj[orderId];
                 if (o && o.stages && o.stages[3]) {
@@ -4835,23 +4844,32 @@
                     
                     if (dryingStatus === "drying") {
                         let remaining = Math.max(0, s3.dryingEndTime - now);
-                        let mins = Math.floor(remaining / 60000);
-                        let secs = Math.floor((remaining % 60000) / 1000);
-                        let countdownStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
                         
-                        html += `
-                        <div class="salting-card" style="border-color: var(--accent-purple); background: rgba(156, 39, 176, 0.05);">
-                            <div class="salting-batch-id" style="background: var(--accent-purple); color: #fff;">${orderId}</div>
-                            <div class="salting-title" style="color: var(--accent-purple);"><i class="bi bi-water"></i> 세척배추 타이머 (탈수)</div>
-                            <div style="font-size: 12px; color: var(--text-secondary);">
-                                대용량: 배추 <b>${cabbageHeads}포기</b>
+                        if (remaining <= 0) {
+                            s3.dryingStatus = "ready";
+                            dryingStatus = "ready";
+                            dryingUpdated = true;
+                        } else {
+                            let mins = Math.floor(remaining / 60000);
+                            let secs = Math.floor((remaining % 60000) / 1000);
+                            let countdownStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                            
+                            html += `
+                            <div class="salting-card" style="border-color: var(--accent-purple); background: rgba(156, 39, 176, 0.05);">
+                                <div class="salting-batch-id" style="background: var(--accent-purple); color: #fff;">${orderId}</div>
+                                <div class="salting-title" style="color: var(--accent-purple);"><i class="bi bi-water"></i> 세척배추 타이머 (탈수)</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">
+                                    대용량: 배추 <b>${cabbageHeads}포기</b>
+                                </div>
+                                <div class="salting-countdown" style="color: #fff; font-size: 24px; margin: 10px 0;">${countdownStr}</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">탈수 진행 중 (1시간)</div>
+                                <button class="top-action-btn" style="width: 100%; padding: 6px 0; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); border-radius: 6px;" onclick="window.cheatCompleteDrying('${orderId}')">즉시 완료 (치트)</button>
                             </div>
-                            <div class="salting-countdown" style="color: #fff; font-size: 24px; margin: 10px 0;">${countdownStr}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">탈수 진행 중 (1시간)</div>
-                            <button class="top-action-btn" style="width: 100%; padding: 6px 0; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); border-radius: 6px;" onclick="window.cheatCompleteDrying('${orderId}')">즉시 완료 (치트)</button>
-                        </div>
-                        `;
-                    } else if (dryingStatus === "ready") {
+                            `;
+                        }
+                    }
+                    
+                    if (dryingStatus === "ready") {
                         html += `
                         <div class="salting-card" style="border-color: var(--accent-purple); background: rgba(156, 39, 176, 0.05);">
                             <div class="salting-batch-id" style="background: var(--accent-purple); color: #fff;">${orderId}</div>
@@ -4866,11 +4884,11 @@
                         html += `
                         <div class="salting-card" style="border-color: var(--accent-orange); background: rgba(255, 152, 0, 0.05);">
                             <div class="salting-batch-id" style="background: var(--accent-orange); color: #000;">${orderId}</div>
-                            <div class="salting-title" style="color: var(--accent-orange);"><i class="bi bi-arrow-right-circle"></i> Stage 3-2 이송 완료</div>
+                            <div class="salting-title" style="color: var(--accent-orange);"><i class="bi bi-arrow-right-circle"></i> Stage 3-2 이송 가능</div>
                             <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
                                 배추 <b>${cabbageHeads}포기</b>
                             </div>
-                            <div style="font-size: 11px; color: var(--text-secondary);">작업자가 Stage 3-2에서 스캔하여 밀봉 포장을 대기 중입니다.</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">작업자가 Stage 3-2에서 스캔하여 밀봉 포장을 시작하려고 합니다.</div>
                         </div>
                         `;
                     } else if (dryingStatus === "completed" && !s3.sentToStage4) {
@@ -4897,6 +4915,10 @@
                         `;
                     }
                 }
+            }
+            
+            if (dryingUpdated) {
+                saveProductionOrders(ordersObj);
             }
 
             container.innerHTML = html;
@@ -5890,6 +5912,29 @@
                 totalOrderWeight += getWeightByProductId(o.productId) * o.quantity;
             });
 
+            // Calculate currently in-production packaging amounts
+            let pkgOrders = {};
+            try {
+                if (window.FactoryStore) {
+                    pkgOrders = window.FactoryStore.getState().packagingOrders || {};
+                } else {
+                    pkgOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                }
+            } catch(e) {}
+            
+            let producingCounts = { p300g: 0, p1kg: 0, p3kg: 0, p5kg: 0, p10kg: 0 };
+            Object.values(pkgOrders).forEach(po => {
+                if (po.status !== 'completed' && po.status !== 'Task 4 완료' && po.status !== 'Task 5 완료') {
+                    if (po.targets) {
+                        producingCounts['p300g'] += po.targets['300g'] || 0;
+                        producingCounts['p1kg'] += po.targets['1kg'] || 0;
+                        producingCounts['p3kg'] += po.targets['3kg'] || 0;
+                        producingCounts['p5kg'] += po.targets['5kg'] || 0;
+                        producingCounts['p10kg'] += po.targets['10kg'] || 0;
+                    }
+                }
+            });
+
             // 1) 추가 생산이 필요한 제품 목록 렌더링
             const tblProductionNeeded = document.getElementById("tbl-body-production-needed");
             if (tblProductionNeeded) {
@@ -5921,6 +5966,10 @@
                         styleMsgColor = "color: #ff7675; font-weight: bold;";
                     }
 
+                    const producingBadge = producingCounts[pId] > 0 
+                        ? `<span style="font-weight: 700; color: var(--neon-blue);">${producingCounts[pId]}개</span>`
+                        : `<span style="color: var(--text-secondary);">-</span>`;
+
                     html += `
                     <tr style="${rowStyle}">
                         <td style="font-weight: 700;">${prodName}</td>
@@ -5933,10 +5982,24 @@
                             <button onclick="changeProdAdded('${pId}', 1)" style="padding: 2px 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: black; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 4px; outline: none;">+</button>
                             <span style="font-size: 10.5px; margin-left: 8px; ${styleMsgColor}">${feedbackMsg}</span>
                         </td>
+                        <td style="text-align: center;">${producingBadge}</td>
                     </tr>
                     `;
                 });
                 tblProductionNeeded.innerHTML = html;
+                
+                // [Sync] Update '#orders' tab packaging target labels dynamically
+                const syncKeys = ["p300g", "p1kg", "p3kg", "p5kg", "p10kg"];
+                syncKeys.forEach(k => {
+                    const labelEl = document.getElementById(`order-form-target-${k.replace('p','')}`);
+                    if (labelEl) {
+                        const oCount = orderCounts[k] || 0;
+                        const pStock = products[k] ? products[k].stock : 0;
+                        const pNeeded = Math.max(0, oCount - pStock);
+                        const val = (added[k] !== undefined) ? added[k] : pNeeded;
+                        labelEl.textContent = `오늘 생산 목표: ${val}개`;
+                    }
+                });
             }
 
             // 2) 예상 완료 시간 메시지박스 렌더링
