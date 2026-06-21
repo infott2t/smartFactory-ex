@@ -60,15 +60,20 @@
             // 냉장 숙성/절임실 초기 배치 (17시간 절임 타이머 테스트용)
             // 시작 시간을 밀리초 단위로 역산하여 저장
             const now = Date.now();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yy = String(yesterday.getFullYear()).slice(-2);
+            const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
+            const dd = String(yesterday.getDate()).padStart(2, '0');
+            const yesterdayDateStr = `${yy}${mm}${dd}`;
+
             const initialSaltingBatches = [
-                { id: "SALT-260610-01", orderId: "260619-15-1", cabbageHeads: 15, startTime: now - 16.8 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: "SALT-260610-02", orderId: "260619-15-2", cabbageHeads: 15, startTime: now - 10.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: "SALT-260610-03", orderId: "260619-15-3", cabbageHeads: 15, startTime: now - 5.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: "SALT-260610-04", orderId: "SALT-EXP-04", cabbageHeads: 15, startTime: now - 19.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "matured", maturedTime: now - 2.0 * 3600 * 1000 },
-                { id: "SALT-260610-05", orderId: "SALT-EXP-05", cabbageHeads: 15, startTime: now - 22.0 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "matured", maturedTime: now - 5.0 * 3600 * 1000 }
+                { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, startTime: now - 4 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
+                { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, startTime: now - 3 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
+                { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, startTime: now - (17 * 3600 * 1000 - 60 * 1000), saltingTimeLimit: 17 * 3600 * 1000, status: "salting" }
             ];
             localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSaltingBatches));
-            localStorage.setItem("kimp_factory_matured_cabbages", "30"); // 이미 숙성 완료된 배추 포기 수 (배치4: 15 + 배치5: 15)
+            localStorage.setItem("kimp_factory_matured_cabbages", "0");
 
             // 당일 주문/출하/배송 현황 (포장 규격 5종)
             const initialDailyOrders = {
@@ -282,6 +287,20 @@
         let saltingChanged = false;
 
         saltingBatches.forEach(batch => {
+            // Force status to "salting" for batch 1 and 2 if they are currently marked matured in local storage
+            if (batch.id && (batch.id.endsWith("-15-1") || batch.id.endsWith("-15-2"))) {
+                if (batch.status === "matured") {
+                    batch.status = "salting";
+                    if (batch.id.endsWith("-15-1")) {
+                        batch.startTime = now - 4 * 3600 * 1000;
+                    } else {
+                        batch.startTime = now - 3 * 3600 * 1000;
+                    }
+                    batch.saltingTimeLimit = 17 * 3600 * 1000;
+                    if (batch.maturedTime) delete batch.maturedTime;
+                    saltingChanged = true;
+                }
+            }
             if (batch.status === "salting") {
                 const elapsed = now - batch.startTime;
                 if (elapsed >= batch.saltingTimeLimit) {

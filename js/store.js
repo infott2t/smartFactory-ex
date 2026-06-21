@@ -1,13 +1,20 @@
 (function() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yy = String(yesterday.getFullYear()).slice(-2);
+    const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const dd = String(yesterday.getDate()).padStart(2, '0');
+    const yesterdayDateStr = `${yy}${mm}${dd}`;
+
     window.defaultProductionOrders = {
-        "260619-15-3": {
-            orderId: "260619-15-3",
+        [`${yesterdayDateStr}-15-3`]: {
+            orderId: `${yesterdayDateStr}-15-3`,
             productId: "raw_cabbage",
             productName: "절임용 원배추",
             quantity: 15,
             status: "in_progress",
-            currentTask: 3,
-            progressStatus: "생산 중 (Task 3)",
+            currentTask: 2,
+            progressStatus: "생산중 (Stage 2)",
             cabbageOrigin: "충남 태안 황토 배추",
             supplier: "서해안 청과",
             deliveryRoute: "루트-3",
@@ -53,14 +60,14 @@
                 }
             }
         },
-        "260619-15-2": {
-            orderId: "260619-15-2",
+        [`${yesterdayDateStr}-15-2`]: {
+            orderId: `${yesterdayDateStr}-15-2`,
             productId: "raw_cabbage",
             productName: "절임용 원배추",
             quantity: 15,
             status: "in_progress",
-            currentTask: 3,
-            progressStatus: "생산 중 (Task 3)",
+            currentTask: 2,
+            progressStatus: "생산중 (Stage 2 완료)",
             cabbageOrigin: "제주 서귀포 산지",
             supplier: "제주 영농조합",
             deliveryRoute: "루트-2",
@@ -106,14 +113,14 @@
                 }
             }
         },
-        "260619-15-1": {
-            orderId: "260619-15-1",
+        [`${yesterdayDateStr}-15-1`]: {
+            orderId: `${yesterdayDateStr}-15-1`,
             productId: "raw_cabbage",
             productName: "절임용 원배추",
             quantity: 15,
             status: "in_progress",
-            currentTask: 3,
-            progressStatus: "생산 중 (Task 3)",
+            currentTask: 2,
+            progressStatus: "생산중 (Stage 2 완료)",
             cabbageOrigin: "강원 평창 고랭지",
             supplier: "대관령 유통",
             deliveryRoute: "루트-1",
@@ -161,13 +168,15 @@
         }
     };
 
+
     const localStorage = window.localStorage;
     let isSaving = false;
 
     function mapOrderToFrontend(order) {
-        if (!order) return order;
+        if (!order || typeof order !== 'object') return null;
         const cloned = JSON.parse(JSON.stringify(order));
-        if (!cloned.stages) cloned.stages = {};
+        if (!cloned.orderId) return null;
+        if (!cloned.stages || typeof cloned.stages !== 'object') cloned.stages = {};
 
         // Construct rawMaterial if missing for legacy orders
         if (!cloned.rawMaterial) {
@@ -179,6 +188,13 @@
             };
         }
 
+        // Ensure all stages 1 to 5 exist and have basic properties
+        for (let i = 1; i <= 5; i++) {
+            if (!cloned.stages[i] || typeof cloned.stages[i] !== 'object') {
+                cloned.stages[i] = {};
+            }
+        }
+
         // Construct stage 1 frontend view
         const s1 = cloned.stages[1] || {};
         s1.operator = s1.operator || (s1.operators && s1.operators[0]) || null;
@@ -188,7 +204,55 @@
         // Construct stage 2 frontend view
         const s2 = cloned.stages[2] || {};
         s2.operator = s2.operator || (s2.operators && s2.operators[0]) || null;
-        if (s2.step2_salting) {
+
+        // Fetch details from manager.html#salting (kimp_factory_salting)
+        let saltingBatches = [];
+        try {
+            saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+        } catch(e) {}
+        // Support both ID formats (with/without SALT- prefix, just in case)
+        const matchedBatch = saltingBatches.find(b => 
+            b.orderId === cloned.orderId || 
+            b.id === cloned.orderId || 
+            (b.orderId && b.orderId.replace(/^SALT-/, "") === cloned.orderId.replace(/^SALT-/, ""))
+        );
+
+        if (matchedBatch) {
+            const limit = matchedBatch.saltingTimeLimit || 61200000;
+            const elapsed = Date.now() - matchedBatch.startTime;
+            const remaining = Math.max(0, limit - elapsed);
+
+            s2.saltingStartTime = new Date(matchedBatch.startTime).toLocaleTimeString();
+            s2.targetDuration = limit / 3600000; // e.g. 17
+            s2.isTurnedOver = matchedBatch.status === "matured" || elapsed >= limit;
+            
+            // Map status properties
+            if (matchedBatch.status === "matured" || elapsed >= limit) {
+                s2.step2Done = true;
+                s2.step2Status = "approved";
+                s2.step3Done = true;
+                s2.step3Status = "approved";
+                s2.step4Done = true;
+                s2.statusSubmitted = true;
+                s2.endTime = s2.endTime || new Date(matchedBatch.maturedTime || (matchedBatch.startTime + limit)).toLocaleTimeString();
+                
+                if (cloned.currentTask === 2) {
+                    cloned.progressStatus = "생산중 (Stage 2 완료)";
+                }
+            } else {
+                s2.step2Done = false;
+                s2.step2Status = "salting";
+                s2.step3Done = false;
+                s2.step3Status = "none";
+                s2.step4Done = false;
+                s2.statusSubmitted = false;
+                s2.endTime = null;
+                
+                if (cloned.currentTask === 2) {
+                    cloned.progressStatus = "생산중 (Stage 2)";
+                }
+            }
+        } else if (s2.step2_salting) {
             s2.brineSalinity = s2.brineSalinity !== undefined ? s2.brineSalinity : s2.step2_salting.brineSalinity;
             s2.brineVolumeLiters = s2.brineVolumeLiters !== undefined ? s2.brineVolumeLiters : s2.step2_salting.brineVolumeLiters;
             s2.extraSaltAmountKg = s2.extraSaltAmountKg !== undefined ? s2.extraSaltAmountKg : s2.step2_salting.extraSaltAmountKg;
@@ -410,6 +474,7 @@
         history: [],
         experienceRemainingSeconds: 180,
         productionOrders: {},
+        packagingOrders: {},
         workersProgress: {},
         remainingSeconds: 7200,
         clockHour: 15,
@@ -512,20 +577,92 @@
 
         // 6. Production orders
         try {
-            let parsed = JSON.parse(localStorage.getItem('kimp_production_orders') || '{}');
-            let obj = {};
-            if (parsed && Array.isArray(parsed)) {
-                parsed.forEach(o => {
-                    if (o && o.orderId) obj[o.orderId] = mapOrderToFrontend(o);
-                });
-            } else {
-                for (let k in parsed) {
-                    obj[k] = mapOrderToFrontend(parsed[k]);
+            const rawOrders = localStorage.getItem('kimp_production_orders');
+            let parsed = null;
+            if (rawOrders && rawOrders !== 'null' && rawOrders !== 'undefined') {
+                try {
+                    parsed = JSON.parse(rawOrders);
+                } catch (e) {
+                    console.error("Failed to parse kimp_production_orders:", e);
                 }
             }
 
-            // Centralized cleanup of legacy keys
+            // Calculate yesterday's date
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yy = String(yesterday.getFullYear()).slice(-2);
+            const mm = String(yesterday.getMonth() + 1).padStart(2, '0');
+            const dd = String(yesterday.getDate()).padStart(2, '0');
+            const yesterdayDateStr = `${yy}${mm}${dd}`;
+
+            const isEmpty = !parsed || (Array.isArray(parsed) && parsed.length === 0) || (typeof parsed === 'object' && Object.keys(parsed).length === 0);
+            let obj = {};
             let dbChanged = false;
+
+            if (!isEmpty) {
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(o => {
+                        const sanitized = mapOrderToFrontend(o);
+                        if (sanitized && sanitized.orderId) {
+                            obj[sanitized.orderId] = sanitized;
+                        }
+                    });
+                } else if (typeof parsed === 'object') {
+                    for (let k in parsed) {
+                        const sanitized = mapOrderToFrontend(parsed[k]);
+                        if (sanitized && sanitized.orderId) {
+                            obj[sanitized.orderId] = sanitized;
+                        }
+                    }
+                }
+            }
+
+            // If empty, perform dynamic initial setup with yesterday's date mock orders
+            if (isEmpty || Object.keys(obj).length === 0) {
+                const order1Id = `${yesterdayDateStr}-15-1`;
+                const order2Id = `${yesterdayDateStr}-15-2`;
+                const order3Id = `${yesterdayDateStr}-15-3`;
+
+                obj = {
+                    [order1Id]: mapOrderToFrontend(window.defaultProductionOrders[order1Id]),
+                    [order2Id]: mapOrderToFrontend(window.defaultProductionOrders[order2Id]),
+                    [order3Id]: mapOrderToFrontend(window.defaultProductionOrders[order3Id])
+                };
+
+                // Also initialize refrigerator salting batches
+                const now = Date.now();
+                const initialSalting = [
+                    {
+                        id: order1Id,
+                        orderId: order1Id,
+                        cabbageHeads: 15,
+                        status: "salting",
+                        startTime: now - 4 * 3600 * 1000,
+                        saltingTimeLimit: 17 * 3600 * 1000
+                    },
+                    {
+                        id: order2Id,
+                        orderId: order2Id,
+                        cabbageHeads: 15,
+                        status: "salting",
+                        startTime: now - 3 * 3600 * 1000,
+                        saltingTimeLimit: 17 * 3600 * 1000
+                    },
+                    {
+                        id: order3Id,
+                        orderId: order3Id,
+                        cabbageHeads: 15,
+                        status: "salting",
+                        startTime: now - (17 * 3600 * 1000 - 60 * 1000),
+                        saltingTimeLimit: 17 * 3600 * 1000
+                    }
+                ];
+                localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSalting));
+                localStorage.setItem("kimp_factory_matured_cabbages", "0");
+                dbChanged = true;
+            }
+
+            // Centralized cleanup of legacy keys
             for (let k in obj) {
                 if (k.startsWith("260530-") || k.startsWith("260612-")) {
                     delete obj[k];
@@ -534,7 +671,11 @@
             }
 
             // Ensure cabbage orders exist
-            const newKeys = ["260619-15-1", "260619-15-2", "260619-15-3"];
+            const newKeys = [
+                `${yesterdayDateStr}-15-1`,
+                `${yesterdayDateStr}-15-2`,
+                `${yesterdayDateStr}-15-3`
+            ];
             newKeys.forEach(k => {
                 if (!obj[k] && window.defaultProductionOrders[k]) {
                     obj[k] = mapOrderToFrontend(window.defaultProductionOrders[k]);
@@ -547,11 +688,14 @@
             if (dbChanged) {
                 let dbOrders = {};
                 for (let k in state.productionOrders) {
-                    dbOrders[k] = mapOrderToDatabase(state.productionOrders[k]);
+                    if (state.productionOrders[k]) {
+                        dbOrders[k] = mapOrderToDatabase(state.productionOrders[k]);
+                    }
                 }
                 localStorage.setItem('kimp_production_orders', JSON.stringify(dbOrders));
             }
         } catch(e) {
+            console.error("Error loading production orders in loadFromStorage:", e);
             state.productionOrders = {};
         }
 
@@ -560,6 +704,13 @@
             state.workersProgress = JSON.parse(localStorage.getItem('kimp_workers_progress') || '{}');
         } catch(e) {
             state.workersProgress = {};
+        }
+
+        // 7.5 Packaging orders
+        try {
+            state.packagingOrders = JSON.parse(localStorage.getItem('kimp_packaging_orders') || '{}');
+        } catch(e) {
+            state.packagingOrders = {};
         }
 
         // 8. Shift timer
@@ -734,6 +885,11 @@
             localStorage.setItem('kimp_production_orders', JSON.stringify(dbOrders));
         }
 
+        // 6.5 Packaging orders
+        if (shouldSave('packaging_orders')) {
+            localStorage.setItem('kimp_packaging_orders', JSON.stringify(state.packagingOrders));
+        }
+
         // 7. Workers progress
         if (shouldSave('workers_progress')) {
             localStorage.setItem('kimp_workers_progress', JSON.stringify(state.workersProgress));
@@ -776,6 +932,7 @@
                 history: Array.isArray(state.history) ? [...state.history] : [],
                 experienceRemainingSeconds: state.experienceRemainingSeconds,
                 productionOrders: state.productionOrders ? { ...state.productionOrders } : {},
+                packagingOrders: state.packagingOrders ? { ...state.packagingOrders } : {},
                 workersProgress: state.workersProgress ? { ...state.workersProgress } : {},
                 remainingSeconds: state.remainingSeconds,
                 clockHour: state.clockHour,
@@ -845,6 +1002,19 @@
                     const orderId = action.payload.orderId;
                     state.productionOrders[orderId] = {
                         ...(state.productionOrders[orderId] || {}),
+                        ...action.payload
+                    };
+                    break;
+                }
+                case 'SET_PACKAGING_ORDERS':
+                    state.packagingOrders = action.payload || {};
+                    break;
+                case 'ADD_PACKAGING_ORDER':
+                case 'UPDATE_PACKAGING_ORDER': {
+                    if (!state.packagingOrders) state.packagingOrders = {};
+                    const orderId = action.payload.orderId;
+                    state.packagingOrders[orderId] = {
+                        ...(state.packagingOrders[orderId] || {}),
                         ...action.payload
                     };
                     break;
@@ -932,6 +1102,7 @@
                 case 'RESET_ALL_DATA':
                     state.reservations = [];
                     state.productionOrders = {};
+                    state.packagingOrders = {};
                     state.workersProgress = {};
                     state.remainingSeconds = 7200;
                     state.clockHour = 15;
@@ -987,6 +1158,11 @@
                         case 'UPDATE_PRODUCTION_ORDER':
                             keysToSave = ['production_orders'];
                             break;
+                        case 'SET_PACKAGING_ORDERS':
+                        case 'ADD_PACKAGING_ORDER':
+                        case 'UPDATE_PACKAGING_ORDER':
+                            keysToSave = ['packaging_orders'];
+                            break;
                         case 'SET_ACCUM_BREAK_SECONDS':
                         case 'SET_BREAK_REMAINING_SECONDS':
                         case 'SET_IS_ON_BREAK':
@@ -1036,6 +1212,9 @@
         }
         if (key === 'kimp_production_orders') {
             return JSON.stringify(state.productionOrders);
+        }
+        if (key === 'kimp_packaging_orders') {
+            return JSON.stringify(state.packagingOrders);
         }
         if (key === 'kimp_workers_progress') {
             return JSON.stringify(state.workersProgress);
@@ -1125,7 +1304,7 @@
     window.setPartitionedItem = function(key, value) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request') {
+            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
                 localStorage.setItem(key, value);
             } else {
                 localStorage.setItem(key + "_" + userId, value);
@@ -1150,6 +1329,10 @@
                 }
             }
             window.FactoryStore.dispatch({ type: 'SET_PRODUCTION_ORDERS', payload: obj });
+            return;
+        }
+        if (key === 'kimp_packaging_orders') {
+            window.FactoryStore.dispatch({ type: 'SET_PACKAGING_ORDERS', payload: JSON.parse(value) });
             return;
         }
         if (key === 'kimp_workers_progress') {
@@ -1210,7 +1393,7 @@
     window.removePartitionedItem = function(key) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request') {
+            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
                 localStorage.removeItem(key);
             } else {
                 localStorage.removeItem(key + "_" + userId);

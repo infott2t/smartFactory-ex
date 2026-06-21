@@ -1555,7 +1555,7 @@
                 <i class="bi bi-info-circle-fill" style="font-size: 28px; color: var(--text-sub); display: block; margin-bottom: 8px;"></i>
                 <span style="font-size: 13px; color: var(--text-sub); line-height: 1.6; display: block; font-weight: 500;">
                     참여 중인 공정이 없습니다.<br>
-                    아래 <strong style="color: var(--neon-blue);">공정 현황 Task</strong>에서<br>
+                    아래 <strong style="color: var(--neon-blue);">공정 현황 Stage</strong>에서<br>
                     원하시는 공정의 <strong>[참여하기]</strong> 버튼을 클릭하여 작업을 시작해주세요.
                 </span>
             </div>
@@ -1579,7 +1579,7 @@
         <div class="task-section-header">
             <span class="task-section-title">
                 <i class="bi bi-diagram-3-fill"></i>
-                <span>공정 현황 Task</span>
+                <span>공정 현황 Stage</span>
             </span>
             <span class="task-section-meta">AF-KMC-B</span>
         </div>
@@ -1596,7 +1596,7 @@
             </a>
             <div class="nav-item active">
                 <i class="bi bi-clipboard-check-fill"></i>
-                <span>Tasks</span>
+                <span>Stages</span>
             </div>
             <div class="nav-item" onclick="alert('전체 운영 통계(Metrics)를 로드합니다.')">
                 <i class="bi bi-graph-up-arrow"></i>
@@ -2017,16 +2017,27 @@
         }
 
         function loadProductionOrders() {
+            var orders = {};
             if (window.FactoryStore) {
-                return window.FactoryStore.getState().productionOrders || {};
+                orders = window.FactoryStore.getState().productionOrders || {};
+            } else {
+                try {
+                    var storedOrders = localStorage.getItem('kimp_production_orders');
+                    var parsed = parseProductionOrders(storedOrders);
+                    orders = { ...defaultProductionOrders, ...parsed };
+                } catch(e) {
+                    orders = defaultProductionOrders || {};
+                }
             }
-            try {
-                var storedOrders = localStorage.getItem('kimp_production_orders');
-                var parsed = parseProductionOrders(storedOrders);
-                return { ...defaultProductionOrders, ...parsed };
-            } catch(e) {
-                return defaultProductionOrders;
+            // Sanitize each order to ensure .stages exists and is an object
+            for (var key in orders) {
+                if (orders[key]) {
+                    if (!orders[key].stages || typeof orders[key].stages !== 'object') {
+                        orders[key].stages = {};
+                    }
+                }
             }
+            return orders;
         }
 
         var productionOrders = loadProductionOrders();
@@ -2183,12 +2194,29 @@
                         stages: {}
                     };
                 }
+                if (!productionOrders[orderId].stages) {
+                    productionOrders[orderId].stages = {};
+                }
                 // 기존 데이터가 있으면 유지하고 덮어씌우지 않음
                 if (!productionOrders[orderId].stages[stageNum]) {
                     productionOrders[orderId].stages[stageNum] = tempStageStates[stageNum];
                 }
                 delete tempStageStates[stageNum];
             }
+        }
+
+        function isTask4Sent(orderId) {
+            if (!orderId || orderId === "없음") return false;
+            var packagingOrders = {};
+            if (window.FactoryStore) {
+                packagingOrders = window.FactoryStore.getState().packagingOrders || {};
+            } else {
+                try {
+                    packagingOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                } catch(e) {}
+            }
+            var pkgOrder = packagingOrders[orderId];
+            return pkgOrder && pkgOrder.status === 'Task 4 전송 완료';
         }
 
         // 직전 공정의 최종 완료 수량을 가져오는 헬퍼 함수
@@ -2370,6 +2398,22 @@
                 renderTaskCards();
                 return;
             }
+
+            var m = stagesModel[activeStageNum];
+
+            // Stage 4 전송 검증
+            if (activeStageNum === 4) {
+                var orderId = m.order;
+                if (orderId && orderId !== "없음" && !isTask4Sent(orderId)) {
+                    alert("포장 생산지시서가 아직 Task 4로 전송되지 않았습니다. 매니저의 'Task 4로 보내기' 승인을 기다려 주세요.");
+                    activeStageNum = null;
+                    document.getElementById('active-work-section').style.display = 'none';
+                    document.getElementById('no-active-work-placeholder').style.display = 'block';
+                    renderTaskCards();
+                    return;
+                }
+            }
+
             // 활성 공정 표시
             document.getElementById('active-work-section').style.display = 'block';
             document.getElementById('no-active-work-placeholder').style.display = 'none';
@@ -2710,68 +2754,190 @@
             checklistContainer.innerHTML = html;
 
             // 페이지 로드/새로고침 시 step5가 pending이면 승인 체크 폴링 재시작
-            if (state.step5Status === "pending" && !window._completionPollingActive) {
-                window._completionPollingActive = true;
-                var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
-                var capturedStage = activeStageNum;
-                var capturedState = state;
-                var capturedModel = m;
-                var resumeCheckCompletion = function() {
-                    var reqs = [];
-                    try { reqs = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]"); } catch(e) {}
-                    var myReq = reqs.find(function(r) { return r.userId === userId && r.type === "completion" && r.stageNum === capturedStage; });
-                    if (myReq) {
-                        if (myReq.status === "approved") {
-                            clearInterval(window._completionPollingTimer);
-                            window.removeEventListener("storage", window._completionStorageHandler);
-                            window._completionPollingActive = false;
-                            
-                            var latestState = getStageState(capturedStage);
-                            latestState.step5Status = "approved";
-                            latestState.statusSubmitted = true;
-                            
-                            if (!capturedModel.completedOrders) capturedModel.completedOrders = [];
-                            if (capturedModel.order && capturedModel.completedOrders.indexOf(capturedModel.order) === -1) {
-                                capturedModel.completedOrders.push(capturedModel.order);
-                            }
-                            
-                            if (productionOrders[capturedModel.order]) {
-                                if (capturedStage === 5) {
-                                    productionOrders[capturedModel.order].status = "completed";
-                                    productionOrders[capturedModel.order].progressStatus = "생산 완료";
-                                } else {
-                                    productionOrders[capturedModel.order].progressStatus = "생산중 (Stage" + capturedStage + "완료)";
-                                    productionOrders[capturedModel.order].currentTask = capturedStage + 1;
-                                }
-                            }
-                            
-                            saveProductionOrders();
-                            addTimelineLog(currentUserName + "님이 Stage " + capturedStage + "공정, 생산지시서 " + capturedModel.order + " 작업을 최종 완료했습니다.");
-                            renderWorkflow();
-                            alert("관리자 심사가 완료되었습니다! 아래 버튼을 눌러 다음 생산지시서 작업을 시작하세요.");
-                        } else if (myReq.status === "rejected") {
-                            clearInterval(window._completionPollingTimer);
-                            window.removeEventListener("storage", window._completionStorageHandler);
-                            window._completionPollingActive = false;
-                            
-                            var latestState = getStageState(capturedStage);
-                            latestState.step5Status = "none";
-                            alert("매니저가 최종 공정 실습 완료 심사를 반려했습니다. 다시 확인해 주세요.");
-                            if (productionOrders[capturedModel.order]) {
-                                productionOrders[capturedModel.order].progressStatus = "투입 후 생산 중";
-                                saveProductionOrders();
-                            }
-                            renderWorkflow();
-                        }
+            if (state.step5Status === "pending") {
+                if (window._completionPollingActiveStage !== activeStageNum) {
+                    if (window._completionPollingTimer) {
+                        clearInterval(window._completionPollingTimer);
                     }
-                };
-                window._completionPollingTimer = setInterval(resumeCheckCompletion, 1500);
-                window._completionStorageHandler = function(e) {
-                    if (e.key === "kimp_approval_requests") resumeCheckCompletion();
-                };
-                window.addEventListener("storage", window._completionStorageHandler);
-            } else if (state.step5Status !== "pending") {
-                window._completionPollingActive = false;
+                    if (window._completionStorageHandler) {
+                        window.removeEventListener("storage", window._completionStorageHandler);
+                    }
+                    window._completionPollingActiveStage = activeStageNum;
+                    var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+                    var capturedStage = activeStageNum;
+                    var capturedState = state;
+                    var capturedModel = m;
+                    var resumeCheckCompletion = function() {
+                        var reqs = [];
+                        try { reqs = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]"); } catch(e) {}
+                        var myReq = reqs.find(function(r) { return r.userId === userId && r.type === "completion" && r.stageNum === capturedStage; });
+                        if (myReq) {
+                            if (myReq.status === "approved") {
+                                if (window._completionPollingTimer) {
+                                    clearInterval(window._completionPollingTimer);
+                                    window._completionPollingTimer = null;
+                                }
+                                if (window._completionStorageHandler) {
+                                    window.removeEventListener("storage", window._completionStorageHandler);
+                                    window._completionStorageHandler = null;
+                                }
+                                if (window._completionPollingActiveStage === capturedStage) {
+                                    window._completionPollingActiveStage = null;
+                                }
+                                
+                                var latestState = getStageState(capturedStage);
+                                latestState.step5Status = "approved";
+                                latestState.statusSubmitted = true;
+                                
+                                var curTimeStr = String(clockHour).padStart(2, '0') + ':' + 
+                                                 String(clockMinute).padStart(2, '0') + ':' + 
+                                                 String(secondCounter).padStart(2, '0');
+                                latestState.endTime = curTimeStr;
+                                if (latestState.sessions && latestState.sessions.length > 0) {
+                                    var lastSession = latestState.sessions[latestState.sessions.length - 1];
+                                    if (!lastSession.endTime) {
+                                        lastSession.endTime = curTimeStr;
+                                    }
+                                }
+                                
+                                if (!capturedModel.completedOrders) capturedModel.completedOrders = [];
+                                if (capturedModel.order && capturedModel.completedOrders.indexOf(capturedModel.order) === -1) {
+                                    capturedModel.completedOrders.push(capturedModel.order);
+                                }
+                                
+                                if (productionOrders[capturedModel.order]) {
+                                    if (capturedStage === 5) {
+                                        productionOrders[capturedModel.order].status = "completed";
+                                        productionOrders[capturedModel.order].progressStatus = "생산 완료";
+                                    } else {
+                                        productionOrders[capturedModel.order].progressStatus = "생산중 (Stage " + capturedStage + " 완료)";
+                                        let nextTask = capturedStage + 1;
+                                        productionOrders[capturedModel.order].currentTask = nextTask;
+                                    }
+                                }
+                                
+                                saveProductionOrders();
+                                addTimelineLog(currentUserName + "님이 Stage " + capturedStage + "공정, 생산지시서 " + capturedModel.order + " 작업을 최종 완료했습니다.");
+                                renderWorkflow();
+                                alert("관리자 심사가 완료되었습니다! 아래 버튼을 눌러 다음 생산지시서 작업을 시작하세요.");
+                            } else if (myReq.status === "rejected") {
+                                if (window._completionPollingTimer) {
+                                    clearInterval(window._completionPollingTimer);
+                                    window._completionPollingTimer = null;
+                                }
+                                if (window._completionStorageHandler) {
+                                    window.removeEventListener("storage", window._completionStorageHandler);
+                                    window._completionStorageHandler = null;
+                                }
+                                if (window._completionPollingActiveStage === capturedStage) {
+                                    window._completionPollingActiveStage = null;
+                                }
+                                
+                                var latestState = getStageState(capturedStage);
+                                latestState.step5Status = "none";
+                                alert("매니저가 최종 공정 실습 완료 심사를 반려했습니다. 다시 확인해 주세요.");
+                                if (productionOrders[capturedModel.order]) {
+                                    productionOrders[capturedModel.order].progressStatus = "투입 후 생산 중";
+                                    saveProductionOrders();
+                                }
+                                renderWorkflow();
+                            }
+                        }
+                    };
+                    window._completionPollingTimer = setInterval(resumeCheckCompletion, 1500);
+                    window._completionStorageHandler = function(e) {
+                        if (e.key === "kimp_approval_requests") resumeCheckCompletion();
+                    };
+                    window.addEventListener("storage", window._completionStorageHandler);
+                }
+            } else {
+                if (window._completionPollingActiveStage === activeStageNum) {
+                    if (window._completionPollingTimer) {
+                        clearInterval(window._completionPollingTimer);
+                        window._completionPollingTimer = null;
+                    }
+                    if (window._completionStorageHandler) {
+                        window.removeEventListener("storage", window._completionStorageHandler);
+                        window._completionStorageHandler = null;
+                    }
+                    window._completionPollingActiveStage = null;
+                }
+            }
+
+            // 페이지 로드/새로고침 시 step3가 pending이면 청소 승인 체크 폴링 재시작
+            if (state.step3Status === "pending") {
+                if (window._cleaningPollingActiveStage !== activeStageNum) {
+                    if (window._cleaningPollingTimer) {
+                        clearInterval(window._cleaningPollingTimer);
+                    }
+                    if (window._cleaningStorageHandler) {
+                        window.removeEventListener("storage", window._cleaningStorageHandler);
+                    }
+                    window._cleaningPollingActiveStage = activeStageNum;
+                    var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+                    var capturedStage = activeStageNum;
+                    var resumeCheckCleaning = function() {
+                        var reqs = [];
+                        try { reqs = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]"); } catch(e) {}
+                        var myReq = reqs.find(function(r) { return r.userId === userId && r.type === "cleaning" && r.stageNum === capturedStage; });
+                        if (myReq) {
+                            if (myReq.status === "approved") {
+                                if (window._cleaningPollingTimer) {
+                                    clearInterval(window._cleaningPollingTimer);
+                                    window._cleaningPollingTimer = null;
+                                }
+                                if (window._cleaningStorageHandler) {
+                                    window.removeEventListener("storage", window._cleaningStorageHandler);
+                                    window._cleaningStorageHandler = null;
+                                }
+                                if (window._cleaningPollingActiveStage === capturedStage) {
+                                    window._cleaningPollingActiveStage = null;
+                                }
+                                
+                                var latestState = getStageState(capturedStage);
+                                latestState.step3Status = "approved";
+                                latestState.step3Done = true;
+                                saveProductionOrders();
+                                renderWorkflow();
+                            } else if (myReq.status === "rejected") {
+                                if (window._cleaningPollingTimer) {
+                                    clearInterval(window._cleaningPollingTimer);
+                                    window._cleaningPollingTimer = null;
+                                }
+                                if (window._cleaningStorageHandler) {
+                                    window.removeEventListener("storage", window._cleaningStorageHandler);
+                                    window._cleaningStorageHandler = null;
+                                }
+                                if (window._cleaningPollingActiveStage === capturedStage) {
+                                    window._cleaningPollingActiveStage = null;
+                                }
+                                
+                                var latestState = getStageState(capturedStage);
+                                latestState.step3Status = "none";
+                                alert("매니저가 청소 사진을 반려했습니다. 다시 청소 후 제출해 주세요.");
+                                saveProductionOrders();
+                                renderWorkflow();
+                            }
+                        }
+                    };
+                    window._cleaningPollingTimer = setInterval(resumeCheckCleaning, 1500);
+                    window._cleaningStorageHandler = function(e) {
+                        if (e.key === "kimp_approval_requests") resumeCheckCleaning();
+                    };
+                    window.addEventListener("storage", window._cleaningStorageHandler);
+                }
+            } else {
+                if (window._cleaningPollingActiveStage === activeStageNum) {
+                    if (window._cleaningPollingTimer) {
+                        clearInterval(window._cleaningPollingTimer);
+                        window._cleaningPollingTimer = null;
+                    }
+                    if (window._cleaningStorageHandler) {
+                        window.removeEventListener("storage", window._cleaningStorageHandler);
+                        window._cleaningStorageHandler = null;
+                    }
+                    window._cleaningPollingActiveStage = null;
+                }
             }
 
             // 최종 작업 상태 제출 단추 활성화 제어
@@ -2991,6 +3157,7 @@
                 var hasPrevCompleted = false;
                 
                 if (productionOrders[m.order] && 
+                    productionOrders[m.order].stages && 
                     productionOrders[m.order].stages[prevStageNum] && 
                     productionOrders[m.order].stages[prevStageNum].statusSubmitted) {
                     hasPrevCompleted = true;
@@ -2999,6 +3166,25 @@
                 if (!hasPrevCompleted) {
                     alert("이전 공정(Stage " + prevStageNum + ")이 완료되지 않은 생산지시서(" + m.order + ")입니다. 이전 공정 완료 후 진행해 주세요.");
                     return;
+                }
+
+                // 매니저 승인/전달 대기 검증 (현재 currentTask가 이 Stage 번호와 같거나 더 진행되어야 함)
+                var currentTask = productionOrders[m.order] ? (productionOrders[m.order].currentTask || 0) : 0;
+                if (currentTask < activeStageNum) {
+                    if (activeStageNum === 3) {
+                        alert("관리자가 절임 완료 배치를 Stage 3으로 전달하지 않았습니다. 매니저의 'Stage 3으로 전달' 승인을 기다려 주세요.");
+                    } else {
+                        alert("아직 Stage " + activeStageNum + " 작업이 할당되지 않았습니다. 관리자 승인을 기다려 주세요.");
+                    }
+                    return;
+                }
+
+                // Stage 4 (양념) 진행 시 포장 지시서 전송 확인 검증
+                if (activeStageNum === 4) {
+                    if (!isTask4Sent(m.order)) {
+                        alert("포장 생산지시서가 아직 Task 4로 전송되지 않았습니다. 매니저의 'Task 4로 보내기' 승인을 기다려 주세요.");
+                        return;
+                    }
                 }
             } else if (activeStageNum === 1) {
                 var activeOrder = findActiveProductionOrder();
@@ -3027,14 +3213,14 @@
                             userName: userName,
                             status: "pending",
                             type: "order_required",
-                            title: "Task 1에 생산지시서가 필요합니다.",
+                            title: "Stage 1에 생산지시서가 필요합니다.",
                             noPhoto: true,
                             submittedTime: new Date().toLocaleTimeString().slice(0, 8)
                         });
                         localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
                     }
                     
-                    alert("생산지시서를 기다려주세요. 또는 시간이 걸릴수 있으니, 다른 Task작업을 해보세요.");
+                    alert("생산지시서를 기다려주세요. 또는 시간이 걸릴수 있으니, 다른 Stage작업을 해보세요.");
                     return;
                 } else {
                     // Set the order ID dynamically to the newly registered order!
@@ -3044,7 +3230,7 @@
                     if (productionOrders[m.order]) {
                         productionOrders[m.order].status = "in_progress";
                         productionOrders[m.order].currentTask = 1;
-                        productionOrders[m.order].progressStatus = "투입 후 생산 중";
+                        productionOrders[m.order].progressStatus = "생산중 (Stage 1 스캔완료)";
                         saveProductionOrders();
                     }
                 }
@@ -3055,6 +3241,14 @@
             
             // 2. 임시 저장소에 있던 것을 productionOrders[m.order]로 마이그레이션
             migrateTempStageState(activeStageNum, m.order);
+            
+            if (productionOrders[m.order]) {
+                productionOrders[m.order].status = "in_progress";
+                let scanTask = activeStageNum;
+                productionOrders[m.order].currentTask = scanTask;
+                productionOrders[m.order].progressStatus = "생산중 (Stage " + activeStageNum + " 스캔완료)";
+                saveProductionOrders();
+            }
             
             // 3. 마이그레이션된 정식 상태 객체 가져오기
             var state = getStageState(activeStageNum);
@@ -3231,7 +3425,6 @@
             if (activeStageNum === null) return;
             var state = getStageState(activeStageNum);
             state.step3Status = "pending";
-            renderWorkflow();
             
             // 매니저에게 청소 사진 심사 요청 등록
             var userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
@@ -3261,36 +3454,8 @@
             requests.push(approvalReq);
             localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
             
-            // 매니저 승인 대기 (storage 이벤트 + 폴링)
-            var capturedStage = activeStageNum;
-            var checkCleanStatus = function() {
-                var reqs = [];
-                try { reqs = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]"); } catch(e) {}
-                var myReq = reqs.find(function(r) { return r.userId === userId && r.type === "cleaning" && r.stageNum === capturedStage; });
-                if (myReq) {
-                    if (myReq.status === "approved") {
-                        clearInterval(cleanTimer);
-                        window.removeEventListener("storage", cleanStorageHandler);
-                        var latestState = getStageState(capturedStage);
-                        latestState.step3Status = "approved";
-                        latestState.step3Done = true;
-                        saveProductionOrders();
-                        renderWorkflow();
-                    } else if (myReq.status === "rejected") {
-                        clearInterval(cleanTimer);
-                        window.removeEventListener("storage", cleanStorageHandler);
-                        var latestState = getStageState(capturedStage);
-                        latestState.step3Status = "rejected";
-                        alert("매니저가 청소 사진을 반려했습니다. 다시 청소 후 제출해 주세요.");
-                        latestState.step3Status = "none";
-                        saveProductionOrders();
-                        renderWorkflow();
-                    }
-                }
-            };
-            var cleanStorageHandler = function(e) { if (e.key === "kimp_approval_requests") checkCleanStatus(); };
-            window.addEventListener("storage", cleanStorageHandler);
-            var cleanTimer = setInterval(checkCleanStatus, 1000);
+            saveProductionOrders();
+            renderWorkflow();
         }
 
         // 상세 가이드 서브 페이지(다음 페이지) 열기
@@ -3462,6 +3627,17 @@
                         latestState.step5Status = "approved";
                         latestState.statusSubmitted = true;
                         
+                        var curTimeStr = String(clockHour).padStart(2, '0') + ':' + 
+                                         String(clockMinute).padStart(2, '0') + ':' + 
+                                         String(secondCounter).padStart(2, '0');
+                        latestState.endTime = curTimeStr;
+                        if (latestState.sessions && latestState.sessions.length > 0) {
+                            var lastSession = latestState.sessions[latestState.sessions.length - 1];
+                            if (!lastSession.endTime) {
+                                lastSession.endTime = curTimeStr;
+                            }
+                        }
+                        
                         if (!m.completedOrders) {
                             m.completedOrders = [];
                         }
@@ -3475,8 +3651,9 @@
                                 productionOrders[m.order].status = "completed";
                                 productionOrders[m.order].progressStatus = "생산 완료";
                             } else {
-                                productionOrders[m.order].progressStatus = "생산중 (Stage" + capturedStage + "완료)";
-                                productionOrders[m.order].currentTask = capturedStage + 1; // 다음 스테이지
+                                productionOrders[m.order].progressStatus = "생산중 (Stage " + capturedStage + " 완료)";
+                                let nextTask = capturedStage + 1;
+                                productionOrders[m.order].currentTask = nextTask;
                             }
                         }
                         
@@ -3643,8 +3820,8 @@
             if (activeStageNum !== null) {
                 var m = stagesModel[activeStageNum];
                 if (m) {
-                    locationText = m.name || ("Task " + activeStageNum);
-                    stageName = "Task " + activeStageNum + " - " + m.name;
+                    locationText = m.name || ("Stage " + activeStageNum);
+                    stageName = "Stage " + activeStageNum + " - " + m.name;
                 }
             }
             if (isOnBreak) {
@@ -3878,7 +4055,7 @@
                 // 만약 이 orderId를 다루는 stage가 i인 상태이거나,
                 // productionOrders[orderId].stages[i]에 작업한 이력이 있는 경우에만 표시
                 var stageState = null;
-                if (productionOrders[orderId] && productionOrders[orderId].stages[i]) {
+                if (productionOrders[orderId] && productionOrders[orderId].stages && productionOrders[orderId].stages[i]) {
                     stageState = productionOrders[orderId].stages[i];
                 } else if (stageStatic.order === orderId) {
                     // 현재 stageStatic.order가 orderId인 경우, 
@@ -4032,6 +4209,14 @@
             if (isOnBreak) {
                 alert("현재 휴식 중입니다. [다시 참여하기]를 누른 후 공정을 변경할 수 있습니다.");
                 return;
+            }
+
+            if (stageNum === 4) {
+                var orderId = stagesModel[4].order;
+                if (orderId && orderId !== "없음" && !isTask4Sent(orderId)) {
+                    alert("포장 생산지시서가 아직 Task 4로 전송되지 않았습니다. 매니저의 'Task 4로 보내기' 승인을 기다려 주세요.");
+                    return;
+                }
             }
 
             // 도움 요청이 진행 중이면 다른 Stage 이동 차단
