@@ -21,43 +21,6 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <script>
-        (function() {
-            const originalGetItem = localStorage.getItem;
-            const originalSetItem = localStorage.setItem;
-            const originalRemoveItem = localStorage.removeItem;
-
-            localStorage.getItem = function(key) {
-                if (key && (key.startsWith('kimp_') || key.startsWith('mypage_'))) {
-                    return originalGetItem.call(localStorage, key + '_local');
-                }
-                return originalGetItem.call(localStorage, key);
-            };
-
-            localStorage.setItem = function(key, value) {
-                if (key && (key.startsWith('kimp_') || key.startsWith('mypage_'))) {
-                    originalSetItem.call(localStorage, key + '_local', value);
-                    const event = new StorageEvent('storage', {
-                        key: key,
-                        newValue: value,
-                        url: window.location.href,
-                        storageArea: localStorage
-                    });
-                    window.dispatchEvent(event);
-                    return;
-                }
-                originalSetItem.call(localStorage, key, value);
-            };
-
-            localStorage.removeItem = function(key) {
-                if (key && (key.startsWith('kimp_') || key.startsWith('mypage_'))) {
-                    originalRemoveItem.call(localStorage, key + '_local');
-                    return;
-                }
-                originalRemoveItem.call(localStorage, key);
-            };
-        })();
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
     <title>김치만들기 - 위생 체크인</title>
@@ -1653,7 +1616,7 @@
                 userId: userId,
                 userName: userName,
                 type: "hygiene",
-                status: "pending", // Starts as pending
+                status: "pending", // pending, approved, rejected
                 imageGloves: "./images/hygiene_gloves_heart.png",
                 imageFull: "./images/hygiene_suit.png",
                 submittedTime: new Date().toLocaleTimeString()
@@ -1725,17 +1688,6 @@
             
             window.addEventListener("storage", storageHandler);
             const statusTimer = setInterval(checkStatus, 1000); // Poll as fallback
-
-            // Auto-approve after 2 seconds
-            setTimeout(() => {
-                let reqs = [];
-                try { reqs = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]"); } catch(e) {}
-                const reqIndex = reqs.findIndex(r => r.userId === userId && r.type === "hygiene");
-                if (reqIndex !== -1) {
-                    reqs[reqIndex].status = "approved";
-                    localStorage.setItem("kimp_approval_requests", JSON.stringify(reqs));
-                }
-            }, 2000);
         }
 
         function enterWorkshop() {
@@ -1787,7 +1739,7 @@
                 if (sessionUser && sessionUser.role === '헬퍼') {
                     window.location.href = "kimp_helper.html";
                 } else {
-                    window.location.href = "kimp_experience.html";
+                    window.location.href = "kimp_experience2.html";
                 }
             }, 500);
         }
