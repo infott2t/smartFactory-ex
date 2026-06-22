@@ -164,6 +164,9 @@ justify-content: end;
     align-items: center;
     font-size: 16px;
 }
+.box-corp.box-width{
+    width: 60%;
+}
 .box-corp.fixgap {
      display: flex;
      width: 62%;
@@ -405,7 +408,7 @@ html, body {
     color: d8d8d8;
 }
 .res-check-in-btn {
-    background:linear-gradient(135deg, #4720ca 0%, #764ba2 100%);
+    background: #4720ca ;
     border: 1px solid #4720ca !important; /* 차분한 로즈 골드 / 인디핑크 테두리 */
     color: #d8d8d8 !important; 
     
@@ -532,7 +535,7 @@ html, body {
 }
 
 .btn-logout-mypage {
-      background: linear-gradient(135deg, #4720ca 0%, #764ba2 100%);
+      background: #3a2b6c;
     border: none;
     border-radius: 5px;
     width: 100%;
