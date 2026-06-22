@@ -390,9 +390,9 @@ html, body {
 }
 
 .res-cancel-btn {
-    background-color: transparent !important;
-    border: 1px solid #cca1a1 !important; /* 차분한 로즈 골드 / 인디핑크 테두리 */
-    color: #d8d8d8 !important; 
+    background-color: transparent  ;
+    border: 1px solid #cca1a1 ; /* 차분한 로즈 골드 / 인디핑크 테두리 */
+    color: #d8d8d8  ; 
     
      
     padding: 3px 8px;
@@ -404,13 +404,13 @@ html, body {
 }
 
 .res-cancel-btn:hover {
-    background-color: rgba(255, 67, 67, 0.922) !important;
+    background-color: rgba(255, 67, 67, 0.922) ;
     color: d8d8d8;
 }
 .res-check-in-btn {
-    background: #4720ca ;
-    border: 1px solid #4720ca !important; /* 차분한 로즈 골드 / 인디핑크 테두리 */
-    color: #d8d8d8 !important; 
+    background: rgb(50, 123, 173) ;
+    border: 1px solid rgb(50, 123, 173)  ; /* 차분한 로즈 골드 / 인디핑크 테두리 */
+    color: #d8d8d8 ; 
     
      
     padding: 3px 8px;
@@ -566,7 +566,7 @@ html, body {
         align-items: center;
     }
 
-@media (max-width: 425px) {
+@media (max-width: 672px) {
     .box-partner.reservation-item {
         flex-direction: column;
         align-items: flex-start;
@@ -582,8 +582,9 @@ html, body {
     .reservation-item .res-job-box,
     .reservation-item .res-btn-box {
         width: 100%;
-        justify-content: flex-start;
+        justify-content: right;
     }
+  
     .reservation-item .res-date-box {
         width: 100%;
         justify-content: space-between;
@@ -603,6 +604,20 @@ html, body {
         justify-content: space-between;
         margin-bottom: 10px;
         margin-right: 70px;
+    }
+    .box-value.res-btn-box {
+        flex-direction: column-reverse;
+        align-items: end;
+    }
+    .res-cancel-btn {
+         border: none;
+         font-weight: normal;
+         text-decoration: underline;
+         color: #969b9b;
+         
+    }
+    button.res-check-in-btn {
+        width: 100%;
     }
    
 }
