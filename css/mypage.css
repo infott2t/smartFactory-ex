@@ -608,7 +608,12 @@ html, body {
         margin-right: 70px;
     }
     .box-value.res-btn-box {
-        flex-direction: column-reverse;
+       justify-content: right;
+        align-items: end;
+    }
+    .box-value.res-btn-box.reverse {
+        
+         flex-direction: column-reverse;
         align-items: end;
     }
     .res-cancel-btn {

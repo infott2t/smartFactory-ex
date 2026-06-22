@@ -18,7 +18,9 @@
 .box-value.res-btn-box {
     margin-top: 15px;
 }
- 
+.res-sm {
+    font-size: 15px;
+}
 .notice-write {
     margin: 0 15px;
     font-size: 16px;
