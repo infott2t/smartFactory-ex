@@ -263,11 +263,10 @@
             // Subscribe to store updates to dynamically trigger re-renders
             FactoryStore.subscribe(function() {
                 workerProfile.workedHours = FactoryStore.getState().workedHours;
-                renderAll();
+               
             });
 
-            // Initial render
-            renderAll();
+             
         }
 
         function getDefaultProfileByName(name) {
