@@ -32,9 +32,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
-    <script src="./js/store.js?v=20260619_2313" type="text/javascript"></script>
-    <script src="./js/engine.js" type="text/javascript"></script>
-    <script src="./js/simulator.js" type="text/javascript"></script>
+    <!-- 복잡한 백그라운드 동기화와 시뮬레이터 차단 -->
+    <!-- <script src="./js/store.js?v=20260619_2313" type="text/javascript"></script> -->
+    <!-- <script src="./js/engine.js" type="text/javascript"></script> -->
+    <!-- <script src="./js/simulator.js" type="text/javascript"></script> -->
     
     <style>
         :root {
@@ -1767,15 +1768,15 @@ var currentUserId = sessionUser ? (sessionUser.id || sessionUser.email || 'guest
 var currentUserName = sessionUser ? (sessionUser.name || '손님') : '손님';
 
 // ── Partitioned LocalStorage Helpers (레거시용) ──
-function getPartitionedItem(key) {
+var getPartitionedItem = window.getPartitionedItem || function(key) {
     return localStorage.getItem(key);
-}
-function setPartitionedItem(key, value) {
+};
+var setPartitionedItem = window.setPartitionedItem || function(key, value) {
     localStorage.setItem(key, value);
-}
-function removePartitionedItem(key) {
+};
+var removePartitionedItem = window.removePartitionedItem || function(key) {
     localStorage.removeItem(key);
-}
+};
 
 // ── 1. 시간 타이머 및 남은 시간 ──
 var totalSeconds = 7200; // 2시간
@@ -1814,10 +1815,21 @@ function getShiftTimeRemaining() {
 }
 
 var remainingSeconds = getShiftTimeRemaining();
-var accumBreakSeconds = 0;
-var breakRemainingSeconds = 1800;
-var isOnBreak = false;
-var experienceRemainingSeconds = 180;
+var accumBreakSeconds = parseInt(getPartitionedItem('kimp_accum_break_seconds') || '0');
+var breakRemainingSeconds = parseInt(getPartitionedItem('kimp_break_remaining_seconds') || '1800');
+var isOnBreak = getPartitionedItem('kimp_is_on_break') === 'true';
+var experienceRemainingSeconds = getPartitionedItem('kimp_experience_remaining_seconds') ? parseInt(getPartitionedItem('kimp_experience_remaining_seconds')) : 180;
+
+var checkInTime = getPartitionedItem('kimp_check_in_time');
+if (!checkInTime) {
+    var now = new Date();
+    checkInTime = String(now.getHours()).padStart(2, '0') + ':' + 
+                  String(now.getMinutes()).padStart(2, '0') + ':' + 
+                  String(now.getSeconds()).padStart(2, '0');
+    setPartitionedItem('kimp_check_in_time', checkInTime);
+}
+
+var accumSalary = parseFloat(getPartitionedItem('kimp_accum_salary') || '0');
 
 var clockHour = new Date().getHours();
 var clockMinute = new Date().getMinutes();
@@ -1851,14 +1863,10 @@ function updateClocks() {
 }
 
 function updateSalaryAndBreakTime() {
-    var elapsedSeconds = totalSeconds - remainingSeconds;
-    if (elapsedSeconds < 0) elapsedSeconds = 0;
-    var workSeconds = elapsedSeconds - accumBreakSeconds;
-    if (workSeconds < 0) workSeconds = 0;
-    
-    var accumSalary = Math.floor(workSeconds * (12384 / 3600));
     var salDisplay = document.getElementById('accum-salary-display');
-    if (salDisplay) salDisplay.textContent = accumSalary.toLocaleString() + ' KRW';
+    if (salDisplay) {
+        salDisplay.textContent = Math.floor(accumSalary).toLocaleString() + ' KRW';
+    }
     
     var breakMin = Math.floor(accumBreakSeconds / 60);
     var breakSec = accumBreakSeconds % 60;
@@ -1866,17 +1874,47 @@ function updateSalaryAndBreakTime() {
     if (breakDisplay) {
         breakDisplay.textContent = String(breakMin).padStart(2, '0') + "분 " + String(breakSec).padStart(2, '0') + "초";
     }
+
+    var checkInEl = document.getElementById('logged-in-checkin-time');
+    if (checkInEl) checkInEl.textContent = checkInTime;
 }
 
 // ── 2. Mock 상태 및 공정 모델 ──
-var activeStageNum = null;
-var currentStep = 0; // 0: 스캔 대기, 1: 수량 확인 대기, 2: 위생 청소 대기, 3: 가이드 대기, 4: 완료 스캔 대기, 5: 완료
+var activeStageNum = getPartitionedItem('kimp_active_stage_num');
+if (activeStageNum === null || activeStageNum === '') {
+    activeStageNum = null;
+} else {
+    activeStageNum = parseInt(activeStageNum);
+}
+var currentStep = getPartitionedItem('kimp_current_step') ? parseInt(getPartitionedItem('kimp_current_step')) : 0; // 0: 스캔 대기, 1: 수량 확인 대기, 2: 위생 청소 대기, 3: 가이드 대기, 4: 완료 스캔 대기, 5: 완료
 
-var preWorkQty = 15;
-var defectCount = 0;
-var weight = 12.0;
-var postWorkQty = 15;
-var postWorkWeight = 12.0;
+var preWorkQty = getPartitionedItem('kimp_pre_work_qty') ? parseInt(getPartitionedItem('kimp_pre_work_qty')) : 15;
+var defectCount = getPartitionedItem('kimp_defect_count') ? parseInt(getPartitionedItem('kimp_defect_count')) : 0;
+var weight = getPartitionedItem('kimp_weight') ? parseFloat(getPartitionedItem('kimp_weight')) : 12.0;
+var postWorkQty = getPartitionedItem('kimp_post_work_qty') ? parseInt(getPartitionedItem('kimp_post_work_qty')) : 15;
+var postWorkWeight = getPartitionedItem('kimp_post_work_weight') ? parseFloat(getPartitionedItem('kimp_post_work_weight')) : 12.0;
+
+var currentBreakStartRemaining = getPartitionedItem('kimp_current_break_start_remaining') ? parseInt(getPartitionedItem('kimp_current_break_start_remaining')) : null;
+
+function saveMockState() {
+    setPartitionedItem('kimp_active_stage_num', activeStageNum === null ? '' : activeStageNum);
+    setPartitionedItem('kimp_current_step', currentStep);
+    setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
+    setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
+    setPartitionedItem('kimp_is_on_break', isOnBreak ? 'true' : 'false');
+    setPartitionedItem('kimp_break_start_time', breakStartTime || '');
+    setPartitionedItem('kimp_break_history', JSON.stringify(breakHistory));
+    setPartitionedItem('kimp_pre_work_qty', preWorkQty);
+    setPartitionedItem('kimp_defect_count', defectCount);
+    setPartitionedItem('kimp_weight', weight);
+    setPartitionedItem('kimp_post_work_qty', postWorkQty);
+    setPartitionedItem('kimp_post_work_weight', postWorkWeight);
+    if (currentBreakStartRemaining !== null) {
+        setPartitionedItem('kimp_current_break_start_remaining', currentBreakStartRemaining);
+    } else {
+        removePartitionedItem('kimp_current_break_start_remaining');
+    }
+}
 
 var stagesModel = {
     1: { num: 1, name: "Stage 1. 배추 1/2컷팅하기", order: "TEST-ORDER-123", prevLocation: "야외 하차장", nextLocation: "적재데크", participants: "홍길동, 박준호" },
@@ -2218,27 +2256,32 @@ function renderWorkflow() {
 // ── 4. UI 제어 함수 ──
 function runQRScan() {
     currentStep = 1;
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
 function confirmQuantity() {
     currentStep = 2;
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
 function startCleaning() {
     currentStep = 3;
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
 function completeCoreWork() {
     currentStep = 4;
     closeGuidePage();
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
 function submitPostWorkScan() {
     currentStep = 5;
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
@@ -2249,6 +2292,7 @@ function resetStageAndStartNew() {
     weight = 12.0;
     postWorkQty = 15;
     postWorkWeight = 12.0;
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
@@ -2258,15 +2302,19 @@ function updatePreWorkQty(val) {
     defectCount = 15 - preWorkQty;
     var display = document.getElementById('valid-qty-display');
     if (display) display.textContent = preWorkQty + " / 15 포기";
+    saveMockState();
 }
 function updateWeight(val) {
     weight = parseFloat(val) || 12.0;
+    saveMockState();
 }
 function updatePostWorkQty(val) {
     postWorkQty = parseInt(val) || 15;
+    saveMockState();
 }
 function updatePostWorkWeight(val) {
     postWorkWeight = parseFloat(val) || 12.0;
+    saveMockState();
 }
 
 // ── 5. 오버레이 제어 및 보조 UI 함수 ──
@@ -2462,8 +2510,8 @@ function syncHelpRequest() {
 }
 
 // ── 7. 휴식 기능 관련 ──
-var breakStartTime = null;
-var breakHistory = [];
+var breakStartTime = getPartitionedItem('kimp_break_start_time') || null;
+var breakHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
 
 function toggleBreak() {
     if (activeStageNum === null) return;
@@ -2481,6 +2529,7 @@ function toggleBreak() {
         breakStartTime = String(now.getHours()).padStart(2, '0') + ':' + 
                          String(now.getMinutes()).padStart(2, '0') + ':' + 
                          String(now.getSeconds()).padStart(2, '0');
+        currentBreakStartRemaining = breakRemainingSeconds;
         
         showBreakNotice();
         updateBreakButtonText();
@@ -2490,15 +2539,20 @@ function toggleBreak() {
         if (breakText) breakText.textContent = "잠깐 쉬기";
         
         if (breakStartTime) {
+            var startRemaining = (currentBreakStartRemaining !== null) ? currentBreakStartRemaining : 1800;
+            var breakDuration = startRemaining - breakRemainingSeconds;
+            if (breakDuration < 0) breakDuration = 0;
+            
             breakHistory.push({
                 startTime: breakStartTime,
-                duration: 30
+                duration: breakDuration
             });
-            accumBreakSeconds += 30;
             breakStartTime = null;
+            currentBreakStartRemaining = null;
         }
         closeBreakNotice();
     }
+    saveMockState();
     renderWorkflow();
 }
 
@@ -2506,9 +2560,12 @@ function updateBreakButtonText() {
     if (!isOnBreak) return;
     var breakText = document.getElementById('break-btn-text');
     if (breakText) {
-        var min = Math.floor(breakRemainingSeconds / 60);
-        var sec = breakRemainingSeconds % 60;
-        breakText.textContent = String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0') + " (종료)";
+        var isNegative = breakRemainingSeconds < 0;
+        var absSec = Math.abs(breakRemainingSeconds);
+        var min = Math.floor(absSec / 60);
+        var sec = absSec % 60;
+        var sign = isNegative ? "-" : "";
+        breakText.textContent = "다시 참여하기 (" + sign + String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0') + ")";
     }
 }
 
@@ -2529,11 +2586,24 @@ function showBreakInfo(isManual) {
 // ── 8. 타이머 및 초기화 ──
 function activateStage(stageNum) {
     if (isOnBreak) {
-        alert("현재 휴식 중입니다. [다시 참여하기]를 누른 후 공정을 변경할 수 있습니다.");
-        return;
+        isOnBreak = false;
+        if (breakStartTime) {
+            var startRemaining = (currentBreakStartRemaining !== null) ? currentBreakStartRemaining : 1800;
+            var breakDuration = startRemaining - breakRemainingSeconds;
+            if (breakDuration < 0) breakDuration = 0;
+            
+            breakHistory.push({
+                startTime: breakStartTime,
+                duration: breakDuration
+            });
+            breakStartTime = null;
+            currentBreakStartRemaining = null;
+        }
+        closeBreakNotice();
     }
     activeStageNum = stageNum;
     currentStep = 0;
+    saveMockState();
     renderWorkflow();
     renderTaskCards();
 }
@@ -2552,6 +2622,38 @@ function resetSession() {
         currentStep = 0;
         activeStageNum = null;
         isOnBreak = false;
+        accumBreakSeconds = 0;
+        breakRemainingSeconds = 1800;
+        breakStartTime = null;
+        breakHistory = [];
+        preWorkQty = 15;
+        defectCount = 0;
+        weight = 12.0;
+        postWorkQty = 15;
+        postWorkWeight = 12.0;
+        currentBreakStartRemaining = null;
+        
+        var now = new Date();
+        checkInTime = String(now.getHours()).padStart(2, '0') + ':' + 
+                      String(now.getMinutes()).padStart(2, '0') + ':' + 
+                      String(now.getSeconds()).padStart(2, '0');
+        setPartitionedItem('kimp_check_in_time', checkInTime);
+        
+        removePartitionedItem('kimp_active_stage_num');
+        removePartitionedItem('kimp_current_step');
+        removePartitionedItem('kimp_accum_break_seconds');
+        removePartitionedItem('kimp_break_remaining_seconds');
+        removePartitionedItem('kimp_is_on_break');
+        removePartitionedItem('kimp_break_start_time');
+        removePartitionedItem('kimp_break_history');
+        removePartitionedItem('kimp_pre_work_qty');
+        removePartitionedItem('kimp_defect_count');
+        removePartitionedItem('kimp_weight');
+        removePartitionedItem('kimp_post_work_qty');
+        removePartitionedItem('kimp_post_work_weight');
+        removePartitionedItem('kimp_current_break_start_remaining');
+        
+        closeBreakNotice();
         renderWorkflow();
         renderTaskCards();
     }
@@ -2722,11 +2824,43 @@ setInterval(function() {
     if (isOnBreak) {
         breakRemainingSeconds--;
         if (breakRemainingSeconds <= 0) breakRemainingSeconds = 1800;
+        accumBreakSeconds++;
+        updateBreakButtonText();
+        
+        // 휴식 기록 UI 실시간 갱신
+        if (breakStartTime) {
+            var breakHistoryEl = document.getElementById('work-break-history');
+            var breakItem = document.getElementById('work-break-item');
+            if (breakHistoryEl && breakItem) {
+                breakItem.style.display = "block";
+                var breakHtml = '';
+                for (var bi = 0; bi < breakHistory.length; bi++) {
+                    var bRecord = breakHistory[bi];
+                    var bDurText = bRecord.duration >= 60 
+                        ? Math.floor(bRecord.duration / 60) + '분 ' + (bRecord.duration % 60) + '초'
+                        : bRecord.duration + '초';
+                    breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' &rarr; ' + bDurText + '간 휴식</div>';
+                }
+                var curElapsed = (currentBreakStartRemaining !== null)
+                    ? (currentBreakStartRemaining - breakRemainingSeconds)
+                    : 0;
+                if (curElapsed < 0) curElapsed = 0;
+                var ceText = curElapsed >= 60 
+                    ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
+                    : curElapsed + '초';
+                breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + breakStartTime + ' &rarr; ' + ceText + ' 휴식중...</div>';
+                breakHistoryEl.innerHTML = breakHtml;
+            }
+        }
+    } else {
+        // 근무 중일 때만 1초당 급여(시간당 12,384원 -> 초당 약 3.44원)를 가산합니다.
+        accumSalary += (12384 / 3600);
     }
 
     updateClocks();
     updateSalaryAndBreakTime();
     updateCompleteButtonText();
+    saveMockState();
     
     // 시계 분 카운팅
     var now = new Date();
@@ -2736,6 +2870,12 @@ setInterval(function() {
 
 // 초기 구동
 updateClocks();
+updateSalaryAndBreakTime();
+if (isOnBreak) {
+    showBreakNotice();
+} else {
+    closeBreakNotice();
+}
 renderWorkflow();
 renderTaskCards();
 
