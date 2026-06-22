@@ -566,6 +566,10 @@ html, body {
         align-items: center;
     }
 
+.bi.bi-caret-up-fill{
+    color: rgb(0,184,148);
+}
+
 @media (max-width: 672px) {
     .box-partner.reservation-item {
         flex-direction: column;
@@ -618,6 +622,8 @@ html, body {
     }
     button.res-check-in-btn {
         width: 100%;
+        height: 35px;
+        font-size: 15px;
     }
    
 }
