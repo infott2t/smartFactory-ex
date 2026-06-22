@@ -243,7 +243,7 @@ $(document).ready(function(){
         if (user.picture) {
             $(".h-open-btn").html('<img src="' + user.picture + '" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ffffff; object-fit: cover; vertical-align: middle;" alt="' + user.name + '" />');
         } else {
-            $(".h-open-btn").html('<span style="font-size:13px; font-weight:bold; color:#c1c1c1; background-color:#0c6232; padding:4px 8px; border-radius:12px;">' + user.name + '</span>');
+            $(".h-open-btn").html('<span class="badge-name" >' + user.name + '</span>');
         }
         if (user.name === '최현일' || 
             user.email === 'tt2t2am1118@naver.com' || 

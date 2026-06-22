@@ -159,7 +159,7 @@
             </div>
 
             <!-- User Logout Button -->
-            <button type="button" class="btn-logout-mypage" onclick="AuthManager.logout()" style="margin-bottom: 25px; background: #e74c3c; color: #fff; border: none; font-size: 14px; padding: 12px; border-radius: 8px;">로그아웃</button>
+            <button type="button" class="btn-logout-mypage" onclick="AuthManager.logout()" >로그아웃</button>
 
             <!-- Simulation and Logout -->
             <div class="sim-panel-toggle" onclick="toggleSimPanel()">
@@ -442,13 +442,19 @@
                         <span class="res-date-time">${slotLabels[r.slot] || '지정 시간'}</span>
                     </div>
                     <div class="box-value res-job-box">
-                         <img class="icon" src="./images/k-icon_150x150.png"> 
+                        <div class="res-job-box2">
+                         <img class="icon res" src="./images/k-icon_150x150.png"> 
                          <span class="brand-name">AFood</span> 
                          <span class="brand-work-name">김치만들기</span>
-                    </div>
-                    <div class="box-value res-btn-box">
+                        </div>
+                        <div>
                         <span class="box-time">2h</span>
                         <span class="${badgeClass}">${roleLabel}</span>
+                        </div>
+                    </div>
+                    <div class="box-value res-btn-box">
+                        
+                        <button type="button" class="res-check-in-btn" onclick="location.href='check-in-announce.html'">출근하기</button>
                         <button type="button" class="res-cancel-btn" onclick="cancelReservation(${r.id})">예약 취소</button>
                     </div>
                 </div>

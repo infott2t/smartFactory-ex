@@ -64,6 +64,14 @@ body {
 .header > .h-bar > .h-search {
     display: none;
 }
+.badge-name {
+    font-size:13px; 
+    font-weight:bold; 
+    color:#ffffff; 
+    background-color:#cd00bb; 
+    padding:4px 8px; 
+    border-radius:12px;
+}
 
 .h-open-btn {
     background-color: var(--var-bg-color);

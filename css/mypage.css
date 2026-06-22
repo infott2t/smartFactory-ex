@@ -71,6 +71,8 @@ body {
     justify-content: space-between;
     font-size: 16px;
     margin: 0px 15px 10px 15px;
+    font-weight: bold;
+    color: #dfdfdf;
 }
 .comment-mypage a {
     font-size: 14px;
@@ -123,6 +125,9 @@ body {
     width: 20px;
     height: 20px;
 }
+.icon.res {
+    transform: translateY(5px);
+}
 .icon.fix {
     transform: translateY(3px);
 }
@@ -147,14 +152,14 @@ justify-content: end;
 }
 .box-partner.reservation-item {
  
-    background-color: #111622 !important;
-    border: 1px solid #1a2030 !important;
+    background-color: #111622;
+    border: 1px solid #1a2030;
     border-radius: 5px;
     padding: 5px;
 }
 .box-corp{
     display: flex;
-    width: 62%;
+    
     justify-content: space-around;
     align-items: center;
     font-size: 16px;
@@ -172,6 +177,7 @@ justify-content: end;
     align-items: center;
     padding-right: 13px;
 }
+
 .brand-work-name {
     color: rgb(124 123 166);
 }
@@ -237,7 +243,7 @@ justify-content: end;
 }
 .mtext-sm {
     font-size: 16px; 
-    color: #3b6496;
+    color: #ff7eee;
     font-weight: bold; 
 }
 .brand-name {
@@ -246,11 +252,11 @@ justify-content: end;
 }
 .money-sign {
     font-size: 24px;
-    color: #72ab96;
+    color: #879cff;
 }
 .money-num {
     font-weight: 700;
-    color:  #72ab96;;
+    color:  #879cff;
 }
 .text-89 {
     color: #898989;
@@ -377,13 +383,13 @@ html, body {
     color: #d8d8d8;
 }
 .res-date-time {
-    color: #8393a5 !important; /* 또는 #94a3b8 */
+    color: #8393a5; /* 또는 #94a3b8 */
 }
 
 .res-cancel-btn {
     background-color: transparent !important;
     border: 1px solid #cca1a1 !important; /* 차분한 로즈 골드 / 인디핑크 테두리 */
-    color: #cca1a1 !important; 
+    color: #d8d8d8 !important; 
     
      
     padding: 3px 8px;
@@ -395,7 +401,21 @@ html, body {
 }
 
 .res-cancel-btn:hover {
-    background-color: rgba(204, 161, 161, 0.1) !important;
+    background-color: rgba(255, 67, 67, 0.922) !important;
+    color: d8d8d8;
+}
+.res-check-in-btn {
+    background:linear-gradient(135deg, #4720ca 0%, #764ba2 100%);
+    border: 1px solid #4720ca !important; /* 차분한 로즈 골드 / 인디핑크 테두리 */
+    color: #d8d8d8 !important; 
+    
+     
+    padding: 3px 8px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: bold;
 }
 
 .empty-state {
@@ -512,21 +532,25 @@ html, body {
 }
 
 .btn-logout-mypage {
-    background: rgba(255, 255, 255, 0.04);
-    color: #ff7675;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 8px;
+      background: linear-gradient(135deg, #4720ca 0%, #764ba2 100%);
+    border: none;
+    border-radius: 5px;
     width: 100%;
-    border-radius: 8px;
-    font-weight: bold;
+    height: 35px;
+      box-shadow: 0 4px 15px rgba(71, 32, 202, 0.3); 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
     cursor: pointer;
+    color: white;
     margin-top: 15px;
-    transition: all 0.2s;
+    font-size: 15px;
+    font-weight: bold;
+    text-align: center;
 }
 
 .btn-logout-mypage:hover {
-    background: rgba(255, 118, 117, 0.1);
-    border-color: rgba(255, 118, 117, 0.2);
+    background: #ff7eee;
+    border-color: rgba(255, 31, 248, 0.2);
+    color:black;
 }
 .bi.bi-award{
     color: yellow;
@@ -535,6 +559,9 @@ html, body {
         margin-left: 15px;
         margin-right: 15px;
 }
+   .res-job-box2 {   
+        align-items: center;
+    }
 
 @media (max-width: 425px) {
     .box-partner.reservation-item {
@@ -564,12 +591,15 @@ html, body {
     }
     .reservation-item .res-job-box {
         width: 100%;
-        justify-content: flex-start;
+        justify-content: space-between;
         align-items: center;
+        margin-bottom: 15px;
     }
         .reservation-item .res-btn-box {
         width: 100%;
-        justify-content: right;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        margin-right: 70px;
     }
    
 }

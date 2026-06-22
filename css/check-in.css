@@ -1,0 +1,46 @@
+.check-in-box {
+    margin: 0px 15px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 29px;
+}
+.check-in-rail {
+    margin: 6px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    color:#dfdfdf;
+}
+.box-value {
+    justify-content: space-between;
+}
+.box-value.res-btn-box {
+    margin-top: 15px;
+}
+ 
+.notice-write {
+    margin: 0 15px;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 58px;
+    color: #dfdfdf;
+}
+.res-date-time {
+    color:#dfdfdf;
+}
+.tx-color {
+    color:#dfdfdf;
+}
+
+.svg-map {
+    padding: 25px;
+}
+
+@media (max-width: 425px) {
+.svg-map {
+    padding: 5px;
+}
+}
