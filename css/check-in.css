@@ -34,6 +34,12 @@
 .tx-color {
     color:#dfdfdf;
 }
+.bi.bi-caret-up-fill{
+    color: rgb(0,184,148);
+}
+.money-num {
+     color: rgb(0,184,148);
+}
 
 .svg-map {
     padding: 25px;

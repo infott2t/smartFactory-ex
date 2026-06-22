@@ -408,8 +408,8 @@ html, body {
     color: d8d8d8;
 }
 .res-check-in-btn {
-    background: rgb(50, 123, 173) ;
-    border: 1px solid rgb(50, 123, 173)  ; /* 차분한 로즈 골드 / 인디핑크 테두리 */
+    background: #5c72f5;
+    border: 1px solid #5c72f5 ; /* 차분한 로즈 골드 / 인디핑크 테두리 */
     color: #d8d8d8 ; 
     
      
@@ -566,9 +566,7 @@ html, body {
         align-items: center;
     }
 
-.bi.bi-caret-up-fill{
-    color: rgb(0,184,148);
-}
+
 
 @media (max-width: 672px) {
     .box-partner.reservation-item {
