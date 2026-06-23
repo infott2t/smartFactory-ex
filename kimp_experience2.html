@@ -1608,18 +1608,10 @@
             </div>
         </nav>
 
-
-
-        <!-- ── 완료버튼으로 전환 플로팅 액션 버튼 (FAB) ── -->
-        <button class="fab-skip-timer" id="btn-skip-timer" onclick="toggleExperienceTimer()">
-            <i class="bi bi-unlock-fill" id="skip-btn-icon"></i>
-            <span id="skip-btn-text">3분 체험 해제버튼(테스트용)</span>
-        </button>
-
-        <!-- ── 체험 완료 플로팅 액션 버튼 (FAB) ── -->
-        <button class="fab-complete-experience disabled-experience" id="btn-complete-experience" onclick="completeAndReserve()">
-            <i class="bi bi-check-circle-fill" id="complete-btn-icon" style="display: none;"></i>
-            <span id="complete-btn-text">체험 중... (03:00)</span>
+        <!-- ── 세션 초기화 플로팅 액션 버튼 (FAB) ── -->
+        <button class="fab-reset-session" id="btn-hard-reset" onclick="resetSession()">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>처음부터(테스트용)</span>
         </button>
 
         <!-- ── 잠깐 쉬기 안내 배너 ── -->
@@ -1859,105 +1851,6 @@
         }
 
         var secondCounter = parseInt(getPartitionedItem('kimp_second_counter') || '0');
-        setInterval(function() {
-
-            // Sync helper support timer UI if advising
-            var helperReqStr = getPartitionedItem('kimp_help_request');
-            if (helperReqStr) {
-                var helperReq = JSON.parse(helperReqStr);
-                if (helperReq.status === "waiting_helper" || helperReq.status === "accepted" || helperReq.status === "requested" || helperReq.status === "advising") {
-                    syncHelpRequest();
-                    renderTaskCards();
-                }
-            }
-
-            // Trigger UI updates
-            updateClocks();
-            updateSalaryAndBreakTime();
-            updateCompleteButtonText();
-
-            // Sync breakdown history UI locally if on break
-            if (isOnBreak && activeStageNum !== null) {
-                updateBreakButtonText();
-                var bm = getStageState(activeStageNum);
-                if (bm.breakStartTime) {
-                    var breakHistoryContainer = document.getElementById('work-break-history');
-                    if (breakHistoryContainer) {
-                        var bhHtml = '';
-                        if (bm.breakHistory) {
-                            for (var bhi = 0; bhi < bm.breakHistory.length; bhi++) {
-                                var br = bm.breakHistory[bhi];
-                                var brText = br.duration >= 60 
-                                    ? Math.floor(br.duration / 60) + '분 ' + (br.duration % 60) + '초'
-                                    : br.duration + '초';
-                                bhHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + br.startTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + brText + '간 휴식</div>';
-                            }
-                        }
-                        var curElapsed = (bm.currentBreakStartRemaining !== undefined && bm.currentBreakStartRemaining !== null)
-                            ? (bm.currentBreakStartRemaining - breakRemainingSeconds)
-                            : (1800 - breakRemainingSeconds);
-                        var ceText = curElapsed >= 60 
-                            ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
-                            : curElapsed + '초';
-                        bhHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + bm.breakStartTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + ceText + ' 휴식중...</div>';
-                        breakHistoryContainer.innerHTML = bhHtml;
-                    }
-                }
-            }
-
-            // Sync active session duration display
-            if (activeStageNum !== null) {
-                var curStageState = getStageState(activeStageNum);
-                if (curStageState.step1Done && !curStageState.statusSubmitted) {
-                    var totalElapsed = 0;
-                    if (curStageState.sessions) {
-                        for (var si = 0; si < curStageState.sessions.length; si++) {
-                            totalElapsed += (curStageState.sessions[si].duration || 0);
-                        }
-                    }
-                    var elH = Math.floor(totalElapsed / 3600);
-                    var elM = Math.floor((totalElapsed % 3600) / 60);
-                    var elS = totalElapsed % 60;
-                    var elapsedEl = document.getElementById('work-elapsed-time');
-                    if (elapsedEl) {
-                        elapsedEl.textContent = String(elH).padStart(2, '0') + ':' + String(elM).padStart(2, '0') + ':' + String(elS).padStart(2, '0');
-                    }
-                }
-            }
-
-            // Live refresh overlay details if open
-            var overlay = document.getElementById('order-sheet-overlay');
-            if (overlay && overlay.style.display === "flex") {
-                updateOrderSheetOverlayRows(overlay.getAttribute('data-order-id'));
-            }
-
-            // Drying timer countdown update for Stage 3-1
-            if (activeStageNum === 3) {
-                var curStageState = getStageState(3);
-                if (curStageState && curStageState.dryingStatus === "drying") {
-                    var remaining = Math.max(0, curStageState.dryingEndTime - Date.now());
-                    if (remaining <= 0) {
-                        curStageState.dryingStatus = "ready";
-                        if (stagesModel[3] && stagesModel[3].order) {
-                            var orderId = stagesModel[3].order;
-                            if (productionOrders[orderId]) {
-                                productionOrders[orderId].progressStatus = "생산중 (Stage 3 말리기 완료)";
-                            }
-                        }
-                        saveProductionOrders();
-                        renderWorkflow();
-                    } else {
-                        var timerTextEl = document.getElementById("drying-timer-countdown");
-                        if (timerTextEl) {
-                            var mins = Math.floor(remaining / 60000);
-                            var secs = Math.floor((remaining % 60000) / 1000);
-                            timerTextEl.textContent = String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
-                        }
-                    }
-                }
-            }
-        }, 1000);
-
         updateClocks();
 
         // ── 2. 동적 공정(Stage) 데이터 및 워크플로우 갱신 ──
@@ -2603,28 +2496,33 @@
             // 휴식 기록 표시 처리
             var breakItem = document.getElementById('work-break-item');
             var breakHistoryEl = document.getElementById('work-break-history');
-            if ((state.breakHistory && state.breakHistory.length > 0) || state.breakStartTime) {
+            
+            var bStartTime = getPartitionedItem('kimp_break_start_time') || (state && state.breakStartTime);
+            var bHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
+            if (state && state.breakHistory && state.breakHistory.length > 0 && bHistory.length === 0) {
+                bHistory = state.breakHistory;
+            }
+            
+            if (bHistory.length > 0 || bStartTime) {
                 breakItem.style.display = "block";
                 var breakHtml = '';
                 // 과거 휴식 기록 표시
-                if (state.breakHistory) {
-                    for (var bi = 0; bi < state.breakHistory.length; bi++) {
-                        var bRecord = state.breakHistory[bi];
-                        var bDurText = bRecord.duration >= 60 
-                            ? Math.floor(bRecord.duration / 60) + '분 ' + (bRecord.duration % 60) + '초'
-                            : bRecord.duration + '초';
-                        breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + bDurText + '간 휴식</div>';
-                    }
+                for (var bi = 0; bi < bHistory.length; bi++) {
+                    var bRecord = bHistory[bi];
+                    var bDurText = bRecord.duration >= 60 
+                        ? Math.floor(bRecord.duration / 60) + '분 ' + (bRecord.duration % 60) + '초'
+                        : bRecord.duration + '초';
+                    breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + bDurText + '간 휴식</div>';
                 }
                 // 현재 휴식 중이면 진행중 표시
-                if (state.breakStartTime && isOnBreak) {
-                    var curBreakElapsed = (state.currentBreakStartRemaining !== undefined && state.currentBreakStartRemaining !== null)
-                        ? (state.currentBreakStartRemaining - breakRemainingSeconds)
-                        : (1800 - breakRemainingSeconds);
+                if (bStartTime && isOnBreak) {
+                    var curStartRemaining = parseInt(getPartitionedItem('kimp_current_break_start_remaining') || (state && state.currentBreakStartRemaining) || '1800');
+                    var curBreakElapsed = curStartRemaining - breakRemainingSeconds;
+                    if (curBreakElapsed < 0) curBreakElapsed = 0;
                     var cbText = curBreakElapsed >= 60 
                         ? Math.floor(curBreakElapsed / 60) + '분 ' + (curBreakElapsed % 60) + '초'
                         : curBreakElapsed + '초';
-                    breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + state.breakStartTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + cbText + ' 휴식중...</div>';
+                    breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + bStartTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + cbText + ' 휴식중...</div>';
                 }
                 breakHistoryEl.innerHTML = breakHtml;
             } else {
@@ -4298,7 +4196,7 @@
                 return; // 심사 대기 중에는 휴식을 취할 수 없음
             }
             isOnBreak = !isOnBreak;
-            setPartitionedItem('kimp_is_on_break', isOnBreak);
+            setPartitionedItem('kimp_is_on_break', isOnBreak ? 'true' : 'false');
             
             var breakBtn = document.getElementById('btn-break-toggle');
             var breakIcon = document.getElementById('break-btn-icon');
@@ -4306,8 +4204,8 @@
             
             if (isOnBreak) {
                 // 휴식 모드 진입
-                breakBtn.classList.add('active-break');
-                breakIcon.className = "bi bi-play-fill";
+                if (breakBtn) breakBtn.classList.add('active-break');
+                if (breakIcon) breakIcon.className = "bi bi-play-fill";
                 
                 // 쉬기 시작 시간 기록 (시:분:초)
                 var breakTimeStr = String(clockHour).padStart(2, '0') + ':' + 
@@ -4317,27 +4215,35 @@
                 state.breakStartTime = breakTimeStr;
                 state.currentBreakStartRemaining = breakRemainingSeconds;
                 
+                setPartitionedItem('kimp_break_start_time', breakTimeStr);
+                setPartitionedItem('kimp_current_break_start_remaining', breakRemainingSeconds);
+                
                 // 안내 배너 노출
                 showBreakNotice();
                 updateBreakButtonText();
             } else {
                 // 휴식 종료, 작업 복귀
-                breakBtn.classList.remove('active-break');
-                breakIcon.className = "bi bi-coffee-fill";
-                breakText.textContent = "잠깐 쉬기";
+                if (breakBtn) breakBtn.classList.remove('active-break');
+                if (breakIcon) breakIcon.className = "bi bi-coffee-fill";
+                if (breakText) breakText.textContent = "잠깐 쉬기";
 
                 // 휴식 기록 저장 (시작시간 + 휴식 시간)
-                if (state.breakStartTime) {
-                    var startRemaining = (state.currentBreakStartRemaining !== undefined && state.currentBreakStartRemaining !== null)
-                        ? state.currentBreakStartRemaining 
-                        : 1800;
+                var bStartTime = getPartitionedItem('kimp_break_start_time') || state.breakStartTime;
+                if (bStartTime) {
+                    var startRemaining = parseInt(getPartitionedItem('kimp_current_break_start_remaining') || state.currentBreakStartRemaining || '1800');
                     var breakDuration = startRemaining - breakRemainingSeconds;
                     if (breakDuration < 0) breakDuration = 0;
-                    if (!state.breakHistory) state.breakHistory = [];
-                    state.breakHistory.push({
-                        startTime: state.breakStartTime,
+                    
+                    var bHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
+                    bHistory.push({
+                        startTime: bStartTime,
                         duration: breakDuration
                     });
+                    setPartitionedItem('kimp_break_history', JSON.stringify(bHistory));
+                    removePartitionedItem('kimp_break_start_time');
+                    removePartitionedItem('kimp_current_break_start_remaining');
+
+                    state.breakHistory = bHistory;
                     state.breakStartTime = null;
                     state.currentBreakStartRemaining = null;
                 }
@@ -4348,7 +4254,9 @@
             
             // 로컬스토리지에 최종 상태 영속화
             setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
-            setPartitionedItem('kimp_is_on_break', isOnBreak);
+            setPartitionedItem('kimp_is_on_break', isOnBreak ? 'true' : 'false');
+            saveProductionOrders();
+            syncWorkerProgress();
             
             renderWorkflow();
         }
@@ -4632,23 +4540,30 @@
         function activateStage(stageNum) {
             if (isOnBreak) {
                 isOnBreak = false;
-                setPartitionedItem('kimp_is_on_break', isOnBreak);
+                setPartitionedItem('kimp_is_on_break', 'false');
                 
                 if (activeStageNum !== null) {
                     var state = getStageState(activeStageNum);
-                    if (state.breakStartTime) {
-                        var startRemaining = (state.currentBreakStartRemaining !== undefined && state.currentBreakStartRemaining !== null)
-                            ? state.currentBreakStartRemaining 
-                            : 1800;
+                    var bStartTime = getPartitionedItem('kimp_break_start_time') || (state && state.breakStartTime);
+                    if (bStartTime) {
+                        var startRemaining = parseInt(getPartitionedItem('kimp_current_break_start_remaining') || (state && state.currentBreakStartRemaining) || '1800');
                         var breakDuration = startRemaining - breakRemainingSeconds;
                         if (breakDuration < 0) breakDuration = 0;
-                        if (!state.breakHistory) state.breakHistory = [];
-                        state.breakHistory.push({
-                            startTime: state.breakStartTime,
+                        
+                        var bHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
+                        bHistory.push({
+                            startTime: bStartTime,
                             duration: breakDuration
                         });
-                        state.breakStartTime = null;
-                        state.currentBreakStartRemaining = null;
+                        setPartitionedItem('kimp_break_history', JSON.stringify(bHistory));
+                        removePartitionedItem('kimp_break_start_time');
+                        removePartitionedItem('kimp_current_break_start_remaining');
+
+                        if (state) {
+                            state.breakHistory = bHistory;
+                            state.breakStartTime = null;
+                            state.currentBreakStartRemaining = null;
+                        }
                     }
                 }
                 
@@ -5471,25 +5386,100 @@
 
         function resetSession() {
             if (confirm("정말로 세션을 초기화하시겠습니까? 모든 작업 기록, 급여 및 실시간 로그가 초기화됩니다.")) {
+                
+                window.isResetting = true;
+
                 if (typeof window.addAppLog === 'function') {
                     window.addAppLog("세션을 초기화(로그아웃) 하였습니다.");
                 }
-                // 관련 localStorage 키 제거
-                removePartitionedItem('kimp_remaining_seconds');
-                removePartitionedItem('kimp_clock_hour');
-                removePartitionedItem('kimp_clock_minute');
-                removePartitionedItem('kimp_second_counter');
-                removePartitionedItem('kimp_salary');
-                removePartitionedItem('kimp_helper_base_salary');
-                removePartitionedItem('kimp_helper_bonus');
-                removePartitionedItem('kimp_help_request');
-                removePartitionedItem('kimp_session_timeline');
-                removePartitionedItem('experienceCompleted');
-                removePartitionedItem('autoOpenReservation');
-                removePartitionedItem('kimp_break_remaining_seconds');
-                removePartitionedItem('kimp_accum_break_seconds');
-                removePartitionedItem('kimp_is_on_break');
-                removePartitionedItem('kimp_experience_remaining_seconds');
+
+                // 0. 로컬 스크립트 전역 변수 및 FactoryStore 상태 초기화
+                isOnBreak = false;
+                accumBreakSeconds = 0;
+                breakRemainingSeconds = 1800;
+                experienceRemainingSeconds = 180;
+                activeStageNum = null;
+                if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                    window.FactoryStore.dispatch({ type: 'RESET_ALL_DATA' });
+                }
+                
+                // 1. 유저 ID 후보군 정의 (명시적 삭제용)
+                var userIdCandidates = ['guest'];
+                var sUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                if (!sUser) {
+                    try {
+                        const userJson = sessionStorage.getItem("user");
+                        if (userJson) sUser = JSON.parse(userJson);
+                    } catch(e) {}
+                }
+                if (sUser) {
+                    if (sUser.id) userIdCandidates.push(sUser.id);
+                    if (sUser.email) {
+                        userIdCandidates.push(sUser.email);
+                        userIdCandidates.push('local-' + sUser.email);
+                    }
+                }
+                var storageUserId = sessionStorage.getItem("user-id");
+                if (storageUserId) userIdCandidates.push(storageUserId);
+                if (typeof currentUserId !== 'undefined' && currentUserId) userIdCandidates.push(currentUserId);
+                userIdCandidates = Array.from(new Set(userIdCandidates));
+
+                // 2. 명시적인 개별 키 삭제 시도
+                var keysToRemove = [
+                    'kimp_remaining_seconds',
+                    'kimp_clock_hour',
+                    'kimp_clock_minute',
+                    'kimp_second_counter',
+                    'kimp_salary',
+                    'kimp_helper_base_salary',
+                    'kimp_helper_bonus',
+                    'kimp_help_request',
+                    'kimp_session_timeline',
+                    'experienceCompleted',
+                    'autoOpenReservation',
+                    'kimp_break_remaining_seconds',
+                    'kimp_accum_break_seconds',
+                    'kimp_is_on_break',
+                    'kimp_experience_remaining_seconds',
+                    'kimp_break_start_time',
+                    'kimp_break_history',
+                    'kimp_current_break_start_remaining',
+                    'kimp_check_in_time'
+                ];
+
+                keysToRemove.forEach(function(key) {
+                    if (typeof removePartitionedItem === 'function') {
+                        removePartitionedItem(key);
+                    }
+                    localStorage.removeItem(key);
+                    userIdCandidates.forEach(function(uId) {
+                        localStorage.removeItem(key + '_' + uId);
+                    });
+                });
+
+                // 3. (안전장치) 로컬 스토리지의 모든 키를 순회하여 'kimp_'로 시작하거나 'experienceCompleted' 등의 키를 일괄 강제 삭제
+                var allKeys = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && (k.indexOf('kimp_') === 0 || k.indexOf('experienceCompleted') === 0 || k.indexOf('autoOpenReservation') === 0)) {
+                        allKeys.push(k);
+                    }
+                }
+                allKeys.forEach(function(k) {
+                    localStorage.removeItem(k);
+                });
+
+                // 생산지시서 중앙 스토리지 및 워커 진행상태 제거
+                localStorage.removeItem('kimp_production_orders');
+                
+                var wp = {};
+                try { wp = JSON.parse(localStorage.getItem('kimp_workers_progress') || '{}'); } catch(e){}
+                userIdCandidates.forEach(function(uId) {
+                    if (wp[uId]) {
+                        delete wp[uId];
+                    }
+                });
+                localStorage.setItem('kimp_workers_progress', JSON.stringify(wp));
                 
                 // 로그인 사용자는 세션 유지 및 복구
                 var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
@@ -5507,6 +5497,132 @@
                 window.location.reload();
             }
         }
+
+        // 실시간 경과 타이머 (페이지 로드 완료 및 모든 함수/데이터 초기화 후에 안전하게 작동)
+        setInterval(function() {
+            // 시프트 시간 1초씩 직접 감소 (시스템 초 단위 조회에 따른 불규칙성 개선)
+            if(window.isResetting) return;
+            remainingSeconds--;
+            if (remainingSeconds < 0) remainingSeconds = 7200;
+
+            var now = new Date();
+            clockHour = now.getHours();
+            clockMinute = now.getMinutes();
+            secondCounter = now.getSeconds();
+
+            if (experienceRemainingSeconds > 0) {
+                experienceRemainingSeconds--;
+                setPartitionedItem('kimp_experience_remaining_seconds', experienceRemainingSeconds);
+            }
+
+            if (isOnBreak) {
+                breakRemainingSeconds--;
+                if (breakRemainingSeconds <= 0) breakRemainingSeconds = 1800;
+                accumBreakSeconds++;
+                setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
+                setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
+                saveProductionOrders();
+            }
+
+            // Sync helper support timer UI if advising
+            var helperReqStr = getPartitionedItem('kimp_help_request');
+            if (helperReqStr) {
+                var helperReq = JSON.parse(helperReqStr);
+                if (helperReq.status === "waiting_helper" || helperReq.status === "accepted" || helperReq.status === "requested" || helperReq.status === "advising") {
+                    syncHelpRequest();
+                    renderTaskCards();
+                }
+            }
+
+            // Trigger UI updates
+            updateClocks();
+            updateSalaryAndBreakTime();
+            updateCompleteButtonText();
+
+            // Sync breakdown history UI locally if on break
+            if (isOnBreak && activeStageNum !== null) {
+                updateBreakButtonText();
+                var bm = getStageState(activeStageNum);
+                var bStartTime = getPartitionedItem('kimp_break_start_time') || (bm && bm.breakStartTime);
+                var bHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
+                if (bm && bm.breakHistory && bm.breakHistory.length > 0 && bHistory.length === 0) {
+                    bHistory = bm.breakHistory;
+                }
+                if (bStartTime) {
+                    var breakHistoryContainer = document.getElementById('work-break-history');
+                    if (breakHistoryContainer) {
+                        var bhHtml = '';
+                        for (var bhi = 0; bhi < bHistory.length; bhi++) {
+                            var br = bHistory[bhi];
+                            var brText = br.duration >= 60 
+                                ? Math.floor(br.duration / 60) + '분 ' + (br.duration % 60) + '초'
+                                : br.duration + '초';
+                            bhHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + br.startTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + brText + '간 휴식</div>';
+                        }
+                        var curStartRemaining = parseInt(getPartitionedItem('kimp_current_break_start_remaining') || (bm && bm.currentBreakStartRemaining) || '1800');
+                        var curElapsed = curStartRemaining - breakRemainingSeconds;
+                        if (curElapsed < 0) curElapsed = 0;
+                        var ceText = curElapsed >= 60 
+                            ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
+                            : curElapsed + '초';
+                        bhHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + bStartTime + ' <span style="color: var(--text-sub);">&rarr;</span> ' + ceText + ' 휴식중...</div>';
+                        breakHistoryContainer.innerHTML = bhHtml;
+                    }
+                }
+            }
+
+            // Sync active session duration display
+            if (activeStageNum !== null) {
+                var curStageState = getStageState(activeStageNum);
+                if (curStageState && curStageState.step1Done && !curStageState.statusSubmitted) {
+                    var totalElapsed = 0;
+                    if (curStageState.sessions) {
+                        for (var si = 0; si < curStageState.sessions.length; si++) {
+                            totalElapsed += (curStageState.sessions[si].duration || 0);
+                        }
+                    }
+                    var elH = Math.floor(totalElapsed / 3600);
+                    var elM = Math.floor((totalElapsed % 3600) / 60);
+                    var elS = totalElapsed % 60;
+                    var elapsedEl = document.getElementById('work-elapsed-time');
+                    if (elapsedEl) {
+                        elapsedEl.textContent = String(elH).padStart(2, '0') + ':' + String(elM).padStart(2, '0') + ':' + String(elS).padStart(2, '0');
+                    }
+                }
+            }
+
+            // Live refresh overlay details if open
+            var overlay = document.getElementById('order-sheet-overlay');
+            if (overlay && overlay.style.display === "flex") {
+                updateOrderSheetOverlayRows(overlay.getAttribute('data-order-id'));
+            }
+
+            // Drying timer countdown update for Stage 3-1
+            if (activeStageNum === 3) {
+                var curStageState = getStageState(3);
+                if (curStageState && curStageState.dryingStatus === "drying") {
+                    var remaining = Math.max(0, curStageState.dryingEndTime - Date.now());
+                    if (remaining <= 0) {
+                        curStageState.dryingStatus = "ready";
+                        if (stagesModel[3] && stagesModel[3].order) {
+                            var orderId = stagesModel[3].order;
+                            if (productionOrders[orderId]) {
+                                productionOrders[orderId].progressStatus = "생산중 (Stage 3 말리기 완료)";
+                            }
+                        }
+                        saveProductionOrders();
+                        renderWorkflow();
+                    } else {
+                        var timerTextEl = document.getElementById("drying-timer-countdown");
+                        if (timerTextEl) {
+                            var mins = Math.floor(remaining / 60000);
+                            var secs = Math.floor((remaining % 60000) / 1000);
+                            timerTextEl.textContent = String(mins).padStart(2, '0') + ":" + String(secs).padStart(2, '0');
+                        }
+                    }
+                }
+            }
+        }, 1000);
     </script>
 </body>
 
