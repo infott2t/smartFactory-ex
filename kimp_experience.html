@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 <%@ page contentType="text/html;charset=UTF-8" language="java" isELIgnored="true" %>
 <%
     org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
@@ -807,12 +807,75 @@
             text-shadow: 0 0 10px rgba(123, 92, 245, 0.4);
         }
 
-        /* ── 세션 초기화 플로팅 액션 버튼 (FAB) ── */
-        .fab-reset-session {
+                /* ── 스피드 다이얼 (FAB) ── */
+        .speed-dial-container {
             position: fixed;
             bottom: 84px;
-            left: 50%;
-            transform: translateX(-220px);
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .fab-menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            pointer-events: none;
+        }
+
+        .speed-dial-container.open .fab-menu-container {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .fab-main-toggle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue), #5c4dff);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+
+        .fab-main-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(123, 92, 245, 0.6);
+        }
+
+        .fab-main-toggle i {
+            transition: transform 0.3s;
+        }
+
+        .speed-dial-container.open .fab-main-toggle {
+            background: #444;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .speed-dial-container.open .fab-main-toggle i {
+            transform: rotate(45deg);
+        }
+
+        .fab-reset-session,
+        .fab-complete-experience,
+        .fab-skip-timer {
+            position: relative;
             background: linear-gradient(135deg, #ff4d4d, #c30000);
             color: #fff;
             border: none;
@@ -820,105 +883,44 @@
             padding: 12px 20px;
             font-size: 13px;
             font-weight: 700;
-            box-shadow: 0 8px 25px rgba(195, 0, 0, 0.4);
             display: flex;
             align-items: center;
             gap: 8px;
             cursor: pointer;
-            z-index: 999;
-            transition: all 0.25s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+            transition: all 0.2s;
         }
-
-        .fab-reset-session:hover {
-            transform: translateX(-220px) translateY(-2px);
-            box-shadow: 0 10px 28px rgba(195, 0, 0, 0.5);
-            background: linear-gradient(135deg, #ff6666, #d90000);
-        }
-
-        @media (max-width: 480px) {
-            .fab-reset-session {
-                left: 16px;
-                right: auto;
-                transform: none;
-            }
-
-            .fab-reset-session:hover {
-                transform: translateY(-2px);
-            }
-        }
-
-        /* ── 체험 완료 플로팅 액션 버튼 (FAB) ── */
+        
         .fab-complete-experience {
-            position: fixed;
-            bottom: 84px;
-            right: 20px;
-            left: 50%;
-            transform: translateX(100px);
             background: linear-gradient(135deg, #00b894, #00decb);
-            color: #fff;
-            border: none;
-            border-radius: 30px;
-            padding: 12px 20px;
-            font-size: 13px;
-            font-weight: 700;
-            box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            z-index: 999;
-            transition: all 0.25s;
         }
-
-        @media (max-width: 480px) {
-            .fab-complete-experience {
-                left: auto;
-                right: 16px;
-                transform: none;
-            }
-        }
-
-        .fab-complete-experience:hover {
-            box-shadow: 0 10px 30px rgba(0, 184, 148, 0.6);
-            transform: translateY(-2px) scale(1.03);
-        }
-
-        /* ── 완료버튼으로 전환 플로팅 액션 버튼 (FAB) ── */
+        
         .fab-skip-timer {
-            position: fixed;
-            bottom: 88px;
-            left: 50%;
-            transform: translateX(-90px);
             background: linear-gradient(135deg, #f39c12, #f1c40f);
-            color: #fff;
-            border: none;
-            border-radius: 30px;
             padding: 8px 14px;
             font-size: 11px;
-            font-weight: 700;
-            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            z-index: 999;
-            transition: all 0.25s;
         }
-
+        
+        .fab-reset-session:hover,
+        .fab-complete-experience:hover,
         .fab-skip-timer:hover {
-            transform: translateX(-90px) translateY(-2px) scale(1.03);
-            box-shadow: 0 10px 30px rgba(243, 156, 18, 0.6);
-        }
-
-        @media (max-width: 480px) {
-            .fab-skip-timer {
-                display: none;
-            }
+            transform: translateY(-2px);
+            filter: brightness(1.1);
         }
 
         .fab-complete-experience.disabled-experience {
-            box-shadow: 0 8px 25px rgba(127, 140, 141, 0.3) !important;
+            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+            cursor: not-allowed;
             opacity: 0.85;
+            box-shadow: none;
+        }
+
+        @media (max-width: 480px) {
+            .speed-dial-container {
+                right: 16px;
+                bottom: 80px;
+            }
         }
 
         /* ── 작업 상태 입력 및 쉬기 버튼 추가 스타일 ── */
@@ -1680,18 +1682,7 @@
 
 
 
-        <!-- ── 완료버튼으로 전환 플로팅 액션 버튼 (FAB) ── -->
-        <button class="fab-skip-timer" id="btn-skip-timer" onclick="toggleExperienceTimer()">
-            <i class="bi bi-unlock-fill" id="skip-btn-icon"></i>
-            <span id="skip-btn-text">3분 체험 해제버튼(테스트용)</span>
-        </button>
 
-        <!-- ── 체험 완료 플로팅 액션 버튼 (FAB) ── -->
-        <button class="fab-complete-experience disabled-experience" id="btn-complete-experience"
-            onclick="completeAndReserve()">
-            <i class="bi bi-check-circle-fill" id="complete-btn-icon" style="display: none;"></i>
-            <span id="complete-btn-text">체험 중... (03:00)</span>
-        </button>
 
         <!-- ── 잠깐 쉬기 안내 배너 ── -->
         <div class="break-notice-banner" id="break-notice-banner">
@@ -1825,10 +1816,26 @@
             <span>확인 완료</span>
         </button>
     </div>
-    <button class="fab-reset-session" id="btn-hard-reset" onclick="hardResetSession()">
-        <i class="bi bi-arrow-counterclockwise"></i>
-        <span>처음부터</span>
-    </button>
+        <!-- ── 스피드 다이얼 (FAB) ── -->
+        <div class="speed-dial-container" id="speed-dial-container">
+            <div class="fab-menu-container" id="fab-menu">
+                <button class="fab-reset-session" id="btn-hard-reset" onclick="hardResetSession()">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <span>처음부터</span>
+                </button>
+                <button class="fab-skip-timer" id="btn-skip-timer" style="display:none;" onclick="toggleExperienceTimer()">
+                    <i class="bi bi-unlock-fill" id="skip-btn-icon"></i>
+                    <span id="skip-btn-text">3분 체험 해제버튼(테스트용)</span>
+                </button>
+                <button class="fab-complete-experience disabled-experience" id="btn-complete-experience" onclick="completeAndReserve()">
+                    <i class="bi bi-check-circle-fill" id="complete-btn-icon" style="display: none;"></i>
+                    <span id="complete-btn-text">체험 중... (03:00)</span>
+                </button>
+            </div>
+            <button class="fab-main-toggle" id="btn-main-toggle" onclick="toggleSpeedDial()">
+                <i class="bi bi-gear-fill" id="main-toggle-icon"></i>
+            </button>
+        </div>
 
     <script>
         // ── 로그인한 사용자 감지 및 화면 표시 ──
@@ -3030,7 +3037,7 @@
         renderTaskCards();
 
         function hardResetSession() {
-            if (confirm("모든 작업 기록(휴식, 진행률, 급여)과 로그인 정보가 초기화됩니다.\n정말 '처음부터' 다시 시작하시겠습니까?")) {
+            // confirm alert removed
                 // ★ 핵심 추가: 자동 저장(saveMockState)이 옛날 값을 다시 살려내지 못하도록, 메모리 변수를 먼저 강제로 0으로 초기화합니다! ★
                 activeStageNum = null;
                 currentStep = 0;
@@ -3150,9 +3157,20 @@
                 // 4. 페이지 새로고침하여 빈 상태로 다시 시작
                 window.location.reload(true);
 
-            }
+            // }
         }
 
+        function toggleSpeedDial() {
+            var container = document.getElementById('speed-dial-container');
+            var icon = document.getElementById('main-toggle-icon');
+            if (container.classList.contains('open')) {
+                container.classList.remove('open');
+                icon.className = 'bi bi-gear-fill';
+            } else {
+                container.classList.add('open');
+                icon.className = 'bi bi-x-lg';
+            }
+        }
     </script>
 </body>
 
