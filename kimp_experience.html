@@ -22,12 +22,15 @@
 <html lang="ko">
 
 <head>
-    
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
     <title>김치만들기 - 공정 현황 대시보드</title>
     <!-- Google Fonts: Inter & Noto Sans KR -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="./js/auth.js" type="text/javascript"></script>
@@ -36,7 +39,7 @@
     <!-- <script src="./js/store.js?v=20260619_2313" type="text/javascript"></script> -->
     <!-- <script src="./js/engine.js" type="text/javascript"></script> -->
     <!-- <script src="./js/simulator.js" type="text/javascript"></script> -->
-    
+
     <style>
         :root {
             --bg-color: #0b0b16;
@@ -506,8 +509,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* ── 공정 현황 Task 리스트 ── */
@@ -571,11 +579,30 @@
             text-transform: uppercase;
         }
 
-        .badge-completed { background: rgba(0, 184, 148, 0.08); color: var(--neon-green); }
-        .badge-active { background: rgba(232, 93, 4, 0.1); color: var(--amber-accent); }
-        .badge-joinable { background: rgba(123, 92, 245, 0.1); color: var(--neon-blue); }
-        .badge-support { background: rgba(235, 107, 107, 0.1); color: #ff6b6b; }
-        .badge-waiting { background: rgba(255, 255, 255, 0.05); color: var(--text-sub); }
+        .badge-completed {
+            background: rgba(0, 184, 148, 0.08);
+            color: var(--neon-green);
+        }
+
+        .badge-active {
+            background: rgba(232, 93, 4, 0.1);
+            color: var(--amber-accent);
+        }
+
+        .badge-joinable {
+            background: rgba(123, 92, 245, 0.1);
+            color: var(--neon-blue);
+        }
+
+        .badge-support {
+            background: rgba(235, 107, 107, 0.1);
+            color: #ff6b6b;
+        }
+
+        .badge-waiting {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-sub);
+        }
 
         .task-count {
             font-size: 12px;
@@ -654,8 +681,15 @@
         }
 
         @keyframes slideIn {
-            from { transform: translate(50%, 0); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
+            from {
+                transform: translate(50%, 0);
+                opacity: 0;
+            }
+
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
         }
 
         .guide-header {
@@ -807,6 +841,7 @@
                 right: auto;
                 transform: none;
             }
+
             .fab-reset-session:hover {
                 transform: translateY(-2px);
             }
@@ -880,7 +915,7 @@
                 display: none;
             }
         }
-        
+
         .fab-complete-experience.disabled-experience {
             box-shadow: 0 8px 25px rgba(127, 140, 141, 0.3) !important;
             opacity: 0.85;
@@ -963,7 +998,8 @@
         /* ── 쉬기 안내 배너 ── */
         .break-notice-banner {
             position: fixed;
-            bottom: -250px; /* default hidden completely off-screen */
+            bottom: -250px;
+            /* default hidden completely off-screen */
             left: 50%;
             transform: translateX(-50%);
             width: calc(100% - 32px);
@@ -984,7 +1020,8 @@
         }
 
         .break-notice-banner.show {
-            bottom: 80px; /* slides up above bottom navigation bar */
+            bottom: 80px;
+            /* slides up above bottom navigation bar */
             opacity: 1;
             pointer-events: auto;
         }
@@ -1067,7 +1104,8 @@
             text-align: left;
         }
 
-        .order-table th, .order-table td {
+        .order-table th,
+        .order-table td {
             padding: 10px 6px;
             border-bottom: 1px solid var(--card-border);
         }
@@ -1210,7 +1248,7 @@
             font-size: 11px;
             transition: all 0.3s ease;
         }
-        
+
         .outdoor-area.highlight-node {
             background: rgba(232, 93, 4, 0.12);
             border-color: var(--amber-accent);
@@ -1247,8 +1285,15 @@
         }
 
         @keyframes flowGlow {
-            from { transform: translateY(-1px); opacity: 0.7; }
-            to { transform: translateY(1px); opacity: 1; }
+            from {
+                transform: translateY(-1px);
+                opacity: 0.7;
+            }
+
+            to {
+                transform: translateY(1px);
+                opacity: 1;
+            }
         }
 
         /* 실내 공정 구역 */
@@ -1284,7 +1329,7 @@
             align-items: center;
             gap: 4px;
         }
-        
+
         .zone-card.highlight-node .zone-title {
             color: var(--neon-blue);
         }
@@ -1334,7 +1379,7 @@
             font-size: 8px;
             margin-bottom: 2px;
         }
-        
+
         .zone-card.highlight-node .workstation .station-label {
             color: var(--neon-blue);
         }
@@ -1373,7 +1418,7 @@
 
 <body>
     <div class="app-container" id="main-app-layout">
-        
+
         <!-- ── 상단 시계 표시 ── -->
         <div class="time-header">
             <div class="time-box left">
@@ -1399,14 +1444,20 @@
         </div>
 
         <!-- 사용자 정보 배너 -->
-        <div id="user-info-banner" style="background-color: rgba(123, 92, 245, 0.1); border: 1px solid rgba(123, 92, 245, 0.2); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
+        <div id="user-info-banner"
+            style="background-color: rgba(123, 92, 245, 0.1); border: 1px solid rgba(123, 92, 245, 0.2); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; display: flex; flex-direction: column; gap: 6px;">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <span><i class="bi bi-person-fill"></i> 로그인 사용자: <strong id="logged-in-user-name" style="color: var(--neon-blue);">로딩 중...</strong></span>
-                <button id="btn-back-to-dashboard" onclick="location.href='kimp_helper.html'" style="display: none; background: #212140; border: 1px solid var(--card-border); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; border-radius: 4px;">헬퍼 대시보드</button>
+                <span><i class="bi bi-person-fill"></i> 로그인 사용자: <strong id="logged-in-user-name"
+                        style="color: var(--neon-blue);">로딩 중...</strong></span>
+                <button id="btn-back-to-dashboard" onclick="location.href='kimp_helper.html'"
+                    style="display: none; background: #212140; border: 1px solid var(--card-border); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; border-radius: 4px;">헬퍼
+                    대시보드</button>
             </div>
-            <div style="border-top: 1px solid rgba(123, 92, 245, 0.15); padding-top: 6px; display: flex; align-items: center; gap: 6px; width: 100%;">
+            <div
+                style="border-top: 1px solid rgba(123, 92, 245, 0.15); padding-top: 6px; display: flex; align-items: center; gap: 6px; width: 100%;">
                 <i class="bi bi-clock-fill" style="color: var(--neon-green);"></i>
-                <span>출근 등록 시간: <strong id="logged-in-checkin-time" style="color: var(--neon-green);">--:--:--</strong></span>
+                <span>출근 등록 시간: <strong id="logged-in-checkin-time"
+                        style="color: var(--neon-green);">--:--:--</strong></span>
             </div>
         </div>
 
@@ -1432,15 +1483,19 @@
                 <div class="progress-bar-fill" id="overall-progress-bar" style="width: 3%;"></div>
             </div>
             <!-- 추가된 급여 및 쉰 시간 정보 영역 -->
-            <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div
+                style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 12px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <span style="font-size: 10px; color: var(--text-sub);">총 쉰 시간 (급여 제외)</span>
-                    <span style="font-size: 14px; font-weight: 700; color: #ff6b6b;" id="total-break-time-display">00분 00초</span>
+                    <span style="font-size: 14px; font-weight: 700; color: #ff6b6b;" id="total-break-time-display">00분
+                        00초</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
                     <span style="font-size: 10px; color: var(--text-sub);" id="accum-salary-label">현재 누적급여</span>
-                    <span id="helper-bonus-text-experience" style="display: none; font-size: 10px; color: var(--neon-green); margin-bottom: 2px; font-weight: bold;"></span>
-                    <span style="font-size: 14px; font-weight: 700; color: var(--neon-green);" id="accum-salary-display">0 KRW</span>
+                    <span id="helper-bonus-text-experience"
+                        style="display: none; font-size: 10px; color: var(--neon-green); margin-bottom: 2px; font-weight: bold;"></span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--neon-green);"
+                        id="accum-salary-display">0 KRW</span>
                 </div>
             </div>
         </div>
@@ -1469,18 +1524,25 @@
                     </div>
                     <div class="work-meta-item">
                         <span class="work-meta-label">생산 경과 시간</span>
-                        <span class="work-meta-value" id="work-elapsed-time" style="color: var(--neon-green); font-variant-numeric: tabular-nums;">00:00:00</span>
+                        <span class="work-meta-value" id="work-elapsed-time"
+                            style="color: var(--neon-green); font-variant-numeric: tabular-nums;">00:00:00</span>
                     </div>
                     <div class="work-meta-item">
                         <span class="work-meta-label">내가 작업 중인 생산지시서</span>
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <span class="work-meta-value work-order-link" id="work-order-id" onclick="openOrderSheetOverlay()">없음</span>
-                            <i class="bi bi-info-circle" id="order-id-info-icon" onclick="toggleOrderIdExplanation(event)" style="color: var(--text-sub); cursor: pointer; font-size: 13px; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-sub)'"></i>
+                            <span class="work-meta-value work-order-link" id="work-order-id"
+                                onclick="openOrderSheetOverlay()">없음</span>
+                            <i class="bi bi-info-circle" id="order-id-info-icon"
+                                onclick="toggleOrderIdExplanation(event)"
+                                style="color: var(--text-sub); cursor: pointer; font-size: 13px; transition: color 0.2s;"
+                                onmouseover="this.style.color='#fff'"
+                                onmouseout="this.style.color='var(--text-sub)'"></i>
                         </div>
                     </div>
                     <div class="work-meta-item" id="work-break-item" style="display: none; grid-column: span 2;">
                         <span class="work-meta-label" style="color: var(--amber-accent);">휴식 기록</span>
-                        <div id="work-break-history" style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;"></div>
+                        <div id="work-break-history"
+                            style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;"></div>
                     </div>
                     <div class="work-meta-item" style="grid-column: span 2;">
                         <span class="work-meta-label">참여자</span>
@@ -1491,7 +1553,8 @@
                 </div>
 
                 <!-- 생산지시서 ID 뜻 설명 패널 -->
-                <div id="order-id-explanation" style="display: none; background-color: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; margin-top: -6px; margin-bottom: 12px; font-size: 11px; color: var(--text-sub); line-height: 1.5;">
+                <div id="order-id-explanation"
+                    style="display: none; background-color: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 10px; margin-top: -6px; margin-bottom: 12px; font-size: 11px; color: var(--text-sub); line-height: 1.5;">
                     <i class="bi bi-info-circle-fill" style="color: var(--neon-blue); margin-right: 4px;"></i>
                     지시서 ID 형식: <strong>yymmdd(날짜) - 배추 포기수 - 작업번호</strong>를 뜻합니다.
                 </div>
@@ -1508,8 +1571,10 @@
                 </div>
 
                 <!-- 헬퍼 요청 영역 -->
-                <div id="helper-request-panel" style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-                    <div style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #fff;">
+                <div id="helper-request-panel"
+                    style="background-color: rgba(255, 255, 255, 0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                    <div
+                        style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #fff;">
                         <i class="bi bi-person-fill-gear" style="color: var(--neon-blue);"></i>
                         <span>현장 헬퍼 지원</span>
                     </div>
@@ -1528,7 +1593,8 @@
 
                 <!-- 하단 상태 제출 버튼 및 쉬기 버튼 영역 -->
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-                    <button class="btn-status-submit" id="btn-submit-status" onclick="submitStatus()" style="display: none;">
+                    <button class="btn-status-submit" id="btn-submit-status" onclick="submitStatus()"
+                        style="display: none;">
                         <i class="bi bi-box-arrow-in-right"></i>
                         <span>작업 상태 입력</span>
                     </button>
@@ -1554,8 +1620,10 @@
                 </div>
             </div>
             <div class="empty-work-card">
-                <i class="bi bi-info-circle-fill" style="font-size: 28px; color: var(--text-sub); display: block; margin-bottom: 8px;"></i>
-                <span style="font-size: 13px; color: var(--text-sub); line-height: 1.6; display: block; font-weight: 500;">
+                <i class="bi bi-info-circle-fill"
+                    style="font-size: 28px; color: var(--text-sub); display: block; margin-bottom: 8px;"></i>
+                <span
+                    style="font-size: 13px; color: var(--text-sub); line-height: 1.6; display: block; font-weight: 500;">
                     참여 중인 공정이 없습니다.<br>
                     아래 <strong style="color: var(--neon-blue);">공정 현황 Stage</strong>에서<br>
                     원하시는 공정의 <strong>[참여하기]</strong> 버튼을 클릭하여 작업을 시작해주세요.
@@ -1619,7 +1687,8 @@
         </button>
 
         <!-- ── 체험 완료 플로팅 액션 버튼 (FAB) ── -->
-        <button class="fab-complete-experience disabled-experience" id="btn-complete-experience" onclick="completeAndReserve()">
+        <button class="fab-complete-experience disabled-experience" id="btn-complete-experience"
+            onclick="completeAndReserve()">
             <i class="bi bi-check-circle-fill" id="complete-btn-icon" style="display: none;"></i>
             <span id="complete-btn-text">체험 중... (03:00)</span>
         </button>
@@ -1654,7 +1723,7 @@
             <button class="btn-guide-back" onclick="closeGuidePage()"><i class="bi bi-arrow-left"></i></button>
             <span class="guide-title" id="guide-page-header-title">공정 가이드 설명</span>
         </div>
-        
+
         <div class="guide-content-box">
             <div class="guide-section-title">
                 <i class="bi bi-info-circle-fill"></i>
@@ -1677,13 +1746,13 @@
             <button class="btn-guide-back" onclick="closeOrderSheetOverlay()"><i class="bi bi-arrow-left"></i></button>
             <span class="guide-title">생산지시서 상세 현황</span>
         </div>
-        
+
         <div class="guide-content-box">
             <div class="guide-section-title" style="margin-bottom: 8px;">
                 <i class="bi bi-file-text-fill"></i>
                 <span id="overlay-order-id-title">지시서 ID: 없음</span>
             </div>
-            
+
             <table class="order-table" style="font-size: 8.5px; width: 100%;">
                 <thead>
                     <tr>
@@ -1706,7 +1775,8 @@
             </table>
         </div>
 
-        <button class="btn-guide-complete" style="background: var(--card-border); color: #fff; box-shadow: none;" onclick="closeOrderSheetOverlay()">
+        <button class="btn-guide-complete" style="background: var(--card-border); color: #fff; box-shadow: none;"
+            onclick="closeOrderSheetOverlay()">
             <i class="bi bi-x-circle-fill"></i>
             <span>닫기</span>
         </button>
@@ -1718,7 +1788,7 @@
             <button class="btn-guide-back" onclick="closeWeightGuide()"><i class="bi bi-arrow-left"></i></button>
             <span class="guide-title">무게 측정 방법 가이드</span>
         </div>
-        
+
         <div class="guide-content-box">
             <div class="guide-section-title">
                 <i class="bi bi-info-circle-fill"></i>
@@ -1739,7 +1809,8 @@
                 </div>
                 <div class="guide-step-item">
                     <span class="guide-step-num">4.</span>
-                    <span>저울 표시창에 나타난 무게를 확인합니다. (5포기 기준 표준 무게는 약 <strong>4.0 kg</strong>이며, 양품 포기수에 따라 무게가 다를 수 있습니다.)</span>
+                    <span>저울 표시창에 나타난 무게를 확인합니다. (5포기 기준 표준 무게는 약 <strong>4.0 kg</strong>이며, 양품 포기수에 따라 무게가 다를 수
+                        있습니다.)</span>
                 </div>
                 <div class="guide-step-item">
                     <span class="guide-step-num">5.</span>
@@ -1748,332 +1819,355 @@
             </div>
         </div>
 
-        <button class="btn-guide-complete" style="background: var(--neon-blue); color: #fff; box-shadow: none;" onclick="closeWeightGuide()">
+        <button class="btn-guide-complete" style="background: var(--neon-blue); color: #fff; box-shadow: none;"
+            onclick="closeWeightGuide()">
             <i class="bi bi-check-circle-fill"></i>
             <span>확인 완료</span>
         </button>
     </div>
+    <button class="fab-reset-session" id="btn-hard-reset" onclick="hardResetSession()">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>처음부터</span>
+    </button>
 
     <script>
-// ── 로그인한 사용자 감지 (AuthManager 또는 세션 스토리지) ──
-var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-if (!sessionUser) {
-    try {
-        const userJson = sessionStorage.getItem("user");
-        if (userJson) sessionUser = JSON.parse(userJson);
-    } catch(e) {}
-}
-var isHelperUser = sessionUser && sessionUser.role === '헬퍼';
-var currentUserId = sessionUser ? (sessionUser.id || sessionUser.email || 'guest') : 'guest';
-var currentUserName = sessionUser ? (sessionUser.name || '손님') : '손님';
+        // ── 로그인한 사용자 감지 및 화면 표시 ──
+        var currentUserName = "손님";
+        var currentUserId = "guest";
+        var isHelperUser = false;
 
-// ── Partitioned LocalStorage Helpers (레거시용) ──
-var getPartitionedItem = window.getPartitionedItem || function(key) {
-    return localStorage.getItem(key);
-};
-var setPartitionedItem = window.setPartitionedItem || function(key, value) {
-    localStorage.setItem(key, value);
-};
-var removePartitionedItem = window.removePartitionedItem || function(key) {
-    localStorage.removeItem(key);
-};
+        try {
+            var userInfoStr = sessionStorage.getItem("user_info");
+            if (userInfoStr) {
+                var userInfo = JSON.parse(userInfoStr);
 
-// ── 1. 시간 타이머 및 남은 시간 ──
-var totalSeconds = 7200; // 2시간
-function getShiftTimeRemaining() {
-    var now = new Date();
-    var currentMins = now.getHours() * 60 + now.getMinutes();
-    var currentSecs = currentMins * 60 + now.getSeconds();
-    var shifts = [
-        { start: 8*60, end: 10*60 },
-        { start: 10*60, end: 12*60 },
-        { start: 12*60, end: 13*60 },
-        { start: 13*60, end: 15*60 },
-        { start: 15*60, end: 17*60 },
-        { start: 17*60, end: 19*60 },
-        { start: 19*60, end: 21*60 },
-        { start: 21*60, end: 23*60 },
-        { start: 23*60, end: 24*60 },
-        { start: 0, end: 1*60 },
-        { start: 1*60, end: 3*60 },
-        { start: 3*60, end: 5*60 },
-        { start: 5*60, end: 7*60 },
-        { start: 7*60, end: 8*60 }
-    ];
-    var activeShift = null;
-    for (var i = 0; i < shifts.length; i++) {
-        if (currentMins >= shifts[i].start && currentMins < shifts[i].end) {
-            activeShift = shifts[i];
-            break;
-        }
-    }
-    if (activeShift) {
-        var endSecs = activeShift.end * 60;
-        return endSecs - currentSecs;
-    }
-    return 7200;
-}
-
-var remainingSeconds = getShiftTimeRemaining();
-var accumBreakSeconds = parseInt(getPartitionedItem('kimp_accum_break_seconds') || '0');
-var breakRemainingSeconds = parseInt(getPartitionedItem('kimp_break_remaining_seconds') || '1800');
-var isOnBreak = getPartitionedItem('kimp_is_on_break') === 'true';
-var experienceRemainingSeconds = getPartitionedItem('kimp_experience_remaining_seconds') ? parseInt(getPartitionedItem('kimp_experience_remaining_seconds')) : 180;
-
-var checkInTime = getPartitionedItem('kimp_check_in_time');
-if (!checkInTime) {
-    var now = new Date();
-    checkInTime = String(now.getHours()).padStart(2, '0') + ':' + 
-                  String(now.getMinutes()).padStart(2, '0') + ':' + 
-                  String(now.getSeconds()).padStart(2, '0');
-    setPartitionedItem('kimp_check_in_time', checkInTime);
-}
-
-var accumSalary = parseFloat(getPartitionedItem('kimp_accum_salary') || '0');
-
-var clockHour = new Date().getHours();
-var clockMinute = new Date().getMinutes();
-
-function updateClocks() {
-    var h = Math.floor(remainingSeconds / 3600);
-    var m = Math.floor((remainingSeconds % 3600) / 60);
-    var s = remainingSeconds % 60;
-    var remText = String(h).padStart(2, '0') + ':' + 
-                  String(m).padStart(2, '0') + ':' + 
-                  String(s).padStart(2, '0');
-    
-    var remClockEl = document.getElementById('remaining-clock');
-    if (remClockEl) remClockEl.textContent = remText;
-
-    var curClockEl = document.getElementById('current-clock');
-    if (curClockEl) {
-        curClockEl.textContent = '·' + String(clockHour).padStart(2, '0') + ':' + 
-                                 String(clockMinute).padStart(2, '0');
-    }
-
-    var elapsedSeconds = totalSeconds - remainingSeconds;
-    var pct = Math.round((elapsedSeconds / totalSeconds) * 100);
-    if (pct > 100) pct = 100;
-    
-    var pctLabel = document.getElementById('progress-pct-label');
-    if (pctLabel) pctLabel.textContent = pct + '%';
-    
-    var progressBar = document.getElementById('overall-progress-bar');
-    if (progressBar) progressBar.style.width = pct + '%';
-}
-
-function updateSalaryAndBreakTime() {
-    var salDisplay = document.getElementById('accum-salary-display');
-    if (salDisplay) {
-        salDisplay.textContent = Math.floor(accumSalary).toLocaleString() + ' KRW';
-    }
-    
-    var breakMin = Math.floor(accumBreakSeconds / 60);
-    var breakSec = accumBreakSeconds % 60;
-    var breakDisplay = document.getElementById('total-break-time-display');
-    if (breakDisplay) {
-        breakDisplay.textContent = String(breakMin).padStart(2, '0') + "분 " + String(breakSec).padStart(2, '0') + "초";
-    }
-
-    var checkInEl = document.getElementById('logged-in-checkin-time');
-    if (checkInEl) checkInEl.textContent = checkInTime;
-}
-
-// ── 2. Mock 상태 및 공정 모델 ──
-var activeStageNum = getPartitionedItem('kimp_active_stage_num');
-if (activeStageNum === null || activeStageNum === '') {
-    activeStageNum = null;
-} else {
-    activeStageNum = parseInt(activeStageNum);
-}
-var currentStep = getPartitionedItem('kimp_current_step') ? parseInt(getPartitionedItem('kimp_current_step')) : 0; // 0: 스캔 대기, 1: 수량 확인 대기, 2: 위생 청소 대기, 3: 가이드 대기, 4: 완료 스캔 대기, 5: 완료
-
-var preWorkQty = getPartitionedItem('kimp_pre_work_qty') ? parseInt(getPartitionedItem('kimp_pre_work_qty')) : 15;
-var defectCount = getPartitionedItem('kimp_defect_count') ? parseInt(getPartitionedItem('kimp_defect_count')) : 0;
-var weight = getPartitionedItem('kimp_weight') ? parseFloat(getPartitionedItem('kimp_weight')) : 12.0;
-var postWorkQty = getPartitionedItem('kimp_post_work_qty') ? parseInt(getPartitionedItem('kimp_post_work_qty')) : 15;
-var postWorkWeight = getPartitionedItem('kimp_post_work_weight') ? parseFloat(getPartitionedItem('kimp_post_work_weight')) : 12.0;
-
-var currentBreakStartRemaining = getPartitionedItem('kimp_current_break_start_remaining') ? parseInt(getPartitionedItem('kimp_current_break_start_remaining')) : null;
-
-function saveMockState() {
-    setPartitionedItem('kimp_active_stage_num', activeStageNum === null ? '' : activeStageNum);
-    setPartitionedItem('kimp_current_step', currentStep);
-    setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
-    setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
-    setPartitionedItem('kimp_is_on_break', isOnBreak ? 'true' : 'false');
-    setPartitionedItem('kimp_break_start_time', breakStartTime || '');
-    setPartitionedItem('kimp_break_history', JSON.stringify(breakHistory));
-    setPartitionedItem('kimp_pre_work_qty', preWorkQty);
-    setPartitionedItem('kimp_defect_count', defectCount);
-    setPartitionedItem('kimp_weight', weight);
-    setPartitionedItem('kimp_post_work_qty', postWorkQty);
-    setPartitionedItem('kimp_post_work_weight', postWorkWeight);
-    if (currentBreakStartRemaining !== null) {
-        setPartitionedItem('kimp_current_break_start_remaining', currentBreakStartRemaining);
-    } else {
-        removePartitionedItem('kimp_current_break_start_remaining');
-    }
-}
-
-var stagesModel = {
-    1: { num: 1, name: "Stage 1. 배추 1/2컷팅하기", order: "TEST-ORDER-123", prevLocation: "야외 하차장", nextLocation: "적재데크", participants: "홍길동, 박준호" },
-    2: { num: 2, name: "Stage 2. 배추 절이기", order: "TEST-ORDER-123", prevLocation: "적재데크", nextLocation: "염수탱크 구역", participants: "홍길동, 최은지" },
-    3: { num: 3, name: "Stage 3-1. 절인배추 세척 및 물기빼기", order: "TEST-ORDER-123", prevLocation: "염수탱크 구역", nextLocation: "말리기 구역", participants: "홍길동, 이영희" },
-    32: { num: 32, name: "Stage 3-2. 세척배추 밀봉 및 보관", order: "TEST-ORDER-123", prevLocation: "말리기 구역", nextLocation: "저장고", participants: "홍길동, 이영희" },
-    4: { num: 4, name: "Stage 4. 양념제조와 양념을 묻히는 작업", order: "TEST-ORDER-123", prevLocation: "저장고", nextLocation: "포장 구역", participants: "홍길동, 정다은, 윤민수" },
-    5: { num: 5, name: "Stage 5. 포장용기에 담는 작업", order: "TEST-ORDER-123", prevLocation: "포장 구역", nextLocation: "출하 대기실", participants: "홍길동, 황정민" }
-};
-
-var stageShortNames = {
-    1: "Stage 1 (컷팅)",
-    2: "Stage 2 (절이기)",
-    3: "Stage 3 (세척)",
-    32: "Stage 3-2 (보관)",
-    4: "Stage 4 (양념)",
-    5: "Stage 5 (포장)"
-};
-
-// 상세 가이드 설명서 내용
-var guidesContent = {
-    1: {
-        title: "Stage 1. 배추 1/2컷팅하기 상세 가이드",
-        steps: [
-            "야외 하차 구역에서 적재용 파레트의 청결 상태를 점검합니다.",
-            "파레트에 이물질이나 흙이 묻어 있다면 비치된 빗자루와 전용 위생 행주로 닦아야 합니다.",
-            "청소가 끝나면 <strong>[청소 완료 사진]</strong>을 촬영하여 관리자 서버에 전송합니다.",
-            "심사 승인(Pending 해제)을 받은 후, 원재료 배추 5포기의 먼지와 겉 흙을 안전하게 털어냅니다.",
-            "배추를 1/2로 컷팅하고, 흙이나 이물질이 묻었을 경우, 물에 잠깐 세척해주세요.",
-            "배추를 파레트에 5포기 단위로 규격에 맞춰 안전하게 상차 적재합니다."
-        ]
-    },
-    2: {
-        title: "Stage 2. 배추 절이기 상세 가이드",
-        steps: [
-            "배추는 17시간 절여집니다. 수조가 깨끗한지 확인하고 사진을 찍어서 전송해 주세요.",
-            "사진 전송하기(전송하면 관리자가 사진을 확인하고 [작업진행]이나 [청소 필요] 버튼을 눌러서 알려줍니다. 청소가 필요한 경우 청소 후 다시 사진 전송하기를 클릭해주면 됩니다.)",
-            "우선 수조에 물과 소금의 비율을 맞추어서 넣습니다. 물과 소금의 비율, 몇 리터, 몇 kg인지 정확히 계량 후 잘 저어줍니다.",
-            "배추를 차곡차곡 잘 쌓아줍니다.",
-            "배추 속심부분이 잘 익을 수 있게 소금을 덧대어 뿌려줍니다."
-        ]
-    },
-    3: {
-        title: "Stage 3-1. 절인배추 세척 및 물기빼기 상세 가이드",
-        steps: [
-            "절임 배추를 위생 통에다가 옮겨줍니다.",
-            "찬물을 3군데 받고 차례차례 담그었다가 빼서 배추의 염도를 낮추어 줍니다.",
-            "통은 배추 30포기 정도 했다면 물을 다시 갈아줍니다. (배추 세척은 1회 최대 30포기 제한)",
-            "배추를 세척한 후, 그 이후 건조망에 차례로 놓아 1시간 정도 물기를 빼내줍니다."
-        ]
-    },
-    32: {
-        title: "Stage 3-2. 세척배추 밀봉 및 보관 상세 가이드",
-        steps: [
-            "물기를 충분히 뺀 배추를 보관용 비닐봉지에 나누어 담습니다.",
-            "비닐에 배추를 10포기 ~ 15포기 정도 적정량 담고 밀봉을 해줍니다.",
-            "밀봉 완료 후 사진을 촬영하여 전송하고, 밀봉된 배추를 저장소 냉장고에 넣어 보관합니다."
-        ]
-    },
-    4: {
-        title: "Stage 4. 양념 제조 및 묻히기 상세 가이드",
-        steps: [
-            "배합용 믹서 및 버무림 전용 위생 테이블의 청결 상태를 철저히 체크합니다.",
-            "양념 재료 보관대에서 <strong>고춧가루 500g, 다진 마늘 200g, 멸치액젓 150ml</strong>의 정량 위치를 확인하고 소분 계량합니다.",
-            "믹서 세척 및 버무림 작업 테이블 살균 청소 완료 사진을 촬영해 제출 후 심사를 기다립니다.",
-            "심사가 완료(Pending 해제)되면, 준비된 재료를 고르게 혼합하여 김치 양념 속을 제조합니다.",
-            "절인 배추의 물기를 충분히 뺀 후, 배추 잎사귀 사이사이에 양념 속을 고르게 묻혀 완성합니다."
-        ]
-    },
-    5: {
-        title: "Stage 5. 포장용기에 담는 작업 상세 가이드",
-        steps: [
-            "전자저울 상단 플레이트 및 비닐 접착 실링 장비의 청결도를 점검합니다.",
-            "위생 타올로 전자저울의 먼지를 닦아내고 청소 완료 사진을 서버에 전송해 심사를 진행합니다.",
-            "심사가 통과되면, 저울 전원을 켜고 용기 무게를 제외한 영점(0g) 세팅을 완료합니다.",
-            "완성된 포기김치를 중량 <strong>5kg 정량</strong>에 맞추어 포장 팩에 정확히 소분해 담습니다.",
-            "팩 입구를 열접착 실링기를 사용해 단단히 밀봉하고 바코드를 부착하여 최종 박스에 상차합니다."
-        ]
-    }
-};
-
-// ── 3. 워크플로우 렌더링 함수 ──
-function renderWorkflow() {
-    if (activeStageNum === null) {
-        document.getElementById('active-work-section').style.display = 'none';
-        document.getElementById('no-active-work-placeholder').style.display = 'block';
-        renderTaskCards();
-        return;
-    }
-
-    document.getElementById('active-work-section').style.display = 'block';
-    document.getElementById('no-active-work-placeholder').style.display = 'none';
-
-    var m = stagesModel[activeStageNum];
-    var checklistContainer = document.getElementById('work-checklist');
-
-    document.getElementById('current-work-title-text').textContent = m.name;
-    document.getElementById('work-start-time').textContent = currentStep >= 1 ? "15:05:00" : "미체크 (스캔 필요)";
-    document.getElementById('work-order-id').textContent = currentStep >= 1 ? m.order : "없음";
-    
-    var participantsEl = document.getElementById('work-participants');
-    if (participantsEl) {
-        participantsEl.innerHTML = "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), " + m.participants;
-    }
-    
-    var prodInfoEl = document.getElementById('work-production-info');
-    if (prodInfoEl) {
-        prodInfoEl.textContent = "생산 수량: 배추 " + preWorkQty + "포기 (불량 " + defectCount + "포기 제외)";
-    }
-
-    var elapsedEl = document.getElementById('work-elapsed-time');
-    if (elapsedEl) {
-        elapsedEl.textContent = currentStep >= 1 ? "00:05:00" : "00:00:00";
-    }
-
-    // 휴식 기록 표시 처리
-    var breakItem = document.getElementById('work-break-item');
-    var breakHistoryEl = document.getElementById('work-break-history');
-    if (breakItem && breakHistoryEl) {
-        if (breakHistory.length > 0 || breakStartTime) {
-            breakItem.style.display = "block";
-            var breakHtml = '';
-            for (var bi = 0; bi < breakHistory.length; bi++) {
-                var bRecord = breakHistory[bi];
-                breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' &rarr; ' + bRecord.duration + '초간 휴식</div>';
+                // user_info 객체 안에 user 객체가 있고, 그 안에 name과 role이 있는 구조
+                if (userInfo.user) {
+                    currentUserName = userInfo.user.name || "손님";
+                    currentUserId = userInfo.email ? 'local-' + userInfo.email : 'guest';
+                    isHelperUser = userInfo.user.role === '헬퍼';
+                }
             }
-            if (breakStartTime && isOnBreak) {
-                breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + breakStartTime + ' &rarr; 휴식중...</div>';
+        } catch (e) {
+            console.error("유저 정보를 불러오는 중 에러 발생:", e);
+        }
+
+        // 화면의 요소(#logged-in-user-name)를 찾아 이름을 업데이트합니다.
+        var nameDisplayEl = document.getElementById("logged-in-user-name");
+        if (nameDisplayEl) {
+            nameDisplayEl.textContent = currentUserName;
+        }
+
+        // ── Partitioned LocalStorage Helpers (레거시용) ──
+        var getPartitionedItem = window.getPartitionedItem || function (key) {
+            return localStorage.getItem(key);
+        };
+        var setPartitionedItem = window.setPartitionedItem || function (key, value) {
+            localStorage.setItem(key, value);
+        };
+        var removePartitionedItem = window.removePartitionedItem || function (key) {
+            localStorage.removeItem(key);
+        };
+
+        // ── 1. 시간 타이머 및 남은 시간 ──
+        var totalSeconds = 7200; // 2시간
+        function getShiftTimeRemaining() {
+            var now = new Date();
+            var currentMins = now.getHours() * 60 + now.getMinutes();
+            var currentSecs = currentMins * 60 + now.getSeconds();
+            var shifts = [
+                { start: 8 * 60, end: 10 * 60 },
+                { start: 10 * 60, end: 12 * 60 },
+                { start: 12 * 60, end: 13 * 60 },
+                { start: 13 * 60, end: 15 * 60 },
+                { start: 15 * 60, end: 17 * 60 },
+                { start: 17 * 60, end: 19 * 60 },
+                { start: 19 * 60, end: 21 * 60 },
+                { start: 21 * 60, end: 23 * 60 },
+                { start: 23 * 60, end: 24 * 60 },
+                { start: 0, end: 1 * 60 },
+                { start: 1 * 60, end: 3 * 60 },
+                { start: 3 * 60, end: 5 * 60 },
+                { start: 5 * 60, end: 7 * 60 },
+                { start: 7 * 60, end: 8 * 60 }
+            ];
+            var activeShift = null;
+            for (var i = 0; i < shifts.length; i++) {
+                if (currentMins >= shifts[i].start && currentMins < shifts[i].end) {
+                    activeShift = shifts[i];
+                    break;
+                }
             }
-            breakHistoryEl.innerHTML = breakHtml;
-        } else {
-            breakItem.style.display = "none";
+            if (activeShift) {
+                var endSecs = activeShift.end * 60;
+                return endSecs - currentSecs;
+            }
+            return 7200;
         }
-    }
 
-    // 쉬기 버튼 제어
-    var breakBtn = document.getElementById('btn-break-toggle');
-    var breakIcon = document.getElementById('break-btn-icon');
-    var breakText = document.getElementById('break-btn-text');
-    if (breakBtn) {
-        breakBtn.disabled = false;
-        breakBtn.style.opacity = "1";
-        if (isOnBreak) {
-            breakBtn.classList.add('active-break');
-            if (breakIcon) breakIcon.className = "bi bi-play-fill";
-        } else {
-            breakBtn.classList.remove('active-break');
-            if (breakIcon) breakIcon.className = "bi bi-coffee-fill";
-            if (breakText) breakText.textContent = "잠깐 쉬기";
+        var remainingSeconds = getShiftTimeRemaining();
+        var accumBreakSeconds = parseInt(getPartitionedItem('kimp_accum_break_seconds') || '0');
+        var breakRemainingSeconds = parseInt(getPartitionedItem('kimp_break_remaining_seconds') || '1800');
+        var isOnBreak = getPartitionedItem('kimp_is_on_break') === 'true';
+        var experienceRemainingSeconds = getPartitionedItem('kimp_experience_remaining_seconds') ? parseInt(getPartitionedItem('kimp_experience_remaining_seconds')) : 180;
+
+        var checkInTime = getPartitionedItem('kimp_check_in_time');
+        if (!checkInTime) {
+            var now = new Date();
+            checkInTime = String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+            setPartitionedItem('kimp_check_in_time', checkInTime);
         }
-    }
 
-    // ── 체크리스트 HTML 생성 ──
-    var html = "";
+        var accumSalary = parseFloat(getPartitionedItem('kimp_accum_salary') || '0');
 
-    // 1단계
-    var step1Class = currentStep >= 1 ? "completed" : "pending";
-    var step1Icon = currentStep >= 1 ? "bi-check-circle-fill" : "bi-arrow-repeat";
-    html += `
+        var clockHour = new Date().getHours();
+        var clockMinute = new Date().getMinutes();
+
+        function updateClocks() {
+            var h = Math.floor(remainingSeconds / 3600);
+            var m = Math.floor((remainingSeconds % 3600) / 60);
+            var s = remainingSeconds % 60;
+            var remText = String(h).padStart(2, '0') + ':' +
+                String(m).padStart(2, '0') + ':' +
+                String(s).padStart(2, '0');
+
+            var remClockEl = document.getElementById('remaining-clock');
+            if (remClockEl) remClockEl.textContent = remText;
+
+            var curClockEl = document.getElementById('current-clock');
+            if (curClockEl) {
+                curClockEl.textContent = '·' + String(clockHour).padStart(2, '0') + ':' +
+                    String(clockMinute).padStart(2, '0');
+            }
+
+            var elapsedSeconds = totalSeconds - remainingSeconds;
+            var pct = Math.round((elapsedSeconds / totalSeconds) * 100);
+            if (pct > 100) pct = 100;
+
+            var pctLabel = document.getElementById('progress-pct-label');
+            if (pctLabel) pctLabel.textContent = pct + '%';
+
+            var progressBar = document.getElementById('overall-progress-bar');
+            if (progressBar) progressBar.style.width = pct + '%';
+        }
+
+        function updateSalaryAndBreakTime() {
+            var salDisplay = document.getElementById('accum-salary-display');
+            if (salDisplay) {
+                salDisplay.textContent = Math.floor(accumSalary).toLocaleString() + ' KRW';
+            }
+
+            var breakMin = Math.floor(accumBreakSeconds / 60);
+            var breakSec = accumBreakSeconds % 60;
+            var breakDisplay = document.getElementById('total-break-time-display');
+            if (breakDisplay) {
+                breakDisplay.textContent = String(breakMin).padStart(2, '0') + "분 " + String(breakSec).padStart(2, '0') + "초";
+            }
+
+            var checkInEl = document.getElementById('logged-in-checkin-time');
+            if (checkInEl) checkInEl.textContent = checkInTime;
+        }
+
+        // ── 2. Mock 상태 및 공정 모델 ──
+        var activeStageNum = getPartitionedItem('kimp_active_stage_num');
+        if (activeStageNum === null || activeStageNum === '') {
+            activeStageNum = null;
+        } else {
+            activeStageNum = parseInt(activeStageNum);
+        }
+        var currentStep = getPartitionedItem('kimp_current_step') ? parseInt(getPartitionedItem('kimp_current_step')) : 0; // 0: 스캔 대기, 1: 수량 확인 대기, 2: 위생 청소 대기, 3: 가이드 대기, 4: 완료 스캔 대기, 5: 완료
+        var isWaitingApproval = false; // 심사 대기 중인지 체크하는 변수
+        var isWaitingCleaningApproval = false; // 위생 청소 심사 대기 중인지 체크하는 변수
+        var isWaitingPostWorkApproval = false; // 완료 스캔 및 데이터 전송 대기 중인지 체크하는 변수
+
+        var preWorkQty = getPartitionedItem('kimp_pre_work_qty') ? parseInt(getPartitionedItem('kimp_pre_work_qty')) : 15;
+        var defectCount = getPartitionedItem('kimp_defect_count') ? parseInt(getPartitionedItem('kimp_defect_count')) : 0;
+        var weight = getPartitionedItem('kimp_weight') ? parseFloat(getPartitionedItem('kimp_weight')) : 12.0;
+        var postWorkQty = getPartitionedItem('kimp_post_work_qty') ? parseInt(getPartitionedItem('kimp_post_work_qty')) : 15;
+        var postWorkWeight = getPartitionedItem('kimp_post_work_weight') ? parseFloat(getPartitionedItem('kimp_post_work_weight')) : 12.0;
+
+        var currentBreakStartRemaining = getPartitionedItem('kimp_current_break_start_remaining') ? parseInt(getPartitionedItem('kimp_current_break_start_remaining')) : null;
+
+        function saveMockState() {
+            setPartitionedItem('kimp_active_stage_num', activeStageNum === null ? '' : activeStageNum);
+            setPartitionedItem('kimp_current_step', currentStep);
+            setPartitionedItem('kimp_accum_break_seconds', accumBreakSeconds);
+            setPartitionedItem('kimp_break_remaining_seconds', breakRemainingSeconds);
+            setPartitionedItem('kimp_is_on_break', isOnBreak ? 'true' : 'false');
+            setPartitionedItem('kimp_break_start_time', breakStartTime || '');
+            setPartitionedItem('kimp_break_history', JSON.stringify(breakHistory));
+            setPartitionedItem('kimp_pre_work_qty', preWorkQty);
+            setPartitionedItem('kimp_defect_count', defectCount);
+            setPartitionedItem('kimp_weight', weight);
+            setPartitionedItem('kimp_post_work_qty', postWorkQty);
+            setPartitionedItem('kimp_post_work_weight', postWorkWeight);
+            if (currentBreakStartRemaining !== null) {
+                setPartitionedItem('kimp_current_break_start_remaining', currentBreakStartRemaining);
+            } else {
+                removePartitionedItem('kimp_current_break_start_remaining');
+            }
+        }
+
+        var stagesModel = {
+            1: { num: 1, name: "Stage 1. 배추 1/2컷팅하기", order: "TEST-ORDER-123", prevLocation: "야외 하차장", nextLocation: "적재데크", participants: "홍길동, 박준호" },
+            2: { num: 2, name: "Stage 2. 배추 절이기", order: "TEST-ORDER-123", prevLocation: "적재데크", nextLocation: "염수탱크 구역", participants: "홍길동, 최은지" },
+            3: { num: 3, name: "Stage 3-1. 절인배추 세척 및 물기빼기", order: "TEST-ORDER-123", prevLocation: "염수탱크 구역", nextLocation: "말리기 구역", participants: "홍길동, 이영희" },
+            32: { num: 32, name: "Stage 3-2. 세척배추 밀봉 및 보관", order: "TEST-ORDER-123", prevLocation: "말리기 구역", nextLocation: "저장고", participants: "홍길동, 이영희" },
+            4: { num: 4, name: "Stage 4. 양념제조와 양념을 묻히는 작업", order: "TEST-ORDER-123", prevLocation: "저장고", nextLocation: "포장 구역", participants: "홍길동, 정다은, 윤민수" },
+            5: { num: 5, name: "Stage 5. 포장용기에 담는 작업", order: "TEST-ORDER-123", prevLocation: "포장 구역", nextLocation: "출하 대기실", participants: "홍길동, 황정민" }
+        };
+
+        var stageShortNames = {
+            1: "Stage 1 (컷팅)",
+            2: "Stage 2 (절이기)",
+            3: "Stage 3 (세척)",
+            32: "Stage 3-2 (보관)",
+            4: "Stage 4 (양념)",
+            5: "Stage 5 (포장)"
+        };
+
+        // 상세 가이드 설명서 내용
+        var guidesContent = {
+            1: {
+                title: "Stage 1. 배추 1/2컷팅하기 상세 가이드",
+                steps: [
+                    "야외 하차 구역에서 적재용 파레트의 청결 상태를 점검합니다.",
+                    "파레트에 이물질이나 흙이 묻어 있다면 비치된 빗자루와 전용 위생 행주로 닦아야 합니다.",
+                    "청소가 끝나면 <strong>[청소 완료 사진]</strong>을 촬영하여 관리자 서버에 전송합니다.",
+                    "심사 승인(Pending 해제)을 받은 후, 원재료 배추 5포기의 먼지와 겉 흙을 안전하게 털어냅니다.",
+                    "배추를 1/2로 컷팅하고, 흙이나 이물질이 묻었을 경우, 물에 잠깐 세척해주세요.",
+                    "배추를 파레트에 5포기 단위로 규격에 맞춰 안전하게 상차 적재합니다."
+                ]
+            },
+            2: {
+                title: "Stage 2. 배추 절이기 상세 가이드",
+                steps: [
+                    "배추는 17시간 절여집니다. 수조가 깨끗한지 확인하고 사진을 찍어서 전송해 주세요.",
+                    "사진 전송하기(전송하면 관리자가 사진을 확인하고 [작업진행]이나 [청소 필요] 버튼을 눌러서 알려줍니다. 청소가 필요한 경우 청소 후 다시 사진 전송하기를 클릭해주면 됩니다.)",
+                    "우선 수조에 물과 소금의 비율을 맞추어서 넣습니다. 물과 소금의 비율, 몇 리터, 몇 kg인지 정확히 계량 후 잘 저어줍니다.",
+                    "배추를 차곡차곡 잘 쌓아줍니다.",
+                    "배추 속심부분이 잘 익을 수 있게 소금을 덧대어 뿌려줍니다."
+                ]
+            },
+            3: {
+                title: "Stage 3-1. 절인배추 세척 및 물기빼기 상세 가이드",
+                steps: [
+                    "절임 배추를 위생 통에다가 옮겨줍니다.",
+                    "찬물을 3군데 받고 차례차례 담그었다가 빼서 배추의 염도를 낮추어 줍니다.",
+                    "통은 배추 30포기 정도 했다면 물을 다시 갈아줍니다. (배추 세척은 1회 최대 30포기 제한)",
+                    "배추를 세척한 후, 그 이후 건조망에 차례로 놓아 1시간 정도 물기를 빼내줍니다."
+                ]
+            },
+            32: {
+                title: "Stage 3-2. 세척배추 밀봉 및 보관 상세 가이드",
+                steps: [
+                    "물기를 충분히 뺀 배추를 보관용 비닐봉지에 나누어 담습니다.",
+                    "비닐에 배추를 10포기 ~ 15포기 정도 적정량 담고 밀봉을 해줍니다.",
+                    "밀봉 완료 후 사진을 촬영하여 전송하고, 밀봉된 배추를 저장소 냉장고에 넣어 보관합니다."
+                ]
+            },
+            4: {
+                title: "Stage 4. 양념 제조 및 묻히기 상세 가이드",
+                steps: [
+                    "배합용 믹서 및 버무림 전용 위생 테이블의 청결 상태를 철저히 체크합니다.",
+                    "양념 재료 보관대에서 <strong>고춧가루 500g, 다진 마늘 200g, 멸치액젓 150ml</strong>의 정량 위치를 확인하고 소분 계량합니다.",
+                    "믹서 세척 및 버무림 작업 테이블 살균 청소 완료 사진을 촬영해 제출 후 심사를 기다립니다.",
+                    "심사가 완료(Pending 해제)되면, 준비된 재료를 고르게 혼합하여 김치 양념 속을 제조합니다.",
+                    "절인 배추의 물기를 충분히 뺀 후, 배추 잎사귀 사이사이에 양념 속을 고르게 묻혀 완성합니다."
+                ]
+            },
+            5: {
+                title: "Stage 5. 포장용기에 담는 작업 상세 가이드",
+                steps: [
+                    "전자저울 상단 플레이트 및 비닐 접착 실링 장비의 청결도를 점검합니다.",
+                    "위생 타올로 전자저울의 먼지를 닦아내고 청소 완료 사진을 서버에 전송해 심사를 진행합니다.",
+                    "심사가 통과되면, 저울 전원을 켜고 용기 무게를 제외한 영점(0g) 세팅을 완료합니다.",
+                    "완성된 포기김치를 중량 <strong>5kg 정량</strong>에 맞추어 포장 팩에 정확히 소분해 담습니다.",
+                    "팩 입구를 열접착 실링기를 사용해 단단히 밀봉하고 바코드를 부착하여 최종 박스에 상차합니다."
+                ]
+            }
+        };
+
+        // ── 3. 워크플로우 렌더링 함수 ──
+        function renderWorkflow() {
+            if (activeStageNum === null) {
+                document.getElementById('active-work-section').style.display = 'none';
+                document.getElementById('no-active-work-placeholder').style.display = 'block';
+                renderTaskCards();
+                return;
+            }
+
+            document.getElementById('active-work-section').style.display = 'block';
+            document.getElementById('no-active-work-placeholder').style.display = 'none';
+
+            var m = stagesModel[activeStageNum];
+            var checklistContainer = document.getElementById('work-checklist');
+
+            document.getElementById('current-work-title-text').textContent = m.name;
+            document.getElementById('work-start-time').textContent = currentStep >= 1 ? "15:05:00" : "미체크 (스캔 필요)";
+            document.getElementById('work-order-id').textContent = currentStep >= 1 ? m.order : "없음";
+
+            var participantsEl = document.getElementById('work-participants');
+            if (participantsEl) {
+                participantsEl.innerHTML = "<span class='participant-badge'>본인</span> " + currentUserName + "(본인), " + m.participants;
+            }
+
+            var prodInfoEl = document.getElementById('work-production-info');
+            if (prodInfoEl) {
+                prodInfoEl.textContent = "생산 수량: 배추 " + preWorkQty + "포기 (불량 " + defectCount + "포기 제외)";
+            }
+
+            var elapsedEl = document.getElementById('work-elapsed-time');
+            if (elapsedEl) {
+                elapsedEl.textContent = currentStep >= 1 ? "00:05:00" : "00:00:00";
+            }
+
+            // 휴식 기록 표시 처리
+            var breakItem = document.getElementById('work-break-item');
+            var breakHistoryEl = document.getElementById('work-break-history');
+            if (breakItem && breakHistoryEl) {
+                if (breakHistory.length > 0 || breakStartTime) {
+                    breakItem.style.display = "block";
+                    var breakHtml = '';
+                    for (var bi = 0; bi < breakHistory.length; bi++) {
+                        var bRecord = breakHistory[bi];
+                        breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' &rarr; ' + bRecord.duration + '초간 휴식</div>';
+                    }
+                    if (breakStartTime && isOnBreak) {
+                        breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + breakStartTime + ' &rarr; 휴식중...</div>';
+                    }
+                    breakHistoryEl.innerHTML = breakHtml;
+                } else {
+                    breakItem.style.display = "none";
+                }
+            }
+
+            // 쉬기 버튼 제어
+            var breakBtn = document.getElementById('btn-break-toggle');
+            var breakIcon = document.getElementById('break-btn-icon');
+            var breakText = document.getElementById('break-btn-text');
+            if (breakBtn) {
+                breakBtn.disabled = false;
+                breakBtn.style.opacity = "1";
+                if (isOnBreak) {
+                    breakBtn.classList.add('active-break');
+                    if (breakIcon) breakIcon.className = "bi bi-play-fill";
+                } else {
+                    breakBtn.classList.remove('active-break');
+                    if (breakIcon) breakIcon.className = "bi bi-coffee-fill";
+                    if (breakText) breakText.textContent = "잠깐 쉬기";
+                }
+            }
+
+            // ── 체크리스트 HTML 생성 ──
+            var html = "";
+
+            // 1단계
+            var step1Class = currentStep >= 1 ? "completed" : "pending";
+            var step1Icon = currentStep >= 1 ? "bi-check-circle-fill" : "bi-arrow-repeat";
+            html += `
         <div class="workflow-item ${step1Class}">
             <i class="bi ${step1Icon} workflow-icon"></i>
             <div>
@@ -2088,12 +2182,22 @@ function renderWorkflow() {
         </div>
     `;
 
-    // 2단계
-    var step2Class = currentStep >= 2 ? "completed" : (currentStep === 1 ? "pending" : "waiting");
-    var step2Icon = currentStep >= 2 ? "bi-check-circle-fill" : (currentStep === 1 ? "bi-arrow-repeat" : "bi-circle");
-    var step2Widget = "";
-    if (currentStep === 1) {
-        step2Widget = `
+            // 2단계
+            var step2Class = currentStep >= 2 ? "completed" : (currentStep === 1 ? "pending" : "waiting");
+            var step2Icon = currentStep >= 2 ? "bi-check-circle-fill" : (currentStep === 1 ? "bi-arrow-repeat" : "bi-circle");
+            var step2Widget = "";
+            if (currentStep === 1) {
+                if (isWaitingApproval) {
+                    step2Widget = `
+                <div class="pending-status-box">
+                    <div class="spinner"></div>
+                    <span>관리자 사진 검증 및 심사 승인 대기 중...</span>
+                </div>
+            `;
+                }
+                // 기존: 버튼을 누르기 전 입력 폼 UI
+                else {
+                    step2Widget = `
             <div class="defect-subcard">
                 <div class="defect-row">
                     <span class="defect-label">기본 지시 수량</span>
@@ -2119,16 +2223,17 @@ function renderWorkflow() {
                 <button class="btn-widget-action" onclick="confirmQuantity()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-camera"></i> 수량 확인 및 사진 촬영 전송</button>
             </div>
         `;
-    } else if (currentStep >= 2) {
-        step2Widget = `
+                }
+            } else if (currentStep >= 2) {
+                step2Widget = `
             <div class="pending-status-box approved">
                 <i class="bi bi-check-circle-fill"></i>
                 <span>수량 및 사진 검증 승인 완료 (Approved!)</span>
             </div>
             <span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 수량 확인 완료: ${preWorkQty}포기 (불량 ${defectCount}포기) / 무게: ${weight}kg (사진 검증 승인됨)</span>
         `;
-    }
-    html += `
+            }
+            html += `
         <div class="workflow-item ${step2Class}">
             <i class="bi ${step2Icon} workflow-icon"></i>
             <div>
@@ -2138,26 +2243,37 @@ function renderWorkflow() {
         </div>
     `;
 
-    // 3단계
-    var step3Class = currentStep >= 3 ? "completed" : (currentStep === 2 ? "pending" : "waiting");
-    var step3Icon = currentStep >= 3 ? "bi-check-circle-fill" : (currentStep === 2 ? "bi-arrow-repeat" : "bi-circle");
-    var step3Widget = "";
-    if (currentStep === 2) {
-        step3Widget = `
+            // 3단계
+            var step3Class = currentStep >= 3 ? "completed" : (currentStep === 2 ? "pending" : "waiting");
+            var step3Icon = currentStep >= 3 ? "bi-check-circle-fill" : (currentStep === 2 ? "bi-arrow-repeat" : "bi-circle");
+            var step3Widget = "";
+            if (currentStep === 2) {
+                if (isWaitingCleaningApproval) {
+                    step3Widget = `
+                <div class="pending-status-box">
+                    <div class="spinner"></div>
+                    <span>관리자 위생 상태 사진 검증 및 심사 대기 중...</span>
+                </div>
+            `;
+                }
+                // 기존: 버튼을 누르기 전 청소 필요 UI
+                else {
+                    step3Widget = `
             <div class="widget-area">
                 <span class="workflow-subtext" style="color: #ff6b6b;"><i class="bi bi-x-circle-fill"></i> 청결도 검사: 미흡 (청소 필요)</span>
                 <button class="btn-widget-action" onclick="startCleaning()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-brush"></i> 작업대 위생 청소 및 사진 촬영</button>
             </div>
         `;
-    } else if (currentStep >= 3) {
-        step3Widget = `
+                }
+            } else if (currentStep >= 3) {
+                step3Widget = `
             <div class="pending-status-box approved">
                 <i class="bi bi-check-circle-fill"></i>
                 <span>위생 검사 승인 완료 (Approved!)</span>
             </div>
         `;
-    }
-    html += `
+            }
+            html += `
         <div class="workflow-item ${step3Class}">
             <i class="bi ${step3Icon} workflow-icon"></i>
             <div>
@@ -2167,22 +2283,22 @@ function renderWorkflow() {
         </div>
     `;
 
-    // 4단계
-    var step4Class = currentStep >= 4 ? "completed" : (currentStep === 3 ? "pending" : "waiting");
-    var step4Icon = currentStep >= 4 ? "bi-check-circle-fill" : (currentStep === 3 ? "bi-arrow-repeat" : "bi-circle");
-    var step4Widget = "";
-    if (currentStep === 3) {
-        step4Widget = `
+            // 4단계
+            var step4Class = currentStep >= 4 ? "completed" : (currentStep === 3 ? "pending" : "waiting");
+            var step4Icon = currentStep >= 4 ? "bi-check-circle-fill" : (currentStep === 3 ? "bi-arrow-repeat" : "bi-circle");
+            var step4Widget = "";
+            if (currentStep === 3) {
+                step4Widget = `
             <div class="widget-area">
                 <button class="btn-widget-action" onclick="openGuidePage()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-journal-text"></i> 상세 작업 설명 가이드 보기 (다음 페이지)</button>
             </div>
         `;
-    } else if (currentStep >= 4) {
-        step4Widget = `
+            } else if (currentStep >= 4) {
+                step4Widget = `
             <span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 공정 작업 가이드 검토 및 실습 완료</span>
         `;
-    }
-    html += `
+            }
+            html += `
         <div class="workflow-item ${step4Class}">
             <i class="bi ${step4Icon} workflow-icon"></i>
             <div>
@@ -2192,17 +2308,26 @@ function renderWorkflow() {
         </div>
     `;
 
-    // 5단계
-    var step5Class = currentStep >= 5 ? "completed" : (currentStep === 4 ? "pending" : "waiting");
-    var step5Icon = currentStep >= 5 ? "bi-check-circle-fill" : (currentStep === 4 ? "bi-arrow-repeat" : "bi-circle");
-    var step5Widget = "";
-    
-    if (currentStep === 4) {
-        var btnLabel = "QR코드 완료 스캔 및 전송";
-        if (activeStageNum === 3) btnLabel = "세척 완료 및 말리기 시작 사진 전송";
-        else if (activeStageNum === 32) btnLabel = "밀봉 완료 및 냉장실 보관 사진 전송";
-        
-        step5Widget = `
+            // 5단계
+            var step5Class = currentStep >= 5 ? "completed" : (currentStep === 4 ? "pending" : "waiting");
+            var step5Icon = currentStep >= 5 ? "bi-check-circle-fill" : (currentStep === 4 ? "bi-arrow-repeat" : "bi-circle");
+            var step5Widget = "";
+
+            if (currentStep === 4) {
+                var btnLabel = "QR코드 완료 스캔 및 전송";
+                if (activeStageNum === 3) btnLabel = "세척 완료 및 말리기 시작 사진 전송";
+                else if (activeStageNum === 32) btnLabel = "밀봉 완료 및 냉장실 보관 사진 전송";
+                if (isWaitingPostWorkApproval) {
+                    step5Widget = `
+                <div class="pending-status-box">
+                    <div class="spinner"></div>
+                    <span>관리자 완료 검증 및 데이터 전송 대기 중...</span>
+                </div>
+            `;
+                }
+                // 기존: 완료 스캔 폼 UI
+                else {
+                    step5Widget = `
             <div class="defect-subcard">
                 <div class="defect-row">
                     <span class="defect-label">작업 후 완료 수량 (포기)</span>
@@ -2221,8 +2346,9 @@ function renderWorkflow() {
                 <button class="btn-widget-action" onclick="submitPostWorkScan()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-qr-code-scan"></i> ${btnLabel}</button>
             </div>
         `;
-    } else if (currentStep >= 5) {
-        var resetBtnHtml = `
+                }
+            } else if (currentStep >= 5) {
+                var resetBtnHtml = `
             <div style="margin-top: 14px; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, rgba(0,200,83,0.12), rgba(0,200,83,0.04)); border: 1px solid rgba(0,200,83,0.25);">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
                     <i class="bi bi-patch-check-fill" style="font-size: 20px; color: var(--neon-green);"></i>
@@ -2233,14 +2359,14 @@ function renderWorkflow() {
                     <i class="bi bi-arrow-clockwise"></i>&nbsp; 초기화하기 · 다음 생산지시서 작업하기
                 </button>
             </div>`;
-        step5Widget = `
+                step5Widget = `
             <span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 최종 실습 정보 클라우드 전송 완료</span>
             <span class="workflow-subtext">완료 수량: ${postWorkQty}포기 / 최종 무게: ${postWorkWeight}kg</span>
             <span class="workflow-subtext">이동 구역: <strong style="color: var(--neon-blue);">${m.nextLocation}</strong></span>
             ${resetBtnHtml}
         `;
-    }
-    html += `
+            }
+            html += `
         <div class="workflow-item ${step5Class}">
             <i class="bi ${step5Icon} workflow-icon"></i>
             <div>
@@ -2250,226 +2376,250 @@ function renderWorkflow() {
         </div>
     `;
 
-    checklistContainer.innerHTML = html;
-}
+            checklistContainer.innerHTML = html;
+        }
 
-// ── 4. UI 제어 함수 ──
-function runQRScan() {
-    currentStep = 1;
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
-function confirmQuantity() {
-    currentStep = 2;
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
-function startCleaning() {
-    currentStep = 3;
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
-function completeCoreWork() {
-    currentStep = 4;
-    closeGuidePage();
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
-function submitPostWorkScan() {
-    currentStep = 5;
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
-function resetStageAndStartNew() {
-    currentStep = 0;
-    preWorkQty = 15;
-    defectCount = 0;
-    weight = 12.0;
-    postWorkQty = 15;
-    postWorkWeight = 12.0;
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
+        // ── 4. UI 제어 함수 ──
+        function runQRScan() {
+            currentStep = 1;
+            saveMockState();
+            renderWorkflow();
+            renderTaskCards();
+        }
+        function confirmQuantity() {
+            // 1. 대기 상태 켜기 및 화면 다시 그리기
+            isWaitingApproval = true;
+            renderWorkflow();
 
-function updatePreWorkQty(val) {
-    preWorkQty = parseInt(val) || 15;
-    defectCount = 15 - preWorkQty;
-    var display = document.getElementById('valid-qty-display');
-    if (display) display.textContent = preWorkQty + " / 15 포기";
-    saveMockState();
-}
-function updateWeight(val) {
-    weight = parseFloat(val) || 12.0;
-    saveMockState();
-}
-function updatePostWorkQty(val) {
-    postWorkQty = parseInt(val) || 15;
-    saveMockState();
-}
-function updatePostWorkWeight(val) {
-    postWorkWeight = parseFloat(val) || 12.0;
-    saveMockState();
-}
+            // 2. 1초(1000ms) 뒤에 승인 완료 처리하기
+            setTimeout(function () {
+                isWaitingApproval = false; // 대기 상태 끄기
+                currentStep = 2;           // 승인 완료 단계로 이동
+                saveMockState();
+                renderWorkflow();
+                renderTaskCards();
+            }, 1000);
+        }
+        function startCleaning() {
+            // 1. 대기 상태 켜기 및 화면 렌더링
+            isWaitingCleaningApproval = true;
+            renderWorkflow();
 
-// ── 5. 오버레이 제어 및 보조 UI 함수 ──
-function openWeightGuide(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    var overlay = document.getElementById('weight-guide-overlay');
-    if (overlay) overlay.style.display = "flex";
-}
-function closeWeightGuide() {
-    var overlay = document.getElementById('weight-guide-overlay');
-    if (overlay) overlay.style.display = "none";
-}
-function openGuidePage() {
-    if (activeStageNum === null) return;
-    var overlay = document.getElementById('guide-page-overlay');
-    var headerTitle = document.getElementById('guide-page-header-title');
-    var container = document.getElementById('guide-steps-container');
-    if (!overlay || !headerTitle || !container) return;
-    
-    var model = stagesModel[activeStageNum];
-    var guide = guidesContent[activeStageNum];
+            // 2. 가상의 심사 시간(1초) 대기 후 승인 처리
+            setTimeout(function () {
+                isWaitingCleaningApproval = false; // 대기 상태 끄기
+                currentStep = 3;                   // 위생 검사 승인 완료 단계로 이동
+                saveMockState();
+                renderWorkflow();
+                renderTaskCards();
+            }, 1000);
+        }
+        function completeCoreWork() {
+            currentStep = 4;
+            closeGuidePage();
+            saveMockState();
+            renderWorkflow();
+            renderTaskCards();
+        }
+        function submitPostWorkScan() {
+            // 1. 대기 상태 켜기 및 화면 렌더링
+            isWaitingPostWorkApproval = true;
+            renderWorkflow();
 
-    headerTitle.textContent = model.name + " 가이드";
-    
-    var html = "";
-    if (guide && guide.steps) {
-        guide.steps.forEach(function(step, index) {
-            html += `
+            // 2. 가상의 심사 시간(1초) 대기 후 최종 승인 처리
+            setTimeout(function () {
+                isWaitingPostWorkApproval = false; // 대기 상태 끄기
+                currentStep = 5;                   // 최종 완료 단계로 이동
+                saveMockState();
+                renderWorkflow();
+                renderTaskCards();
+            }, 1000);
+        }
+        function resetStageAndStartNew() {
+            currentStep = 0;
+            preWorkQty = 15;
+            defectCount = 0;
+            weight = 12.0;
+            postWorkQty = 15;
+            postWorkWeight = 12.0;
+            saveMockState();
+            renderWorkflow();
+            renderTaskCards();
+        }
+
+        function updatePreWorkQty(val) {
+            preWorkQty = parseInt(val) || 15;
+            defectCount = 15 - preWorkQty;
+            var display = document.getElementById('valid-qty-display');
+            if (display) display.textContent = preWorkQty + " / 15 포기";
+            saveMockState();
+        }
+        function updateWeight(val) {
+            weight = parseFloat(val) || 12.0;
+            saveMockState();
+        }
+        function updatePostWorkQty(val) {
+            postWorkQty = parseInt(val) || 15;
+            saveMockState();
+        }
+        function updatePostWorkWeight(val) {
+            postWorkWeight = parseFloat(val) || 12.0;
+            saveMockState();
+        }
+
+        // ── 5. 오버레이 제어 및 보조 UI 함수 ──
+        function openWeightGuide(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            var overlay = document.getElementById('weight-guide-overlay');
+            if (overlay) overlay.style.display = "flex";
+        }
+        function closeWeightGuide() {
+            var overlay = document.getElementById('weight-guide-overlay');
+            if (overlay) overlay.style.display = "none";
+        }
+        function openGuidePage() {
+            if (activeStageNum === null) return;
+            var overlay = document.getElementById('guide-page-overlay');
+            var headerTitle = document.getElementById('guide-page-header-title');
+            var container = document.getElementById('guide-steps-container');
+            if (!overlay || !headerTitle || !container) return;
+
+            var model = stagesModel[activeStageNum];
+            var guide = guidesContent[activeStageNum];
+
+            headerTitle.textContent = model.name + " 가이드";
+
+            var html = "";
+            if (guide && guide.steps) {
+                guide.steps.forEach(function (step, index) {
+                    html += `
                 <div class="guide-step-item">
                     <span class="guide-step-num">${index + 1}.</span>
                     <span>${step}</span>
                 </div>
             `;
-        });
-    }
-    container.innerHTML = html;
-    
-    overlay.style.display = "flex";
-}
-function closeGuidePage() {
-    var overlay = document.getElementById('guide-page-overlay');
-    if (overlay) overlay.style.display = "none";
-}
-function openOrderSheetOverlay() {
-    if (activeStageNum === null) return;
-    var overlay = document.getElementById('order-sheet-overlay');
-    var titleEl = document.getElementById('overlay-order-id-title');
-    if (titleEl) titleEl.textContent = "지시서 ID: TEST-ORDER-123";
-    updateOrderSheetOverlayRows('TEST-ORDER-123');
-    if (overlay) overlay.style.display = "flex";
-}
-function closeOrderSheetOverlay() {
-    var overlay = document.getElementById('order-sheet-overlay');
-    if (overlay) overlay.style.display = "none";
-}
-function toggleOrderIdExplanation(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    alert("생산지시서 번호는 현재 진행하는 실습의 식별값입니다.");
-}
-function openStatusPage() {
-    window.open("kimp_status.html", "_blank");
-}
-function toggleFactoryMap() {
-    var overlay = document.getElementById('factory-map-overlay');
-    if (overlay) {
-        if (overlay.style.display === "flex") {
-            overlay.style.display = "none";
-        } else {
+                });
+            }
+            container.innerHTML = html;
+
             overlay.style.display = "flex";
         }
-    }
-}
-
-// ── 6. 헬퍼 기능 관련 ──
-var helperReq = null;
-var helperTimer = null;
-
-function requestHelper(stageNum) {
-    if (helperTimer) clearInterval(helperTimer);
-    var now = new Date();
-    var timeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
-    helperReq = {
-        status: "requested",
-        time: timeStr,
-        arrivalCountdown: 5
-    };
-    syncHelpRequest();
-    renderTaskCards();
-    
-    helperTimer = setInterval(function() {
-        if (helperReq && helperReq.status === "requested") {
-            helperReq.arrivalCountdown--;
-            if (helperReq.arrivalCountdown <= 0) {
-                helperReq.status = "advising";
-                helperReq.advisingTime = 0;
-            }
-        } else if (helperReq && helperReq.status === "advising") {
-            helperReq.advisingTime++;
+        function closeGuidePage() {
+            var overlay = document.getElementById('guide-page-overlay');
+            if (overlay) overlay.style.display = "none";
         }
-        syncHelpRequest();
-        renderTaskCards();
-    }, 1000);
-}
+        function openOrderSheetOverlay() {
+            if (activeStageNum === null) return;
+            var overlay = document.getElementById('order-sheet-overlay');
+            var titleEl = document.getElementById('overlay-order-id-title');
+            if (titleEl) titleEl.textContent = "지시서 ID: TEST-ORDER-123";
+            updateOrderSheetOverlayRows('TEST-ORDER-123');
+            if (overlay) overlay.style.display = "flex";
+        }
+        function closeOrderSheetOverlay() {
+            var overlay = document.getElementById('order-sheet-overlay');
+            if (overlay) overlay.style.display = "none";
+        }
+        function toggleOrderIdExplanation(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            alert("생산지시서 번호는 현재 진행하는 실습의 식별값입니다.");
+        }
+        function openStatusPage() {
+            window.open("kimp_status.html", "_blank");
+        }
+        function toggleFactoryMap() {
+            var overlay = document.getElementById('factory-map-overlay');
+            if (overlay) {
+                if (overlay.style.display === "flex") {
+                    overlay.style.display = "none";
+                } else {
+                    overlay.style.display = "flex";
+                }
+            }
+        }
 
-function cancelHelperRequest() {
-    if (helperTimer) clearInterval(helperTimer);
-    helperReq = null;
-    syncHelpRequest();
-    renderTaskCards();
-}
+        // ── 6. 헬퍼 기능 관련 ──
+        var helperReq = null;
+        var helperTimer = null;
 
-function completeHelperSupport() {
-    if (helperTimer) clearInterval(helperTimer);
-    helperReq = null;
-    syncHelpRequest();
-    renderTaskCards();
-}
+        function requestHelper(stageNum) {
+            if (helperTimer) clearInterval(helperTimer);
+            var now = new Date();
+            var timeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+            helperReq = {
+                status: "requested",
+                time: timeStr,
+                arrivalCountdown: 5
+            };
+            syncHelpRequest();
+            renderTaskCards();
 
-function syncHelpRequest() {
-    var panel = document.getElementById('helper-request-panel');
-    var content = document.getElementById('helper-request-content');
-    if (!panel || !content) return;
+            helperTimer = setInterval(function () {
+                if (helperReq && helperReq.status === "requested") {
+                    helperReq.arrivalCountdown--;
+                    if (helperReq.arrivalCountdown <= 0) {
+                        helperReq.status = "advising";
+                        helperReq.advisingTime = 0;
+                    }
+                } else if (helperReq && helperReq.status === "advising") {
+                    helperReq.advisingTime++;
+                }
+                syncHelpRequest();
+                renderTaskCards();
+            }, 1000);
+        }
 
-    if (activeStageNum === null || isHelperUser) {
-        panel.style.display = 'none';
-        return;
-    }
+        function cancelHelperRequest() {
+            if (helperTimer) clearInterval(helperTimer);
+            helperReq = null;
+            syncHelpRequest();
+            renderTaskCards();
+        }
 
-    var hasActiveRequest = !!helperReq;
-    if (!hasActiveRequest && (currentStep < 1 || currentStep === 5)) {
-        panel.style.display = 'none';
-        return;
-    }
+        function completeHelperSupport() {
+            if (helperTimer) clearInterval(helperTimer);
+            helperReq = null;
+            syncHelpRequest();
+            renderTaskCards();
+        }
 
-    panel.style.display = 'flex';
-    
-    if (!helperReq) {
-        content.innerHTML = `
+        function syncHelpRequest() {
+            var panel = document.getElementById('helper-request-panel');
+            var content = document.getElementById('helper-request-content');
+            if (!panel || !content) return;
+
+            if (activeStageNum === null || isHelperUser) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            var hasActiveRequest = !!helperReq;
+            if (!hasActiveRequest && (currentStep < 1 || currentStep === 5)) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'flex';
+
+            if (!helperReq) {
+                content.innerHTML = `
             <button class="btn-widget-action" onclick="requestHelper()" style="background: linear-gradient(135deg, var(--amber-accent), #f08c35); border: none; width: 100%; height: 40px; border-radius: 8px;">
                 <i class="bi bi-telephone-outbound-fill" style="margin-right: 6px;"></i>도움 요청하기
             </button>
         `;
-        return;
-    }
-    
-    if (helperReq.status === "requested") {
-        var arrivalSec = helperReq.arrivalCountdown;
-        if (arrivalSec > 0) {
-            content.innerHTML = `
+                return;
+            }
+
+            if (helperReq.status === "requested") {
+                var arrivalSec = helperReq.arrivalCountdown;
+                if (arrivalSec > 0) {
+                    content.innerHTML = `
                 <div style="font-size: 12px; color: #ffb380; line-height: 1.5; margin-bottom: 10px;">
                     <i class="bi bi-hourglass-split" style="color: var(--amber-accent); margin-right: 4px; font-size: 14px;"></i>
                     헬퍼가 도착중입니다. 예상 대기시간 <strong style="color: #fff;">${arrivalSec}초</strong>
@@ -2483,21 +2633,21 @@ function syncHelpRequest() {
                     </button>
                 </div>
             `;
-        } else {
-            content.innerHTML = `
+                } else {
+                    content.innerHTML = `
                 <div style="font-size: 12px; color: #55efc4; line-height: 1.5; padding: 10px 12px; background: rgba(0,184,148,0.06); border: 1px solid rgba(0,255,136,0.15); border-radius: 8px; margin-bottom: 8px;">
                     <div style="font-weight:700; color:var(--neon-green); margin-bottom:6px; font-size:13px;">
                         <i class="bi bi-person-walking" style="margin-right:4px;"></i>헬퍼가 현장에 도착했습니다.
                     </div>
                 </div>
             `;
-        }
-    } else if (helperReq.status === "advising") {
-        var advTime = helperReq.advisingTime;
-        var min = Math.floor(advTime / 60);
-        var sec = advTime % 60;
-        var timerText = String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
-        content.innerHTML = `
+                }
+            } else if (helperReq.status === "advising") {
+                var advTime = helperReq.advisingTime;
+                var min = Math.floor(advTime / 60);
+                var sec = advTime % 60;
+                var timerText = String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
+                content.innerHTML = `
             <div style="font-size: 12px; color: var(--neon-green); line-height: 1.5; margin-bottom: 10px;">
                 <i class="bi bi-chat-left-heart-fill" style="margin-right: 6px; color: var(--neon-green);"></i>
                 <strong>김영희 헬퍼 도움 중 (${timerText})</strong>
@@ -2506,208 +2656,208 @@ function syncHelpRequest() {
                 <i class="bi bi-check-circle-fill" style="margin-right: 6px;"></i>도움 받기 완료함
             </button>
         `;
-    }
-}
-
-// ── 7. 휴식 기능 관련 ──
-var breakStartTime = getPartitionedItem('kimp_break_start_time') || null;
-var breakHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
-
-function toggleBreak() {
-    if (activeStageNum === null) return;
-    isOnBreak = !isOnBreak;
-    
-    var breakBtn = document.getElementById('btn-break-toggle');
-    var breakIcon = document.getElementById('break-btn-icon');
-    var breakText = document.getElementById('break-btn-text');
-    
-    if (isOnBreak) {
-        breakBtn.classList.add('active-break');
-        if (breakIcon) breakIcon.className = "bi bi-play-fill";
-        
-        var now = new Date();
-        breakStartTime = String(now.getHours()).padStart(2, '0') + ':' + 
-                         String(now.getMinutes()).padStart(2, '0') + ':' + 
-                         String(now.getSeconds()).padStart(2, '0');
-        currentBreakStartRemaining = breakRemainingSeconds;
-        
-        showBreakNotice();
-        updateBreakButtonText();
-    } else {
-        breakBtn.classList.remove('active-break');
-        if (breakIcon) breakIcon.className = "bi bi-coffee-fill";
-        if (breakText) breakText.textContent = "잠깐 쉬기";
-        
-        if (breakStartTime) {
-            var startRemaining = (currentBreakStartRemaining !== null) ? currentBreakStartRemaining : 1800;
-            var breakDuration = startRemaining - breakRemainingSeconds;
-            if (breakDuration < 0) breakDuration = 0;
-            
-            breakHistory.push({
-                startTime: breakStartTime,
-                duration: breakDuration
-            });
-            breakStartTime = null;
-            currentBreakStartRemaining = null;
+            }
         }
-        closeBreakNotice();
-    }
-    saveMockState();
-    renderWorkflow();
-}
 
-function updateBreakButtonText() {
-    if (!isOnBreak) return;
-    var breakText = document.getElementById('break-btn-text');
-    if (breakText) {
-        var isNegative = breakRemainingSeconds < 0;
-        var absSec = Math.abs(breakRemainingSeconds);
-        var min = Math.floor(absSec / 60);
-        var sec = absSec % 60;
-        var sign = isNegative ? "-" : "";
-        breakText.textContent = "다시 참여하기 (" + sign + String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0') + ")";
-    }
-}
+        // ── 7. 휴식 기능 관련 ──
+        var breakStartTime = getPartitionedItem('kimp_break_start_time') || null;
+        var breakHistory = JSON.parse(getPartitionedItem('kimp_break_history') || '[]');
 
-function showBreakNotice() {
-    var banner = document.getElementById('break-notice-banner');
-    if (banner) banner.classList.add('show');
-}
+        function toggleBreak() {
+            if (activeStageNum === null) return;
+            isOnBreak = !isOnBreak;
 
-function closeBreakNotice() {
-    var banner = document.getElementById('break-notice-banner');
-    if (banner) banner.classList.remove('show');
-}
+            var breakBtn = document.getElementById('btn-break-toggle');
+            var breakIcon = document.getElementById('break-btn-icon');
+            var breakText = document.getElementById('break-btn-text');
 
-function showBreakInfo(isManual) {
-    alert("휴식은 2시간에 30분 제공됩니다.");
-}
+            if (isOnBreak) {
+                breakBtn.classList.add('active-break');
+                if (breakIcon) breakIcon.className = "bi bi-play-fill";
 
-// ── 8. 타이머 및 초기화 ──
-function activateStage(stageNum) {
-    if (isOnBreak) {
-        isOnBreak = false;
-        if (breakStartTime) {
-            var startRemaining = (currentBreakStartRemaining !== null) ? currentBreakStartRemaining : 1800;
-            var breakDuration = startRemaining - breakRemainingSeconds;
-            if (breakDuration < 0) breakDuration = 0;
-            
-            breakHistory.push({
-                startTime: breakStartTime,
-                duration: breakDuration
-            });
-            breakStartTime = null;
-            currentBreakStartRemaining = null;
+                var now = new Date();
+                breakStartTime = String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0') + ':' +
+                    String(now.getSeconds()).padStart(2, '0');
+                currentBreakStartRemaining = breakRemainingSeconds;
+
+                showBreakNotice();
+                updateBreakButtonText();
+            } else {
+                breakBtn.classList.remove('active-break');
+                if (breakIcon) breakIcon.className = "bi bi-coffee-fill";
+                if (breakText) breakText.textContent = "잠깐 쉬기";
+
+                if (breakStartTime) {
+                    var startRemaining = (currentBreakStartRemaining !== null) ? currentBreakStartRemaining : 1800;
+                    var breakDuration = startRemaining - breakRemainingSeconds;
+                    if (breakDuration < 0) breakDuration = 0;
+
+                    breakHistory.push({
+                        startTime: breakStartTime,
+                        duration: breakDuration
+                    });
+                    breakStartTime = null;
+                    currentBreakStartRemaining = null;
+                }
+                closeBreakNotice();
+            }
+            saveMockState();
+            renderWorkflow();
         }
-        closeBreakNotice();
-    }
-    activeStageNum = stageNum;
-    currentStep = 0;
-    saveMockState();
-    renderWorkflow();
-    renderTaskCards();
-}
 
-function completeAndReserve() {
-    alert("실습 체험이 완료되었습니다!");
-    window.location.href = "kimp.html";
-}
+        function updateBreakButtonText() {
+            if (!isOnBreak) return;
+            var breakText = document.getElementById('break-btn-text');
+            if (breakText) {
+                var isNegative = breakRemainingSeconds < 0;
+                var absSec = Math.abs(breakRemainingSeconds);
+                var min = Math.floor(absSec / 60);
+                var sec = absSec % 60;
+                var sign = isNegative ? "-" : "";
+                breakText.textContent = "다시 참여하기 (" + sign + String(min).padStart(2, '0') + ":" + String(sec).padStart(2, '0') + ")";
+            }
+        }
 
-function toggleExperienceTimer() {
-    alert("체험 시간 제한이 해제되었습니다.");
-}
+        function showBreakNotice() {
+            var banner = document.getElementById('break-notice-banner');
+            if (banner) banner.classList.add('show');
+        }
 
-function resetSession() {
-    if (confirm("정말로 세션을 초기화하시겠습니까?")) {
-        currentStep = 0;
-        activeStageNum = null;
-        isOnBreak = false;
-        accumBreakSeconds = 0;
-        breakRemainingSeconds = 1800;
-        breakStartTime = null;
-        breakHistory = [];
-        preWorkQty = 15;
-        defectCount = 0;
-        weight = 12.0;
-        postWorkQty = 15;
-        postWorkWeight = 12.0;
-        currentBreakStartRemaining = null;
-        
-        var now = new Date();
-        checkInTime = String(now.getHours()).padStart(2, '0') + ':' + 
-                      String(now.getMinutes()).padStart(2, '0') + ':' + 
-                      String(now.getSeconds()).padStart(2, '0');
-        setPartitionedItem('kimp_check_in_time', checkInTime);
-        
-        removePartitionedItem('kimp_active_stage_num');
-        removePartitionedItem('kimp_current_step');
-        removePartitionedItem('kimp_accum_break_seconds');
-        removePartitionedItem('kimp_break_remaining_seconds');
-        removePartitionedItem('kimp_is_on_break');
-        removePartitionedItem('kimp_break_start_time');
-        removePartitionedItem('kimp_break_history');
-        removePartitionedItem('kimp_pre_work_qty');
-        removePartitionedItem('kimp_defect_count');
-        removePartitionedItem('kimp_weight');
-        removePartitionedItem('kimp_post_work_qty');
-        removePartitionedItem('kimp_post_work_weight');
-        removePartitionedItem('kimp_current_break_start_remaining');
-        
-        closeBreakNotice();
-        renderWorkflow();
-        renderTaskCards();
-    }
-}
+        function closeBreakNotice() {
+            var banner = document.getElementById('break-notice-banner');
+            if (banner) banner.classList.remove('show');
+        }
 
-function updateCompleteButtonText() {
-    var compBtn = document.getElementById('btn-complete-experience');
-    var compText = document.getElementById('complete-btn-text');
-    if (compBtn && compText) {
-        compText.textContent = "체험 완료 & 예약";
-        compBtn.classList.remove('disabled-experience');
-    }
-}
-function updateToggleTimerButtonText() {
-    var btnText = document.getElementById('skip-btn-text');
-    if (btnText) {
-        btnText.textContent = "제한 해제";
-    }
-}
-function showCompleteNotice() {}
-function closeCompleteNotice() {}
+        function showBreakInfo(isManual) {
+            alert("휴식은 2시간에 30분 제공됩니다.");
+        }
 
-// ── 9. 추가 유틸리티 함수 및 renderTaskCards, updateOrderSheetOverlayRows 정의 ──
-function renderTaskCards() {
-    var taskListContainer = document.getElementById('task-cards-list');
-    if (!taskListContainer) return;
-    
-    var html = "";
-    var stageKeys = [1, 2, 3, 32, 4, 5];
-    for (var k = 0; k < stageKeys.length; k++) {
-        var i = stageKeys[k];
-        var stage = stagesModel[i];
-        var isActive = (activeStageNum !== null && i === activeStageNum);
-        var hasOrder = isActive ? (currentStep >= 1) : false;
-        
-        var cardClass = isActive ? "task-card active-task" : "task-card";
-        var countText = isActive ? "1/1" : "0/1";
-        
-        var badgeText = isActive ? "현재 작업중" : "참여가능";
-        var badgeClass = isActive ? "badge-active" : "badge-joinable";
-        
-        var btnText = isActive ? "참여중" : "참여하기";
-        var orderText = hasOrder ? `작업중인 생산지시서: ${stage.order}` : `작업중인 생산지시서: 없음`;
-        
-        var helperBtnHtml = "";
-        if (isActive && !isHelperUser) {
-            helperBtnHtml = `
+        // ── 8. 타이머 및 초기화 ──
+        function activateStage(stageNum) {
+            if (isOnBreak) {
+                isOnBreak = false;
+                if (breakStartTime) {
+                    var startRemaining = (currentBreakStartRemaining !== null) ? currentBreakStartRemaining : 1800;
+                    var breakDuration = startRemaining - breakRemainingSeconds;
+                    if (breakDuration < 0) breakDuration = 0;
+
+                    breakHistory.push({
+                        startTime: breakStartTime,
+                        duration: breakDuration
+                    });
+                    breakStartTime = null;
+                    currentBreakStartRemaining = null;
+                }
+                closeBreakNotice();
+            }
+            activeStageNum = stageNum;
+            currentStep = 0;
+            saveMockState();
+            renderWorkflow();
+            renderTaskCards();
+        }
+
+        function completeAndReserve() {
+            alert("실습 체험이 완료되었습니다!");
+            window.location.href = "kimp.html";
+        }
+
+        function toggleExperienceTimer() {
+            alert("체험 시간 제한이 해제되었습니다.");
+        }
+
+        function resetSession() {
+            if (confirm("정말로 세션을 초기화하시겠습니까?")) {
+                currentStep = 0;
+                activeStageNum = null;
+                isOnBreak = false;
+                accumBreakSeconds = 0;
+                breakRemainingSeconds = 1800;
+                breakStartTime = null;
+                breakHistory = [];
+                preWorkQty = 15;
+                defectCount = 0;
+                weight = 12.0;
+                postWorkQty = 15;
+                postWorkWeight = 12.0;
+                currentBreakStartRemaining = null;
+
+                var now = new Date();
+                checkInTime = String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0') + ':' +
+                    String(now.getSeconds()).padStart(2, '0');
+                setPartitionedItem('kimp_check_in_time', checkInTime);
+
+                removePartitionedItem('kimp_active_stage_num');
+                removePartitionedItem('kimp_current_step');
+                removePartitionedItem('kimp_accum_break_seconds');
+                removePartitionedItem('kimp_break_remaining_seconds');
+                removePartitionedItem('kimp_is_on_break');
+                removePartitionedItem('kimp_break_start_time');
+                removePartitionedItem('kimp_break_history');
+                removePartitionedItem('kimp_pre_work_qty');
+                removePartitionedItem('kimp_defect_count');
+                removePartitionedItem('kimp_weight');
+                removePartitionedItem('kimp_post_work_qty');
+                removePartitionedItem('kimp_post_work_weight');
+                removePartitionedItem('kimp_current_break_start_remaining');
+
+                closeBreakNotice();
+                renderWorkflow();
+                renderTaskCards();
+            }
+        }
+
+        function updateCompleteButtonText() {
+            var compBtn = document.getElementById('btn-complete-experience');
+            var compText = document.getElementById('complete-btn-text');
+            if (compBtn && compText) {
+                compText.textContent = "체험 완료 & 예약";
+                compBtn.classList.remove('disabled-experience');
+            }
+        }
+        function updateToggleTimerButtonText() {
+            var btnText = document.getElementById('skip-btn-text');
+            if (btnText) {
+                btnText.textContent = "제한 해제";
+            }
+        }
+        function showCompleteNotice() { }
+        function closeCompleteNotice() { }
+
+        // ── 9. 추가 유틸리티 함수 및 renderTaskCards, updateOrderSheetOverlayRows 정의 ──
+        function renderTaskCards() {
+            var taskListContainer = document.getElementById('task-cards-list');
+            if (!taskListContainer) return;
+
+            var html = "";
+            var stageKeys = [1, 2, 3, 32, 4, 5];
+            for (var k = 0; k < stageKeys.length; k++) {
+                var i = stageKeys[k];
+                var stage = stagesModel[i];
+                var isActive = (activeStageNum !== null && i === activeStageNum);
+                var hasOrder = isActive ? (currentStep >= 1) : false;
+
+                var cardClass = isActive ? "task-card active-task" : "task-card";
+                var countText = isActive ? "1/1" : "0/1";
+
+                var badgeText = isActive ? "현재 작업중" : "참여가능";
+                var badgeClass = isActive ? "badge-active" : "badge-joinable";
+
+                var btnText = isActive ? "참여중" : "참여하기";
+                var orderText = hasOrder ? `작업중인 생산지시서: ${stage.order}` : `작업중인 생산지시서: 없음`;
+
+                var helperBtnHtml = "";
+                if (isActive && !isHelperUser) {
+                    helperBtnHtml = `
                 <button class="btn-task-action" style="margin-top: 8px; background: linear-gradient(135deg, var(--amber-accent), #f08c35); border: none; color: white;" onclick="requestHelper(${i})">
                     <i class="bi bi-telephone-outbound-fill"></i> 도움 요청하기
                 </button>
             `;
-        }
-        
-        html += `
+                }
+
+                html += `
             <div class="${cardClass}" id="task-${i}">
                 <div class="task-card-header">
                     <span class="task-badge ${badgeClass}" id="badge-stage-${i}">${badgeText}</span>
@@ -2721,25 +2871,25 @@ function renderTaskCards() {
                 ${helperBtnHtml}
             </div>
         `;
-    }
-    taskListContainer.innerHTML = html;
-}
+            }
+            taskListContainer.innerHTML = html;
+        }
 
-function updateOrderSheetOverlayRows(orderId) {
-    var tbody = document.getElementById('order-sheet-tbody');
-    if (!tbody) return;
-    
-    var html = "";
-    var stageKeys = [1, 2, 3, 32, 4, 5];
-    for (var k = 0; k < stageKeys.length; k++) {
-        var i = stageKeys[k];
-        var stageName = stageShortNames[i];
-        
-        var isActive = (activeStageNum !== null && i === activeStageNum);
-        var isPast = (activeStageNum !== null && (i < activeStageNum || (activeStageNum === 32 && i === 3)));
-        
-        if (isPast) {
-            html += `
+        function updateOrderSheetOverlayRows(orderId) {
+            var tbody = document.getElementById('order-sheet-tbody');
+            if (!tbody) return;
+
+            var html = "";
+            var stageKeys = [1, 2, 3, 32, 4, 5];
+            for (var k = 0; k < stageKeys.length; k++) {
+                var i = stageKeys[k];
+                var stageName = stageShortNames[i];
+
+                var isActive = (activeStageNum !== null && i === activeStageNum);
+                var isPast = (activeStageNum !== null && (i < activeStageNum || (activeStageNum === 32 && i === 3)));
+
+                if (isPast) {
+                    html += `
                 <tr>
                     <td><div style="font-weight: 600;">${stageName}</div><div style="font-size: 9px; color: var(--text-sub); margin-top: 2px;">${orderId}</div></td>
                     <td style="text-align: center;">${currentUserName}</td>
@@ -2754,16 +2904,16 @@ function updateOrderSheetOverlayRows(orderId) {
                     <td style="text-align: center;"><span class="order-badge completed">완료</span></td>
                 </tr>
             `;
-        } else if (isActive) {
-            if (currentStep >= 1) {
-                var statusBadge = currentStep === 5 ? '<span class="order-badge completed">완료</span>' : '<span class="order-badge active">진행중</span>';
-                var sumQtyBefore = currentStep >= 1 ? "15" : "-";
-                var sumQtyAfter = currentStep === 5 ? "15" : "-";
-                var sumWeightBefore = currentStep >= 2 ? "12.0 kg" : "-";
-                var sumWeightAfter = currentStep === 5 ? "12.0 kg" : "-";
-                var endTime = currentStep === 5 ? "15:10" : "진행 중";
-                
-                html += `
+                } else if (isActive) {
+                    if (currentStep >= 1) {
+                        var statusBadge = currentStep === 5 ? '<span class="order-badge completed">완료</span>' : '<span class="order-badge active">진행중</span>';
+                        var sumQtyBefore = currentStep >= 1 ? "15" : "-";
+                        var sumQtyAfter = currentStep === 5 ? "15" : "-";
+                        var sumWeightBefore = currentStep >= 2 ? "12.0 kg" : "-";
+                        var sumWeightAfter = currentStep === 5 ? "12.0 kg" : "-";
+                        var endTime = currentStep === 5 ? "15:10" : "진행 중";
+
+                        html += `
                     <tr>
                         <td><div style="font-weight: 600;">${stageName}</div><div style="font-size: 9px; color: var(--text-sub); margin-top: 2px;">${orderId}</div></td>
                         <td style="text-align: center;">${currentUserName}</td>
@@ -2778,8 +2928,8 @@ function updateOrderSheetOverlayRows(orderId) {
                         <td style="text-align: center;">${statusBadge}</td>
                     </tr>
                 `;
-            } else {
-                html += `
+                    } else {
+                        html += `
                     <tr>
                         <td><div style="font-weight: 600;">${stageName}</div><div style="font-size: 9px; color: var(--text-sub); margin-top: 2px;">${orderId}</div></td>
                         <td style="text-align: center;">-</td>
@@ -2794,9 +2944,9 @@ function updateOrderSheetOverlayRows(orderId) {
                         <td style="text-align: center;"><span class="order-badge waiting">대기</span></td>
                     </tr>
                 `;
-            }
-        } else {
-            html += `
+                    }
+                } else {
+                    html += `
                 <tr>
                     <td><div style="font-weight: 600;">${stageName}</div><div style="font-size: 9px; color: var(--text-sub); margin-top: 2px;">${orderId}</div></td>
                     <td style="text-align: center;">-</td>
@@ -2811,75 +2961,199 @@ function updateOrderSheetOverlayRows(orderId) {
                     <td style="text-align: center;"><span class="order-badge waiting">대기</span></td>
                 </tr>
             `;
-        }
-    }
-    tbody.innerHTML = html;
-}
-
-// 시프트 경과 시간 시뮬레이션용 주기적 업데이트
-setInterval(function() {
-    remainingSeconds--;
-    if (remainingSeconds < 0) remainingSeconds = 7200;
-    
-    if (isOnBreak) {
-        breakRemainingSeconds--;
-        if (breakRemainingSeconds <= 0) breakRemainingSeconds = 1800;
-        accumBreakSeconds++;
-        updateBreakButtonText();
-        
-        // 휴식 기록 UI 실시간 갱신
-        if (breakStartTime) {
-            var breakHistoryEl = document.getElementById('work-break-history');
-            var breakItem = document.getElementById('work-break-item');
-            if (breakHistoryEl && breakItem) {
-                breakItem.style.display = "block";
-                var breakHtml = '';
-                for (var bi = 0; bi < breakHistory.length; bi++) {
-                    var bRecord = breakHistory[bi];
-                    var bDurText = bRecord.duration >= 60 
-                        ? Math.floor(bRecord.duration / 60) + '분 ' + (bRecord.duration % 60) + '초'
-                        : bRecord.duration + '초';
-                    breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' &rarr; ' + bDurText + '간 휴식</div>';
                 }
-                var curElapsed = (currentBreakStartRemaining !== null)
-                    ? (currentBreakStartRemaining - breakRemainingSeconds)
-                    : 0;
-                if (curElapsed < 0) curElapsed = 0;
-                var ceText = curElapsed >= 60 
-                    ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
-                    : curElapsed + '초';
-                breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + breakStartTime + ' &rarr; ' + ceText + ' 휴식중...</div>';
-                breakHistoryEl.innerHTML = breakHtml;
+            }
+            tbody.innerHTML = html;
+        }
+
+        // 시프트 경과 시간 시뮬레이션용 주기적 업데이트
+        setInterval(function () {
+            remainingSeconds--;
+            if (remainingSeconds < 0) remainingSeconds = 7200;
+
+            if (isOnBreak) {
+                breakRemainingSeconds--;
+                if (breakRemainingSeconds <= 0) breakRemainingSeconds = 1800;
+                accumBreakSeconds++;
+                updateBreakButtonText();
+
+                // 휴식 기록 UI 실시간 갱신
+                if (breakStartTime) {
+                    var breakHistoryEl = document.getElementById('work-break-history');
+                    var breakItem = document.getElementById('work-break-item');
+                    if (breakHistoryEl && breakItem) {
+                        breakItem.style.display = "block";
+                        var breakHtml = '';
+                        for (var bi = 0; bi < breakHistory.length; bi++) {
+                            var bRecord = breakHistory[bi];
+                            var bDurText = bRecord.duration >= 60
+                                ? Math.floor(bRecord.duration / 60) + '분 ' + (bRecord.duration % 60) + '초'
+                                : bRecord.duration + '초';
+                            breakHtml += '<div style="font-size: 12px; color: var(--amber-accent); font-variant-numeric: tabular-nums;"><i class="bi bi-clock-history" style="margin-right: 4px;"></i>' + bRecord.startTime + ' &rarr; ' + bDurText + '간 휴식</div>';
+                        }
+                        var curElapsed = (currentBreakStartRemaining !== null)
+                            ? (currentBreakStartRemaining - breakRemainingSeconds)
+                            : 0;
+                        if (curElapsed < 0) curElapsed = 0;
+                        var ceText = curElapsed >= 60
+                            ? Math.floor(curElapsed / 60) + '분 ' + (curElapsed % 60) + '초'
+                            : curElapsed + '초';
+                        breakHtml += '<div style="font-size: 12px; color: #ff6b6b; font-weight: 600; font-variant-numeric: tabular-nums;"><i class="bi bi-pause-circle-fill" style="margin-right: 4px;"></i>' + breakStartTime + ' &rarr; ' + ceText + ' 휴식중...</div>';
+                        breakHistoryEl.innerHTML = breakHtml;
+                    }
+                }
+            } else {
+                // 근무 중일 때만 1초당 급여(시간당 12,384원 -> 초당 약 3.44원)를 가산합니다.
+                accumSalary += (12384 / 3600);
+            }
+
+            updateClocks();
+            updateSalaryAndBreakTime();
+            updateCompleteButtonText();
+            saveMockState();
+
+            // 시계 분 카운팅
+            var now = new Date();
+            clockHour = now.getHours();
+            clockMinute = now.getMinutes();
+        }, 1000);
+
+        // 초기 구동
+        updateClocks();
+        updateSalaryAndBreakTime();
+        if (isOnBreak) {
+            showBreakNotice();
+        } else {
+            closeBreakNotice();
+        }
+        renderWorkflow();
+        renderTaskCards();
+
+        function hardResetSession() {
+            if (confirm("모든 작업 기록(휴식, 진행률, 급여)과 로그인 정보가 초기화됩니다.\n정말 '처음부터' 다시 시작하시겠습니까?")) {
+                // ★ 핵심 추가: 자동 저장(saveMockState)이 옛날 값을 다시 살려내지 못하도록, 메모리 변수를 먼저 강제로 0으로 초기화합니다! ★
+                activeStageNum = null;
+                currentStep = 0;
+                accumBreakSeconds = 0;
+                breakRemainingSeconds = 1800;
+                isOnBreak = false;
+                breakStartTime = null;
+                breakHistory = [];
+                preWorkQty = 15;
+                defectCount = 0;
+                weight = 12.0;
+                postWorkQty = 15;
+                postWorkWeight = 12.0;
+                accumSalary = 0;
+                currentBreakStartRemaining = null;
+                // 1. 초기화할 키 목록
+                var keysToRemove = [
+                    'kimp_active_stage_num',
+                    'kimp_current_step',
+                    'kimp_accum_break_seconds',
+                    'kimp_break_remaining_seconds',
+                    'kimp_is_on_break',
+                    'kimp_break_start_time',
+                    'kimp_break_history',
+                    'kimp_pre_work_qty',
+                    'kimp_defect_count',
+                    'kimp_weight',
+                    'kimp_post_work_qty',
+                    'kimp_post_work_weight',
+                    'kimp_current_break_start_remaining',
+                    'kimp_check_in_time',
+                    'kimp_accum_salary',
+                    'kimp_experience_remaining_seconds'
+                ];
+
+                // 2. 현재 로그인한 유저 ID 가져오기 (없으면 'guest')
+                var currentUserId = 'guest';
+
+                try {
+                    var userInfoStr = sessionStorage.getItem('user_info');
+
+                    if (userInfoStr) {
+                        // 문자열을 JSON 객체로 변환
+                        var userInfo = JSON.parse(userInfoStr);
+
+                        // 이메일 값이 존재하면 'local-'을 붙여서 로컬 스토리지 키 형태와 맞춤
+                        if (userInfo.email) {
+                            currentUserId = 'local-' + userInfo.email;
+                            // 결과: "local-capegon21@gmail.com"
+                        }
+                    }
+                } catch (e) {
+                    console.error("세션 스토리지에서 유저 정보를 가져오는데 실패했습니다.", e);
+                }
+
+                // 3. 유저의 로컬 스토리지(작업 데이터)만 골라서 삭제
+                keysToRemove.forEach(function (key) {
+                    var actualKey = key + '_' + currentUserId;
+
+                    localStorage.removeItem(actualKey); // 유저 전용 키 삭제
+                    localStorage.removeItem(key);       // 혹시 모를 공용 키 삭제
+
+                    if (typeof removePartitionedItem === 'function') {
+                        removePartitionedItem(key);
+                    }
+                });
+                // 삭제 결과를 담을 객체 준비
+                var deletionReport = {};
+
+                // 3. 유저의 로컬 스토리지(작업 데이터)만 골라서 삭제
+                keysToRemove.forEach(function (key) {
+                    var actualKey = key + '_' + currentUserId;
+
+                    localStorage.removeItem(actualKey); // 유저 전용 키 삭제
+                    localStorage.removeItem(key);       // 혹시 모를 공용 키 삭제
+
+                    if (typeof removePartitionedItem === 'function') {
+                        removePartitionedItem(key);
+                    }
+
+                    // 삭제가 잘 되었는지 바로 다시 조회해보기 (null이 나와야 정상)
+                    var valueAfter = localStorage.getItem(actualKey);
+                    deletionReport[actualKey] = (valueAfter === null) ? '삭제 완료 (null)' : '삭제 실패: ' + valueAfter;
+                });
+
+                // 4. 새 탭을 열어서 지워진 상태 확인하기 (디버깅용)
+                //     var newTab = window.open('', '_blank');
+                var htmlContent = `
+    <html>
+    <head><title>데이터 삭제 결과 확인</title></head>
+    <body style="font-family: sans-serif; padding: 20px;">
+        <h2>데이터 초기화 결과 (유저: ${currentUserId})</h2>
+        <p>아래 키들의 값이 <strong style="color: green;">'삭제 완료 (null)'</strong>로 표시되면 성공적으로 지워진 것입니다.</p>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+            <tr style="background-color: #ffe6e6;">
+                <th style="padding: 8px;">삭제 시도한 실제 Key</th>
+                <th style="padding: 8px;">현재 상태 (삭제 후)</th>
+            </tr>
+            ${Object.keys(deletionReport).map(k => `
+                <tr>
+                    <td style="padding: 8px;">${k}</td>
+                    <td style="padding: 8px; color: ${deletionReport[k].includes('완료') ? 'green' : 'red'}; font-weight: bold;">
+                        ${deletionReport[k]}
+                    </td>
+                </tr>
+            `).join('')}
+        </table>
+    </body>
+    </html>
+`;
+                /*  newTab.document.write(htmlContent);  //디버깅용, 로컬스토리지 값 확인.
+                  newTab.document.close(); */
+
+
+                // ★ 핵심: sessionStorage.removeItem('user') 를 호출하지 않음으로써 로그인 상태 유지 ★
+
+                // 4. 페이지 새로고침하여 빈 상태로 다시 시작
+                window.location.reload(true);
+
             }
         }
-    } else {
-        // 근무 중일 때만 1초당 급여(시간당 12,384원 -> 초당 약 3.44원)를 가산합니다.
-        accumSalary += (12384 / 3600);
-    }
 
-    updateClocks();
-    updateSalaryAndBreakTime();
-    updateCompleteButtonText();
-    saveMockState();
-    
-    // 시계 분 카운팅
-    var now = new Date();
-    clockHour = now.getHours();
-    clockMinute = now.getMinutes();
-}, 1000);
-
-// 초기 구동
-updateClocks();
-updateSalaryAndBreakTime();
-if (isOnBreak) {
-    showBreakNotice();
-} else {
-    closeBreakNotice();
-}
-renderWorkflow();
-renderTaskCards();
-
-        </script>
+    </script>
 </body>
 
 </html>
