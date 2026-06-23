@@ -1819,6 +1819,10 @@
         <!-- ── 스피드 다이얼 (FAB) ── -->
         <div class="speed-dial-container" id="speed-dial-container">
             <div class="fab-menu-container" id="fab-menu">
+                <button class="fab-reset-session" id="btn-cleaning-demo" onclick="openCleaningPhotoOverlay()" style="background: var(--amber-accent); color: white;">
+                    <i class="bi bi-camera-fill"></i>
+                    <span>10분전 청소 데모</span>
+                </button>
                 <button class="fab-reset-session" id="btn-hard-reset" onclick="hardResetSession()">
                     <i class="bi bi-arrow-counterclockwise"></i>
                     <span>처음부터</span>
@@ -1836,6 +1840,41 @@
                 <i class="bi bi-gear-fill" id="main-toggle-icon"></i>
             </button>
         </div>
+
+    <!-- ── 10분 전 교대 청소 및 사진 촬영 오버레이 ── -->
+    <div class="guide-page-overlay" id="cleaning-photo-overlay" style="display: none; z-index: 4000;">
+        <div class="guide-header">
+            <button class="btn-guide-back" onclick="closeCleaningPhotoOverlay()"><i class="bi bi-x-lg"></i></button>
+            <span class="guide-title" style="white-space: pre-line;">10분 남았습니다. 마무리 하구요. 
+                청소하고 인수인계해요. 😀😊👍
+            </span>
+        </div>
+        <div class="guide-content-box">
+            <div class="guide-section-title">
+                <i class="bi bi-camera-fill"></i>
+                <span>청소를 다 한 후에 사진을 찍어보내주세요. 📸📷</span>
+            </div>
+            <div class="guide-steps-list">
+                <div class="guide-step-item">
+                    <span class="guide-step-num">1.</span>
+                    <span>주변 작업대를 정리하고 바닥에 떨어진 이물질을 치워주세요.</span>
+                </div>
+                <div class="guide-step-item">
+                    <span class="guide-step-num">2.</span>
+                    <span>청결한 상태가 잘 보이도록 사진을 촬영합니다.</span>
+                </div>
+                <div class="guide-step-item">
+                    <span class="guide-step-num">3.</span>
+                    <span>청소 중에, 다음 근로자에게 일의 인수인계도 해보아요.</span>
+                </div>
+            </div>
+        </div>
+        <button class="btn-guide-complete" style="background: var(--neon-blue); color: #fff; box-shadow: none;"
+            onclick="submitCleaningPhoto()">
+            <i class="bi bi-camera"></i>
+            <span>사진 촬영 및 매니저에게 전송하기</span>
+        </button>
+    </div>
 
     <script>
         // ── 로그인한 사용자 감지 및 화면 표시 ──
@@ -2184,6 +2223,10 @@
                 ${currentStep === 0 ? `
                 <div class="widget-area">
                     <button class="btn-widget-action" onclick="runQRScan()" ${isOnBreak ? 'disabled' : ''}><i class="bi bi-qr-code-scan"></i> QR코드 지시서 스캔</button>
+                    <button class="btn-widget-action" onclick="receiveHandover()" ${isOnBreak ? 'disabled' : ''} style="background-color: var(--neon-blue); border-color: var(--neon-blue); color: #fff; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="bi bi-person-lines-fill"></i> 인수인계 받기 (정보 자동 전달)</span>
+                        <i class="bi bi-info-circle-fill" style="margin-left: 8px; font-size: 14px;" onclick="event.stopPropagation(); alert('전에 일하던 분의 작업을 인수받습니다. (수량, 불량 등 상황)');"></i>
+                    </button>
                 </div>` : `<span class="workflow-subtext" style="color: var(--neon-green); font-weight:600;"><i class="bi bi-check2"></i> 지시서 서명 및 공급 확인 완료</span>`}
             </div>
         </div>
@@ -2392,6 +2435,25 @@
             saveMockState();
             renderWorkflow();
             renderTaskCards();
+        }
+        function receiveHandover() {
+            currentStep = 1;
+            saveMockState();
+            renderWorkflow();
+            renderTaskCards();
+            alert("전 작업자의 일 정보가 성공적으로 인수인계(자동 전달) 되었습니다.");
+        }
+        function openCleaningPhotoOverlay() {
+            var overlay = document.getElementById('cleaning-photo-overlay');
+            if (overlay) overlay.style.display = "flex";
+        }
+        function closeCleaningPhotoOverlay() {
+            var overlay = document.getElementById('cleaning-photo-overlay');
+            if (overlay) overlay.style.display = "none";
+        }
+        function submitCleaningPhoto() {
+            alert("사진 촬영 및 매니저 전송이 완료되었습니다. 다음 근무자에게 인수인계를 준비해주세요.");
+            closeCleaningPhotoOverlay();
         }
         function confirmQuantity() {
             // 1. 대기 상태 켜기 및 화면 다시 그리기
@@ -2976,6 +3038,12 @@
         // 시프트 경과 시간 시뮬레이션용 주기적 업데이트
         setInterval(function () {
             remainingSeconds--;
+            
+            // 10분 전(600초 남았을 때) 교대 및 청소 알림
+            if (remainingSeconds === 600) {
+                openCleaningPhotoOverlay();
+            }
+            
             if (remainingSeconds < 0) remainingSeconds = 7200;
 
             if (isOnBreak) {
