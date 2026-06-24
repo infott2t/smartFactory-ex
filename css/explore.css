@@ -135,7 +135,7 @@ body {
     border-bottom: 2px solid transparent;
     color: #888;
     position:relative;
-    font-weight: bold;
+     
 }
 .tab-item.active {
     color: white;
