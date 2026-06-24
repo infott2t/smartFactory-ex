@@ -37,7 +37,36 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* 토스트 알림창 스타일 */
+        .toast-message {
+            position: fixed;
+            bottom: 100px;
+            /* 푸터 위쪽에 뜨도록 여백 확보 */
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(123, 92, 245, 0.9);
+            /* 브랜드 보라색 */
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
+        .toast-message.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
 </head>
 
 <body>
@@ -533,62 +562,72 @@
             var starIcon = document.getElementById('work-stars');
             if (!starIcon) return;
 
-            // 1. 현재 접속한 회원의 이메일 가져오기
             function getCurrentUserEmail() {
-                var userEmail = 'guest_email'; // 로그인 안 된 경우의 기본값
-
-                // sessionStorage에서 'user' 정보 확인
+                var userEmail = 'guest_email';
                 try {
                     var userJson = sessionStorage.getItem('user');
                     if (userJson) {
                         var userObj = JSON.parse(userJson);
-                        // 캡처해주신 데이터 구조에 맞춰 email을 최우선으로 가져옵니다.
-                        if (userObj.email && userObj.email.trim() !== "") {
-                            userEmail = userObj.email;
-                        } else if (userObj.id) {
-                            userEmail = 'user_' + userObj.id; // 혹시 이메일이 없는 경우 id로 대체
-                        }
+                        if (userObj.email && userObj.email.trim() !== "") userEmail = userObj.email;
+                        else if (userObj.id) userEmail = 'user_' + userObj.id;
                     }
-                } catch (e) {
-                    console.error('유저 정보를 가져오는 중 에러 발생', e);
-                }
-
+                } catch (e) { }
                 return userEmail;
             }
 
-            // 2. 로컬스토리지 키 생성 (예: kimp_favorite_capegon21@gmail.com)
             var userEmail = getCurrentUserEmail();
             var favoriteKey = 'kimp_favorite_' + userEmail;
 
-            // 3. 페이지 로드 시 기존 즐겨찾기 상태 확인 및 별 모양 적용
             var isFavorite = localStorage.getItem(favoriteKey) === 'true';
             if (isFavorite) {
                 starIcon.classList.remove('bi-star');
                 starIcon.classList.add('bi-star-fill');
-                starIcon.style.color = '#ffd700'; // 활성화 시 노란색 별
+                starIcon.style.color = '#ffd700';
             } else {
-                starIcon.style.color = '#fff'; // 비활성화 시 기본 하얀색 별
+                starIcon.style.color = '#fff';
             }
 
-            // 4. 별 모양 클릭 시 이벤트 처리
+            // 💡 토스트 알림을 띄우는 함수
+            function showToast(message, iconClass) {
+                // 기존에 떠있는 토스트가 있다면 제거
+                $('.toast-message').remove();
+
+                // 새로운 토스트 생성 및 화면에 추가
+                var toastHtml = '<div class="toast-message"><i class="bi ' + iconClass + '"></i><span>' + message + '</span></div>';
+                $('body').append(toastHtml);
+
+                // 애니메이션 작동을 위해 약간의 딜레이 후 클래스 추가
+                setTimeout(function () {
+                    $('.toast-message').addClass('show');
+                }, 10);
+
+                // 2초 뒤에 사라지게 함
+                setTimeout(function () {
+                    $('.toast-message').removeClass('show');
+                    setTimeout(function () { $('.toast-message').remove(); }, 300);
+                }, 2000);
+            }
+
             starIcon.addEventListener('click', function () {
                 var currentlyFavorite = localStorage.getItem(favoriteKey) === 'true';
 
                 if (currentlyFavorite) {
-                    // 즐겨찾기 해제
                     localStorage.setItem(favoriteKey, 'false');
                     starIcon.classList.remove('bi-star-fill');
                     starIcon.classList.add('bi-star');
                     starIcon.style.color = '#fff';
+                    // ⭐ 해제 시 토스트 띄우기
+                    showToast('즐겨찾기에서 해제되었습니다.', 'bi-star');
                 } else {
-                    // 즐겨찾기 등록
                     localStorage.setItem(favoriteKey, 'true');
                     starIcon.classList.remove('bi-star');
                     starIcon.classList.add('bi-star-fill');
                     starIcon.style.color = '#ffd700';
+                    // ⭐ 등록 시 토스트 띄우기
+                    showToast('즐겨찾기에 추가되었습니다!', 'bi-star-fill');
                 }
             });
-        }); // 즐겨찾기 (work-stars) 토글 기능 end
+        });
 
 
 

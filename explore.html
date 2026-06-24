@@ -6,23 +6,131 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./css/explore.css?v=1.0.2">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <title>마이페이지 | 스마트팩토리</title>
     <style>
-        /* 마크업 내부에 존재하던 인라인 스타일 외부 분리 */
-        .reservation-item,
-        .history-item {
-            margin-bottom: 12px;
+        /* --------------------------------------
+           1. 빈 상태 (Empty State) 디자인 
+        -------------------------------------- */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
         }
 
-        /* 데이터 공백 시 활용되는 기본 안내 레이아웃 스타일 */
-        .empty-state {
-            padding: 20px;
-            text-align: center;
-            color: var(--text-sub);
+        .empty-state-icon {
+            font-size: 48px;
+            color: #4720ca;
+            opacity: 0.6;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            color: #a7a7a7;
+            margin-bottom: 20px;
+        }
+
+        .btn-go-popular {
+            background: linear-gradient(135deg, #7b5cf5, #4720ca);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
             font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(123, 92, 245, 0.3);
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .btn-go-popular:active {
+            transform: scale(0.95);
+        }
+
+        /* --------------------------------------
+           2. 공통 작업 리스트 디자인 (누락 복구)
+        -------------------------------------- */
+        .task-item {
+            height: 43px;
+            min-height: 43px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* 항목 간 줄 표시 */
+        }
+
+        .task-items0 {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-items .texts span:first-child {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .task-items .texts span:last-child {
+            font-size: 11px;
+            color: #a29bfe;
+        }
+
+        /* --------------------------------------
+           3. 우측 데이터 영역 (급여, 지역, Task 등) 
+        -------------------------------------- */
+        /* 급여 전용 */
+        .task-salary-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .task-salary-col .val { font-weight: bold; color: #fff; }
+        .task-salary-col .change-rate { font-size: 12px; margin-top: 2px; }
+        .task-salary-col i { font-size: 12px; }
+        .status-up { color: #00b894; }
+        .status-down { color: #ff6b6b; }
+
+        /* 그 외 정보 (지역, 참여자 등) */
+        .task-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+        }
+        .task-info-row i, .task-info-row .info-label {
+            color: #a29bfe;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        .task-info-row .val { font-size: 12px; color: #ccc; }
+        .task-info-row .val.highlight { font-weight: bold; color: #fff; }
+
+        /* --------------------------------------
+           4. 카테고리 탭 전용 디자인 
+        -------------------------------------- */
+        .category-list-item {
+            width: 100%;
+            display: flex; /* 요소들을 가로로 배치 */
+            align-items: center; /* 세로 중앙 정렬 */
+            justify-content: space-between; /* 양쪽 끝으로 쫙 밀어줌 (핵심 해결!) */
+            padding: 0 15px;
+        }
+
+        .category-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .category-count {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
         }
     </style>
 </head>
@@ -30,10 +138,8 @@
 <body>
     <div class="header-wrap">
         <div class="header menu-bar mypage">
-            <div class="chevron" onclick="window.history.back();" style="cursor: pointer;"><i
-                    class="bi bi-chevron-left back"></i></div>
+            <div class="chevron" onclick="window.history.back();" style="cursor: pointer;"><i class="bi bi-chevron-left back"></i></div>
             <div class="title"><span>작업 둘러보기</span></div>
-
         </div>
     </div>
     <div class="main-wrap">
@@ -48,263 +154,113 @@
                 </ul>
             </div>
             <div class="content-area">
+                <!-- 인기 급상승 탭 -->
                 <section class="tab-content active">
                     <div class="sort-row">
-                        <div class="sort-item">
-                            <span class="lspace">지역</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">급여</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">Task 수</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">참여자</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">생성일</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                    </div> <!-- sort-row 끝-->
-                    <div class="task-item">
-                        <div class="task-items0">
-                            <div class="task-items">
-                                <img src="./images/k-icon_150x150.png" />
-                                <div class="texts"><span>김치만들기</span><span>AFood</span></div>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                                <div>
-                                    <i class="bi bi-caret-up-fill" style="color: #00b894; font-size: 12px;"></i>
-                                    <span class="val" style="font-weight: bold;">1.3</span>
-                                </div>
-                                <div style="color: #00b894; font-size: 12px; margin-top: 2px;">+1%</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="task-item">
-                        <div class="task-items0">
-                            <div class="task-items">
-                                <img src="./images/Uton_150x150.png" />
-                                <div class="texts"><span>우동만들기</span><span>Uton</span></div>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                                <div>
-                                    <i class="bi bi-caret-down-fill" style="color: #ff6b6b; font-size: 12px;"></i>
-                                    <span class="val" style="font-weight: bold;">1.1</span>
-                                </div>
-                                <div style="color: #ff6b6b; font-size: 12px; margin-top: 2px;">-5%</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="task-item">
-                        <div class="task-items0">
-                            <div class="task-items">
-                                <img src="./images/fancy_150x150.png" />
-                                <div class="texts"><span>지갑만들기</span><span>Persa</span></div>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                                <div>
-                                    <i class="bi bi-caret-up-fill" style="color: #00b894; font-size: 12px;"></i>
-                                    <span class="val" style="font-weight: bold;">1.2</span>
-                                </div>
-                                <div style="color: #00b894; font-size: 12px; margin-top: 2px;">+2%</div>
-                            </div>
-                        </div>
+                        <div class="sort-item"><span class="lspace">지역</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">급여</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">Task 수</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">참여자</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">생성일</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
                     </div>
                 </section>
+                <!-- 즐겨찾기 탭 -->
                 <section class="tab-content">
                     <div class="sort-row">
-                        <div class="sort-item">
-                            <span class="lspace">지역</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">급여</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">Task 수</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">참여자</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">생성일</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                    </div> <!-- sort-row 끝-->
-                    <div class="task-item">작업2</div>
+                        <div class="sort-item"><span class="lspace">지역</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">급여</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">Task 수</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">참여자</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">생성일</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                    </div>
                 </section>
+                <!-- 새로운 일 탭 -->
                 <section class="tab-content">
                     <div class="sort-row">
-                        <div class="sort-item">
-                            <span class="lspace">지역</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">급여</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">Task 수</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">참여자</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                        <div class="sort-item">
-                            <span class="lspace">생성일</span>
-                            <div class="sort-arrows">
-                                <i class="bi bi-caret-up-fill"></i>
-                                <i class="bi bi-caret-down-fill"></i>
-                            </div>
-                        </div>
-                    </div> <!-- sort-row 끝-->
-                    <div class="task-item">작업2</div>
+                        <div class="sort-item"><span class="lspace">지역</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">급여</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">Task 수</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">참여자</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">생성일</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                    </div>
                 </section>
+                <!-- 카테고리 탭 -->
                 <section class="tab-content">
-                     
-                        <div class="sort-row">
-                            <div class="sort-item">
-                                <span class="lspace">이름</span>
-                                <div class="sort-arrows">
-                                    <i class="bi bi-caret-up-fill"></i>
-                                    <i class="bi bi-caret-down-fill"></i>
-                                </div>
-                            </div>
-                            <div class="sort-item">
-                                <span class="lspace">개수</span>
-                                <div class="sort-arrows">
-                                    <i class="bi bi-caret-up-fill"></i>
-                                    <i class="bi bi-caret-down-fill"></i>
-                                </div>
-                            </div>
-                        </div>
-                     
-                    <div class="task-item">작업3</div>
+                    <div class="sort-row">
+                        <div class="sort-item"><span class="lspace">이름</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                        <div class="sort-item"><span class="lspace">개수</span><div class="sort-arrows"><i class="bi bi-caret-up-fill"></i><i class="bi bi-caret-down-fill"></i></div></div>
+                    </div>
                 </section>
             </div>
         </main>
     </div>
+
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
         $(document).ready(function () {
-            // -------------------------
-            // 1. 백엔드 DB 연동 대비용 Mock Data
-            // -------------------------
-            function initDatabase() {
+
+            // 1. 데이터 영역
+            const MOCK_JSON_DATA = `[
+            {
+                "workId": 1, "workName": "김치만들기", "brandName": "AFood", "iconUrl": "./images/k-icon_150x150.png",
+                "salary": 1.3, "salaryChange": 0.01, "taskCount": 5, "participants": 123, "createdAt": "2024-08-01",
+                "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"]
+            },
+            {
+                "workId": 2, "workName": "우동만들기", "brandName": "Uton", "iconUrl": "./images/Uton_150x150.png",
+                "salary": 1.1, "salaryChange": -0.05, "taskCount": 4, "participants": 70, "createdAt": "2025-03-19",
+                "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"]
+            },
+            {
+                "workId": 3, "workName": "지갑만들기", "brandName": "Persa", "iconUrl": "./images/fancy_150x150.png",
+                "salary": 1.2, "salaryChange": 0.02, "taskCount": 5, "participants": 30, "createdAt": "2026-09-09",
+                "region": "서울시 마포구 합정동", "categories": ["악세사리", "지갑", "만들기"]
+            }
+            ]`;
+
+            async function fetchWorksData() {
                 if (!localStorage.getItem('kimp_works_db')) {
-                    const worksData = [
-                        {
-                            workId: 1, workName: "김치만들기", brandName: "AFood", iconUrl: "./images/k-icon_150x150.png",
-                            salary: 1.3, salaryChange: 0.01, taskCount: 5, participants: 123, createdAt: "2024-08-01",
-                            region: "서울시 성동구 성수동", categories: ["음식", "요리", "김치", "만들기"]
-                        },
-                        {
-                            workId: 2, workName: "우동만들기", brandName: "Uton", iconUrl: "./images/Uton_150x150.png",
-                            salary: 1.1, salaryChange: -0.05, taskCount: 4, participants: 70, createdAt: "2025-03-19",
-                            region: "서울시 강남구 역삼동", categories: ["음식", "요리", "우동", "만들기"]
-                        },
-                        {
-                            workId: 3, workName: "지갑만들기", brandName: "Persa", iconUrl: "./images/fancy_150x150.png",
-                            salary: 1.2, salaryChange: 0.02, taskCount: 5, participants: 30, createdAt: "2026-09-09",
-                            region: "서울시 마포구 합정동", categories: ["악세사리", "지갑", "만들기"]
-                        }
-                    ];
-                    localStorage.setItem('kimp_works_db', JSON.stringify(worksData));
+                    localStorage.setItem('kimp_works_db', MOCK_JSON_DATA);
                 }
                 return JSON.parse(localStorage.getItem('kimp_works_db'));
             }
 
-            let dbData = initDatabase();
+            let dbData = [];
+            let categoryData = [];
             let currentSortType = '급여';
 
-            // ⭐ 카테고리 데이터 가공 로직 (각 작업의 categories 배열을 하나로 합치고 개수를 셈)
-            function getCategoryData() {
+            // 2. 초기화 및 렌더링 영역
+            async function init() {
+                dbData = await fetchWorksData();
+                categoryData = extractCategoryData(dbData);
+                renderWorkList(dbData, $('.tab-content').eq(0)); 
+            }
+
+            function extractCategoryData(data) {
                 let catMap = {};
-                dbData.forEach(function (work) {
+                data.forEach(work => {
                     if (work.categories) {
-                        work.categories.forEach(function (cat) {
-                            let c = cat.trim(); // 공백 제거
-                            if (c) {
-                                catMap[c] = (catMap[c] || 0) + 1; // 단어가 있으면 1 증가, 없으면 1로 생성
-                            }
+                        work.categories.forEach(cat => {
+                            let c = cat.trim();
+                            if (c) catMap[c] = (catMap[c] || 0) + 1;
                         });
                     }
                 });
-                // 객체를 배열 형태 [ {name: "음식", count: 2}, ... ] 로 변환
-                let catArray = [];
-                for (let key in catMap) {
-                    catArray.push({ name: key, count: catMap[key] });
-                }
-                return catArray;
+                return Object.keys(catMap).map(key => ({ name: key, count: catMap[key] }));
             }
 
-            let categoryData = getCategoryData();
-
-            // -------------------------
-            // 2. 화면 렌더링 함수
-            // -------------------------
-
-            // A. 작업 리스트 렌더링 (인기, 즐겨찾기, 새로운일 탭)
             function renderWorkList(dataArray, $targetTab) {
                 $targetTab.find('.task-item').remove();
                 $targetTab.find('.empty-state').remove();
 
                 if (dataArray.length === 0) {
-                    $targetTab.append('<div class="empty-state">해당하는 작업이 없습니다.</div>');
+                    let emptyHtml = `
+                    <div class="empty-state">
+                        <i class="bi bi-folder-x empty-state-icon"></i>
+                        <div class="empty-state-text">아직 즐겨찾기한 작업이 없어요.</div>
+                        <button class="btn-go-popular">새로운 작업 둘러보기</button>
+                    </div>`;
+                    $targetTab.append(emptyHtml);
                     return;
                 }
 
@@ -324,91 +280,62 @@
                                 <span class="val">${item.salary}</span>
                             </div>
                             <div class="change-rate ${statusClass}">${sign}${changePercent}%</div>
-                        </div>
-                    `;
+                        </div>`;
                     } else if (currentSortType === '지역') {
-                        rightSideHtml = `
-                        <div class="task-info-row">
-                            <i class="bi bi-geo-alt-fill"></i>
-                            <span class="val">${item.region}</span>
-                        </div>
-                    `;
+                        rightSideHtml = `<div class="task-info-row"><i class="bi bi-geo-alt-fill"></i><span class="val">${item.region}</span></div>`;
                     } else if (currentSortType === 'Task 수') {
-                        rightSideHtml = `
-                        <div class="task-info-row">
-                            <span class="info-label">Task</span>
-                            <span class="val highlight">${item.taskCount}</span>
-                        </div>
-                    `;
+                        rightSideHtml = `<div class="task-info-row"><span class="info-label">Task</span><span class="val highlight">${item.taskCount}</span></div>`;
                     } else if (currentSortType === '참여자') {
-                        rightSideHtml = `
-                        <div class="task-info-row">
-                            <i class="bi bi-people-fill"></i>
-                            <span class="val highlight">${item.participants}명</span>
-                        </div>
-                    `;
+                        rightSideHtml = `<div class="task-info-row"><i class="bi bi-people-fill"></i><span class="val highlight">${item.participants}명</span></div>`;
                     } else if (currentSortType === '생성일') {
-                        rightSideHtml = `
-                        <div class="task-info-row">
-                            <i class="bi bi-calendar-check"></i>
-                            <span class="val">${item.createdAt}</span>
-                        </div>
-                    `;
+                        rightSideHtml = `<div class="task-info-row"><i class="bi bi-calendar-check"></i><span class="val">${item.createdAt}</span></div>`;
                     }
 
                     let html = `
                     <div class="task-item" data-id="${item.workId}">
                         <div class="task-items0">
-                            <div class="task-items"><img src="${item.iconUrl}">
+                            <div class="task-items">
+                                <img src="${item.iconUrl}">
                                 <div class="texts"><span>${item.workName}</span><span>${item.brandName}</span></div>
                             </div>
                             ${rightSideHtml}
                         </div>
-                    </div>
-                `;
+                    </div>`;
                     $targetTab.append(html);
                 });
             }
 
-            // B. ⭐ 카테고리 전용 렌더링 함수
             function renderCategoryList(dataArray, $targetTab) {
                 $targetTab.find('.task-item').remove();
                 $targetTab.find('.empty-state').remove();
 
                 if (dataArray.length === 0) {
-                    $targetTab.append('<div class="empty-state">카테고리 정보가 없습니다.</div>');
+                    let emptyHtml = `
+                    <div class="empty-state">
+                        <i class="bi bi-tags empty-state-icon"></i>
+                        <div class="empty-state-text">추출할 카테고리 정보가 없어요.</div>
+                        <button class="btn-go-popular">새로운 작업 둘러보기</button>
+                    </div>`;
+                    $targetTab.append(emptyHtml);
                     return;
                 }
 
                 dataArray.forEach(function (item) {
                     let html = `
-                    <div class="task-item category-item">
-                        <div class="task-items0">
-                            <div class="task-items" style="padding-left: 10px;">
-                                <span style="font-size: 14px; font-weight: bold; color: #fff;"># ${item.name}</span>
-                            </div>
-                            <div class="task-info-row">
-                                <span class="val highlight" style="color: #a29bfe;">${item.count}개</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    <div class="task-item category-list-item">
+                        <span class="category-name">${item.name}</span>
+                        <span class="category-count">${item.count}</span>
+                    </div>`;
                     $targetTab.append(html);
                 });
             }
 
-            // 초기 화면 렌더링 (첫 번째 탭)
-            renderWorkList(dbData, $('.tab-content').eq(0));
-
-
-            // -------------------------
-            // 3. 정렬(Sort) 메뉴 클릭 이벤트 (일반 정렬 & 카테고리 정렬 공통 대응)
-            // -------------------------
+            // 3. 이벤트 리스너 영역 (정렬 및 탭 전환)
             $(document).on('click', '.sort-item', function () {
                 let $this = $(this);
                 let sortType = $this.find('.lspace').text().trim();
                 let $activeTab = $this.closest('.tab-content');
-                let isCategoryTab = $activeTab.index() === 3; // 현재 탭이 4번째(카테고리) 탭인지 확인
+                let isCategoryTab = $activeTab.index() === 3;
 
                 $('.sort-item').not(this).removeClass('sort-up sort-down');
 
@@ -422,22 +349,14 @@
                 }
 
                 if (isCategoryTab) {
-                    // ⭐ 카테고리 탭 정렬
-                    categoryData.sort(function (a, b) {
-                        let result = 0;
-                        if (sortType === '이름') {
-                            result = a.name.localeCompare(b.name);
-                        } else if (sortType === '개수') {
-                            result = a.count - b.count;
-                        }
+                    categoryData.sort((a, b) => {
+                        let result = sortType === '이름' ? a.name.localeCompare(b.name) : a.count - b.count;
                         return isAscending ? result : -result;
                     });
                     renderCategoryList(categoryData, $activeTab);
-
                 } else {
-                    // 기존 작업 리스트 정렬
                     currentSortType = sortType;
-                    dbData.sort(function (a, b) {
+                    dbData.sort((a, b) => {
                         let result = 0;
                         switch (sortType) {
                             case '지역': result = a.region.localeCompare(b.region); break;
@@ -452,10 +371,6 @@
                 }
             });
 
-
-            // -------------------------
-            // 4. 탭 전환 이벤트
-            // -------------------------
             function getCurrentUserEmail() {
                 var userEmail = 'guest_email';
                 try {
@@ -479,27 +394,30 @@
                 $('.tab-content').removeClass('active');
                 $targetTab.addClass('active');
 
-                // 탭별 데이터 렌더링 분기
-                if (tabIndex === 1) { // 즐겨찾기 탭
+                if (tabIndex === 1) {
                     let userEmail = getCurrentUserEmail();
                     let favoriteKey = 'kimp_favorite_' + userEmail;
                     let isKimpFavorite = localStorage.getItem(favoriteKey) === 'true';
 
                     let favoriteData = isKimpFavorite ? dbData.filter(work => work.workId === 1) : [];
                     renderWorkList(favoriteData, $targetTab);
-                } else if (tabIndex === 3) { // ⭐ 카테고리 탭
-                    // 카테고리 탭은 초기 렌더링 시 무조건 이름(가나다) 오름차순으로 정리 후 노출
+                } else if (tabIndex === 3) {
                     categoryData.sort((a, b) => a.name.localeCompare(b.name));
-                    // 헤더 화살표 상태를 '이름(오름차순)'으로 시각적 초기화
                     $targetTab.find('.sort-item').removeClass('sort-up sort-down');
                     $targetTab.find('.sort-item').first().addClass('sort-up');
 
                     renderCategoryList(categoryData, $targetTab);
-                } else { // 인기 급상승, 새로운 일 탭
+                } else {
                     renderWorkList(dbData, $targetTab);
                 }
             });
 
+            $(document).on('click', '.btn-go-popular', function () {
+                $('.tab-list .tab-item').eq(0).click();
+            });
+
+            // ⭐ 앱 시작
+            init();
         });
     </script>
 </body>
