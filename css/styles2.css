@@ -3,6 +3,7 @@
     --var-bg1-color:rgb(40, 40, 40);
     --var-bg3-color:rgb(71, 71, 71);
     --bar-bg2-color: #231965;
+    --upfill: #55c755;
 }
  
 @font-face {
@@ -209,7 +210,7 @@ body {
     padding-top: 5px;
 }
 .box > .down > div > span > i {
-    color: green;
+    color: var(--upfill);
     padding-right: 3px;
 }
 .box > .down > div > .val {
@@ -246,7 +247,7 @@ body {
     position: relative;
 }
 .t-com > .right > .u > i{
-    color: green;
+    color: var(--upfill);
     white-space: nowrap;
     padding-right: 2px;
 }

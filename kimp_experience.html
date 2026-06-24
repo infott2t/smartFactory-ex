@@ -1,4 +1,4 @@
-﻿<!--
+<!--
 <%@ page contentType="text/html;charset=UTF-8" language="java" isELIgnored="true" %>
 <%
     org.example.config.auth.dto.SessionUser sUser = (org.example.config.auth.dto.SessionUser) request.getAttribute("user");
@@ -2441,7 +2441,7 @@
             saveMockState();
             renderWorkflow();
             renderTaskCards();
-            alert("전 작업자의 일 정보가 성공적으로 인수인계(자동 전달) 되었습니다.");
+            alert("전 작업자가 진행 중이던 [Stage 1. 배추 1/2컷팅하기], [Stage 2. 배추 절이기] 작업 정보가 성공적으로 일괄 인수인계(자동 전달) 되었습니다.\n(수량 및 불량 상황 포함)");
         }
         function openCleaningPhotoOverlay() {
             var overlay = document.getElementById('cleaning-photo-overlay');

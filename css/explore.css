@@ -1,0 +1,297 @@
+:root {
+    --var-bg-color: #070320;
+    --var-bg1-color: rgb(40, 40, 40);
+    --var-bg3-color: rgb(71, 71, 71);
+    --bar-bg2-color: #231965;
+    --var-line-color1: #444;
+    --upfill: rgb(0,160,0);
+    --tabline:rgb(41,41,41);
+}
+
+@font-face {
+    font-family: 'NotoKR';
+    src: url('../font/NotoSansKR-Regular.otf') format('opentype');
+}
+
+@font-face {
+    font-family: 'NotoKR';
+    src: url('../font/NotoSansKR-Regular.otf') format('opentype');
+}
+
+body {
+    color: #CCCCCC;
+    margin: 0;
+    height: 100vh;
+    font-family: "NotoKR";
+    background: var(--var-bg-color);
+}
+
+.header-wrap {
+    position: fixed;
+    top: 0;
+    left: 50%; /* 화면의 가로 중앙(50%)으로 이동 */
+    transform: translateX(-50%); /* 정확한 중앙 정렬을 위해 자신의 너비 절반만큼 왼쪽으로 당김 */
+    width: 100%;
+    max-width: 800px;
+    z-index: 100;
+    background-color: var(--var-bg-color);
+    color: white;
+    height: 39px;
+}
+
+.header {
+    padding-top: 8px;
+    padding-left: 9px;
+    display: flex;
+
+    column-gap: 5px;
+    align-items: center;
+    padding-bottom: 8px;
+    color: white;
+    background-color: var(--bg-color);
+}
+
+.chevron {
+    width: 30px;
+}
+
+.title {
+    flex: 1;
+    text-align: center;
+    margin-right: 30px;
+}
+
+.main {
+    width: 100%;
+    margin: auto;
+    max-width: 800px;
+     
+    background-color: var(--var-bg-color);
+    color: rgb(207, 207, 207);
+    padding-top: 41px;
+    padding-bottom: 20px;
+}
+
+.padding-20 {
+    padding: 20px;
+}
+
+/* 탭 전체 컨테이너 */
+.tabs {
+    width: 100%;
+    background-color: var(--var-bg-color);
+    /* 필요 시 탭 영역 하단에 연한 구분선을 넣으려면 아래 주석을 해제하세요 */
+    /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
+}
+
+/* 탭 리스트 (가로 스크롤 영역) */
+.tab-list {
+    display: flex;
+    justify-content: space-between;
+    list-style: none;
+    height: 45px;
+    padding: 0;
+    /* 화면 좌우 시작점 여백 */
+    margin: 0;
+    position: sticky;
+    z-index: 90;
+    overflow-x: auto;
+    /* 내용이 길면 가로 스크롤 허용 */
+    white-space: nowrap;
+    /* 항목들이 한 줄로 이어지도록 줄바꿈 방지 */
+
+    /* 브라우저 기본 스크롤바 숨기기 (디자인을 깔끔하게 하기 위함) */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+/* 3. 탭 리스트 고정 */
+.tabs {
+    flex-shrink: 0;
+    overflow-x: auto;
+    /* 탭이 많아지면 옆으로 스크롤 */
+    border-bottom: 1px solid var(--var-line-color1);
+}
+
+.tab-list {
+    list-style: none;
+    display: flex;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 52px;
+    border-bottom: 1px solid var(--tabline);
+    font-size: 15px;
+}
+
+.tab-item {
+    flex: 1;
+    text-align: center;
+    line-height: 56px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: #888;
+}
+
+/* 선택된 탭 강조 스타일 */
+.tab-item.active {
+    color: white;
+    border-bottom: 1px solid white;
+    /* 밝은 느낌의 포인트 색상 */
+}
+
+/* 4. 콘텐츠 영역 스크롤 설정 */
+.content-area {
+    display: block;
+    overflow-x: hidden;
+    padding: 12px 15px 20px 15px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.task-item {
+    display: block;
+    
+    width: 100%;
+    box-sizing:  border-box;
+    padding: 15px;
+     
+    
+    border-bottom: 1px solid var(--var-line-color1);
+}
+
+.tab-content {
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+
+}
+.tab-content.active {
+    display: block;
+    animation: slideFromRight 0.3s ease-out forwards;
+}
+.tab-content:nth-child(1).active {
+    animation: slideFromLeft 0.3s ease-out forwards;
+}
+@keyframes slideFromRight {
+    from {
+        transform: translateX(100%); /* 화면 오른쪽 바깥(100%)에서 시작 */
+        opacity: 0;                  /* 처음엔 투명하게 */
+    }
+    to {
+        transform: translateX(0);    /* 원래 제자리(0)로 이동 */
+        opacity: 1;                  /* 선명하게 나타남 */
+    }
+}
+@keyframes slideFromLeft {
+    from {
+        transform: translateX(-100%); /* 화면 왼쪽 바깥(-100%)에서 시작 */
+        opacity: 0;                   /* 처음엔 투명하게 */
+    }
+    to {
+        transform: translateX(0);     /* 원래 제자리(0)로 이동 */
+        opacity: 1;                   /* 선명하게 나타남 */
+    }
+}
+/* --- 탭 내부 정렬 메뉴 영역 스타일 조절 --- */
+.sort-row {
+    display: flex;
+    justify-content: flex-start;
+    gap: 50px;
+    padding: 0 0 12px 0;          /* 좌우 여백은 부모의 패딩을 따르도록 0으로 만들고, 아래쪽 여백만 지정 */
+           
+    border-bottom: 1px solid var(--var-line-color1);
+    background-color: var(--var-bg-color);
+    width: 100%;
+    box-sizing: border-box;
+}
+/* 화살표 두 개를 위아래로 쌓기 */
+.sort-arrows {
+    display: flex;
+    flex-direction: column;
+    margin-left: 5px;
+    justify-content: center;
+}
+
+/* 위아래 삼각형이 하나의 아이콘처럼 찰싹 달라붙게 간격 조절 */
+.sort-arrows i {
+    font-size: 11px;      /* 화살표 크기 조절 */
+    line-height: 0.6;     /* 위아래 화살표 간격을 바짝 붙임 */
+    color: #555555;       /* 기본 비활성화 색상 (회색) */
+    transition: color 0.2s ease; /* 색상이 부드럽게 변하도록 */
+}
+
+.sort-item {
+    display: flex;
+    font-size:14px;
+    color: #888;
+    padding: 0px 10px;
+    column-gap: 6px;
+}
+
+/* --- 정렬(서브 탭) 메뉴 영역 스타일 보강 --- */
+
+/* 1. 오름차순(위) 활성화 상태: 글자색 흰색 + 위쪽 화살표 흰색 */
+.sort-item.sort-up {
+    color: #ffffff !important; /* 글자 흰색 변경 */
+}
+.sort-item.sort-up .bi-caret-up-fill {
+    color: #ffffff !important; /* 위쪽 삼각형 흰색 변경 */
+}
+.sort-item.sort-up .bi-caret-down-fill {
+    color: #555555 !important; /* 선택 안 된 아래 삼각형은 어두운 회색 유지 */
+}
+
+/* 2. 내림차순(아래) 활성화 상태: 글자색 흰색 + 아래쪽 화살표 흰색 */
+.sort-item.sort-down {
+    color: #ffffff !important; /* 글자 흰색 변경 */
+}
+.sort-item.sort-down .bi-caret-down-fill {
+    color: #ffffff !important; /* 아래쪽 삼각형 흰색 변경 */
+}
+.sort-item.sort-down .bi-caret-up-fill {
+    color: #555555 !important; /* 선택 안 된 위쪽 삼각형은 어두운 회색 유지 */
+}
+
+img {
+    width: 25px;
+    height: 25px;
+}
+.task-items0 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.task-items {
+    display: flex;
+    align-items: center;
+    column-gap: 10px;
+}
+.texts {
+    display:flex;
+    flex-direction: column;
+    font-size: 15px;
+}
+.texts > span:nth-child(2) {
+    
+   
+    font-size: 13px;
+    color: #979797;
+}
+.texts > span:nth-child(1) {
+    line-height: 1.2; /* 첫 번째 span의 위아래 기본 공백을 대폭 축소 */
+}
+
+.texts > span:nth-child(2) {
+    line-height: 1.1; /* 두 번째 span의 위아래 공백을 축소 */
+    margin-top: 2px;  /* 원하는 만큼 아주 미세하게 간격 조정 가능 */
+}
+.greenfill{
+    color: var(--upfill);
+}
+.lspace {
+    letter-spacing: 0.3px;
+}

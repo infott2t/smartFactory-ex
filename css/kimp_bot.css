@@ -799,6 +799,7 @@ body, html {
     margin-bottom: 8px;
     padding-right: 8px;
     font-family: 'NotoKR', sans-serif;
+    margin-top: 1px;
 }
 
 .btn-interval {
