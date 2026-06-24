@@ -133,12 +133,18 @@ body {
     cursor: pointer;
     border-bottom: 2px solid transparent;
     color: #888;
+    position:relative;
 }
 
-/* 선택된 탭 강조 스타일 */
-.tab-item.active {
-    color: white;
-    border-bottom: 1px solid white;
+ 
+.tab-item.active::after {
+    content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0; /* 요소를 하단에 딱 붙임 */
+  width: 100%;
+  height: 1px; /* 라인 두께 */
+  background-color: #ffffff;
     /* 밝은 느낌의 포인트 색상 */
 }
 
@@ -294,4 +300,17 @@ img {
 }
 .lspace {
     letter-spacing: 0.3px;
+}
+
+/* 화면 너비가 625px 이하일 때 적용되는 미디어 쿼리 */
+@media (max-width: 625px) {
+    .sort-row {
+        overflow-x: auto; /* 가로 스크롤 활성화 */
+        flex-wrap: nowrap; /* 요소들이 밑으로 떨어지지 않게 한 줄로 강제 */
+        gap:0px;
+        min-width: 70px;
+    }
+
+    
+   
 }
