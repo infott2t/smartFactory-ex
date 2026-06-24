@@ -305,7 +305,13 @@
                 if (!localStorage.getItem('kimp_works_db')) {
                     localStorage.setItem('kimp_works_db', MOCK_JSON_DATA);
                 }
-                return JSON.parse(localStorage.getItem('kimp_works_db'));
+                
+                // 실제 서버 통신처럼 보이도록 Promise와 setTimeout을 사용해 0.8초 지연시킵니다.
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        resolve(JSON.parse(localStorage.getItem('kimp_works_db')));
+                    }, 800); 
+                });
             }
 
             let dbData = [];
@@ -327,14 +333,42 @@
                 } catch (e) { }
                 return userEmail;
             }
+            // ⭐ 로딩 UI 표시 함수
+            function showLoading($targetTab) {
+                $targetTab.find('.task-item').remove();
+                $targetTab.find('.empty-state').remove();
+                $targetTab.find('.loading-container').remove(); // 중복 방지
+
+                let loadingHtml = `
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text"></div>
+                    </div>
+                `;
+                $targetTab.append(loadingHtml);
+            }
+
+            // ⭐ 로딩 UI 제거 함수
+            function hideLoading($targetTab) {
+                $targetTab.find('.loading-container').remove();
+            }
 
             // -------------------------
             // 2. 초기화 및 렌더링 영역
             // -------------------------
             async function init() {
+               let $firstTab = $('.tab-content').eq(0);
+                
+                // 1) 데이터를 가져오기 전에 로딩 스피너를 먼저 띄웁니다.
+                showLoading($firstTab); 
+
+                // 2) 백엔드(로컬스토리지 시뮬레이션)에서 데이터를 가져옵니다. (약 0.8초 대기)
                 dbData = await fetchWorksData();
                 categoryData = extractCategoryData(dbData);
-                renderWorkList(dbData, $('.tab-content').eq(0));
+                
+                // 3) 데이터가 도착하면 로딩 스피너를 지우고 실제 리스트를 그립니다.
+                hideLoading($firstTab);
+                renderWorkList(dbData, $firstTab);
             }
 
             function extractCategoryData(data) {
