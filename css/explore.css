@@ -310,7 +310,14 @@ img {
         gap:0px;
         min-width: 70px;
     }
-
+    .sort-item {
+        column-gap: 0px;
+        font-size: 12px;
+        padding: 0px 4px;
+    }
+    .lspace {
+        letter-spacing: 0px;
+    }
     
    
 }
