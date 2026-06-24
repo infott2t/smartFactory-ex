@@ -396,7 +396,7 @@ img {
 .search-container {
     display: flex;
     justify-content: flex-end; /* 오른쪽(뒤쪽) 배치 */
-    padding: 10px 15px;
+    padding: 10px 1px;
     border-bottom: 1px solid var(--var-line-color1);
 }
 
@@ -405,8 +405,8 @@ img {
     align-items: center;
     width: 200px; /* 원하는 너비로 조절 가능 */
     height: 46px; /* 요청하신 높이 고정 */
-    background: rgba(255, 255, 255, 0.03); /* 기존 테마에 맞는 반투명 배경 */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* 기존 테마 보더 색상 */
+    background: var(--var-bg-color);
+    border: 1px solid #3a3a3a ;/* 기존 테마 보더 색상 */
     border-radius: 8px;
     padding: 0 12px;
     transition: border-color 0.2s ease;
