@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>생산 공정 터미널</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        /* 1. 색상 테마 및 변수 (일반 모드 기준) */
+        :root {
+            --bg-main: #f4f6f8;
+            --bg-card: #ffffff;
+            --bg-header: #ffffff;
+            
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --warning: #f59e0b;
+            
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+            
+            --header-height: 140px;
+        }
+
+        /* 2. 리셋 및 폰트 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            overflow: hidden; 
+            height: 100vh;
+        }
+
+        /* 3. 상단 고정 헤더 */
+        .global-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--header-height);
+            background-color: var(--bg-header);
+            border-bottom: 2px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 24px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .job-info-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .job-title {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .job-title i { color: var(--primary); }
+
+        /* 현재 위치(Stage) 표시 뱃지 */
+        .location-badge {
+            background-color: var(--primary);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* 작업 선택 버튼 */
+        .btn-select-task {
+            background-color: var(--warning);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.1s;
+        }
+        .btn-select-task:active { transform: scale(0.95); }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .status-box {
+            background-color: var(--bg-main);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-label { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+        .status-value { font-size: 22px; font-weight: 700; font-family: 'Inter', sans-serif; }
+        .status-value.highlight { color: var(--success); }
+
+        /* 4. 메인 컨텐츠 영역 */
+        .main-content {
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            position: relative;
+        }
+
+        .stage-page {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            padding: 24px;
+            overflow-y: auto;
+            background-color: var(--bg-main);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+            transform: translateX(100%);
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .stage-page.active { transform: translateX(0); opacity: 1; visibility: visible; }
+        .stage-page.past { transform: translateX(-100%); opacity: 0; visibility: hidden; }
+
+        /* 카드 및 버튼 */
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stage-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: var(--primary); }
+        .stage-desc { font-size: 18px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 32px; }
+
+        /* =======================================================
+           5. HMI 작업 선택 모달 (Task Selector)
+           ======================================================= */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(30, 41, 59, 0.85); /* 반투명 어두운 배경 */
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; visibility: visible; }
+
+        .modal-content {
+            width: 90%; max-width: 800px;
+            background-color: var(--bg-card);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.open .modal-content { transform: scale(1); }
+
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+        .modal-title { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+        
+        .btn-close-modal {
+            background: none; border: none; font-size: 32px; color: var(--text-secondary); cursor: pointer;
+        }
+
+        /* 6개의 Stage를 보여주는 2열 그리드 */
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .task-btn {
+            background-color: var(--bg-main);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px 16px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        .task-btn i { font-size: 36px; color: var(--primary); }
+        .task-btn:hover { background-color: #e0e7ff; border-color: var(--primary); }
+        .task-btn:active { transform: scale(0.98); }
+        
+        /* 현재 작업중인 버튼 강조 */
+        .task-btn.current {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .task-btn.current i { color: white; }
+
+    </style>
+</head>
+<body>
+
+    <header class="global-header">
+        <div class="header-top">
+            <div class="job-info-group">
+                <div class="job-title" id="display-job-title">
+                    <i class="bi bi-box-seam"></i> 김치만들기
+                </div>
+                <div class="location-badge" id="display-location">
+                    <i class="bi bi-geo-alt-fill"></i> 대기장소
+                </div>
+            </div>
+            
+            <button class="btn-select-task" onclick="openTaskSelector()">
+                <i class="bi bi-grid-fill"></i> 작업 위치 변경
+            </button>
+        </div>
+
+        <div class="status-grid">
+            <div class="status-box">
+                <span class="status-label">현재 시간</span>
+                <span class="status-value" id="clock-current">00:00</span>
+            </div>
+            <div class="status-box">
+                <span class="status-label">작업 남은 시간</span>
+                <span class="status-value" id="clock-remaining">02:00:00</span>
+            </div>
+            <div class="status-box">
+                <span class="status-label">예상 급여액</span>
+                <span class="status-value highlight" id="salary-display">0 원</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="stage-page active" id="stage-0">
+            <div class="card">
+                <i class="bi bi-info-circle-fill" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 24px; display: inline-block;"></i>
+                <h1 class="stage-title">작업을 선택해주세요</h1>
+                <p class="stage-desc">상단의 <strong>[작업 위치 변경]</strong> 버튼을 눌러<br>진행할 공정을 선택할 수 있습니다.</p>
+            </div>
+        </div>
+
+        <div class="stage-page" id="stage-1">
+            <div class="card">
+                <h1 class="stage-title">Stage 1. 배추 1/2 컷팅하기</h1>
+                <p class="stage-desc">배추를 컷팅하여 이물질을 제거하고 파레트에 적재합니다.</p>
+                </div>
+        </div>
+
+        <div class="stage-page" id="stage-2">
+            <div class="card">
+                <h1 class="stage-title">Stage 2. 배추 절이기</h1>
+                <p class="stage-desc">염수 탱크의 염도를 맞추고 배추를 투입합니다.</p>
+            </div>
+        </div>
+
+        <div class="stage-page" id="stage-3">
+            <div class="card">
+                <h1 class="stage-title">Stage 3. 세척 및 물기 빼기</h1>
+                <p class="stage-desc">절인 배추를 맑은 물에 씻어내고 건조망에 올립니다.</p>
+            </div>
+        </div>
+
+        <div class="stage-page" id="stage-4">
+            <div class="card">
+                <h1 class="stage-title">Stage 4. 밀봉 및 보관</h1>
+                <p class="stage-desc">물기가 빠진 배추를 규격 비닐에 밀봉하여 저온창고에 보관합니다.</p>
+            </div>
+        </div>
+
+        <div class="stage-page" id="stage-5">
+            <div class="card">
+                <h1 class="stage-title">Stage 5. 양념 버무리기</h1>
+                <p class="stage-desc">제조된 양념을 배추 잎사귀 사이사이에 골고루 바릅니다.</p>
+            </div>
+        </div>
+
+        <div class="stage-page" id="stage-6">
+            <div class="card">
+                <h1 class="stage-title">Stage 6. 포장 및 출하 대기</h1>
+                <p class="stage-desc">완성된 김치를 중량에 맞게 박스 포장하고 라벨을 부착합니다.</p>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">어디에서 일할까요?</h2>
+                <button class="btn-close-modal" onclick="closeTaskSelector()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            
+            <div class="task-grid" id="task-grid-container">
+                </div>
+        </div>
+    </div>
+
+<script src="./js/jquery-3.7.1.min.js"></script>
+<script>
+    // ============================================================
+    // 1. 공정 및 지시서 데이터 모델
+    // ============================================================
+    const appData = {
+        currentOrder: { id: "ORD-20260625-A", title: "김치만들기", qty: 15 },
+        stages: [
+            { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", worker: "" },
+            { id: 2, name: "배추 절이기", icon: "bi-water", status: "occupied", worker: "박준호" },
+            { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "disabled", worker: "" },
+            { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", worker: "" },
+            { id: 5, name: "양념 버무리기", icon: "bi-basket", status: "occupied", worker: "이영희" },
+            { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "disabled", worker: "" }
+        ],
+        activeStageId: 0,
+        user: { name: "손님", id: "guest" }
+    };
+
+    // ============================================================
+    // 2. 초기 로드 (DOM 로딩 후 실행)
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        initSession();
+        updateHeaderInfo();
+        setInterval(updateClocks, 1000);
+    });
+
+    function initSession() {
+        try {
+            const userStr = sessionStorage.getItem("user");
+            if (userStr) {
+                appData.user = JSON.parse(userStr);
+                const nameEl = document.getElementById("display-user-name");
+                if (nameEl) nameEl.textContent = appData.user.name;
+            } else {
+                window.location.href = "login.html";
+            }
+        } catch(e) { console.error("세션 초기화 실패", e); }
+    }
+
+    function updateHeaderInfo() {
+        const titleEl = document.getElementById('display-job-title');
+        const orderEl = document.getElementById('display-work-order');
+        if (titleEl) titleEl.innerHTML = `<i class="bi bi-box-seam"></i> ${appData.currentOrder.title}`;
+        if (orderEl) orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${appData.currentOrder.id}`;
+    }
+
+    // ============================================================
+    // 3. 작업 선택 로직 (HMI 모달)
+    // ============================================================
+    function openTaskSelector() {
+        const grid = document.getElementById('task-grid-container');
+        if (!grid) return;
+        grid.innerHTML = ''; 
+
+        appData.stages.forEach(stage => {
+            const isCurrent = (stage.id === appData.activeStageId);
+            const btnClass = isCurrent ? 'current' : stage.status;
+            
+            let statusText = isCurrent ? "내가 작업 중" : 
+                            (stage.status === 'occupied' ? `${stage.worker} 작업 중` : 
+                            (stage.status === 'disabled' ? "설비 점검" : "참여 가능"));
+
+            grid.innerHTML += `
+                <button class="task-btn ${btnClass}" onclick="handleStageClick(${stage.id}, '${stage.status}', '${stage.name}')">
+                    <i class="bi ${stage.icon}"></i>
+                    <span>Stage ${stage.id}. ${stage.name}</span>
+                    <span class="task-status-text ${stage.status}">${statusText}</span>
+                </button>
+            `;
+        });
+        document.getElementById('task-modal').classList.add('open');
+    }
+
+    function closeTaskSelector() {
+        document.getElementById('task-modal').classList.remove('open');
+    }
+
+    function handleStageClick(stageId, status, stageName) {
+        if (stageId === appData.activeStageId) { closeTaskSelector(); return; }
+        if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
+        if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
+
+        moveToStage(stageId, stageName);
+    }
+
+    function moveToStage(stageId, stageName) {
+        appData.activeStageId = stageId;
+        const locBadge = document.getElementById('display-location');
+        if (locBadge) locBadge.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Stage ${stageId}. ${stageName}`;
+
+        document.querySelectorAll('.stage-page').forEach(p => {
+            p.classList.remove('active');
+            p.classList.add('past');
+        });
+        const target = document.getElementById(`stage-${stageId}`);
+        if (target) {
+            target.classList.remove('past');
+            target.classList.add('active');
+        }
+        closeTaskSelector();
+    }
+
+    // ============================================================
+    // 4. 시계/급여 타이머 (간소화)
+    // ============================================================
+    let remainingSeconds = 7200;
+    let accumSalary = 0;
+    const SALARY_PER_SEC = 13416 / 3600;
+
+    function updateClocks() {
+        const now = new Date();
+        const curEl = document.getElementById('clock-current');
+        const remEl = document.getElementById('clock-remaining');
+        const salEl = document.getElementById('salary-display');
+
+        if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        if (remainingSeconds > 0) remainingSeconds--;
+        if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds/3600)).padStart(2,'0')}:${String(Math.floor((remainingSeconds%3600)/60)).padStart(2,'0')}:${String(remainingSeconds%60).padStart(2,'0')}`;
+        
+        accumSalary += SALARY_PER_SEC;
+        if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
+    }
+</script>
+
+</body>
+</html>

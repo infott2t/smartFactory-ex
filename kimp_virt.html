@@ -20,21 +20,22 @@
 -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <script>
-        (function() {
+        (function () {
             const originalGetItem = localStorage.getItem;
             const originalSetItem = localStorage.setItem;
             const originalRemoveItem = localStorage.removeItem;
 
-            localStorage.getItem = function(key) {
+            localStorage.getItem = function (key) {
                 if (key && (key.startsWith('kimp_') || key.startsWith('mypage_'))) {
                     return originalGetItem.call(localStorage, key + '_local');
                 }
                 return originalGetItem.call(localStorage, key);
             };
 
-            localStorage.setItem = function(key, value) {
+            localStorage.setItem = function (key, value) {
                 if (key && (key.startsWith('kimp_') || key.startsWith('mypage_'))) {
                     originalSetItem.call(localStorage, key + '_local', value);
                     const event = new StorageEvent('storage', {
@@ -49,7 +50,7 @@
                 originalSetItem.call(localStorage, key, value);
             };
 
-            localStorage.removeItem = function(key) {
+            localStorage.removeItem = function (key) {
                 if (key && (key.startsWith('kimp_') || key.startsWith('mypage_'))) {
                     originalRemoveItem.call(localStorage, key + '_local');
                     return;
@@ -59,10 +60,13 @@
         })();
     </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
     <title>김치만들기 - 위생 체크인</title>
     <!-- Google Fonts: Inter, Noto Sans KR, Outfit -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="./js/auth.js" type="text/javascript"></script>
@@ -70,7 +74,7 @@
     <script src="./js/store.js" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
     <script src="./js/simulator.js" type="text/javascript"></script>
-    
+
     <style>
         :root {
             --bg-color: #0b0b16;
@@ -134,7 +138,7 @@
 
         .header-title {
             font-size: 16px;
-             
+
         }
 
         /* 온라인 체험 중 애니메이션 녹색 점 */
@@ -165,8 +169,15 @@
         }
 
         @keyframes pulse-dot {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(2.2); opacity: 0; }
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
         }
 
         .online-text {
@@ -187,7 +198,7 @@
 
         .guide-text {
             font-size: 15px;
-            
+
             color: #fff;
             text-align: center;
             text-shadow: 0 0 10px rgba(123, 92, 245, 0.5);
@@ -195,7 +206,7 @@
 
         /* ── 가상체험 온라인 그리팅 카드 ── */
         .greeting-card {
-            display:none;
+            display: none;
             background-color: var(--card-bg);
             border-left: 4px solid var(--neon-blue);
             border-top: 1px solid var(--card-border);
@@ -500,9 +511,17 @@
         }
 
         @keyframes scanLine {
-            0% { top: 10px; }
-            50% { top: 150px; }
-            100% { top: 10px; }
+            0% {
+                top: 10px;
+            }
+
+            50% {
+                top: 150px;
+            }
+
+            100% {
+                top: 10px;
+            }
         }
 
         .qr-mock-code {
@@ -512,8 +531,15 @@
         }
 
         @keyframes pulse {
-            from { transform: scale(0.95); opacity: 0.1; }
-            to { transform: scale(1.05); opacity: 0.2; }
+            from {
+                transform: scale(0.95);
+                opacity: 0.1;
+            }
+
+            to {
+                transform: scale(1.05);
+                opacity: 0.2;
+            }
         }
 
         /* ── 사물함 지정 ── */
@@ -753,7 +779,7 @@
             font-size: 12px;
             text-align: center;
             color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .camera-shutter-container {
@@ -816,7 +842,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* 토스트 */
@@ -858,6 +886,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <!-- ── 상단 헤더 ── -->
@@ -873,7 +902,7 @@
         <!-- ── 가이드 배너 ── -->
         <div class="guide-banner">
             <div class="guide-text" style="white-space: pre-line;">체험을 통해
-안전하고 재미있게 일을 해보아요. 😀😊</div>
+                안전하고 재미있게 일을 해보아요. 😀😊</div>
         </div>
 
         <!-- ── 그리팅 카드 ── -->
@@ -896,7 +925,7 @@
         </div>
 
         <!-- ── 6단계 아코디언 위저드 ── -->
-        
+
         <!-- Step 1: 오시는 길 확인 -->
         <div class="step-card active" id="step-card-1">
             <div class="step-header">
@@ -908,7 +937,8 @@
             </div>
             <div class="step-content">
                 <div class="address-container">
-                    <div style="font-weight: 600; font-size: 13px; color: var(--neon-blue); display: flex; align-items: center; gap: 4px;">
+                    <div
+                        style="font-weight: 600; font-size: 13px; color: var(--neon-blue); display: flex; align-items: center; gap: 4px;">
                         <i class="bi bi-building"></i> 김치만들기 AFood
                     </div>
                     <div class="address-box">
@@ -991,7 +1021,7 @@
                             <div class="locker-tab-btn" id="gender-female" onclick="selectGender('여성')">여성 사물함</div>
                         </div>
                     </div>
-                    
+
                     <div id="locker-selection-section" style="display: none;">
                         <div class="info-label" style="margin-bottom: 4px;">사물함 번호 선택</div>
                         <div class="locker-grid">
@@ -1013,7 +1043,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <button class="btn-primary" id="btn-complete-locker" onclick="completeStep(4)" disabled>
                     사물함 지정 및 환복 완료
                 </button>
@@ -1030,11 +1060,12 @@
                 <span class="step-status locked-text" id="status-5"><i class="bi bi-lock-fill"></i> 잠김</span>
             </div>
             <div class="step-content">
-                <div class="info-box" style="border-left: 3px solid var(--neon-blue); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                <div class="info-box"
+                    style="border-left: 3px solid var(--neon-blue); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;">
                     <i class="bi bi-info-circle-fill" style="color: var(--neon-blue);"></i>
                     <span>손을 씻어주세요.</span>
                 </div>
-                
+
                 <div class="hygiene-checklist" style="margin-top: 4px;">
                     <div class="hygiene-check-item" id="check-item-wash">
                         <i class="bi bi-circle-fill"></i>
@@ -1054,7 +1085,8 @@
                     </div>
                 </div>
 
-                <button class="btn-primary" id="btn-complete-hygiene" onclick="completeStep(5)" style="margin-top: 6px;">
+                <button class="btn-primary" id="btn-complete-hygiene" onclick="completeStep(5)"
+                    style="margin-top: 6px;">
                     손씻기 및 위생구 착용완료
                 </button>
             </div>
@@ -1083,12 +1115,13 @@
                         <span class="photo-slot-label" id="label-full">전신 위생상태 사진</span>
                     </div>
                 </div>
-                
+
                 <!-- 승인 심사 대기 및 결과 영역 -->
                 <div class="approval-box" id="approval-box-area">
                     <div id="approval-spinner-section">
                         <div class="spinner-ring"></div>
-                        <div style="font-size: 13px; font-weight: 600; color: var(--neon-blue); margin-top: 10px;" id="approval-text">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--neon-blue); margin-top: 10px;"
+                            id="approval-text">
                             위생 검사 진행 중... 잠시만 기다려주세요 (3초)
                         </div>
                     </div>
@@ -1097,7 +1130,8 @@
                         <div style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 8px;">
                             승인이 완료되었습니다. 입장해보세요.
                         </div>
-                        <button class="btn-primary" style="margin-top: 14px; width: 100%;" onclick="enterExperienceCenter()">
+                        <button class="btn-primary" style="margin-top: 14px; width: 100%;"
+                            onclick="enterExperienceCenter()">
                             AFood Kimchi룸으로 입장하기
                         </button>
                     </div>
@@ -1119,14 +1153,19 @@
                 <span class="step-status locked-text" id="status-7"><i class="bi bi-lock-fill"></i> 잠김</span>
             </div>
             <div class="step-content">
-                <div class="info-box" style="border-left: 3px solid var(--neon-green); background: rgba(0, 184, 148, 0.08);">
+                <div class="info-box"
+                    style="border-left: 3px solid var(--neon-green); background: rgba(0, 184, 148, 0.08);">
                     준비가 완료되었습니다. 🎊 일 해보세요~. 안전하고 청결하게 일합시다. 😁😊
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 14px;">
-                    <button class="btn-primary" style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #009e7e);" onclick="enterWorkshop()">
+                    <button class="btn-primary"
+                        style="flex: 1; background: linear-gradient(135deg, var(--neon-green), #009e7e);"
+                        onclick="enterWorkshop()">
                         <i class="bi bi-door-open"></i> Workshop 입장하기
                     </button>
-                    <button class="btn-primary" style="flex: 0.6; background: linear-gradient(135deg, #6c5ce7, #a29bfe);" onclick="showFacilityMap()">
+                    <button class="btn-primary"
+                        style="flex: 0.6; background: linear-gradient(135deg, #6c5ce7, #a29bfe);"
+                        onclick="showFacilityMap()">
                         <i class="bi bi-map"></i> 휴식장소 및 편의시설 안내
                     </button>
                 </div>
@@ -1159,78 +1198,113 @@
     </div>
 
     <!-- ── 휴식장소 및 편의시설 안내 모달 ── -->
-    <div class="camera-overlay" id="facility-map-modal" style="display:none; background: rgba(0,0,0,0.92); z-index:2000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
-        <div style="width:100%; max-width:440px; background: var(--card-bg); border-radius:16px; border:1px solid var(--card-border); overflow:hidden;">
-            <div style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border);">
-                <span style="font-size:15px; font-weight:700; color:var(--text-main);"><i class="bi bi-map"></i> 공장 편의시설 안내도</span>
-                <i class="bi bi-x" style="font-size:22px; cursor:pointer; color:var(--text-sub);" onclick="closeFacilityMap()"></i>
+    <div class="camera-overlay" id="facility-map-modal"
+        style="display:none; background: rgba(0,0,0,0.92); z-index:2000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+        <div
+            style="width:100%; max-width:440px; background: var(--card-bg); border-radius:16px; border:1px solid var(--card-border); overflow:hidden;">
+            <div
+                style="padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--card-border);">
+                <span style="font-size:15px; font-weight:700; color:var(--text-main);"><i class="bi bi-map"></i> 공장 편의시설
+                    안내도</span>
+                <i class="bi bi-x" style="font-size:22px; cursor:pointer; color:var(--text-sub);"
+                    onclick="closeFacilityMap()"></i>
             </div>
             <div style="padding:20px; position:relative;">
                 <!-- SVG Factory Floor Map -->
                 <svg viewBox="0 0 400 280" style="width:100%; border-radius:8px; background:#1a1a35;">
                     <!-- Factory outline -->
-                    <rect x="10" y="10" width="380" height="260" rx="8" fill="none" stroke="#2d2d5e" stroke-width="2"/>
-                    
+                    <rect x="10" y="10" width="380" height="260" rx="8" fill="none" stroke="#2d2d5e" stroke-width="2" />
+
                     <!-- Workshop Area -->
-                    <rect x="20" y="20" width="200" height="140" rx="4" fill="#1e1e3f" stroke="#3d3d7e" stroke-width="1"/>
-                    <text x="120" y="95" text-anchor="middle" fill="#76769e" font-size="12" font-family="Inter">🏭 작업장 (Workshop)</text>
-                    
+                    <rect x="20" y="20" width="200" height="140" rx="4" fill="#1e1e3f" stroke="#3d3d7e"
+                        stroke-width="1" />
+                    <text x="120" y="95" text-anchor="middle" fill="#76769e" font-size="12" font-family="Inter">🏭 작업장
+                        (Workshop)</text>
+
                     <!-- Task Areas -->
-                    <rect x="30" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5"/>
-                    <text x="57" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task 1</text>
-                    <rect x="95" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5"/>
-                    <text x="122" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task 2-3</text>
-                    <rect x="160" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5"/>
-                    <text x="187" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task 4-5</text>
-                    
+                    <rect x="30" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff"
+                        stroke-width="0.5" />
+                    <text x="57" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task
+                        1</text>
+                    <rect x="95" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff"
+                        stroke-width="0.5" />
+                    <text x="122" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task
+                        2-3</text>
+                    <rect x="160" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff"
+                        stroke-width="0.5" />
+                    <text x="187" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter">Task
+                        4-5</text>
+
                     <!-- Changing Room -->
-                    <rect x="230" y="20" width="80" height="60" rx="4" fill="#2a1f4e" stroke="#6c5ce7" stroke-width="1"/>
-                    <text x="270" y="50" text-anchor="middle" fill="#a29bfe" font-size="10" font-family="Inter">👔 탈의실</text>
-                    <text x="270" y="65" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">사물함 보관</text>
-                    
+                    <rect x="230" y="20" width="80" height="60" rx="4" fill="#2a1f4e" stroke="#6c5ce7"
+                        stroke-width="1" />
+                    <text x="270" y="50" text-anchor="middle" fill="#a29bfe" font-size="10" font-family="Inter">👔
+                        탈의실</text>
+                    <text x="270" y="65" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">사물함
+                        보관</text>
+
                     <!-- Aging Room -->
-                    <rect x="320" y="20" width="65" height="60" rx="4" fill="#1e3a2a" stroke="#00b894" stroke-width="1"/>
-                    <text x="352" y="50" text-anchor="middle" fill="#00b894" font-size="10" font-family="Inter">🧂 절임실</text>
-                    
+                    <rect x="320" y="20" width="65" height="60" rx="4" fill="#1e3a2a" stroke="#00b894"
+                        stroke-width="1" />
+                    <text x="352" y="50" text-anchor="middle" fill="#00b894" font-size="10" font-family="Inter">🧂
+                        절임실</text>
+
                     <!-- ★ Break Room (highlighted) -->
-                    <rect x="230" y="100" width="155" height="70" rx="6" fill="rgba(255, 165, 0, 0.15)" stroke="#ff9f43" stroke-width="2" stroke-dasharray="4,2">
-                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+                    <rect x="230" y="100" width="155" height="70" rx="6" fill="rgba(255, 165, 0, 0.15)" stroke="#ff9f43"
+                        stroke-width="2" stroke-dasharray="4,2">
+                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
                     </rect>
-                    <text x="307" y="130" text-anchor="middle" fill="#ff9f43" font-size="13" font-weight="bold" font-family="Inter">☕ 휴식공간 (Break Room)</text>
-                    <text x="307" y="148" text-anchor="middle" fill="#ffcc80" font-size="9" font-family="Inter">음료수 · 간식 · 소파 · 충전기</text>
-                    <text x="307" y="162" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">휴식시간: 10분 이내</text>
-                    
+                    <text x="307" y="130" text-anchor="middle" fill="#ff9f43" font-size="13" font-weight="bold"
+                        font-family="Inter">☕ 휴식공간 (Break Room)</text>
+                    <text x="307" y="148" text-anchor="middle" fill="#ffcc80" font-size="9" font-family="Inter">음료수 · 간식
+                        · 소파 · 충전기</text>
+                    <text x="307" y="162" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">휴식시간:
+                        10분 이내</text>
+
                     <!-- ★ Restroom (highlighted) -->
-                    <rect x="20" y="180" width="100" height="80" rx="6" fill="rgba(0, 206, 209, 0.12)" stroke="#00cec9" stroke-width="2" stroke-dasharray="4,2">
-                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
+                    <rect x="20" y="180" width="100" height="80" rx="6" fill="rgba(0, 206, 209, 0.12)" stroke="#00cec9"
+                        stroke-width="2" stroke-dasharray="4,2">
+                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
                     </rect>
-                    <text x="70" y="215" text-anchor="middle" fill="#00cec9" font-size="13" font-weight="bold" font-family="Inter">🚻 화장실 (Restroom)</text>
-                    <text x="70" y="233" text-anchor="middle" fill="#81ecec" font-size="9" font-family="Inter">남/여 구분 · 세면대</text>
-                    <text x="70" y="247" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">이용 후 손씻기 필수!</text>
-                    
+                    <text x="70" y="215" text-anchor="middle" fill="#00cec9" font-size="13" font-weight="bold"
+                        font-family="Inter">🚻 화장실 (Restroom)</text>
+                    <text x="70" y="233" text-anchor="middle" fill="#81ecec" font-size="9" font-family="Inter">남/여 구분 ·
+                        세면대</text>
+                    <text x="70" y="247" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter">이용 후 손씻기
+                        필수!</text>
+
                     <!-- QR Station -->
-                    <rect x="140" y="200" width="80" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8"/>
-                    <text x="180" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">📱 QR 입력기</text>
-                    <text x="180" y="240" text-anchor="middle" fill="#76769e" font-size="7" font-family="Inter">(출근/퇴근)</text>
-                    
+                    <rect x="140" y="200" width="80" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9"
+                        stroke-width="0.8" />
+                    <text x="180" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">📱 QR
+                        입력기</text>
+                    <text x="180" y="240" text-anchor="middle" fill="#76769e" font-size="7"
+                        font-family="Inter">(출근/퇴근)</text>
+
                     <!-- Entrance -->
-                    <rect x="240" y="200" width="60" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8"/>
-                    <text x="270" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">🚪 입구</text>
-                    
+                    <rect x="240" y="200" width="60" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9"
+                        stroke-width="0.8" />
+                    <text x="270" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">🚪
+                        입구</text>
+
                     <!-- Office -->
-                    <rect x="320" y="200" width="65" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8"/>
-                    <text x="352" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">🏢 사무실</text>
-                    
+                    <rect x="320" y="200" width="65" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9"
+                        stroke-width="0.8" />
+                    <text x="352" y="225" text-anchor="middle" fill="#dfe6e9" font-size="9" font-family="Inter">🏢
+                        사무실</text>
+
                     <!-- Legend indicators -->
-                    <circle cx="25" y="270" r="4" fill="#ff9f43"/>
+                    <circle cx="25" y="270" r="4" fill="#ff9f43" />
                     <text x="35" y="273" fill="#ff9f43" font-size="8" font-family="Inter">= 휴식장소</text>
-                    <circle cx="110" y="270" r="4" fill="#00cec9"/>
+                    <circle cx="110" y="270" r="4" fill="#00cec9" />
                     <text x="120" y="273" fill="#00cec9" font-size="8" font-family="Inter">= 화장실</text>
-                    <circle cx="195" y="270" r="4" fill="#7b92ff"/>
+                    <circle cx="195" y="270" r="4" fill="#7b92ff" />
                     <text x="205" y="273" fill="#7b92ff" font-size="8" font-family="Inter">= 작업 구역</text>
                 </svg>
-                <div style="margin-top:12px; padding:10px; background:rgba(255,159,67,0.08); border-radius:8px; border:1px solid rgba(255,159,67,0.2);">
-                    <div style="font-size:12px; color:#ff9f43; font-weight:600;"><i class="bi bi-info-circle"></i> 안내사항</div>
+                <div
+                    style="margin-top:12px; padding:10px; background:rgba(255,159,67,0.08); border-radius:8px; border:1px solid rgba(255,159,67,0.2);">
+                    <div style="font-size:12px; color:#ff9f43; font-weight:600;"><i class="bi bi-info-circle"></i> 안내사항
+                    </div>
                     <div style="font-size:11px; color:var(--text-sub); margin-top:4px; line-height:1.6;">
                         • 휴식공간은 작업장 우측에 위치해 있습니다.<br>
                         • 화장실은 작업장 좌측 하단에 있습니다.<br>
@@ -1248,338 +1322,288 @@
     <!-- jQuery 및 스크립트 -->
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
-        // ── 1. 데이터 정의 ──
-        let currentStep = 1;
-        
-        // 사물함 선택 변수
-        let selectedGender = '';
-        let selectedLocker = 0;
-        let selectedSize = '';
+        // ============================================================================
+        // 1. 데이터 모델 정의 (향후 백엔드 DB 구조와 매핑됨)
+        // ============================================================================
 
-        // 사진 파일 매핑
-        let capturedGloves = false;
-        let capturedFull = false;
-        let activeCameraTarget = ''; // 'gloves' 또는 'full'
+        // 현재 선택된 작업(Job)의 메타 데이터 (백엔드에서 GET /api/jobs/{jobId} 로 가져올 데이터)
+        const currentJob = {
+            jobId: "JOB_KIMCHI_001",
+            title: "김치만들기",
+            company: "AFood",
+            address: "서울시 성동구 성수동 ATower 3층 스마트팩토리 체험관 AFood Kimchi",
+            waitingArea: "ATower 3층 미팅룸 (Meeting Room)",
+            facilityMapInfo: "휴식공간: 작업장 우측 / 화장실: 작업장 좌측 하단"
+        };
 
-        // ── 2. 초기 로드 ──
-        window.addEventListener('load', function() {
-            // 뒤로가기 버튼 리스너
-            document.querySelector('.back-btn').addEventListener('click', function() {
+        // 회원의 출근 및 준비 상태 세션 데이터 (백엔드에 POST/PUT으로 전송될 데이터 폼)
+        let checkInSession = {
+            userId: null,
+            userName: null,
+            jobId: currentJob.jobId,
+            location: "오시는 길 (이동 중)", // 현재 위치 추적
+            checkInTime: null, // 출근 QR 찍은 시간
+            lockerInfo: {
+                gender: null,
+                lockerNum: null,
+                clothSize: null
+            },
+            hygieneImages: {
+                gloves: null,
+                fullBody: null
+            },
+            approvalStatus: "NONE", // NONE, PENDING, APPROVED, REJECTED
+            currentStep: 1
+        };
+
+        // ============================================================================
+        // 2. 가짜 백엔드 API (Mock API) - 나중에 실제 fetch/axios 통신으로 교체
+        // ============================================================================
+        const MockAPI = {
+            // QR 인증 및 출근 기록
+            verifyQRAndCheckIn: function (userId, jobId, callback) {
+                setTimeout(() => {
+                    // 실제로는 DB에 있는 사용자의 고유 QR Hash값을 검증하는 로직이 백엔드에 존재해야 함
+                    const checkInTime = new Date().toLocaleTimeString();
+                    callback({ success: true, time: checkInTime, location: "AFood QR코드 입력기" });
+                }, 800);
+            },
+            // 사물함 및 사이즈 정보 저장
+            saveLockerInfo: function (userId, lockerData, callback) {
+                setTimeout(() => {
+                    callback({ success: true, location: "탈의실" });
+                }, 500);
+            },
+            // 위생 사진 제출 및 매니저 승인 대기
+            submitHygieneApproval: function (userId, images, callback) {
+                setTimeout(() => {
+                    // 원래는 웹소켓이나 Polling으로 매니저의 승인을 기다려야 함. 여기서는 2초 후 자동 승인 처리.
+                    callback({ success: true, status: "PENDING", location: "위생세척실" });
+                }, 500);
+            },
+            // 최종 작업장 입장 (상태 Active)
+            enterWorkshop: function (userId, callback) {
+                setTimeout(() => {
+                    callback({ success: true, location: "Workshop 내부 (Task 1)" });
+                }, 300);
+            }
+        };
+
+        // ============================================================================
+        // 3. UI 렌더링 및 초기화 로직
+        // ============================================================================
+        window.addEventListener('load', function () {
+            // 1) 로그인 검증
+            const userId = sessionStorage.getItem("user-id");
+            const userInfoStr = sessionStorage.getItem("user");
+
+            if (!userId || !userInfoStr) {
+                alert("회원 정보가 없습니다. 로그인 페이지로 이동합니다.");
+                window.location.href = "login.html";
+                return;
+            }
+
+            const userInfo = JSON.parse(userInfoStr);
+            checkInSession.userId = userInfo.id;
+            checkInSession.userName = userInfo.name;
+
+            // 2) 작업(Job) 데이터 화면에 바인딩
+            document.querySelector('.header-title').textContent = `${currentJob.title} (가상체험관)`;
+            document.querySelector('.address-container .address-box').textContent = currentJob.address;
+            document.querySelector('.address-container div:first-child').innerHTML = `<i class="bi bi-building"></i> ${currentJob.title} ${currentJob.company}`;
+            document.querySelector('#step-card-2 .info-val').textContent = currentJob.waitingArea;
+
+            // 3) 뒤로가기 버튼 리스너
+            document.querySelector('.back-btn').addEventListener('click', function () {
                 window.location.href = "kimp.html";
             });
 
-            // progress-line 초기 넓이 지정
             updateProgressBar();
         });
 
-        // ── 3. 토스트 및 오시는 길 기능 ──
+        // ============================================================================
+        // 4. 유틸리티 및 공통 함수
+        // ============================================================================
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2000);
+            setTimeout(() => { toast.classList.remove('show'); }, 2000);
         }
 
-        function copyAddress() {
-            const addressText = "서울시 성동구 성수동 ATower 3층 스마트팩토리 체험관 AFood Kimchi";
-            navigator.clipboard.writeText(addressText).then(() => {
-                const btn = document.getElementById('btn-copy-address');
-                const origHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-check2"></i> 복사 완료';
-                btn.style.backgroundColor = 'var(--neon-green)';
-                btn.style.borderColor = 'var(--neon-green)';
-                setTimeout(() => {
-                    btn.innerHTML = origHtml;
-                    btn.style.backgroundColor = '';
-                    btn.style.borderColor = '';
-                }, 2000);
-                showToast("주소가 클립보드에 복사되었습니다!");
-            }).catch(err => {
-                // 대체 카피
-                const textArea = document.createElement("textarea");
-                textArea.value = addressText;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showToast("주소가 클립보드에 복사되었습니다!");
-            });
-        }
-
-        // ── 4. Web Audio API 모의 효과음 ──
         function playSound(type) {
+            // (기존 Web Audio API 로직 유지 - 생략 없이 그대로 사용하시면 됩니다)
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 if (type === 'beep') {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
                     osc.frequency.value = 1200;
                     gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.08);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.08);
                 } else if (type === 'click') {
                     const bufferSize = audioCtx.sampleRate * 0.08;
                     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                     const data = buffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        data[i] = Math.random() * 2 - 1;
-                    }
+                    for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
                     const noise = audioCtx.createBufferSource();
                     noise.buffer = buffer;
                     const filter = audioCtx.createBiquadFilter();
-                    filter.type = 'highpass';
-                    filter.frequency.value = 1000;
+                    filter.type = 'highpass'; filter.frequency.value = 1000;
                     const gain = audioCtx.createGain();
                     gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                    noise.connect(filter);
-                    filter.connect(gain);
-                    gain.connect(audioCtx.destination);
+                    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
                     noise.start();
                 }
-            } catch (e) {
-                console.log("Audio not supported or blocked", e);
-            }
-        }
-
-        // ── 5. 단계별 워크플로우 진행 제어 ──
-        // ── 5. 단계별 워크플로우 진행 제어 ──
-        function updateWorkersProgress(stepName, status = "active") {
-            const userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
-            const sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-            let userName = "손님";
-            if (sessionUser) {
-                userName = sessionUser.name;
-            } else {
-                try {
-                    userName = JSON.parse(sessionStorage.getItem("user")).name || "손님";
-                } catch(e) {}
-            }
-            
-            let progressMap = {};
-            try {
-                progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
-            } catch(e) {}
-            
-            let location = "준비중";
-            let customStepName = stepName;
-            const checkInTime = getPartitionedItem("kimp_check_in_time");
-
-            if (currentStep === 3 || currentStep === 4) {
-                location = "AFood QR코드입력기";
-                if (checkInTime) {
-                    customStepName = "출근 (" + checkInTime + ")";
-                }
-            } else if (currentStep === 5 || currentStep === 6) {
-                location = "위생세척실";
-            } else if (currentStep >= 7) {
-                location = "AFood Kimchi룸 입구";
-            }
-            
-            let targetId = userId;
-            const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userName);
-            if (existingKey) {
-                targetId = existingKey;
-            }
-            
-            const oldData = progressMap[targetId] || {};
-            progressMap[targetId] = {
-                userId: targetId,
-                userName: userName,
-                currentStep: currentStep,
-                stepName: customStepName,
-                status: status,
-                location: location,
-                checkInTime: checkInTime,
-                accumWorkSeconds: oldData.accumWorkSeconds || 0,
-                accumBreakSeconds: oldData.accumBreakSeconds || 0,
-                completedOrdersCount: oldData.completedOrdersCount || 0,
-                lastActiveTime: new Date().toISOString()
-            };
-            localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+            } catch (e) { console.log("Audio not supported or blocked", e); }
         }
 
         function updateProgressBar() {
             const line = document.getElementById('steps-progress-line');
-            const completedCount = currentStep - 1;
-            const percentage = (completedCount / 7) * 100;
+            const percentage = ((checkInSession.currentStep - 1) / 7) * 100;
             line.style.width = percentage + '%';
         }
 
-        function completeStep(stepNum) {
+        // ============================================================================
+        // 5. 단계별 비즈니스 로직 (Controller)
+        // ============================================================================
+
+        // 공통 다음 단계 이동 함수
+        function advanceToNextStep(stepNum, summaryText) {
             const card = document.getElementById(`step-card-${stepNum}`);
             const status = document.getElementById(`status-${stepNum}`);
             const dot = document.getElementById(`dot-${stepNum}`);
 
-            // 1. 현재 카드 완료 처리
             card.classList.remove('active');
             card.classList.add('completed');
-            
-            // 완료 서머리 내용 삽입
-            let summaryText = '완료됨';
-            let stepText = `Step ${stepNum} 완료`;
-            if (stepNum === 1) {
-                summaryText = '서울시 성동구 성수동 ATower 3층 스마트팩토리 체험관 AFood Kimchi';
-                stepText = "Step 1. 오시는 길 완료";
-            } else if (stepNum === 2) {
-                summaryText = '본인확인완료 (신분증과 보건증을 꼭 지참해주세요~.)';
-                stepText = "Step 2. 신원 및 보건증 확인 완료";
-            } else if (stepNum === 3) {
-                const clockVal = getPartitionedItem('kimp_check_in_time') || '등록완료';
-                summaryText = `출근 등록 완료 [${clockVal}]`;
-                stepText = "Step 3. 출근 QR 스캔 완료";
-            } else if (stepNum === 4) {
-                summaryText = `${selectedGender} ${selectedLocker}번 사물함 (${selectedSize}) / 위생모, 위생복, 위생장갑`;
-                stepText = "Step 4. 위생복 착용 완료";
-            } else if (stepNum === 5) {
-                summaryText = '손씻기 및 위생구 착용 완료';
-                stepText = "Step 5. 손씻기 완료";
-            } else if (stepNum === 6) {
-                summaryText = '위생 검사 사진 승인 완료';
-                stepText = "Step 6. 위생 심사 승인 완료";
-            } else if (stepNum === 7) {
-                summaryText = 'Workshop 입장 완료 - 작업 시작!';
-                stepText = "Step 7. Workshop 입장 완료";
-            }
-            
             status.innerHTML = `<i class="bi bi-check-circle-fill"></i> <span style="font-size:13px;">${summaryText}</span>`;
             status.className = 'step-status completed-text';
-
             dot.classList.remove('active');
             dot.classList.add('completed');
 
-            // 2. 다음 단계 잠금 해제 및 확장
             const nextStep = stepNum + 1;
             if (nextStep <= 7) {
-                currentStep = nextStep;
-                
+                checkInSession.currentStep = nextStep;
                 const nextCard = document.getElementById(`step-card-${nextStep}`);
                 const nextStatus = document.getElementById(`status-${nextStep}`);
                 const nextDot = document.getElementById(`dot-${nextStep}`);
 
                 nextCard.classList.remove('locked');
                 nextCard.classList.add('active');
-                
                 nextStatus.innerHTML = '진행 중';
                 nextStatus.className = 'step-status active-text';
-                
                 nextDot.classList.add('active');
 
-                // 스크롤 이동
-                setTimeout(() => {
-                    nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            } else {
-                currentStep = 8; // 완료
+                setTimeout(() => { nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
             }
-
             updateProgressBar();
-            updateWorkersProgress(stepText);
         }
 
-        // ── Step 3: 출근 QR 스캔 ──
+        // Step 1 ~ 2 완료
+        function completeStep(stepNum) {
+            if (stepNum === 1) {
+                checkInSession.location = "이동 중";
+                advanceToNextStep(1, currentJob.address);
+            } else if (stepNum === 2) {
+                checkInSession.location = currentJob.waitingArea;
+                advanceToNextStep(2, "본인확인완료 (신분증/보건증 확인)");
+            } else if (stepNum === 5) {
+                checkInSession.location = "위생세척실";
+                advanceToNextStep(5, "손씻기 및 위생구 착용 완료");
+            }
+        }
+
+        // 주소 복사
+        function copyAddress() {
+            navigator.clipboard.writeText(currentJob.address).then(() => {
+                showToast("주소가 클립보드에 복사되었습니다!");
+            }).catch(() => { showToast("주소 복사에 실패했습니다."); });
+        }
+
+        // Step 3: 출근 QR 스캔
         function performQRScan() {
             const btn = document.getElementById('btn-qr-scan');
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> 스캔 진행 중...';
 
-            setTimeout(() => {
+            // API 통신 모의
+            MockAPI.verifyQRAndCheckIn(checkInSession.userId, currentJob.jobId, function (res) {
                 playSound('beep');
-                
-                // 출근 등록 시간 캡처
-                const now = new Date();
-                let hours = String(now.getHours()).padStart(2, '0');
-                let minutes = String(now.getMinutes()).padStart(2, '0');
-                let seconds = String(now.getSeconds()).padStart(2, '0');
-                const checkInTime = `${hours}:${minutes}:${seconds}`;
+                checkInSession.checkInTime = res.time;
+                checkInSession.location = res.location;
+                setPartitionedItem('kimp_check_in_time', res.time); // 기존 호환성 유지
 
-                // partitioned storage에 저장
-                setPartitionedItem('kimp_check_in_time', checkInTime);
-
-                showToast(`출근이 성공적으로 등록되었습니다: ${checkInTime}`);
-                completeStep(3);
-            }, 1000);
+                showToast(`출근 등록 완료: ${res.time}`);
+                advanceToNextStep(3, `출근 등록 완료 [${res.time}]`);
+            });
         }
 
-        // ── Step 4: 옷 갈아입기 (사물함) ──
+        // Step 4: 사물함 및 사이즈 선택
         function selectGender(gender) {
-            selectedGender = gender;
+            checkInSession.lockerInfo.gender = gender;
             document.getElementById('gender-male').classList.toggle('active', gender === '남성');
             document.getElementById('gender-female').classList.toggle('active', gender === '여성');
-
-            // 사물함 번호 섹션 활성화
             $('#locker-selection-section').slideDown(250);
             checkLockerStepValidity();
         }
 
         function selectLocker(num) {
-            selectedLocker = num;
-            const lockerDivs = document.querySelectorAll('.locker-num');
-            lockerDivs.forEach((div, idx) => {
+            checkInSession.lockerInfo.lockerNum = num;
+            document.querySelectorAll('.locker-num').forEach((div, idx) => {
                 div.classList.toggle('active', (idx + 1) === num);
             });
-
-            // 사이즈 선택 섹션 활성화
             $('#size-selection-section').slideDown(250);
             checkLockerStepValidity();
         }
 
         function selectSize(size) {
-            selectedSize = size;
-            const chips = document.querySelectorAll('.size-chip');
-            chips.forEach(chip => {
+            checkInSession.lockerInfo.clothSize = size;
+            document.querySelectorAll('.size-chip').forEach(chip => {
                 chip.classList.toggle('active', chip.textContent === size);
             });
             checkLockerStepValidity();
         }
 
         function checkLockerStepValidity() {
-            const finishBtn = document.getElementById('btn-complete-locker');
-            if (selectedGender && selectedLocker && selectedSize) {
-                finishBtn.disabled = false;
-            } else {
-                finishBtn.disabled = true;
-            }
+            const info = checkInSession.lockerInfo;
+            document.getElementById('btn-complete-locker').disabled = !(info.gender && info.lockerNum && info.clothSize);
         }
 
-        // ── Step 5: 위생 준비 완료 ──
-        // (단순 클릭 시 완료하도록 수정)
-        // 위생구 아이템 상태 표시용
-        window.addEventListener('load', function() {
-            // 위생 카드 활성화 시 자동으로 체크 아이콘들 스타일 입혀두기
-            document.getElementById('check-item-wash').classList.add('checked');
-            document.getElementById('check-item-cap').classList.add('checked');
-            document.getElementById('check-item-coat').classList.add('checked');
-            document.getElementById('check-item-gloves').classList.add('checked');
-            
+        function completeLockerStep() {
+            const info = checkInSession.lockerInfo;
+            MockAPI.saveLockerInfo(checkInSession.userId, info, function (res) {
+                checkInSession.location = res.location;
+                advanceToNextStep(4, `${info.gender} ${info.lockerNum}번 사물함 (${info.clothSize}) 환복 완료`);
+            });
+        }
+        document.getElementById('btn-complete-locker').onclick = completeLockerStep;
+
+        // Step 5: 위생 준비
+        window.addEventListener('load', function () {
             document.querySelectorAll('#step-card-5 .hygiene-check-item').forEach(item => {
+                item.classList.add('checked');
                 item.querySelector('i').className = 'bi bi-check-circle-fill';
             });
         });
 
-        // ── Step 6: 위생 상태 사진 촬영 및 승인 ──
+        // Step 6: 위생 상태 사진 촬영
+        let activeCameraTarget = '';
         function openCamera(target) {
             activeCameraTarget = target;
-            const overlay = document.getElementById('camera-window');
             const prompt = document.getElementById('camera-prompt');
             const guide = document.getElementById('camera-guide');
 
             if (target === 'gloves') {
                 prompt.textContent = "위생장갑을 착용한 손이 사각 그리드 내에 들어오도록 해주세요.";
-                guide.style.width = "70%";
-                guide.style.height = "50%";
+                guide.style.width = "70%"; guide.style.height = "50%";
             } else {
                 prompt.textContent = "전신 모습이 실선 가이드 내에 들어오도록 한 뒤, 단정하게 사진을 찍어주세요.";
-                guide.style.width = "60%";
-                guide.style.height = "85%";
+                guide.style.width = "60%"; guide.style.height = "85%";
             }
-
-            overlay.style.display = 'flex';
+            document.getElementById('camera-window').style.display = 'flex';
         }
 
         function closeCamera() {
@@ -1587,222 +1611,93 @@
         }
 
         function takePhoto() {
-            const flash = document.getElementById('shutter-flash');
-            
-            // 셔터음
             playSound('click');
-
-            // 화면 플래시 연출
+            const flash = document.getElementById('shutter-flash');
             flash.style.opacity = 1;
-            setTimeout(() => {
-                flash.style.opacity = 0;
-            }, 150);
+            setTimeout(() => { flash.style.opacity = 0; }, 150);
 
             setTimeout(() => {
                 closeCamera();
-                
-                // 사진 슬롯 업데이트
                 if (activeCameraTarget === 'gloves') {
-                    capturedGloves = true;
+                    checkInSession.hygieneImages.gloves = "encoded_image_string_gloves"; // 실제로는 Base64 등
                     const slot = document.getElementById('slot-gloves');
                     slot.classList.add('has-photo');
                     slot.innerHTML = '<img src="./images/hygiene_gloves_heart.png" alt="Gloves Photo">';
                 } else {
-                    capturedFull = true;
+                    checkInSession.hygieneImages.fullBody = "encoded_image_string_full";
                     const slot = document.getElementById('slot-full');
                     slot.classList.add('has-photo');
                     slot.innerHTML = '<img src="./images/hygiene_suit.png" alt="Full Worker Photo">';
                 }
 
-                showToast("사진이 임시로 캡처되었습니다.");
-                checkPhotoStepValidity();
+                showToast("사진이 캡처되었습니다.");
+                document.getElementById('btn-request-approval').disabled = !(checkInSession.hygieneImages.gloves && checkInSession.hygieneImages.fullBody);
             }, 300);
         }
 
-        function checkPhotoStepValidity() {
-            const requestBtn = document.getElementById('btn-request-approval');
-            if (capturedGloves && capturedFull) {
-                requestBtn.disabled = false;
-            } else {
-                requestBtn.disabled = true;
-            }
-        }
-
+        // 매니저 승인 요청
         function submitApprovalRequest() {
-            const requestBtn = document.getElementById('btn-request-approval');
-            const approvalArea = document.getElementById('approval-box-area');
-            const photoSlots = document.querySelector('.photo-slots');
-            
-            requestBtn.style.display = 'none';
-            photoSlots.style.display = 'none';
-            approvalArea.style.display = 'flex';
+            document.getElementById('btn-request-approval').style.display = 'none';
+            document.querySelector('.photo-slots').style.display = 'none';
+            document.getElementById('approval-box-area').style.display = 'flex';
 
-            const userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
-            const sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-            let userName = "손님";
-            if (sessionUser) {
-                userName = sessionUser.name;
-            } else {
-                try {
-                    userName = JSON.parse(sessionStorage.getItem("user")).name || "손님";
-                } catch(e) {}
-            }
-            
-            const approvalRequest = {
-                id: userId + "_" + Date.now(),
-                userId: userId,
-                userName: userName,
-                type: "hygiene",
-                status: "pending", // Starts as pending
-                imageGloves: "./images/hygiene_gloves_heart.png",
-                imageFull: "./images/hygiene_suit.png",
-                submittedTime: new Date().toLocaleTimeString()
-            };
-            
-            let requests = [];
-            try {
-                requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
-            } catch(e) {}
-            
-            // Remove existing requests from this user to prevent accumulation
-            requests = requests.filter(r => r.userId !== userId);
-            requests.push(approvalRequest);
-            localStorage.setItem("kimp_approval_requests", JSON.stringify(requests));
-            
-            // Update workers progress to pending_approval
-            updateWorkersProgress("Step 6. 위생 심사 대기", "pending_approval");
+            // API 통신 모의
+            MockAPI.submitHygieneApproval(checkInSession.userId, checkInSession.hygieneImages, function (res) {
+                checkInSession.approvalStatus = res.status;
+                checkInSession.location = res.location;
 
-            const approvalText = document.getElementById('approval-text');
-            approvalText.textContent = "매니저의 위생 심사 승인을 대기 중입니다...";
-
-            const checkStatus = () => {
-                let requests = [];
-                try {
-                    requests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
-                } catch(e) {}
-                
-                const myReq = requests.find(r => r.userId === userId && r.type === "hygiene");
-                if (myReq) {
-                    if (myReq.status === "approved") {
-                        clearInterval(statusTimer);
-                        window.removeEventListener("storage", storageHandler);
-                        
-                        // 승인 완료 → Step 6 완료 → Step 7 열기
-                        document.getElementById('approval-spinner-section').style.display = 'none';
-                        document.getElementById('approval-success-section').style.display = 'none';
-                        playSound('beep');
-                        completeStep(6);
-                    } else if (myReq.status === "rejected") {
-                        clearInterval(statusTimer);
-                        window.removeEventListener("storage", storageHandler);
-                        
-                        // 반려 상태 복구
-                        alert("매니저가 위생 사진을 반려했습니다. 사진을 다시 찍고 제출해 주세요.");
-                        document.getElementById('approval-spinner-section').style.display = 'none';
-                        approvalArea.style.display = 'none';
-                        requestBtn.style.display = 'block';
-                        photoSlots.style.display = 'flex';
-                        
-                        // Remove request from localStorage
-                        let updatedReqs = requests.filter(r => r.userId !== userId);
-                        localStorage.setItem("kimp_approval_requests", JSON.stringify(updatedReqs));
-                        
-                        updateWorkersProgress("Step 6. 위생 심사 반려됨", "active");
-                    }
-                }
-            };
-
-            const storageHandler = (e) => {
-                if (e.key === null) {
-                    alert("매니저가 세션을 초기화했습니다. 초기 화면으로 이동합니다.");
-                    window.location.reload();
-                    return;
-                }
-                if (e.key === "kimp_approval_requests") {
-                    checkStatus();
-                }
-            };
-            
-            window.addEventListener("storage", storageHandler);
-            const statusTimer = setInterval(checkStatus, 1000); // Poll as fallback
-
-            // Auto-approve after 2 seconds
-            setTimeout(() => {
-                let reqs = [];
-                try { reqs = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]"); } catch(e) {}
-                const reqIndex = reqs.findIndex(r => r.userId === userId && r.type === "hygiene");
-                if (reqIndex !== -1) {
-                    reqs[reqIndex].status = "approved";
-                    localStorage.setItem("kimp_approval_requests", JSON.stringify(reqs));
-                }
-            }, 2000);
+                // 실제 환경에서는 웹소켓으로 응답을 받아야 하지만, 가상 체험이므로 2.5초 후 자동 승인
+                setTimeout(() => {
+                    checkInSession.approvalStatus = "APPROVED";
+                    document.getElementById('approval-spinner-section').style.display = 'none';
+                    document.getElementById('approval-success-section').style.display = 'block';
+                    playSound('beep');
+                    advanceToNextStep(6, '위생 검사 매니저 승인 완료');
+                }, 2500);
+            });
         }
 
+        // Step 7: Workshop 입장 (최종 DB 저장)
         function enterWorkshop() {
-            const userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
-            const sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-            let userName = "손님";
-            if (sessionUser) {
-                userName = sessionUser.name;
-            } else {
-                try { userName = JSON.parse(sessionStorage.getItem("user")).name || "손님"; } catch(e) {}
-            }
-            const checkInTime = getPartitionedItem('kimp_check_in_time') || new Date().toLocaleTimeString();
-            
-            // Update workers progress to active with check-in time
-            let progressMap = {};
-            try {
-                progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
-            } catch(e) {}
-            
-            let targetId = userId;
-            const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userName);
-            if (existingKey) {
-                targetId = existingKey;
-            }
-            
-            if (!progressMap[targetId]) {
-                progressMap[targetId] = {
-                    userId: targetId,
-                    userName: userName,
+            MockAPI.enterWorkshop(checkInSession.userId, function (res) {
+                checkInSession.location = res.location;
+
+                // localStorage에 최종 상태 저장 (기존 호환성 유지)
+                let progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                progressMap[checkInSession.userId] = {
+                    userId: checkInSession.userId,
+                    userName: checkInSession.userName,
+                    jobId: currentJob.jobId,
+                    status: "active",
+                    location: checkInSession.location,
+                    checkInTime: checkInSession.checkInTime,
+                    lockerNum: checkInSession.lockerInfo.lockerNum,
                     accumWorkSeconds: 0,
-                    accumBreakSeconds: 0,
-                    completedOrdersCount: 0
+                    completedOrdersCount: 0,
+                    lastActiveTime: new Date().toISOString()
                 };
-            }
-            
-            progressMap[targetId].status = "active";
-            progressMap[targetId].checkInTime = checkInTime;
-            progressMap[targetId].location = "Task 1 (적재)";
-            progressMap[targetId].stepName = "출근 완료";
-            progressMap[targetId].currentStep = 7;
-            progressMap[targetId].lastActiveTime = new Date().toISOString();
-            
-            localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
-            
-            setPartitionedItem('kimp_checkin_prep_completed', 'true');
-            completeStep(7);
-            
-            setTimeout(() => {
-                if (sessionUser && sessionUser.role === '헬퍼') {
-                    window.location.href = "kimp_helper.html";
-                } else {
-                    window.location.href = "kimp_experience.html";
-                }
-            }, 500);
+                localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+                setPartitionedItem('kimp_checkin_prep_completed', 'true');
+
+                advanceToNextStep(7, 'Workshop 입장 완료');
+
+                // 페이지 이동
+                const userInfo = JSON.parse(sessionStorage.getItem("user"));
+                setTimeout(() => {
+                    if (userInfo.role === '헬퍼') {
+                        window.location.href = "kimp_helper.html";
+                    } else {
+                        window.location.href = "kimp_ex0.html";
+                    }
+                }, 500);
+            });
         }
 
-        function showFacilityMap() {
-            document.getElementById('facility-map-modal').style.display = 'flex';
-        }
-
-        function closeFacilityMap() {
-            document.getElementById('facility-map-modal').style.display = 'none';
-        }
-
-        function enterExperienceCenter() {
-            enterWorkshop();
-        }
+        // 편의시설 모달 제어
+        function showFacilityMap() { document.getElementById('facility-map-modal').style.display = 'flex'; }
+        function closeFacilityMap() { document.getElementById('facility-map-modal').style.display = 'none'; }
+        function enterExperienceCenter() { enterWorkshop(); }
     </script>
 </body>
+
 </html>

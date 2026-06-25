@@ -1320,6 +1320,8 @@
         }
 
         function goToWorkExperience() {
+            // 기존 로직은 다음에 다시 사용할 수 있도록 주석 처리해 둡니다.
+            /*
             var isCheckinCompleted = getPartitionedItem('kimp_checkin_prep_completed');
             if (isCheckinCompleted === 'true') {
                 var user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
@@ -1334,6 +1336,19 @@
                     $(warning).slideDown(200).css('display', 'flex');
                 }
             }
+            */
+            // 1. 세션 스토리지에서 회원 정보 조회
+            var userId = sessionStorage.getItem('user-id');
+            var userInfo = sessionStorage.getItem('user');
+
+            // 2. 로그인 여부 검증 (정보가 없으면 로그인 페이지로 이동)
+            if (!userId || !userInfo) {
+                alert("로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.");
+                window.location.href = "login.html";
+                return; // 이후 코드 실행 방지
+            }
+            // '실제 일 체험하기' 클릭 시 kimp_ex0.html로 즉시 이동
+            window.location.href = "kimp_ex0.html";
         }
 
         $(document).ready(function () {
