@@ -31,7 +31,7 @@
 ![작업자 라운지](https://github.com/user-attachments/assets/7a382d52-62ed-4779-a712-defd690e0b42)
 
 
-![나의 작업 로그](https://github.com/user-attachments/assets/587e6cd7-d76a-4ed7-b1e4-edd29aa24c9f)
+![나의 작업 로그](https://github.com/user-attachments/assets/1de63e05-c1af-41ef-8b4e-54c1e4b0cff8)
 
 
 
