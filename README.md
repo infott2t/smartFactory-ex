@@ -28,7 +28,7 @@
 
 
 ### 화면 캡처해봤습니다. 오픈소스이구요. 개발해보세요. 일하기가 더 좋아지겠죠~. 
-![작업자 라운지](https://github.com/user-attachments/assets/606a9749-b306-43e0-a707-8f7e6787ea5c)
+![작업자 라운지](https://github.com/user-attachments/assets/7a382d52-62ed-4779-a712-defd690e0b42)
 
 
 ![나의 작업 로그](https://github.com/user-attachments/assets/587e6cd7-d76a-4ed7-b1e4-edd29aa24c9f)
