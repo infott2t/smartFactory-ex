@@ -1,6 +1,6 @@
 # smartFactory-ex
 
-바이브 코딩을 통해 개발했습니다. Antigravity, 재미니 PRO 사용. 재미니 PRO( https://gemini.google.com/app )가 좋은 것같아요. 
+바이브 코딩을 통해 개발했습니다. Antigravity, 재미니 PRO 사용. 재미니 PRO( https://gemini.google.com/app )가 좋은 것 같아요. 
 버그도 잘 잡았네요. 
 
 스마트 팩토리. 개발해보세요. 일하기가 더 좋아지겠죠. 좋은 개발, 좋은 하루되세요. 감사합니다.
@@ -16,8 +16,31 @@
 - **관리자(Manager) 역할**: 관리자로 로그인하여 관리자 현황판(`manager.html`)을 연 뒤, 작업자들의 공정 완료 요청을 **심사 및 승인/반려**할 수 있습니다. 관리자 로그인을 한 뒤 승인을 해줘야 다음 단계로 넘어갈 수 있습니다.
 - **체험자(Worker) 역할**: **최수아** 또는 **김수민**으로 로그인하여 각 공정 단계(QR코드 스캔, 작업 진행, 일시 중단, 완료 요청 등)를 직접 체험할 수 있습니다.
 
-## 작동 방식 설명 (Mechanism)
+## ⚙️ 작동 방식 설명 (Mechanism)
 본 애플리케이션은 스마트 팩토리의 생산 관리(Manager)와 개별 공정 수행(Worker)을 실감나게 모사하는 정적 웹 기반 시뮬레이터 시스템입니다.
 - **LocalStorage 기반 상태 공유**: 별도의 백엔드 데이터베이스 없이, `localStorage`를 통해 생산 지시서 데이터와 공정 진행도, 근로자 세션 상태를 실시간으로 공유하고 저장합니다.
 - **매니저 대시보드 (manager.html)**: 오늘자 생산지시서 발행, 인쇄, 공정Task 전달 및 수량 확인 승인/반려 처리를 수행하는 관리자 통제 센터입니다.
 - **체험 대시보드 (kimp_experience.html)**: 로그인한 작업자의 담당 공정에 맞춰 작업(QR코드 스캔, 작업 시작, 임시 휴식, 실습 완료 등)을 진행하고 상태를 매니저에게 실시간 요청(Pending)하는 화면입니다.
+
+---
+
+## ✨ 주요 화면 및 기능 소개 (HMI Terminal)
+
+### 📌 화면 접속 방법
+이 기능들은 실제 생산 라인의 HMI(Human-Machine Interface)를 구현한 화면입니다.
+1. 체험자(Worker) 계정으로 **로그인**합니다.
+2. 메인 화면의 작업 목록에서 **[김치만들기]** 공정을 선택합니다.
+3. **[체험하기]** 버튼을 눌러 HMI 생산 공정 터미널로 진입합니다.
+
+
+### 화면 캡처해봤습니다. 오픈소스이구요. 개발해보세요. 일하기가 더 좋아지겠죠~. 봐 주셔서 감사합니다.
+![작업자 라운지](<img width="525" height="795" alt="2026-06-25 21;09;55" src="https://github.com/user-attachments/assets/bd3d9dc9-f139-41d9-84f3-9ca61df625b4" />)
+
+
+
+![나의 작업 로그](<img width="526" height="798" alt="2026-06-25 21;09;43" src="https://github.com/user-attachments/assets/587e6cd7-d76a-4ed7-b1e4-edd29aa24c9f" />)
+
+
+
+![수량 입력 UI](<img width="529" height="793" alt="2026-06-25 21;09;09" src="https://github.com/user-attachments/assets/8b5c2e3c-d417-41b2-96ed-4743412087ac" />)
+
