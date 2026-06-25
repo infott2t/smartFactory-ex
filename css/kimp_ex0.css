@@ -1,0 +1,273 @@
+/* 1. 색상 테마 및 변수 */
+:root {
+    --bg-main: #f4f6f8;
+    --bg-card: #ffffff;
+    --bg-header: #ffffff;
+    
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --success: #10b981;
+    --warning: #f59e0b;
+    
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+}
+
+/* 2. 리셋 및 폰트 */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* 💡 화면 깨짐 방지를 위해 body를 Flex Column으로 선언 */
+body {
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    overflow: hidden; 
+    height: 100vh;
+    display: flex;         
+    flex-direction: column; 
+}
+
+/* 3. 유연한 헤더 영역 (Flex Item) */
+.global-header {
+    background-color: var(--bg-header);
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 24px;
+    flex-shrink: 0; /* 헤더 영역은 줄어들지 않음 */
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.job-info-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.job-title {
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.job-title i { color: var(--primary); }
+
+.location-badge {
+    background-color: var(--primary);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-select-task {
+    background-color: var(--warning);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.1s;
+}
+.btn-select-task:active { transform: scale(0.95); }
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.status-box {
+    background-color: var(--bg-main);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.status-label { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+.status-value { font-size: 22px; font-weight: 700; font-family: 'Inter', sans-serif; }
+.status-value.highlight { color: var(--success); }
+
+/* 4. 메인 컨텐츠 영역 (남은 높이를 모두 채움) */
+.main-content {
+    flex-grow: 1;      /* 남는 영역을 꽉 채우도록 설정 */
+    position: relative;
+    overflow: hidden;  /* 자식 요소 애니메이션을 위함 */
+}
+
+.stage-page {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    padding: 24px;
+    overflow-y: auto;
+    background-color: var(--bg-main);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+    transform: translateX(100%);
+    opacity: 0;
+    visibility: hidden;
+}
+
+.stage-page.active { transform: translateX(0); opacity: 1; visibility: visible; }
+.stage-page.past { transform: translateX(-100%); opacity: 0; visibility: hidden; }
+
+.card {
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.stage-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: var(--primary); }
+.stage-desc { font-size: 18px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 32px; }
+
+/* 5. HMI 작업 선택 모달 */
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(30, 41, 59, 0.85); 
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.3s;
+}
+.modal-overlay.open { opacity: 1; visibility: visible; }
+
+.modal-content {
+    width: 90%; max-width: 800px;
+    max-height: 90vh; /* 화면을 넘지 않도록 제한 */
+    overflow-y: auto;
+    background-color: var(--bg-card);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    transform: scale(0.95);
+    transition: transform 0.3s;
+}
+.modal-overlay.open .modal-content { transform: scale(1); }
+
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 16px;
+}
+.modal-title { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+
+.btn-close-modal {
+    background: none; border: none; font-size: 32px; color: var(--text-secondary); cursor: pointer;
+}
+
+.task-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.task-btn {
+    background-color: var(--bg-main);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px 16px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+}
+.task-btn i { font-size: 36px; color: var(--primary); }
+.task-btn:hover { background-color: #e0e7ff; border-color: var(--primary); }
+.task-btn:active { transform: scale(0.98); }
+
+.task-btn.current {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+.task-btn.current i { color: white; }
+
+/* =======================================================
+   💡 6. 반응형 대응 (모바일 화면 레이아웃 깨짐 해결)
+   ======================================================= */
+@media screen and (max-width: 768px) {
+    /* 헤더 간격 축소 */
+    .global-header {
+        padding: 16px;
+    }
+
+    /* 1. 상단 타이틀 영역을 Column으로 변경 */
+    .header-top {
+        flex-direction: column;
+        align-items: stretch; /* 버튼이 너비를 꽉 채우도록 */
+        gap: 16px;
+    }
+
+    .job-info-group {
+        justify-content: space-between; /* 텍스트와 뱃지를 양 옆으로 배치 */
+    }
+
+    .btn-select-task {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 2. 상태창(그리드)을 Column으로 변경하여 세로로 쌓이게 함 */
+    .status-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* 상태 박스 내부 요소들을 가로로 정렬해 공간 활용성 증대 */
+    .status-box {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* 3. 모달 내부 작업 그리드 1열(Column)로 변경 */
+    .task-grid {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 텍스트 크기 조정 */
+    .job-title { font-size: 20px; }
+    .location-badge { font-size: 14px; }
+    .modal-title { font-size: 22px; }
+}
