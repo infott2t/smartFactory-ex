@@ -229,7 +229,7 @@ body {
     display: flex;
     justify-content: flex-start;
     gap: 50px;
-    padding: 9px 0 9px 0;          /* 좌우 여백은 부모의 패딩을 따르도록 0으로 만들고, 아래쪽 여백만 지정 */
+    padding: 11px 0 11px 0;          /* 좌우 여백은 부모의 패딩을 따르도록 0으로 만들고, 아래쪽 여백만 지정 */
            
     border-bottom: 1px solid var(--var-line-color1);
     background-color: var(--var-bg-color);
@@ -428,6 +428,20 @@ img {
     z-index: 80;
     width: 94.4%;
     background-color: var(--var-bg-color);
+    /* 👇 1. 폭을 100%로 주되, 앱의 최대 너비인 800px까지만 커지도록 제한합니다. */
+    width: 100%;
+    max-width: 800px;
+    
+    /* 👇 2. 고정 요소를 화면 정중앙에 배치하는 마법의 공식입니다. */
+    left: 50%;
+    transform: translateX(-50%);
+
+    /* 👇 3. 본문(.content-area)의 좌우 패딩이 15px이므로, 똑같이 15px을 주어 라인을 맞춥니다. */
+    box-sizing: border-box;
+    padding: 10px 15px; 
+    
+    /* (이전에 지우기로 했던 선) */
+    border-bottom: none;
 }
 
 .search-box {
