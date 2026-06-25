@@ -24,6 +24,11 @@ body {
     height: 100vh;
     font-family: "NotoKR";
     background: var(--var-bg-color);
+    overflow-x: hidden;
+    
+    /* 👇 스크롤 통통 튕김(쿠션 현상)을 원천 차단하는 속성 */
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: auto; /* iOS Safari용 가속 스크롤 최적화 해제 */
 }
 
 .header-wrap {
@@ -36,7 +41,7 @@ body {
     z-index: 100;
     background-color: var(--var-bg-color);
     color: white;
-    height: 39px;
+    
 }
 
 .header {
@@ -69,12 +74,13 @@ body {
      
     background-color: var(--var-bg-color);
     color: rgb(207, 207, 207);
-    padding-top: 41px;
+    padding-top: 131px;
     padding-bottom: 20px;
 }
 
 .padding-20 {
     padding: 20px;
+    background-color: var(--var-bg-color);
 }
 
 /* 탭 전체 컨테이너 */
@@ -160,8 +166,8 @@ body {
 /* 4. 콘텐츠 영역 스크롤 설정 */
 .content-area {
     display: block;
-    overflow-x: hidden;
-    padding: 12px 15px 20px 15px;
+     
+    padding: 45px 15px 20px 15px;
     width: 100%;
     box-sizing: border-box;
     position: relative;
@@ -183,7 +189,13 @@ body {
     display: none;
     width: 100%;
     box-sizing: border-box;
+    position: relative;
 
+}
+/* 4번째 탭(카테고리 탭)에만 고정된 검색창 높이만큼 추가 여백을 줍니다 */
+.tab-content:nth-child(4) {
+    /* 검색창 박스(46px) + 상하 패딩(20px) = 총 66px */
+    padding-top: 66px; 
 }
 .tab-content.active {
     display: block;
@@ -194,21 +206,21 @@ body {
 }
 @keyframes slideFromRight {
     from {
-        transform: translateX(100%); /* 화면 오른쪽 바깥(100%)에서 시작 */
+        left: 100%;/* 화면 오른쪽 바깥(100%)에서 시작 */
         opacity: 0;                  /* 처음엔 투명하게 */
     }
     to {
-        transform: translateX(0);    /* 원래 제자리(0)로 이동 */
+        left: 0;   /* 원래 제자리(0)로 이동 */
         opacity: 1;                  /* 선명하게 나타남 */
     }
 }
 @keyframes slideFromLeft {
     from {
-        transform: translateX(-100%); /* 화면 왼쪽 바깥(-100%)에서 시작 */
+        left: -100%; /* 화면 왼쪽 바깥(-100%)에서 시작 */
         opacity: 0;                   /* 처음엔 투명하게 */
     }
     to {
-        transform: translateX(0);     /* 원래 제자리(0)로 이동 */
+        left: 0;     /* 원래 제자리(0)로 이동 */
         opacity: 1;                   /* 선명하게 나타남 */
     }
 }
@@ -217,12 +229,24 @@ body {
     display: flex;
     justify-content: flex-start;
     gap: 50px;
-    padding: 0 0 12px 0;          /* 좌우 여백은 부모의 패딩을 따르도록 0으로 만들고, 아래쪽 여백만 지정 */
+    padding: 9px 0 9px 0;          /* 좌우 여백은 부모의 패딩을 따르도록 0으로 만들고, 아래쪽 여백만 지정 */
            
     border-bottom: 1px solid var(--var-line-color1);
     background-color: var(--var-bg-color);
     width: 100%;
     box-sizing: border-box;
+
+    position: fixed;
+    top: 131px;
+ 
+    z-index: 80;
+
+    width: 100%;
+    max-width: 800px;
+    left: 50%;
+    transform: translateX(-50%);
+
+   
 }
  
 /* 화살표 두 개를 위아래로 쌓기 */
@@ -322,6 +346,7 @@ img {
         flex-wrap: nowrap; /* 요소들이 밑으로 떨어지지 않게 한 줄로 강제 */
         gap:0px;
         min-width: 70px;
+        top: 131px;
     }
     .sort-item {
         column-gap: 0px;
@@ -398,6 +423,11 @@ img {
     justify-content: flex-end; /* 오른쪽(뒤쪽) 배치 */
     padding: 10px 1px;
     border-bottom: 1px solid var(--var-line-color1);
+    position: fixed;
+    top: 172px;
+    z-index: 80;
+    width: 94.4%;
+    background-color: var(--var-bg-color);
 }
 
 .search-box {

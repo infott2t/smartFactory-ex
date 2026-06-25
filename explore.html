@@ -163,18 +163,20 @@
                     class="bi bi-chevron-left back"></i></div>
             <div class="title"><span>작업 둘러보기</span></div>
         </div>
+
+
+        <div class="padding-20"></div>
+        <div class="tabs">
+            <ul class="tab-list">
+                <li class="tab-item active" data-target="popular">인기 급상승</li>
+                <li class="tab-item" data-target="favorite">즐겨찾기</li>
+                <li class="tab-item" data-target="new">새로운 일</li>
+                <li class="tab-item" data-target="category">카테고리</li>
+            </ul>
+        </div>
     </div>
     <div class="main-wrap">
         <main class="main">
-            <div class="padding-20"></div>
-            <div class="tabs">
-                <ul class="tab-list">
-                    <li class="tab-item active" data-target="popular">인기 급상승</li>
-                    <li class="tab-item" data-target="favorite">즐겨찾기</li>
-                    <li class="tab-item" data-target="new">새로운 일</li>
-                    <li class="tab-item" data-target="category">카테고리</li>
-                </ul>
-            </div>
             <div class="content-area">
                 <!-- 인기 급상승 탭 -->
                 <section class="tab-content active">
@@ -281,23 +283,38 @@
         $(document).ready(function () {
 
             // -------------------------
-            // 1. 데이터 영역
+            // 1. 데이터 영역 (isNew 속성 추가됨)
             // -------------------------
             const MOCK_JSON_DATA = `[
             {
                 "workId": 1, "workName": "김치만들기", "brandName": "AFood", "iconUrl": "./images/k-icon_150x150.png",
                 "salary": 1.3, "salaryChange": 0.01, "taskCount": 5, "participants": 123, "createdAt": "2024-08-01",
-                "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"]
+                "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"],
+                "isNew": false
             },
             {
                 "workId": 2, "workName": "우동만들기", "brandName": "Uton", "iconUrl": "./images/Uton_150x150.png",
                 "salary": 1.1, "salaryChange": -0.05, "taskCount": 4, "participants": 70, "createdAt": "2025-03-19",
-                "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"]
+                "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"],
+                "isNew": false
             },
             {
                 "workId": 3, "workName": "지갑만들기", "brandName": "Persa", "iconUrl": "./images/fancy_150x150.png",
-                "salary": 1.2, "salaryChange": 0.02, "taskCount": 5, "participants": 30, "createdAt": "2026-09-09",
-                "region": "서울시 마포구 합정동", "categories": ["악세사리", "지갑", "만들기"]
+                "salary": 1.2, "salaryChange": 0.02, "taskCount": 5, "participants": 30, "createdAt": "2026-05-09",
+                "region": "서울시 마포구 합정동", "categories": ["악세사리", "지갑", "만들기"],
+                "isNew": false
+            },
+            {
+                "workId": 6, "workName": "불고기구이", "brandName": "K-Meat", "iconUrl": "./images/beef_500.png",
+                "salary": 1.5, "salaryChange": -0.02, "taskCount": 5, "participants": 80, "createdAt": "2026-06-20",
+                "region": "서울시 종로구 연남동", "categories": ["음식", "요리", "불고기", "고기", "구이"],
+                "isNew": true
+            },
+            {
+                "workId": 7, "workName": "버거만들기", "brandName": "BurgerQueen", "iconUrl": "./images/burger_500.png",
+                "salary": 1.25, "salaryChange": 0.01, "taskCount": 4, "participants": 55, "createdAt": "2026-06-25",
+                "region": "서울시 용산구 이태원", "categories": ["음식", "요리", "버거", "만들기", "패스트푸드"],
+                "isNew": true
             }
         ]`;
 
@@ -305,12 +322,12 @@
                 if (!localStorage.getItem('kimp_works_db')) {
                     localStorage.setItem('kimp_works_db', MOCK_JSON_DATA);
                 }
-                
+
                 // 실제 서버 통신처럼 보이도록 Promise와 setTimeout을 사용해 0.8초 지연시킵니다.
                 return new Promise(resolve => {
                     setTimeout(() => {
                         resolve(JSON.parse(localStorage.getItem('kimp_works_db')));
-                    }, 800); 
+                    }, 800);
                 });
             }
 
@@ -333,7 +350,8 @@
                 } catch (e) { }
                 return userEmail;
             }
-            // ⭐ 로딩 UI 표시 함수
+
+            // 로딩 UI 표시 함수
             function showLoading($targetTab) {
                 $targetTab.find('.task-item').remove();
                 $targetTab.find('.empty-state').remove();
@@ -348,7 +366,7 @@
                 $targetTab.append(loadingHtml);
             }
 
-            // ⭐ 로딩 UI 제거 함수
+            // 로딩 UI 제거 함수
             function hideLoading($targetTab) {
                 $targetTab.find('.loading-container').remove();
             }
@@ -357,16 +375,12 @@
             // 2. 초기화 및 렌더링 영역
             // -------------------------
             async function init() {
-               let $firstTab = $('.tab-content').eq(0);
-                
-                // 1) 데이터를 가져오기 전에 로딩 스피너를 먼저 띄웁니다.
-                showLoading($firstTab); 
+                localStorage.removeItem('kimp_works_db'); // 실행할 때마다 DB 삭제
+                let $firstTab = $('.tab-content').eq(0);
 
-                // 2) 백엔드(로컬스토리지 시뮬레이션)에서 데이터를 가져옵니다. (약 0.8초 대기)
+                showLoading($firstTab);
                 dbData = await fetchWorksData();
                 categoryData = extractCategoryData(dbData);
-                
-                // 3) 데이터가 도착하면 로딩 스피너를 지우고 실제 리스트를 그립니다.
                 hideLoading($firstTab);
                 renderWorkList(dbData, $firstTab);
             }
@@ -392,7 +406,7 @@
                     let emptyHtml = `
                 <div class="empty-state">
                     <i class="bi bi-folder-x empty-state-icon"></i>
-                    <div class="empty-state-text">아직 즐겨찾기한 작업이 없어요.</div>
+                    <div class="empty-state-text">아직 작업이 없어요.</div>
                     <button class="btn-go-popular">새로운 작업 둘러보기</button>
                 </div>`;
                     $targetTab.append(emptyHtml);
@@ -401,14 +415,11 @@
 
                 let userEmail = getCurrentUserEmail();
                 let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
-
-                // ⭐ 핵심 추가: 현재 렌더링하고 있는 탭이 '즐겨찾기(인덱스 1)' 탭인지 확인합니다.
                 let isFavoriteTab = $targetTab.index() === 1;
 
                 dataArray.forEach(function (item) {
                     let rightSideHtml = '';
 
-                    // 우측 정보 HTML 생성 (급여, 지역 등)
                     if (currentSortType === '급여') {
                         let changePercent = (item.salaryChange * 100).toFixed(0);
                         let statusClass = item.salaryChange >= 0 ? 'status-up' : 'status-down';
@@ -433,10 +444,7 @@
                         rightSideHtml = `<div class="task-info-row"><i class="bi bi-calendar-check"></i><span class="val">${item.createdAt}</span></div>`;
                     }
 
-                    // ⭐ 로직 수정: '즐겨찾기 탭(isFavoriteTab)' 안에서 렌더링될 때만 별 아이콘을 띄웁니다!
                     let showStarIcon = (isFavoriteTab && item.workId === 1 && isKimpFavorite);
-
-                    // 회원님이 맞춰두신 크기(width, height)가 있다면 아래 태그에서 살짝 수정해주시면 됩니다.
                     let iconHtml = showStarIcon
                         ? `<div class="star-class"><i class="bi bi-star-fill" style="color: yellow;"></i></div>`
                         : `<img src="${item.iconUrl}">`;
@@ -484,13 +492,13 @@
             }
 
             // -------------------------
-            // 3. 이벤트 리스너 영역 (정렬 및 탭 전환)
+            // 3. 정렬 아이템 클릭 이벤트
             // -------------------------
             $(document).on('click', '.sort-item', function () {
                 let $this = $(this);
                 let sortType = $this.find('.lspace').text().trim();
                 let $activeTab = $this.closest('.tab-content');
-                let tabIndex = $activeTab.index(); // ⭐ 현재 어느 탭에서 정렬을 눌렀는지 인덱스 확인 (0: 인기, 1: 즐겨찾기, 2: 새로운일, 3: 카테고리)
+                let tabIndex = $activeTab.index();
 
                 $('.sort-item').not(this).removeClass('sort-up sort-down');
 
@@ -503,13 +511,13 @@
                     isAscending = true;
                 }
 
-                if (tabIndex === 3) {
+                if (tabIndex === 3) { // 카테고리 탭 정렬
                     categoryData.sort((a, b) => {
                         let result = sortType === '이름' ? a.name.localeCompare(b.name) : a.count - b.count;
                         return isAscending ? result : -result;
                     });
                     renderCategoryList(categoryData, $activeTab);
-                } else {
+                } else { // 그 외 탭 정렬
                     currentSortType = sortType;
                     dbData.sort((a, b) => {
                         let result = 0;
@@ -523,18 +531,27 @@
                         return isAscending ? result : -result;
                     });
 
-                    // ⭐ 버그 수정: '즐겨찾기' 탭(index 1)에서 정렬했을 경우 즐겨찾기 필터를 거친 뒤 렌더링
+                    // ⭐ 각 탭에 맞게 필터링 후 렌더링
                     if (tabIndex === 1) {
+                        // 즐겨찾기 탭 필터링
                         let userEmail = getCurrentUserEmail();
                         let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
                         let favoriteData = isKimpFavorite ? dbData.filter(work => work.workId === 1) : [];
                         renderWorkList(favoriteData, $activeTab);
+                    } else if (tabIndex === 2) {
+                        // 새로운 일 탭 필터링 (isNew가 true인 것만)
+                        let onlyNewData = dbData.filter(work => work.isNew === true);
+                        renderWorkList(onlyNewData, $activeTab);
                     } else {
+                        // 인기 급상승 탭 (전체)
                         renderWorkList(dbData, $activeTab);
                     }
                 }
             });
 
+            // -------------------------
+            // 4. 상단 탭 클릭 이벤트
+            // -------------------------
             $(document).on('click', '.tab-list .tab-item', function () {
                 $('.tab-item').removeClass('active');
                 $(this).addClass('active');
@@ -545,41 +562,55 @@
                 $('.tab-content').removeClass('active');
                 $targetTab.addClass('active');
 
-                if (tabIndex === 1) {
+                if (tabIndex === 1) { // 즐겨찾기 탭
                     let userEmail = getCurrentUserEmail();
                     let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
                     let favoriteData = isKimpFavorite ? dbData.filter(work => work.workId === 1) : [];
                     renderWorkList(favoriteData, $targetTab);
-                } else if (tabIndex === 3) {
+                } else if (tabIndex === 2) { // ⭐ 새로운 일 탭
+                    // DB에서 isNew가 true인(새로운 일) 데이터만 먼저 걸러냄
+                    let onlyNewData = dbData.filter(work => work.isNew === true);
+
+                    // 걸러낸 데이터를 생성일 기준 내림차순(최신순) 정렬
+                    let newData = [...onlyNewData].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                    // 정렬 헤더 UI 시각적 초기화
+                    $targetTab.find('.sort-item').removeClass('sort-up sort-down');
+                    $targetTab.find('.sort-item:contains("생성일")').addClass('sort-down');
+
+                    renderWorkList(newData, $targetTab);
+                } else if (tabIndex === 3) { // 카테고리 탭
                     categoryData.sort((a, b) => a.name.localeCompare(b.name));
                     $targetTab.find('.sort-item').removeClass('sort-up sort-down');
                     $targetTab.find('.sort-item').first().addClass('sort-up');
                     renderCategoryList(categoryData, $targetTab);
-                } else {
+                } else { // 인기 급상승 탭
                     renderWorkList(dbData, $targetTab);
                 }
             });
 
+            // 빈 화면에서 돌아가기 버튼
             $(document).on('click', '.btn-go-popular', function () {
                 $('.tab-list .tab-item').eq(0).click();
             });
-            // 카테고리 검색 기능 (글자를 입력할 때마다 실시간 필터링)
+
+            // 카테고리 검색 기능
             $(document).on('keyup', '#category-search', function () {
                 let keyword = $(this).val().toLowerCase().trim();
-                let $activeTab = $('.tab-content').eq(3); // 카테고리 탭
+                let $activeTab = $('.tab-content').eq(3);
 
-                // 입력한 키워드가 포함된 카테고리만 필터링
                 let filteredCategoryData = categoryData.filter(function (item) {
                     return item.name.toLowerCase().includes(keyword);
                 });
 
-                // 필터링된 데이터로 화면 다시 그리기
                 renderCategoryList(filteredCategoryData, $activeTab);
             });
+
             // ⭐ 앱 시작
             init();
         });
     </script>
+
 </body>
 
 </html>
