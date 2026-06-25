@@ -29,8 +29,8 @@
 
 
 ### 화면 캡처해봤습니다. 오픈소스이구요. 개발해보세요. 일하기가 더 좋아지겠죠~. 봐 주셔서 감사합니다.
-![작업자 라운지](<img width="525" height="795" alt="2026-06-25 21;09;55" src="https://github.com/user-attachments/assets/bd3d9dc9-f139-41d9-84f3-9ca61df625b4" />)
-
+![작업자 라운지](<img width="525" height="795" alt="2026-06-25 21;09;55" src="https://github.com/user-attachments/assets/606a9749-b306-43e0-a707-8f7e6787ea5c" />
+)
 
 
 ![나의 작업 로그](<img width="526" height="798" alt="2026-06-25 21;09;43" src="https://github.com/user-attachments/assets/587e6cd7-d76a-4ed7-b1e4-edd29aa24c9f" />)
