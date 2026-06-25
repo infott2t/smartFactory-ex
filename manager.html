@@ -5692,13 +5692,13 @@
             // 초기 주문 데이터
             if (!localStorage.getItem("kimp_delivery_orders")) {
                 const initialOrders = [
-                    { orderId: "ORD-260615-01", orderTime: "2026-06-14 18:32", customerName: "김지우", address: "서울시 성동구 성수동", productId: "p300g", quantity: 5, price: 3000, status: "입금 완료" },
-                    { orderId: "ORD-260615-02", orderTime: "2026-06-14 20:15", customerName: "박민수", address: "서울시 강남구 역삼동", productId: "p1kg", quantity: 3, price: 8000, status: "입금 완료" },
-                    { orderId: "ORD-260615-03", orderTime: "2026-06-14 23:44", customerName: "이서연", address: "서울시 서초구 반포동", productId: "p3kg", quantity: 2, price: 20000, status: "배송 중" },
-                    { orderId: "ORD-260615-04", orderTime: "2026-06-15 01:10", customerName: "최준호", address: "경기 성남시 삼평동", productId: "p5kg", quantity: 1, price: 32000, status: "생산 중" },
-                    { orderId: "ORD-260615-05", orderTime: "2026-06-15 06:22", customerName: "정수진", address: "서울시 용산구 한남동", productId: "p10kg", quantity: 1, price: 60000, status: "주문 완료" },
-                    { orderId: "ORD-260615-06", orderTime: "2026-06-15 08:50", customerName: "강현우", address: "서울시 송파구 잠실동", productId: "p300g", quantity: 10, price: 3000, status: "주문 완료" },
-                    { orderId: "ORD-260615-07", orderTime: "2026-06-15 09:40", customerName: "윤아름", address: "서울시 영등포구 여의도동", productId: "p1kg", quantity: 5, price: 8000, status: "주문 완료" }
+                    { orderId: "ORD-260615-01", orderTime: "2026-06-14 18:32", customerName: "김**", address: "서울시 성동구 성수동", productId: "p300g", quantity: 5, price: 3000, status: "입금 완료" },
+                    { orderId: "ORD-260615-02", orderTime: "2026-06-14 20:15", customerName: "박**", address: "서울시 강남구 역삼동", productId: "p1kg", quantity: 3, price: 8000, status: "입금 완료" },
+                    { orderId: "ORD-260615-03", orderTime: "2026-06-14 23:44", customerName: "이**", address: "서울시 서초구 반포동", productId: "p3kg", quantity: 2, price: 20000, status: "배송 중" },
+                    { orderId: "ORD-260615-04", orderTime: "2026-06-15 01:10", customerName: "최**", address: "경기 성남시 삼평동", productId: "p5kg", quantity: 1, price: 32000, status: "생산 중" },
+                    { orderId: "ORD-260615-05", orderTime: "2026-06-15 06:22", customerName: "정**", address: "서울시 용산구 한남동", productId: "p10kg", quantity: 1, price: 60000, status: "주문 완료" },
+                    { orderId: "ORD-260615-06", orderTime: "2026-06-15 08:50", customerName: "강**", address: "서울시 송파구 잠실동", productId: "p300g", quantity: 10, price: 3000, status: "주문 완료" },
+                    { orderId: "ORD-260615-07", orderTime: "2026-06-15 09:40", customerName: "윤**", address: "서울시 영등포구 여의도동", productId: "p1kg", quantity: 5, price: 8000, status: "주문 완료" }
                 ];
                 localStorage.setItem("kimp_delivery_orders", JSON.stringify(initialOrders));
             }
