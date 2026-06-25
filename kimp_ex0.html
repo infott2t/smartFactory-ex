@@ -1,33 +1,51 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>생산 공정 터미널</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
+
     <link rel="stylesheet" href="./css/kimp_ex0.css">
 </head>
-<body>
 
-    <header class="global-header">
+<body>
+    <header class="global-header" id="main-header">
         <div class="header-top">
             <div class="job-info-group">
                 <div class="job-title" id="display-job-title">
                     <i class="bi bi-box-seam"></i> 김치만들기
                 </div>
+
+                <div class="compact-toggle-inline" onclick="toggleCompactMode()">
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+
                 <div class="location-badge" id="display-location">
                     <i class="bi bi-geo-alt-fill"></i> 대기장소
                 </div>
             </div>
-            
-            <button class="btn-select-task" onclick="openTaskSelector()">
-                <i class="bi bi-grid-fill"></i> 작업 위치 변경
-            </button>
+
+            <div class="header-actions">
+                <button class="btn-select-task" onclick="openTaskSelector()">
+                    <i class="bi bi-grid-fill"></i> 위치 변경
+                </button>
+
+                <button class="btn-menu" onclick="openMoreMenu()">
+                    <i class="bi bi-cup-hot"></i> 작업자 라운지
+                </button>
+            </div>
         </div>
 
-        <div class="status-grid">
+        <button class="btn-toggle-status" onclick="toggleStatus()" id="btn-toggle">
+            나의 작업 상태 보기 <i class="bi bi-chevron-down"></i>
+        </button>
+
+        <div class="status-grid" id="status-grid-container">
             <div class="status-box">
                 <span class="status-label">현재 시간</span>
                 <span class="status-value" id="clock-current">00:00</span>
@@ -41,12 +59,18 @@
                 <span class="status-value highlight" id="salary-display">0 원</span>
             </div>
         </div>
+
+        <div class="compact-expand-bar" onclick="toggleCompactMode()">
+            <i class="bi bi-chevron-up"></i>
+        </div>
     </header>
+
 
     <main class="main-content">
         <div class="stage-page active" id="stage-0">
             <div class="card">
-                <i class="bi bi-info-circle-fill" style="font-size: 64px; color: var(--text-secondary); margin-bottom: 24px; display: inline-block;"></i>
+                <i class="bi bi-info-circle-fill"
+                    style="font-size: 64px; color: var(--text-secondary); margin-bottom: 24px; display: inline-block;"></i>
                 <h1 class="stage-title">작업을 선택해주세요</h1>
                 <p class="stage-desc">상단의 <strong>[작업 위치 변경]</strong> 버튼을 눌러<br>진행할 공정을 선택할 수 있습니다.</p>
             </div>
@@ -54,8 +78,8 @@
 
         <div class="stage-page" id="stage-1">
             <div class="card">
-                <h1 class="stage-title">Stage 1. 배추 1/2 컷팅하기</h1>
-                <p class="stage-desc">배추를 컷팅하여 이물질을 제거하고 파레트에 적재합니다.</p>
+                <div id="stage-1-dynamic-content">
+                </div>
             </div>
         </div>
 
@@ -101,139 +125,545 @@
                 <h2 class="modal-title">어디에서 일할까요?</h2>
                 <button class="btn-close-modal" onclick="closeTaskSelector()"><i class="bi bi-x-lg"></i></button>
             </div>
-            
+
             <div class="task-grid" id="task-grid-container">
-                </div>
+            </div>
         </div>
     </div>
 
-<script src="./js/jquery-3.7.1.min.js"></script>
-<script>
-    // ============================================================
-    // 1. 공정 및 지시서 데이터 모델
-    // ============================================================
-    const appData = {
-        currentOrder: { id: "ORD-20260625-A", title: "김치만들기", qty: 15 },
-        stages: [
-            { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", worker: "" },
-            { id: 2, name: "배추 절이기", icon: "bi-water", status: "occupied", worker: "박준호" },
-            { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "disabled", worker: "" },
-            { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", worker: "" },
-            { id: 5, name: "양념 버무리기", icon: "bi-basket", status: "occupied", worker: "이영희" },
-            { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "disabled", worker: "" }
-        ],
-        activeStageId: 0,
-        user: { name: "손님", id: "guest" }
-    };
+    <div class="modal-overlay" id="more-menu-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title" style="color: var(--primary);">
+                    <i class="bi bi-cup-hot"></i> 작업자 라운지
+                </h2>
+                <button class="btn-close-modal" onclick="closeMoreMenu()"><i class="bi bi-x-lg"></i></button>
+            </div>
 
-    // ============================================================
-    // 2. 초기 로드 (DOM 로딩 후 실행)
-    // ============================================================
-    document.addEventListener('DOMContentLoaded', () => {
-        initSession();
-        updateHeaderInfo();
-        setInterval(updateClocks, 1000);
-    });
-
-    function initSession() {
-        try {
-            const userStr = sessionStorage.getItem("user");
-            if (userStr) {
-                appData.user = JSON.parse(userStr);
-                const nameEl = document.getElementById("display-user-name");
-                if (nameEl) nameEl.textContent = appData.user.name;
-            } else {
-                // 테스트를 위해 주석 처리 (원래는 로그인으로 리다이렉트)
-                // window.location.href = "login.html";
-            }
-        } catch(e) { console.error("세션 초기화 실패", e); }
-    }
-
-    function updateHeaderInfo() {
-        const titleEl = document.getElementById('display-job-title');
-        const orderEl = document.getElementById('display-work-order');
-        if (titleEl) titleEl.innerHTML = `<i class="bi bi-box-seam"></i> ${appData.currentOrder.title}`;
-        if (orderEl) orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${appData.currentOrder.id}`;
-    }
-
-    // ============================================================
-    // 3. 작업 선택 로직 (HMI 모달)
-    // ============================================================
-    function openTaskSelector() {
-        const grid = document.getElementById('task-grid-container');
-        if (!grid) return;
-        grid.innerHTML = ''; 
-
-        appData.stages.forEach(stage => {
-            const isCurrent = (stage.id === appData.activeStageId);
-            const btnClass = isCurrent ? 'current' : stage.status;
-            
-            let statusText = isCurrent ? "내가 작업 중" : 
-                            (stage.status === 'occupied' ? `${stage.worker} 작업 중` : 
-                            (stage.status === 'disabled' ? "설비 점검" : "참여 가능"));
-
-            grid.innerHTML += `
-                <button class="task-btn ${btnClass}" onclick="handleStageClick(${stage.id}, '${stage.status}', '${stage.name}')">
-                    <i class="bi ${stage.icon}"></i>
-                    <span>Stage ${stage.id}. ${stage.name}</span>
-                    <span class="task-status-text ${stage.status}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
+            <div class="menu-list">
+                <button class="menu-btn" onclick="alert('안전 대피로 및 공정 안내도를 엽니다.')">
+                    <i class="bi bi-map" style="color: #3b82f6;"></i> 현장 안전 및 공정 안내도
                 </button>
-            `;
+                <button class="menu-btn" onclick="showWorkLogs()">
+                    <i class="bi bi-journal-check" style="color: #10b981;"></i> 나의 작업 기록 및 성과
+                </button>
+                <button class="menu-btn" onclick="alert('근처의 동료나 관리자에게 즉시 도움을 요청합니다.')">
+                    <i class="bi bi-bell-fill" style="color: #f59e0b;"></i> 동료/관리자 긴급 도움 호출
+                </button>
+                <button class="menu-btn" onclick="alert('설비를 안전 모드로 전환하고 휴식 시간을 가집니다.')">
+                    <i class="bi bi-battery-charging" style="color: #8b5cf6;"></i> 에너지 재충전 휴식 가지기
+                </button>
+                <button class="menu-btn" onclick="alert('건강상의 사유 등으로 조퇴를 신청합니다.')">
+                    <i class="bi bi-house-heart" style="color: #ec4899;"></i> 컨디션 회복 조퇴 신청
+                </button>
+                <button class="menu-btn" onclick="alert('관리자에게 불편사항이나 문의를 남깁니다.')">
+                    <i class="bi bi-chat-quote" style="color: #64748b;"></i> 관리자와의 따뜻한 소통 (건의/문의)
+                </button>
+
+                <hr style="border: 0; border-top: 2px dashed var(--border-color); margin: 16px 0;">
+                
+                <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border-color);">
+                    <p style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">
+                        <i class="bi bi-info-circle-fill"></i> 시스템 제작 정보
+                    </p>
+                    <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px;">Smart Factory HMI Project</h3>
+                    
+                    <a href="https://github.com/infott2t/smartFactory-ex" target="_blank" style="display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 14px; background-color: #24292e; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; transition: transform 0.1s;">
+                        <i class="bi bi-github" style="font-size: 20px;"></i> GitHub 저장소 방문하기
+                    </a>
+                    
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; line-height: 1.6;">
+                        본 프로젝트는 스마트 팩토리 공정 관리를 위한<br>오픈소스 HMI 웹 터미널입니다.<br>
+                        <strong>Developed by infott2t</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="log-modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="bi bi-clock-history"></i> 나의 작업 로그</h2>
+                <button class="btn-close-modal" onclick="closeLogModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="log-list" id="log-list-container">
+            </div>
+        </div>
+    </div>
+    <audio id="shutter-sound" src="https://actions.google.com/sounds/v1/alarms/camera_shutter.ogg"
+        preload="auto"></audio>
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script>
+        // ============================================================
+        // 1. 공정 및 지시서 데이터 모델
+        // ============================================================
+        const today = new Date();
+        // 💡 수정됨: 년도를 2자리로 자름 (예: 2026 -> 26)
+        const dateStr = String(today.getFullYear()).slice(2) +
+            String(today.getMonth() + 1).padStart(2, '0') +
+            String(today.getDate()).padStart(2, '0');
+
+        const initialQty = 15;
+
+        // 💡 새로 추가됨: 지시서 끝 번호(Suffix)와 완료 상태(Flag)를 추적하는 변수
+        let dailyOrderSuffix = 1;
+        let isCompleted = false;
+
+        const appData = {
+            // 초기화 시 260625-15-1 형태로 생성됨
+            currentOrder: { id: `${dateStr}-${initialQty}-${dailyOrderSuffix}`, title: "김치만들기", qty: initialQty, regCount: 0 },
+            stages: [
+                { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", worker: "" },
+                { id: 2, name: "배추 절이기", icon: "bi-water", status: "occupied", worker: "박준호" },
+                { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "disabled", worker: "" },
+                { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", worker: "" },
+                { id: 5, name: "양념 버무리기", icon: "bi-basket", status: "occupied", worker: "이영희" },
+                { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "disabled", worker: "" }
+            ],
+            activeStageId: 0,
+            user: { name: "손님", id: "guest" },
+            logs: []
+        };
+
+        let remainingSeconds = 7200;
+        let accumSalary = 0;
+        const SALARY_PER_SEC = 13416 / 3600;
+        let currentStepIndex = 0;
+
+        // ============================================================
+        // 2. 초기 로드 (DOM 로딩 후 실행)
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initSession();
+            updateHeaderInfo();
+            setInterval(updateClocks, 1000);
         });
-        document.getElementById('task-modal').classList.add('open');
-    }
 
-    function closeTaskSelector() {
-        document.getElementById('task-modal').classList.remove('open');
-    }
-
-    function handleStageClick(stageId, status, stageName) {
-        if (stageId === appData.activeStageId) { closeTaskSelector(); return; }
-        if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
-        if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
-
-        moveToStage(stageId, stageName);
-    }
-
-    function moveToStage(stageId, stageName) {
-        appData.activeStageId = stageId;
-        const locBadge = document.getElementById('display-location');
-        if (locBadge) locBadge.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Stage ${stageId}. ${stageName}`;
-
-        document.querySelectorAll('.stage-page').forEach(p => {
-            p.classList.remove('active');
-            p.classList.add('past');
-        });
-        const target = document.getElementById(`stage-${stageId}`);
-        if (target) {
-            target.classList.remove('past');
-            target.classList.add('active');
+        function initSession() {
+            try {
+                const userStr = sessionStorage.getItem("user");
+                if (userStr) {
+                    appData.user = JSON.parse(userStr);
+                    const nameEl = document.getElementById("display-user-name");
+                    if (nameEl) nameEl.textContent = appData.user.name;
+                }
+            } catch (e) { console.error("세션 초기화 실패", e); }
         }
-        closeTaskSelector();
-    }
 
-    // ============================================================
-    // 4. 시계/급여 타이머 
-    // ============================================================
-    let remainingSeconds = 7200;
-    let accumSalary = 0;
-    const SALARY_PER_SEC = 13416 / 3600;
+        function updateHeaderInfo() {
+            const titleEl = document.getElementById('display-job-title');
+            const orderEl = document.getElementById('display-work-order');
+            if (titleEl) titleEl.innerHTML = `<i class="bi bi-box-seam"></i> 김치만들기`;
+            if (orderEl) orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${appData.currentOrder.id}`;
+        }
 
-    function updateClocks() {
-        const now = new Date();
-        const curEl = document.getElementById('clock-current');
-        const remEl = document.getElementById('clock-remaining');
-        const salEl = document.getElementById('salary-display');
+        // ============================================================
+        // 3. 작업 선택 및 헤더 제어 로직
+        // ============================================================
+        function openTaskSelector() {
+            const grid = document.getElementById('task-grid-container');
+            if (!grid) return;
+            grid.innerHTML = '';
 
-        if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
-        if (remainingSeconds > 0) remainingSeconds--;
-        if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds/3600)).padStart(2,'0')}:${String(Math.floor((remainingSeconds%3600)/60)).padStart(2,'0')}:${String(remainingSeconds%60).padStart(2,'0')}`;
-        
-        accumSalary += SALARY_PER_SEC;
-        if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
-    }
-</script>
+            appData.stages.forEach(stage => {
+                const isCurrent = (stage.id === appData.activeStageId);
+                const btnClass = isCurrent ? 'current' : stage.status;
+
+                let statusText = isCurrent ? "내가 작업 중" :
+                    (stage.status === 'occupied' ? `${stage.worker} 작업 중` :
+                        (stage.status === 'disabled' ? "설비 점검" : "참여 가능"));
+
+                grid.innerHTML += `
+            <button class="task-btn ${btnClass}" onclick="handleStageClick(${stage.id}, '${stage.status}', '${stage.name}')">
+                <i class="bi ${stage.icon}"></i>
+                <span>Stage ${stage.id}. ${stage.name}</span>
+                <span class="task-status-text ${stage.status}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
+            </button>
+        `;
+            });
+            document.getElementById('task-modal').classList.add('open');
+        }
+
+        function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
+
+        function handleStageClick(stageId, status, stageName) {
+            if (stageId === appData.activeStageId) { closeTaskSelector(); return; }
+            if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
+            if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
+            if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
+
+            moveToStage(stageId, stageName);
+        }
+
+        function moveToStage(stageId, stageName) {
+            // 💡 핵심 로직: 이전 작업이 '완료(isCompleted)'된 상태에서 새로운 공정으로 진입할 때만 지시서 번호를 증가시킴
+            if (stageId > 0 && isCompleted) {
+                dailyOrderSuffix++; // 끝 번호 +1
+                appData.currentOrder.id = `${dateStr}-${appData.currentOrder.qty}-${dailyOrderSuffix}`; // 새로운 지시서 발급
+                appData.currentOrder.regCount = 0; // 재등록 카운트 리셋
+                isCompleted = false; // 새로운 작업 시작 상태로 변경
+                updateHeaderInfo();
+            }
+
+            appData.activeStageId = stageId;
+            const locBadge = document.getElementById('display-location');
+            if (locBadge) locBadge.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Stage ${stageId}. ${stageName}`;
+
+            document.querySelectorAll('.stage-page').forEach(p => {
+                p.classList.remove('active');
+                p.classList.add('past');
+            });
+            const target = document.getElementById(`stage-${stageId}`);
+            if (target) {
+                target.classList.remove('past');
+                target.classList.add('active');
+            }
+            closeTaskSelector();
+
+            const header = document.getElementById('main-header');
+            if (stageId > 0) {
+                header.classList.remove('hide-toggle');
+                header.classList.add('compact');
+            } else {
+                header.classList.add('hide-toggle');
+                header.classList.remove('compact');
+            }
+
+            if (stageId > 0) {
+                addLog(`작업자가 [Stage ${stageId}. ${stageName}] 위치로 이동했습니다.`);
+            }
+
+            if (stageId === 1) {
+                currentStepIndex = 0;
+                renderCurrentStep();
+            }
+        }
+
+        function toggleCompactMode() {
+            const header = document.getElementById('main-header');
+            header.classList.toggle('compact');
+        }
+
+        function toggleStatus() {
+            const grid = document.getElementById('status-grid-container');
+            const btnIcon = document.querySelector('#btn-toggle i');
+            grid.classList.toggle('expanded');
+            if (grid.classList.contains('expanded')) {
+                btnIcon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+            } else {
+                btnIcon.classList.replace('bi-chevron-up', 'bi-chevron-down');
+            }
+        }
+
+        // ============================================================
+        // 4. 시계/급여 타이머 업데이트
+        // ============================================================
+        function updateClocks() {
+            const now = new Date();
+            const curEl = document.getElementById('clock-current');
+            const remEl = document.getElementById('clock-remaining');
+            const salEl = document.getElementById('salary-display');
+
+            if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            if (remainingSeconds > 0) remainingSeconds--;
+            if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+
+            accumSalary += SALARY_PER_SEC;
+            if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
+        }
+
+        // ============================================================
+        // 5. 작업 로그 모달 제어
+        // ============================================================
+        function showWorkLogs() {
+            const container = document.getElementById('log-list-container');
+            if (appData.logs.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-secondary);">아직 기록된 작업 로그가 없습니다.</div>`;
+            } else {
+                container.innerHTML = appData.logs.slice().reverse().map(log => {
+                    let editBtn = '';
+                    if (log.editableIndex !== null && log.editableIndex !== undefined) {
+                        editBtn = `<button class="btn-menu" style="padding: 4px 8px; font-size: 12px; margin-top: 8px; background: #e0e7ff; color: var(--primary); border:none;" onclick="editLog(${log.editableIndex})"><i class="bi bi-pencil-square"></i> 수량 재입력하기</button>`;
+                    }
+                    return `
+                <div class="log-item" style="flex-direction: column;">
+                    <div style="display:flex; gap:12px;">
+                        <span class="log-time">${log.time}</span>
+                        <span class="log-text">${log.text}</span>
+                    </div>
+                    ${editBtn}
+                </div>`;
+                }).join('');
+            }
+            document.getElementById('more-menu-modal').classList.remove('open');
+            document.getElementById('log-modal').classList.add('open');
+        }
+
+        function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
+
+        function editLog(targetStepIndex) {
+            closeLogModal();
+            // 💡 핵심 로직: 로그에서 수정을 누르면 새로운 작업이 아니라 '기존 작업의 연장'이므로 플래그를 취소함
+            isCompleted = false;
+
+            if (appData.activeStageId === 0) {
+                moveToStage(1, '배추 1/2 컷팅');
+            }
+            currentStepIndex = targetStepIndex;
+            renderCurrentStep();
+        }
+
+        function addLog(text, editableIndex = null) {
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            appData.logs.push({ time: timeStr, text: text, editableIndex: editableIndex });
+        }
+
+        function openMoreMenu() { document.getElementById('more-menu-modal').classList.add('open'); }
+        function closeMoreMenu() { document.getElementById('more-menu-modal').classList.remove('open'); }
+
+        // ============================================================
+        // 6. Stage 1 세부 공정 프로세스 (Wizard UI)
+        // ============================================================
+        function changeValue(inputId, delta) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            let val = parseFloat(input.value) || 0;
+            val += delta;
+            if (val < 0) val = 0;
+
+            if (inputId === 'input-weight') {
+                input.value = val.toFixed(1);
+                return;
+            }
+
+            const total = appData.currentOrder.qty;
+
+            if (inputId === 'input-defect') {
+                if (val > total) val = total;
+                input.value = val;
+                document.getElementById('input-good').value = total - val;
+            } else if (inputId === 'input-good') {
+                if (val > total) val = total;
+                input.value = val;
+                document.getElementById('input-defect').value = total - val;
+            } else {
+                input.value = val;
+            }
+        }
+
+        const stage1Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'info', icon: 'bi-truck', title: '자재 창고 이동', desc: `창고로 이동하여 <strong>배추 ${appData.currentOrder.qty}포기</strong>를 실어주세요.`, action: '상차 완료' },
+            { type: 'input', icon: 'bi-cart-check', title: '실제 상차 수량 입력', desc: '창고에서 배추를 몇 포기 실었나요?', label: '상차 수량 (포기)', defaultVal: appData.currentOrder.qty, action: '입력 완료' },
+            { type: 'info', icon: 'bi-arrow-return-left', title: '작업대 복귀', desc: '배추를 모두 싣고 제자리(작업대)로 돌아가주세요.', action: '복귀 완료' },
+            { type: 'work', icon: 'bi-scissors', title: '배추 컷팅 작업 진행', desc: '배추를 1포기씩 절반으로 갈라주세요.', action: '작업 완료' },
+            { type: 'report', icon: 'bi-clipboard-check', title: '작업 실적 보고', desc: '작업이 끝났습니다. 수량과 무게를 입력해주세요.', action: '실적 저장' },
+            { type: 'final-photo', icon: 'bi-camera', title: '최종 증빙 촬영', desc: '저울 위의 <strong style="color:var(--primary)">배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '작업 완료 및 대기소 복귀' }
+        ];
+
+        function renderCurrentStep() {
+            const container = document.getElementById('stage-1-dynamic-content');
+            if (!container) return;
+
+            const step = stage1Workflow[currentStepIndex];
+
+            if (!step) {
+                finishStage();
+                return;
+            }
+
+            let visualElement = '';
+            if (step.type === 'qr') {
+                visualElement = `
+                <div class="qr-scanner-box" onclick="nextStep()">
+                    <i class="bi bi-qr-code" style="font-size: 60px; color: var(--primary);"></i>
+                    <span style="margin-top:10px; font-weight:bold; color:var(--primary);">터치하여 스캔</span>
+                </div>
+            `;
+            }
+            else if (step.type === 'input') {
+                visualElement = `
+                <div class="hmi-input-group">
+                    <label>${step.label}</label>
+                    <div class="number-stepper">
+                        <button onclick="changeValue('input-single', -1)"><i class="bi bi-dash"></i></button>
+                        <input type="number" id="input-single" value="${step.defaultVal}" readonly />
+                        <button onclick="changeValue('input-single', 1)"><i class="bi bi-plus"></i></button>
+                    </div>
+                </div>
+            `;
+            }
+            else if (step.type === 'report') {
+                visualElement = `
+                <div class="hmi-input-group">
+                    <div class="input-row">
+                        <label>양품 (정상)</label>
+                        <div class="number-stepper">
+                            <button onclick="changeValue('input-good', -1)"><i class="bi bi-dash"></i></button>
+                            <input type="number" id="input-good" value="${appData.currentOrder.qty}" readonly />
+                            <button onclick="changeValue('input-good', 1)"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="input-row defect">
+                        <label>불량 (폐기)</label>
+                        <div class="number-stepper">
+                            <button onclick="changeValue('input-defect', -1)"><i class="bi bi-dash"></i></button>
+                            <input type="number" id="input-defect" value="0" readonly />
+                            <button onclick="changeValue('input-defect', 1)"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </div>
+                    <hr style="border:0; border-top:2px dashed var(--border-color); margin: 8px 0;">
+                    <div class="input-row" style="margin-bottom:0;">
+                        <label>총 무게 (kg)</label>
+                        <div class="number-stepper">
+                            <button onclick="changeValue('input-weight', -0.5)"><i class="bi bi-dash"></i></button>
+                            <input type="number" step="0.1" id="input-weight" value="15.0" readonly />
+                            <button onclick="changeValue('input-weight', 0.5)"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }
+            else if (step.type === 'final-photo') {
+                visualElement = `
+                <div class="qr-scanner-box" style="width:100%; max-width:400px; height:220px; border-color:var(--success); background:#f8fafc;" onclick="simulateFinalCamera()">
+                    <i class="bi bi-camera-fill" id="camera-icon" style="font-size: 50px; color: var(--success);"></i>
+                    <div id="mock-photo" style="display:none; text-align:center;">
+                        <div style="background:#e2e8f0; border-radius:8px; padding:12px; margin-top:8px;">
+                            🥬 1/2 컷팅 배추<br>📄 지시서 [${appData.currentOrder.id}]<br>⚖️ <span id="mock-weight"></span> kg
+                        </div>
+                    </div>
+                    <span id="camera-text" style="margin-top:10px; font-weight:bold; color:var(--success);">화면을 눌러 촬영</span>
+                </div>
+                <p style="color:var(--text-secondary); font-size:14px; margin-top:8px;">※ 찰칵 소리가 나며 사진이 저장됩니다.</p>
+            `;
+            }
+
+            container.innerHTML = `
+            <div class="step-container">
+                <i class="bi ${step.icon} step-icon"></i>
+                <div class="step-message">${step.title}</div>
+                <div class="step-sub-message">${step.desc}</div>
+                ${visualElement}
+                ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
+                ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="nextStep()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
+            </div>
+        `;
+
+            // 지시서 맵핑 단계일 경우 동적으로 현재 ID 렌더링
+            const idDisplay = document.getElementById('display-workflow-id');
+            if (idDisplay) idDisplay.textContent = `[${appData.currentOrder.id}]`;
+        }
+
+        function nextStep() {
+            const step = stage1Workflow[currentStepIndex];
+
+            if (step.type === 'qr' && step.title.includes('체크인')) {
+                addLog(`공정 위치 QR코드를 스캔했습니다.`);
+            } else if (step.type === 'qr' && step.title.includes('맵핑')) {
+                addLog(`생산지시서 [${appData.currentOrder.id}]를 스캔했습니다.`);
+            } else if (step.type === 'input') {
+                const qty = document.getElementById('input-single').value;
+                addLog(`상차 수량 ${qty}포기 입력 완료.`);
+            } else if (step.type === 'work') {
+                addLog(`배추 컷팅 작업을 완료했습니다.`);
+            } else if (step.type === 'report') {
+                const goodQty = document.getElementById('input-good').value;
+                const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
+                const weight = document.getElementById('input-weight').value;
+
+                // 💡 수정됨: 실적 등록 로그 앞에 [지시서: 번호] 추가
+                const orderId = appData.currentOrder.id;
+                addLog(`[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
+                window.tempWeight = weight;
+
+                if (defectQty > 0) {
+                    renderDefectPhotoStep(defectQty);
+                    return;
+                }
+            }
+
+            currentStepIndex++;
+            renderCurrentStep();
+        }
+
+        function playShutterSound() {
+            const sound = document.getElementById('shutter-sound');
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play();
+            }
+        }
+
+        function simulateFinalCamera() {
+            playShutterSound();
+
+            appData.currentOrder.regCount += 1;
+            const count = appData.currentOrder.regCount;
+            const orderId = appData.currentOrder.id;
+
+            // 💡 수정됨: 요청하신 대로 "사진"이라는 단어를 빼고 깔끔한 원본 형태로 복구
+            let logMsg = `[지시서: ${orderId}] 최종 작업 증빙 촬영 완료.`;
+            if (count > 1) {
+                logMsg = `[지시서: ${orderId}] 재등록 ${count}번째 - 최종 작업 증빙 촬영 완료.`;
+            }
+            addLog(logMsg);
+
+            // 카메라 아이콘 숨기고 목업(Mock) 화면 보여주기
+            document.getElementById('camera-icon').style.display = 'none';
+            document.getElementById('camera-text').style.display = 'none';
+            document.getElementById('mock-photo').style.display = 'block';
+            document.getElementById('mock-weight').textContent = window.tempWeight || '15.0';
+
+            const btn = document.getElementById('btn-final');
+            if (btn) btn.disabled = false;
+        }
+
+        function renderDefectPhotoStep(defectQty) {
+            const container = document.getElementById('stage-1-dynamic-content');
+            container.innerHTML = `
+            <div class="step-container">
+                <i class="bi bi-camera step-icon" style="color: var(--danger);"></i>
+                <div class="step-message" style="color: var(--danger);">불량 발생 보고 (${defectQty}건)</div>
+                <div class="step-sub-message">불량 부위를 촬영하여 매니저 승인을 받아주세요.</div>
+                <div class="qr-scanner-box" style="border-color: var(--danger);" onclick="simulateCamera('btn-approve', true)">
+                    <i class="bi bi-camera-fill" style="font-size: 60px; color: var(--danger);"></i>
+                    <span style="margin-top:10px; font-weight:bold; color:var(--danger);">화면을 눌러 촬영</span>
+                </div>
+                <button id="btn-approve" class="btn-huge" disabled onclick="requestManagerApproval()" style="background-color: #cbd5e1; color: white;">매니저 승인 요청 <i class="bi bi-send"></i></button>
+            </div>
+        `;
+        }
+
+        function simulateCamera(btnId, isDefect) {
+            playShutterSound();
+            addLog(isDefect ? `불량 증빙 사진 촬영 완료.` : `최종 작업 증빙 촬영 완료.`);
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.disabled = false;
+                btn.style.backgroundColor = isDefect ? 'var(--danger)' : '';
+            }
+        }
+
+        function requestManagerApproval() {
+            alert('✅ 매니저에게 승인 요청이 전송되었습니다.\n(자동 승인 처리)');
+            addLog(`매니저 승인 완료.`);
+            currentStepIndex++;
+            renderCurrentStep();
+        }
+
+        function finishStage() {
+            currentStepIndex = 0;
+            isCompleted = true; // 💡 현재 지시서 작업이 끝났음을 마킹
+            moveToStage(0, '대기장소');
+        }
+    </script>
 
 </body>
+
 </html>

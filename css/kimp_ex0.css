@@ -3,33 +3,40 @@
     --bg-main: #f4f6f8;
     --bg-card: #ffffff;
     --bg-header: #ffffff;
-    
+
     --text-primary: #1e293b;
     --text-secondary: #64748b;
-    
+
     --primary: #4f46e5;
     --primary-hover: #4338ca;
     --success: #10b981;
     --warning: #f59e0b;
-    
+
     --border-color: #e2e8f0;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
 }
 
 /* 2. 리셋 및 폰트 */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 /* 💡 화면 깨짐 방지를 위해 body를 Flex Column으로 선언 */
 body {
     font-family: 'Inter', 'Noto Sans KR', sans-serif;
     background-color: var(--bg-main);
     color: var(--text-primary);
-    overflow: hidden; 
+    overflow: hidden;
     height: 100vh;
-    display: flex;         
-    flex-direction: column; 
+    display: flex;
+    flex-direction: column;
 }
 
 /* 3. 유연한 헤더 영역 (Flex Item) */
@@ -41,7 +48,8 @@ body {
     display: flex;
     flex-direction: column;
     padding: 16px 24px;
-    flex-shrink: 0; /* 헤더 영역은 줄어들지 않음 */
+    flex-shrink: 0;
+    /* 헤더 영역은 줄어들지 않음 */
 }
 
 .header-top {
@@ -64,7 +72,10 @@ body {
     align-items: center;
     gap: 8px;
 }
-.job-title i { color: var(--primary); }
+
+.job-title i {
+    color: var(--primary);
+}
 
 .location-badge {
     background-color: var(--primary);
@@ -94,7 +105,10 @@ body {
     box-shadow: var(--shadow-sm);
     transition: transform 0.1s;
 }
-.btn-select-task:active { transform: scale(0.95); }
+
+.btn-select-task:active {
+    transform: scale(0.95);
+}
 
 .status-grid {
     display: grid;
@@ -111,62 +125,129 @@ body {
     gap: 4px;
 }
 
-.status-label { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
-.status-value { font-size: 22px; font-weight: 700; font-family: 'Inter', sans-serif; }
-.status-value.highlight { color: var(--success); }
+.status-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.status-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+}
+
+.status-value.highlight {
+    color: var(--success);
+}
 
 /* 4. 메인 컨텐츠 영역 (남은 높이를 모두 채움) */
 .main-content {
-    flex-grow: 1;      /* 남는 영역을 꽉 채우도록 설정 */
+    flex-grow: 1;
+    /* 남는 영역을 꽉 채우도록 설정 */
     position: relative;
-    overflow: hidden;  /* 자식 요소 애니메이션을 위함 */
+    overflow: hidden;
+    /* 자식 요소 애니메이션을 위함 */
 }
 
 .stage-page {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    padding: 24px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 💡 1. 바깥 회색 여백을 확 줄여서 카드가 가로로 더 넓어지게 만듭니다 */
+    padding: 12px;
+    box-sizing: border-box;
+    /* 💡 2. 카드 내부가 아닌 '페이지 전체'가 부드럽게 스크롤되도록 복구 (하단 잘림 해결) */
     overflow-y: auto;
     background-color: var(--bg-main);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
     transform: translateX(100%);
     opacity: 0;
     visibility: hidden;
+
+    display: flex;
+    flex-direction: column;
 }
 
-.stage-page.active { transform: translateX(0); opacity: 1; visibility: visible; }
-.stage-page.past { transform: translateX(-100%); opacity: 0; visibility: hidden; }
+.stage-page.active {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.stage-page.past {
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
+}
 
 .card {
     background-color: var(--bg-card);
     border-radius: 16px;
-    padding: 32px;
+    /* 💡 3. 카드 내부 좌우 여백을 줄여 글자가 들어갈 실제 공간(Width)을 대폭 넓힘 */
+    padding: 24px 16px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
     text-align: center;
+
+    /* 💡 4. 카드의 내용물이 많아지면 카드가 찌그러지지 않고 밑으로 쭉 늘어나게 함 */
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    margin-bottom: 24px;
+    /* 바닥에 딱 붙지 않게 안전 여백 추가 */
+
+    /* 💡 5. 한글 단어가 뚝뚝 끊기며 이상하게 줄바꿈되는 현상 방지 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
-.stage-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: var(--primary); }
-.stage-desc { font-size: 18px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 32px; }
+.stage-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--primary);
+}
+
+.stage-desc {
+    font-size: 18px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 32px;
+}
 
 /* 5. HMI 작업 선택 모달 */
 .modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(30, 41, 59, 0.85); 
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(30, 41, 59, 0.85);
     backdrop-filter: blur(8px);
     z-index: 2000;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    opacity: 0; visibility: hidden;
+    opacity: 0;
+    visibility: hidden;
     transition: opacity 0.3s;
 }
-.modal-overlay.open { opacity: 1; visibility: visible; }
+
+.modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
 
 .modal-content {
-    width: 90%; max-width: 800px;
-    max-height: 90vh; /* 화면을 넘지 않도록 제한 */
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    /* 화면을 넘지 않도록 제한 */
     overflow-y: auto;
     background-color: var(--bg-card);
     border-radius: 20px;
@@ -175,18 +256,32 @@ body {
     transform: scale(0.95);
     transition: transform 0.3s;
 }
-.modal-overlay.open .modal-content { transform: scale(1); }
+
+.modal-overlay.open .modal-content {
+    transform: scale(1);
+}
 
 .modal-header {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 24px;
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 16px;
 }
-.modal-title { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+
+.modal-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
 
 .btn-close-modal {
-    background: none; border: none; font-size: 32px; color: var(--text-secondary); cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: var(--text-secondary);
+    cursor: pointer;
 }
 
 .task-grid {
@@ -210,21 +305,36 @@ body {
     gap: 12px;
     transition: all 0.2s;
 }
-.task-btn i { font-size: 36px; color: var(--primary); }
-.task-btn:hover { background-color: #e0e7ff; border-color: var(--primary); }
-.task-btn:active { transform: scale(0.98); }
+
+.task-btn i {
+    font-size: 36px;
+    color: var(--primary);
+}
+
+.task-btn:hover {
+    background-color: #e0e7ff;
+    border-color: var(--primary);
+}
+
+.task-btn:active {
+    transform: scale(0.98);
+}
 
 .task-btn.current {
     background-color: var(--primary);
     color: white;
     border-color: var(--primary);
 }
-.task-btn.current i { color: white; }
+
+.task-btn.current i {
+    color: white;
+}
 
 /* =======================================================
    💡 6. 반응형 대응 (모바일 화면 레이아웃 깨짐 해결)
    ======================================================= */
 @media screen and (max-width: 768px) {
+
     /* 헤더 간격 축소 */
     .global-header {
         padding: 16px;
@@ -233,12 +343,14 @@ body {
     /* 1. 상단 타이틀 영역을 Column으로 변경 */
     .header-top {
         flex-direction: column;
-        align-items: stretch; /* 버튼이 너비를 꽉 채우도록 */
+        align-items: stretch;
+        /* 버튼이 너비를 꽉 채우도록 */
         gap: 16px;
     }
 
     .job-info-group {
-        justify-content: space-between; /* 텍스트와 뱃지를 양 옆으로 배치 */
+        justify-content: space-between;
+        /* 텍스트와 뱃지를 양 옆으로 배치 */
     }
 
     .btn-select-task {
@@ -267,7 +379,707 @@ body {
     }
 
     /* 텍스트 크기 조정 */
-    .job-title { font-size: 20px; }
-    .location-badge { font-size: 14px; }
-    .modal-title { font-size: 22px; }
+    .job-title {
+        font-size: 20px;
+    }
+
+    .location-badge {
+        font-size: 14px;
+    }
+
+    .modal-title {
+        font-size: 22px;
+    }
+}
+
+/* 헤더 버튼 그룹 */
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* 추가 메뉴 버튼 스타일 */
+.btn-menu {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 10px 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* 모바일용 상태 토글 버튼 (PC에서는 숨김) */
+.btn-toggle-status {
+    display: none;
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    width: 100%;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* 메뉴 리스트 모달용 버튼 디자인 */
+.menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.menu-btn {
+    background-color: var(--bg-main);
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background-color 0.2s;
+}
+
+.menu-btn i {
+    font-size: 24px;
+    color: var(--text-secondary);
+}
+
+.menu-btn:hover {
+    background-color: #e2e8f0;
+}
+
+.menu-btn.danger-btn {
+    background-color: #fee2e2;
+    color: var(--danger);
+}
+
+.menu-btn.danger-btn i {
+    color: var(--danger);
+}
+
+.menu-btn.danger-btn:hover {
+    background-color: #fca5a5;
+}
+
+/* =======================================================
+   반응형 대응 (모바일 화면 수정)
+   ======================================================= */
+@media screen and (max-width: 768px) {
+    .header-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .header-actions {
+        display: flex;
+        width: 100%;
+    }
+
+    .btn-select-task,
+    .btn-menu {
+        flex: 1;
+        /* 버튼 반반 크기로 맞춤 */
+        justify-content: center;
+    }
+
+    /* 모바일에서는 토글 버튼 표시 */
+    .btn-toggle-status {
+        display: flex;
+    }
+
+    /* 상태 그리드 기본 숨김 처리 */
+    .status-grid {
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* 토글 활성화 시(클래스 추가 시) 보임 */
+    .status-grid.expanded {
+        display: flex;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/* =======================================================
+   7. HMI 작업 단계별 마법사 (Wizard) UI
+   ======================================================= */
+.step-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 24px;
+    animation: fadeIn 0.4s ease;
+}
+
+.step-icon {
+    font-size: 80px;
+    color: var(--primary);
+    margin-bottom: -10px;
+}
+
+.step-message {
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.4;
+    color: var(--text-primary);
+}
+
+.step-sub-message {
+    font-size: 18px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* 초거대 HMI 버튼 (장갑 끼고도 누르기 쉬움) */
+.btn-huge {
+    width: 100%;
+    max-width: 400px;
+    padding: 24px;
+    font-size: 24px;
+    font-weight: 700;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-md);
+    transition: all 0.2s;
+    margin-top: 20px;
+}
+
+.btn-huge.primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-huge.primary:active {
+    background-color: var(--primary-hover);
+    transform: scale(0.98);
+}
+
+.btn-huge.success {
+    background-color: var(--success);
+    color: white;
+}
+
+/* QR 스캔 가짜 화면 */
+.qr-scanner-box {
+    width: 250px;
+    height: 250px;
+    border: 4px dashed var(--primary);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #e0e7ff;
+    cursor: pointer;
+    position: relative;
+}
+
+.qr-scanner-box::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background-color: red;
+    box-shadow: 0 0 10px red;
+    animation: scanLine 2s infinite linear;
+}
+
+@keyframes scanLine {
+    0% {
+        top: 10%;
+    }
+
+    50% {
+        top: 90%;
+    }
+
+    100% {
+        top: 10%;
+    }
+}
+
+/* =======================================================
+   8. 헤더 컴팩트 모드 (작업 집중 화면)
+   ======================================================= */
+/* 기본적으로 토글 바는 숨김 */
+/* =======================================================
+   8. 헤더 컴팩트 모드 (작업 집중 화면)
+   ======================================================= */
+/* 💡 수정됨: 토글 바는 기본적으로 항상 보임 */
+/* 기본(펼침) 상태에서는 가로 V 버튼을 숨김 */
+.compact-toggle-inline {
+    display: none;
+}
+
+.compact-expand-bar {
+    display: block;
+    width: 100%;
+    height: 36px;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+    line-height: 36px;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background-color 0.2s;
+}
+
+.compact-expand-bar i {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text-secondary);
+}
+
+.compact-expand-bar:active {
+    background-color: #e2e8f0;
+}
+
+/* 대기장소(Stage 0)일 때는 모든 토글을 숨김 */
+.global-header.hide-toggle .compact-expand-bar,
+.global-header.hide-toggle .compact-toggle-inline {
+    display: none !important;
+}
+
+/* compact 클래스가 붙으면 메뉴와 상태창을 숨김 */
+.global-header.compact .header-actions,
+.global-header.compact .btn-toggle-status,
+.global-header.compact .status-grid {
+    display: none !important;
+}
+
+.global-header.compact .header-top {
+    margin-bottom: 0;
+}
+
+/* ================= 컴팩트(Compact) 모드 발동 시 ================= */
+
+/* 1. 불필요한 영역 모두 숨김 (하단 ^ 바 포함) */
+.global-header.compact .header-actions,
+.global-header.compact .btn-toggle-status,
+.global-header.compact .status-grid,
+.global-header.compact .compact-expand-bar {
+    display: none !important;
+}
+
+/* 2. 헤더의 위아래 여백을 대폭 줄여서 화면을 최대한 넓게 씀 */
+.global-header.compact {
+    padding: 12px 24px;
+}
+
+.global-header.compact .header-top {
+    margin-bottom: 0;
+}
+
+/* 3. Title, 가운데 V 토글, Badge를 1줄로 나란히 배치 */
+.global-header.compact .job-info-group {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 4. 숨겨뒀던 가운데 V 버튼을 보여주고 남는 공간을 차지하게 함 */
+.global-header.compact .compact-toggle-inline {
+    display: flex;
+    flex: 1;
+    /* 스케치하신 대로 가운데 공간을 쫙 늘려줍니다 */
+    height: 36px;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin: 0 16px;
+    /* 양옆 띄어쓰기 */
+    transition: background-color 0.2s;
+}
+
+.global-header.compact .compact-toggle-inline i {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text-secondary);
+}
+
+.global-header.compact .compact-toggle-inline:active {
+    background-color: #e2e8f0;
+}
+
+/* 작은 스마트폰에서 글자가 안 깨지게 조절 */
+@media screen and (max-width: 425px) {
+    .global-header.compact {
+        padding: 12px;
+    }
+
+    .global-header.compact .compact-toggle-inline {
+        margin: 0 8px;
+    }
+
+    .job-title {
+        font-size: 18px;
+    }
+
+    .location-badge {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+}
+
+/* 💡 수정됨: 제목(김치만들기) 글자 줄바꿈 방지 */
+.job-title {
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 768px) {
+
+    /* 모바일 컴팩트 모드 시 타이틀과 뱃지를 나란히 배치 */
+    .global-header.compact .job-info-group {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+    }
+}
+
+/* =======================================================
+   9. HMI용 수량 입력 스테퍼 (Stepper) UI
+   ======================================================= */
+.hmi-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-card);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.hmi-input-group label {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: left;
+}
+
+.number-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.number-stepper button {
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
+    border-radius: 12px;
+    border: none;
+    background: #e2e8f0;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background-color 0.1s;
+}
+
+.number-stepper button:active {
+    background: #cbd5e1;
+    transform: scale(0.95);
+}
+
+.number-stepper input {
+    flex: 1;
+    min-width: 0;
+    /* 💡 핵심: input의 기본 최소 너비를 무시하고 얌전히 줄어들게 만듦 */
+    width: 100%;
+    height: 64px;
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: white;
+    color: var(--primary);
+}
+
+.input-row {
+    margin-bottom: 16px;
+}
+
+.input-row:last-child {
+    margin-bottom: 0;
+}
+
+.input-row.defect label {
+    color: var(--danger);
+}
+
+.input-row.defect input {
+    color: var(--danger);
+    border-color: #fca5a5;
+}
+
+/* =======================================================
+   💡 3. 모바일 초소형 화면(425px 이하) 완벽 대응
+   ======================================================= */
+
+@media screen and (max-width: 425px) {
+    .card {
+        padding: 16px 12px;
+        /* 좌우 여백을 줄여 컨텐츠 공간 최대 확보 */
+    }
+
+    .step-icon {
+        font-size: 60px;
+        /* 아이콘 크기 약간 축소 */
+    }
+
+    .qr-scanner-box {
+        width: 200px;
+        height: 200px;
+        /* 스캐너 박스 크기 축소 */
+    }
+
+    .btn-huge {
+        font-size: 20px;
+        padding: 18px;
+        /* 버튼 패딩 축소 */
+    }
+
+    .step-message {
+        font-size: 22px;
+        /* 제목 글꼴 축소 */
+    }
+}
+
+@media screen and (max-width: 768px) {
+
+    #input-single,
+    #input-good,
+    #input-defect {
+        width: 150px;
+    }
+}
+
+@media screen and (max-width: 355px) {
+
+    #input-single,
+    #input-good,
+    #input-defect {
+        width: 110px;
+    }
+}
+
+/* =======================================================
+   💡 10. 태블릿 및 PC 화면 대응 (768px 이상 넓은 화면)
+   ======================================================= */
+@media screen and (min-width: 768px) {
+
+    /* 입력 컨테이너를 넓은 화면에 맞게 확장 */
+    .hmi-input-group {
+        max-width: 600px;
+        padding: 32px;
+    }
+
+    /* 장갑을 낀 상태에서도 누르기 쉽도록 버튼 크기 확대 */
+    .number-stepper button {
+        width: 80px;
+        height: 80px;
+        font-size: 40px;
+    }
+
+    /* 숫자 입력창도 시원하게 확대 */
+    .number-stepper input {
+        height: 80px;
+        font-size: 48px;
+    }
+}
+
+/* =======================================================
+   💡 화면 흔들림(Wobbling) 방지를 위한 절대 고정 레이아웃
+   ======================================================= */
+.main-content {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+    /* 배경은 절대 스크롤 불가 */
+}
+
+.stage-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* 💡 수정: 하단 padding을 더 넉넉하게 주어 바닥에 딱 붙지 않게 함 */
+    padding: 16px 16px 32px 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background-color: var(--bg-main);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
+    transform: translateX(100%);
+    opacity: 0;
+    visibility: hidden;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.stage-page.active {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.stage-page.past {
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
+}
+
+.card {
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    text-align: center;
+
+    /* 카드 내부만 스크롤 되도록 설정 */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* 세로 중앙 정렬 */
+    overflow-y: auto;
+    /* 내용이 길면 카드 안에서만 스크롤 생성 */
+    min-height: 0;
+    /* Flexbox 수축 허용 버그 픽스 */
+    margin: 0;
+}
+
+.step-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    margin: 0;
+    /* 💡 수정: 내부 스크롤의 맨 밑바닥에 여백을 강제로 생성하여 버튼이 안 잘리게 함 */
+    padding-bottom: 24px;
+    animation: fadeIn 0.4s ease;
+}
+
+/* =======================================================
+   💡 11. 작업 로그 모달 UI 스타일
+   ======================================================= */
+.log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.log-item {
+    background: var(--bg-main);
+    padding: 16px;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary);
+    font-size: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.log-time {
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.log-text {
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+/* =======================================================
+   💡 모바일 초소형 화면(425px 이하) 텍스트/UI 최적화
+   ======================================================= */
+@media screen and (max-width: 425px) {
+    .card {
+        padding: 20px 12px;
+        /* 좌우 여백을 한 번 더 줄여서 공간 확보 */
+    }
+
+    .hmi-input-group {
+        padding: 16px 12px;
+        /* 입력창 내부 여백도 축소 */
+    }
+
+    /* 화면이 좁을 땐 글자 크기를 아주 살짝만 줄여서 가독성을 지킵니다 */
+    .step-message {
+        font-size: 20px;
+    }
+
+    .step-sub-message {
+        font-size: 16px;
+    }
+
+    .btn-huge {
+        font-size: 18px;
+        padding: 16px;
+    }
+
+    /* 좁은 화면에서도 수량 입력기(+, -)가 밖으로 튀어나가지 않게 조절 */
+    .number-stepper button {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+    }
+
+    .number-stepper input {
+        height: 50px;
+        font-size: 28px;
+    }
 }
