@@ -1,6 +1,6 @@
 # smartFactory-ex
 
-바이브 코딩을 통해 개발했습니다. Antigravity, 재미니 PRO 사용. 재미니 PRO(https://gemini.google.com/app)가 좋은 것같아요. 
+바이브 코딩을 통해 개발했습니다. Antigravity, 재미니 PRO 사용. 재미니 PRO( https://gemini.google.com/app )가 좋은 것같아요. 
 버그도 잘 잡았네요. 
 
 스마트 팩토리. 개발해보세요. 일하기가 더 좋아지겠죠. 좋은 개발, 좋은 하루되세요. 감사합니다.
