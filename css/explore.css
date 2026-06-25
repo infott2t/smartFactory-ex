@@ -171,6 +171,7 @@ body {
     width: 100%;
     box-sizing: border-box;
     position: relative;
+    overflow-x: hidden;
 }
 
 .task-item {
@@ -197,32 +198,49 @@ body {
     /* 검색창 박스(46px) + 상하 패딩(20px) = 총 66px */
     padding-top: 66px; 
 }
+
+/* 1. 탭 껍데기(.tab-content)는 애니메이션 없이 즉시 표시 (상단 메뉴 고정용) */
 .tab-content.active {
     display: block;
-    animation: slideFromRight 0.3s ease-out forwards;
 }
-.tab-content:nth-child(1).active {
-    animation: slideFromLeft 0.3s ease-out forwards;
-}
+/* (혹시 남아있다면 .tab-content:nth-child(1).active 내부의 animation도 지워주세요) */
+
+/* 2. 애니메이션 키프레임 (transform을 이용해 확실한 가로 이동 강제) */
 @keyframes slideFromRight {
     from {
-        left: 100%;/* 화면 오른쪽 바깥(100%)에서 시작 */
-        opacity: 0;                  /* 처음엔 투명하게 */
+        transform: translateX(100%); /* 화면 오른쪽 바깥에서 대기 */
+        opacity: 0;
     }
     to {
-        left: 0;   /* 원래 제자리(0)로 이동 */
-        opacity: 1;                  /* 선명하게 나타남 */
+        transform: translateX(0);    /* 제자리로 슥~ 안착 */
+        opacity: 1;
     }
 }
+
 @keyframes slideFromLeft {
     from {
-        left: -100%; /* 화면 왼쪽 바깥(-100%)에서 시작 */
-        opacity: 0;                   /* 처음엔 투명하게 */
+        transform: translateX(-100%); /* 화면 왼쪽 바깥에서 대기 */
+        opacity: 0;
     }
     to {
-        left: 0;     /* 원래 제자리(0)로 이동 */
-        opacity: 1;                   /* 선명하게 나타남 */
+        transform: translateX(0);     /* 제자리로 슥~ 안착 */
+        opacity: 1;
     }
+}
+
+/* 3. 리스트 데이터들이 담긴 상자(.slider-box)에만 애니메이션 부여 */
+.slider-box {
+    width: 100%;
+    display: block;
+    position: relative; /* 👈 transform 애니메이션이 정상 작동하기 위한 뼈대 */
+    
+    /* 기본적으로 오른쪽에서 왼쪽으로 밀려옵니다 */
+    animation: slideFromRight 0.3s ease-out forwards; 
+}
+
+/* 첫 번째 탭(인기 급상승)만 예외적으로 왼쪽에서 오른쪽으로 밀려옵니다 */
+.tab-content:nth-child(1).active .slider-box {
+    animation: slideFromLeft 0.3s ease-out forwards;
 }
 /* --- 탭 내부 정렬 메뉴 영역 스타일 조절 --- */
 .sort-row {

@@ -351,20 +351,7 @@
                 return userEmail;
             }
 
-            // 로딩 UI 표시 함수
-            function showLoading($targetTab) {
-                $targetTab.find('.task-item').remove();
-                $targetTab.find('.empty-state').remove();
-                $targetTab.find('.loading-container').remove(); // 중복 방지
 
-                let loadingHtml = `
-                    <div class="loading-container">
-                        <div class="spinner"></div>
-                        <div class="loading-text"></div>
-                    </div>
-                `;
-                $targetTab.append(loadingHtml);
-            }
 
             // 로딩 UI 제거 함수
             function hideLoading($targetTab) {
@@ -398,97 +385,120 @@
                 return Object.keys(catMap).map(key => ({ name: key, count: catMap[key] }));
             }
 
-            function renderWorkList(dataArray, $targetTab) {
+
+
+            // 로딩 함수: 기존 데이터 지울 때 slider-box도 지워줍니다
+            function showLoading($targetTab) {
+                $targetTab.find('.slider-box').remove(); // 추가됨
                 $targetTab.find('.task-item').remove();
                 $targetTab.find('.empty-state').remove();
+                $targetTab.find('.loading-container').remove();
 
-                if (dataArray.length === 0) {
-                    let emptyHtml = `
-                <div class="empty-state">
-                    <i class="bi bi-folder-x empty-state-icon"></i>
-                    <div class="empty-state-text">아직 작업이 없어요.</div>
-                    <button class="btn-go-popular">새로운 작업 둘러보기</button>
-                </div>`;
-                    $targetTab.append(emptyHtml);
-                    return;
-                }
-
-                let userEmail = getCurrentUserEmail();
-                let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
-                let isFavoriteTab = $targetTab.index() === 1;
-
-                dataArray.forEach(function (item) {
-                    let rightSideHtml = '';
-
-                    if (currentSortType === '급여') {
-                        let changePercent = (item.salaryChange * 100).toFixed(0);
-                        let statusClass = item.salaryChange >= 0 ? 'status-up' : 'status-down';
-                        let iconDir = item.salaryChange >= 0 ? 'up' : 'down';
-                        let sign = item.salaryChange > 0 ? '+' : '';
-
-                        rightSideHtml = `
-                    <div class="task-salary-col">
-                        <div>
-                            <i class="bi bi-caret-${iconDir}-fill ${statusClass}"></i>
-                            <span class="val">${item.salary}</span>
-                        </div>
-                        <div class="change-rate ${statusClass}">${sign}${changePercent}%</div>
-                    </div>`;
-                    } else if (currentSortType === '지역') {
-                        rightSideHtml = `<div class="task-info-row"><i class="bi bi-geo-alt-fill"></i><span class="val">${item.region}</span></div>`;
-                    } else if (currentSortType === 'Task 수') {
-                        rightSideHtml = `<div class="task-info-row"><span class="info-label">Task</span><span class="val highlight">${item.taskCount}</span></div>`;
-                    } else if (currentSortType === '참여자') {
-                        rightSideHtml = `<div class="task-info-row"><i class="bi bi-people-fill"></i><span class="val highlight">${item.participants}명</span></div>`;
-                    } else if (currentSortType === '생성일') {
-                        rightSideHtml = `<div class="task-info-row"><i class="bi bi-calendar-check"></i><span class="val">${item.createdAt}</span></div>`;
-                    }
-
-                    let showStarIcon = (isFavoriteTab && item.workId === 1 && isKimpFavorite);
-                    let iconHtml = showStarIcon
-                        ? `<div class="star-class"><i class="bi bi-star-fill" style="color: yellow;"></i></div>`
-                        : `<img src="${item.iconUrl}">`;
-
-                    let html = `
-                <div class="task-item" data-id="${item.workId}">
-                    <div class="task-items0">
-                        <div class="task-items" style="display: flex; align-items: center;">
-                            ${iconHtml}
-                            <div class="texts" style="display: flex; flex-direction: column;">
-                                <span>${item.workName}</span>
-                                <span>${item.brandName}</span>
-                            </div>
-                        </div>
-                        ${rightSideHtml}
-                    </div>
-                </div>`;
-                    $targetTab.append(html);
-                });
+                let loadingHtml = `
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <div class="loading-text"></div>
+        </div>
+    `;
+                $targetTab.append(loadingHtml);
             }
 
-            function renderCategoryList(dataArray, $targetTab) {
-                $targetTab.find('.task-item').remove();
-                $targetTab.find('.empty-state').remove();
+            // 작업 리스트 렌더링 함수
+            function renderWorkList(dataArray, $targetTab) {
+                $targetTab.find('.slider-box').remove(); // 이전 슬라이더 박스 삭제
+
+                let innerHtml = ''; // 데이터를 담을 빈 바구니
 
                 if (dataArray.length === 0) {
-                    let emptyHtml = `
-                <div class="empty-state">
-                    <i class="bi bi-tags empty-state-icon"></i>
-                    <div class="empty-state-text">추출할 카테고리 정보가 없어요.</div>
-                    <button class="btn-go-popular">새로운 작업 둘러보기</button>
+                    innerHtml = `
+        <div class="empty-state">
+            <i class="bi bi-folder-x empty-state-icon"></i>
+            <div class="empty-state-text">아직 작업이 없어요.</div>
+            <button class="btn-go-popular">새로운 작업 둘러보기</button>
+        </div>`;
+                } else {
+                    let userEmail = getCurrentUserEmail();
+                    let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
+                    let isFavoriteTab = $targetTab.index() === 1;
+
+                    dataArray.forEach(function (item) {
+                        let rightSideHtml = '';
+
+                        if (currentSortType === '급여') {
+                            let changePercent = (item.salaryChange * 100).toFixed(0);
+                            let statusClass = item.salaryChange >= 0 ? 'status-up' : 'status-down';
+                            let iconDir = item.salaryChange >= 0 ? 'up' : 'down';
+                            let sign = item.salaryChange > 0 ? '+' : '';
+
+                            rightSideHtml = `
+                <div class="task-salary-col">
+                    <div>
+                        <i class="bi bi-caret-${iconDir}-fill ${statusClass}"></i>
+                        <span class="val">${item.salary}</span>
+                    </div>
+                    <div class="change-rate ${statusClass}">${sign}${changePercent}%</div>
                 </div>`;
-                    $targetTab.append(emptyHtml);
-                    return;
+                        } else if (currentSortType === '지역') {
+                            rightSideHtml = `<div class="task-info-row"><i class="bi bi-geo-alt-fill"></i><span class="val">${item.region}</span></div>`;
+                        } else if (currentSortType === 'Task 수') {
+                            rightSideHtml = `<div class="task-info-row"><span class="info-label">Task</span><span class="val highlight">${item.taskCount}</span></div>`;
+                        } else if (currentSortType === '참여자') {
+                            rightSideHtml = `<div class="task-info-row"><i class="bi bi-people-fill"></i><span class="val highlight">${item.participants}명</span></div>`;
+                        } else if (currentSortType === '생성일') {
+                            rightSideHtml = `<div class="task-info-row"><i class="bi bi-calendar-check"></i><span class="val">${item.createdAt}</span></div>`;
+                        }
+
+                        let showStarIcon = (isFavoriteTab && item.workId === 1 && isKimpFavorite);
+                        let iconHtml = showStarIcon
+                            ? `<div class="star-class"><i class="bi bi-star-fill" style="color: yellow;"></i></div>`
+                            : `<img src="${item.iconUrl}">`;
+
+                        // 개별 아이템들을 innerHtml 바구니에 담습니다
+                        innerHtml += `
+            <div class="task-item" data-id="${item.workId}">
+                <div class="task-items0">
+                    <div class="task-items" style="display: flex; align-items: center;">
+                        ${iconHtml}
+                        <div class="texts" style="display: flex; flex-direction: column;">
+                            <span>${item.workName}</span>
+                            <span>${item.brandName}</span>
+                        </div>
+                    </div>
+                    ${rightSideHtml}
+                </div>
+            </div>`;
+                    });
                 }
 
-                dataArray.forEach(function (item) {
-                    let html = `
-                <div class="task-item category-list-item">
-                    <span class="category-name">${item.name}</span>
-                    <span class="category-count">${item.count}</span>
-                </div>`;
-                    $targetTab.append(html);
-                });
+                // ⭐️ 모아둔 데이터를 통째로 slider-box로 감싸서 한 번에 화면에 붙입니다
+                $targetTab.append(`<div class="slider-box">${innerHtml}</div>`);
+            }
+
+            // 카테고리 렌더링 함수
+            function renderCategoryList(dataArray, $targetTab) {
+                $targetTab.find('.slider-box').remove();
+
+                let innerHtml = '';
+
+                if (dataArray.length === 0) {
+                    innerHtml = `
+        <div class="empty-state">
+            <i class="bi bi-tags empty-state-icon"></i>
+            <div class="empty-state-text">추출할 카테고리 정보가 없어요.</div>
+            <button class="btn-go-popular">새로운 작업 둘러보기</button>
+        </div>`;
+                } else {
+                    dataArray.forEach(function (item) {
+                        innerHtml += `
+            <div class="task-item category-list-item">
+                <span class="category-name">${item.name}</span>
+                <span class="category-count">${item.count}</span>
+            </div>`;
+                    });
+                }
+
+                // ⭐️ 모아둔 데이터를 통째로 slider-box로 감싸서 추가
+                $targetTab.append(`<div class="slider-box">${innerHtml}</div>`);
             }
 
             // -------------------------
