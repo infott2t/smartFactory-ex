@@ -1,6 +1,6 @@
 {
   "name": "스마트 팩토리 HMI",
-  "short_name": "공정 HMI",
+  "short_name": "스마트팩토리 HMI",
   "start_url": "/smartFactory-ex/kimp_ex0.html",
   "scope": "/smartFactory-ex/",
   "display": "standalone",
