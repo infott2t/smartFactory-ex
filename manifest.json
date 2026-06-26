@@ -1,0 +1,24 @@
+{
+  "name": "스마트 팩토리 HMI",
+  "short_name": "공정 HMI",
+  "start_url": "/smartFactory-ex/kimp_ex0.html",
+  "scope": "/smartFactory-ex/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f8",
+  "theme_color": "#7879e6",
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

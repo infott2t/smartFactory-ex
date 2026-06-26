@@ -243,6 +243,12 @@
             font-size: 18px;
         }
     </style>
+    <link rel="manifest" href="/smartFactory-ex/manifest.json">
+    <meta name="theme-color" content="#7879e6">
+    <link rel="apple-touch-icon" href="/smartFactory-ex/icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
 </head>
 
 <body>
@@ -955,6 +961,21 @@
             currentStepIndex = 0;
             isCompleted = true;
             moveToStage(0, '대기장소');
+        }
+        // ============================================================
+        // PWA 서비스 워커 등록
+        // ============================================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // 경로에 주의!
+                navigator.serviceWorker.register('/smartFactory-ex/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker 등록 성공! 스코프:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker 등록 실패:', error);
+                    });
+            });
         }
     </script>
 </body>
