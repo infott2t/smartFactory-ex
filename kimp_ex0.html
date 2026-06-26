@@ -11,6 +11,238 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <link rel="stylesheet" href="./css/kimp_ex0.css">
+
+    <style>
+        /* HMI 다크모드 컬러 변수 정의 (고대비, 눈 피로 저감, 식별성 강화) */
+        body.dark-mode {
+            --bg-global: #121824;
+            --bg-card: #1e293b;
+            --text-primary: #7879e6;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            background-color: var(--bg-global) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* 1. 스테이지 페이지(카드 바깥 여백) 배경 동기화 (흰색으로 남는 현상 수정) */
+        body.dark-mode .main-content,
+        body.dark-mode .stage-page {
+            background-color: var(--bg-global) !important;
+        }
+
+        body.dark-mode .global-header {
+            background-color: #0f172a !important;
+            border-bottom: 2px solid #334155 !important;
+
+        }
+
+        body.dark-mode .card,
+        body.dark-mode .modal-content,
+        body.dark-mode .status-box {
+            background-color: var(--bg-card) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        body.dark-mode .menu-btn {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        body.dark-mode .menu-btn:hover {
+            background-color: #334155 !important;
+        }
+
+        body.dark-mode .stage-title,
+        body.dark-mode .modal-title {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .qr-scanner-box {
+            background-color: #0f172a !important;
+        }
+
+        /* 토글 스위치 스타일 */
+        .toggle-switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 10px;
+        }
+
+        body.dark-mode .toggle-switch-container {
+            background: #121824;
+        }
+
+        /* ==========================================
+   수정 요청하신 세부 컴포넌트 스타일 
+   ========================================== */
+
+        /* 2. 상단 버튼 (위치 변경, 작업자 라운지) 및 모달 내 메뉴 버튼 수정 */
+        body.dark-mode .btn-menu,
+        body.dark-mode .btn-select-task {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+        }
+
+        body.dark-mode .btn-menu:hover,
+        body.dark-mode .btn-select-task:hover {
+            background-color: #334155 !important;
+        }
+
+        /* 3. 접기/펼치기 바 (compact-expand-bar) 하얗게 나오는 현상 수정 */
+        body.dark-mode .compact-expand-bar {
+            background-color: #1e293b !important;
+            color: #94a3b8 !important;
+            border-top: 1px solid #334155 !important;
+        }
+
+        /* 4. 작업 위치 선택 모달 버튼 (task-btn 및 available) 시인성 개선 */
+        body.dark-mode .task-btn {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155 !important;
+        }
+
+        body.dark-mode .task-btn:hover {
+            background-color: #334155 !important;
+        }
+
+        /* 참여 가능한 공정(available)은 테두리에 살짝 파란색 포인트를 주어 구별 */
+        body.dark-mode .task-btn.available {
+            border-color: #3b82f6 !important;
+        }
+
+        body.dark-mode .task-status-text {
+            color: #94a3b8 !important;
+            /* 상태 텍스트는 약간 부드러운 회색으로 */
+        }
+
+        /* 5. 플러스/마이너스 입력기 (+/- 버튼 및 입력창) 시인성 개선 */
+        body.dark-mode .hmi-input-group label {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode .number-stepper button {
+            background-color: #334155 !important;
+            /* 다크모드용 버튼 배경 */
+            color: #f8fafc !important;
+            /* 흰색 아이콘 */
+            border: none !important;
+        }
+
+        body.dark-mode .number-stepper button:active {
+            background-color: #475569 !important;
+            /* 누를 때 살짝 밝아짐 */
+        }
+
+        body.dark-mode .number-stepper input {
+            background-color: #0f172a !important;
+            /* 입력창 배경은 더 어둡게 */
+            color: #f8fafc !important;
+            /* 숫자는 흰색 */
+            border: 1px solid #334155 !important;
+        }
+
+        body.dark-mode .compact-toggle-inline {
+            background-color: #1e293b !important;
+        }
+
+
+
+        .switch-label {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 32px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked+.slider {
+            background-color: #3b82f6;
+            /* 다크모드 켜졌을 때 HMI 포인트 컬러 */
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(28px);
+        }
+
+        /* 커스텀 HMI Toast 메시지 스타일 */
+        .hmi-toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: rgba(15, 23, 42, 0.9);
+            color: #ffffff;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #475569;
+            pointer-events: none;
+        }
+
+        .hmi-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .hmi-toast i {
+            font-size: 18px;
+        }
+    </style>
 </head>
 
 <body>
@@ -161,17 +393,36 @@
                 </button>
 
                 <hr style="border: 0; border-top: 2px dashed var(--border-color); margin: 16px 0;">
-                
-                <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border-color);">
+
+                <h3 style="font-size: 15px; color: var(--text-primary); margin-bottom: 8px; font-weight: 700;">
+                    <i class="bi bi-gear-fill"></i> HMI 단말기 설정
+                </h3>
+
+                <div class="toggle-switch-container">
+                    <span class="switch-label" id="mode-status-text">
+                        <i class="bi bi-sun"></i> 일반 모드 운전 중
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="dark-mode-toggle" onchange="handleDarkModeToggle(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <hr style="border: 0; border-top: 2px dashed var(--border-color); margin: 16px 0;">
+
+                <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border-color);"
+                    id="info-box-area">
                     <p style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">
                         <i class="bi bi-info-circle-fill"></i> 시스템 제작 정보
                     </p>
-                    <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px;">Smart Factory HMI Project</h3>
-                    
-                    <a href="https://github.com/infott2t/smartFactory-ex" target="_blank" style="display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 14px; background-color: #24292e; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; transition: transform 0.1s;">
+                    <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px;">Smart Factory HMI
+                        Project</h3>
+
+                    <a href="https://github.com/infott2t/smartFactory-ex" target="_blank"
+                        style="display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 14px; background-color: #24292e; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; transition: transform 0.1s;">
                         <i class="bi bi-github" style="font-size: 20px;"></i> GitHub 저장소 방문하기
                     </a>
-                    
+
                     <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; line-height: 1.6;">
                         본 프로젝트는 스마트 팩토리 공정 관리를 위한<br>오픈소스 HMI 웹 터미널입니다.<br>
                         <strong>Developed by infott2t</strong>
@@ -192,6 +443,9 @@
             </div>
         </div>
     </div>
+
+    <div id="hmi-toast" class="hmi-toast"></div>
+
     <audio id="shutter-sound" src="https://actions.google.com/sounds/v1/alarms/camera_shutter.ogg"
         preload="auto"></audio>
     <script src="./js/jquery-3.7.1.min.js"></script>
@@ -200,19 +454,16 @@
         // 1. 공정 및 지시서 데이터 모델
         // ============================================================
         const today = new Date();
-        // 💡 수정됨: 년도를 2자리로 자름 (예: 2026 -> 26)
         const dateStr = String(today.getFullYear()).slice(2) +
             String(today.getMonth() + 1).padStart(2, '0') +
             String(today.getDate()).padStart(2, '0');
 
         const initialQty = 15;
 
-        // 💡 새로 추가됨: 지시서 끝 번호(Suffix)와 완료 상태(Flag)를 추적하는 변수
         let dailyOrderSuffix = 1;
         let isCompleted = false;
 
         const appData = {
-            // 초기화 시 260625-15-1 형태로 생성됨
             currentOrder: { id: `${dateStr}-${initialQty}-${dailyOrderSuffix}`, title: "김치만들기", qty: initialQty, regCount: 0 },
             stages: [
                 { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", worker: "" },
@@ -239,7 +490,55 @@
             initSession();
             updateHeaderInfo();
             setInterval(updateClocks, 1000);
+
+            // 시스템 다크모드 기본값 복원 (로컬 스토리지 연동)
+            const savedDarkMode = localStorage.getItem('hmi-dark-mode');
+            if (savedDarkMode === 'true') {
+                document.getElementById('dark-mode-toggle').checked = true;
+                handleDarkModeToggle({ checked: true }, true); // 초기 로딩 시 toast 미출력 처리
+            }
         });
+
+        // 💡 다크모드 컨트롤 스위치 핸들러 및 Toast 알림 연동
+        function handleDarkModeToggle(toggleInput, isInitialLoad = false) {
+            const body = document.body;
+            const statusText = document.getElementById('mode-status-text');
+            const infoBox = document.getElementById('info-box-area');
+
+            if (toggleInput.checked) {
+                body.classList.add('dark-mode');
+                if (statusText) statusText.innerHTML = `<i class="bi bi-moon-stars-fill" style="color:#f59e0b;"></i> 다크 모드 운전 중`;
+                if (infoBox) infoBox.style.backgroundColor = '#0f172a';
+                localStorage.setItem('hmi-dark-mode', 'true');
+
+                if (!isInitialLoad) {
+                    showHmiToast('<i class="bi bi-moon-stars-fill" style="color:#f59e0b;"></i> 다크모드로 바꿨습니다.');
+                }
+            } else {
+                body.classList.remove('dark-mode');
+                if (statusText) statusText.innerHTML = `<i class="bi bi-sun"></i> 일반 모드 운전 중`;
+                if (infoBox) infoBox.style.backgroundColor = '#f8fafc';
+                localStorage.setItem('hmi-dark-mode', 'false');
+
+                if (!isInitialLoad) {
+                    showHmiToast('<i class="bi bi-sun" style="color:#3b82f6;"></i> 일반모드로 바꿨습니다.');
+                }
+            }
+        }
+
+        // 💡 커스텀 Toast 알림 생성 함수
+        function showHmiToast(message) {
+            const toast = document.getElementById('hmi-toast');
+            if (!toast) return;
+
+            toast.innerHTML = message;
+            toast.classList.add('show');
+
+            // 2.5초 후 자동으로 닫히도록 타이머 작동
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
 
         function initSession() {
             try {
@@ -298,12 +597,11 @@
         }
 
         function moveToStage(stageId, stageName) {
-            // 💡 핵심 로직: 이전 작업이 '완료(isCompleted)'된 상태에서 새로운 공정으로 진입할 때만 지시서 번호를 증가시킴
             if (stageId > 0 && isCompleted) {
-                dailyOrderSuffix++; // 끝 번호 +1
-                appData.currentOrder.id = `${dateStr}-${appData.currentOrder.qty}-${dailyOrderSuffix}`; // 새로운 지시서 발급
-                appData.currentOrder.regCount = 0; // 재등록 카운트 리셋
-                isCompleted = false; // 새로운 작업 시작 상태로 변경
+                dailyOrderSuffix++;
+                appData.currentOrder.id = `${dateStr}-${appData.currentOrder.qty}-${dailyOrderSuffix}`;
+                appData.currentOrder.regCount = 0;
+                isCompleted = false;
                 updateHeaderInfo();
             }
 
@@ -405,7 +703,6 @@
 
         function editLog(targetStepIndex) {
             closeLogModal();
-            // 💡 핵심 로직: 로그에서 수정을 누르면 새로운 작업이 아니라 '기존 작업의 연장'이므로 플래그를 취소함
             isCompleted = false;
 
             if (appData.activeStageId === 0) {
@@ -534,28 +831,28 @@
                 <div class="qr-scanner-box" style="width:100%; max-width:400px; height:220px; border-color:var(--success); background:#f8fafc;" onclick="simulateFinalCamera()">
                     <i class="bi bi-camera-fill" id="camera-icon" style="font-size: 50px; color: var(--success);"></i>
                     <div id="mock-photo" style="display:none; text-align:center;">
-                        <div style="background:#e2e8f0; border-radius:8px; padding:12px; margin-top:8px;">
+                        <div style="background:#e2e8f0; border-radius:8px; padding:12px; margin-top:8px; color: #1e293b;">
                             🥬 1/2 컷팅 배추<br>📄 지시서 [${appData.currentOrder.id}]<br>⚖️ <span id="mock-weight"></span> kg
                         </div>
                     </div>
                     <span id="camera-text" style="margin-top:10px; font-weight:bold; color:var(--success);">화면을 눌러 촬영</span>
                 </div>
-                
             `;
             }
 
-            container.innerHTML = `
-            <div class="step-container">
-                <i class="bi ${step.icon} step-icon"></i>
-                <div class="step-message">${step.title}</div>
-                <div class="step-sub-message">${step.desc}</div>
-                ${visualElement}
-                ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
-                ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="nextStep()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
-            </div>
-        `;
+            const showIcon = step.type !== 'report';
+            const iconHtml = showIcon ? `<i class="bi ${step.icon} step-icon"></i>` : '';
 
-            // 지시서 맵핑 단계일 경우 동적으로 현재 ID 렌더링
+            container.innerHTML = `
+    <div class="step-container">
+        ${iconHtml} <div class="step-message">${step.title}</div>
+        <div class="step-sub-message">${step.desc}</div>
+        ${visualElement}
+        ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
+        ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="nextStep()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
+    </div>
+`;
+
             const idDisplay = document.getElementById('display-workflow-id');
             if (idDisplay) idDisplay.textContent = `[${appData.currentOrder.id}]`;
         }
@@ -577,7 +874,6 @@
                 const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
                 const weight = document.getElementById('input-weight').value;
 
-                // 💡 수정됨: 실적 등록 로그 앞에 [지시서: 번호] 추가
                 const orderId = appData.currentOrder.id;
                 addLog(`[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
                 window.tempWeight = weight;
@@ -607,14 +903,12 @@
             const count = appData.currentOrder.regCount;
             const orderId = appData.currentOrder.id;
 
-            // 💡 수정됨: 요청하신 대로 "사진"이라는 단어를 빼고 깔끔한 원본 형태로 복구
             let logMsg = `[지시서: ${orderId}] 최종 작업 증빙 촬영 완료.`;
             if (count > 1) {
                 logMsg = `[지시서: ${orderId}] 재등록 ${count}번째 - 최종 작업 증빙 촬영 완료.`;
             }
             addLog(logMsg);
 
-            // 카메라 아이콘 숨기고 목업(Mock) 화면 보여주기
             document.getElementById('camera-icon').style.display = 'none';
             document.getElementById('camera-text').style.display = 'none';
             document.getElementById('mock-photo').style.display = 'block';
@@ -659,11 +953,10 @@
 
         function finishStage() {
             currentStepIndex = 0;
-            isCompleted = true; // 💡 현재 지시서 작업이 끝났음을 마킹
+            isCompleted = true;
             moveToStage(0, '대기장소');
         }
     </script>
-
 </body>
 
 </html>

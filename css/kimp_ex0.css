@@ -7,9 +7,9 @@
     --text-primary: #1e293b;
     --text-secondary: #64748b;
 
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --success: #10b981;
+    --primary: #7879e6;
+    --primary-hover: #0b0981;
+    --success: #1f9eff;
     --warning: #f59e0b;
 
     --border-color: #e2e8f0;
@@ -35,6 +35,9 @@ body {
     color: var(--text-primary);
     overflow: hidden;
     height: 100vh;
+    /* 구형 브라우저 호환성 유지 */
+    height: 100dvh;
+    /* 모바일 브라우저 하단 잘림 해결 */
     display: flex;
     flex-direction: column;
 }
@@ -144,31 +147,36 @@ body {
 /* 4. 메인 컨텐츠 영역 (남은 높이를 모두 채움) */
 .main-content {
     flex-grow: 1;
-    /* 남는 영역을 꽉 채우도록 설정 */
+    min-height: 0;
+    /* 💡 핵심 1: 내부 컨텐츠가 길어져도 화면 밖으로 팽창하지 않도록 강제 방어 */
     position: relative;
     overflow: hidden;
-    /* 자식 요소 애니메이션을 위함 */
+    /* 배경은 스크롤 불가 유지 */
 }
 
 .stage-page {
     position: absolute;
     top: 0;
+    bottom: 0;
+    /* 💡 핵심 2: height: 100% 대신 부모의 바닥(bottom: 0)에 꽉 묶어버림 */
     left: 0;
-    width: 100%;
-    height: 100%;
-    /* 💡 1. 바깥 회색 여백을 확 줄여서 카드가 가로로 더 넓어지게 만듭니다 */
-    padding: 12px;
+    right: 0;
+    /* width: 100% 대신 양옆 고정 */
+
+    padding: 16px 16px 32px 16px;
     box-sizing: border-box;
-    /* 💡 2. 카드 내부가 아닌 '페이지 전체'가 부드럽게 스크롤되도록 복구 (하단 잘림 해결) */
+
+    /* 💡 여기서만 스크롤이 발생하도록 설정 */
     overflow-y: auto;
-    background-color: var(--bg-main);
+
+    display: flex;
+    flex-direction: column;
+
+    /* 애니메이션 설정 유지 */
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
     transform: translateX(100%);
     opacity: 0;
     visibility: hidden;
-
-    display: flex;
-    flex-direction: column;
 }
 
 .stage-page.active {
@@ -186,23 +194,22 @@ body {
 .card {
     background-color: var(--bg-card);
     border-radius: 16px;
-    /* 💡 3. 카드 내부 좌우 여백을 줄여 글자가 들어갈 실제 공간(Width)을 대폭 넓힘 */
-    padding: 24px 16px;
+    padding: 24px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
     text-align: center;
 
-    /* 💡 4. 카드의 내용물이 많아지면 카드가 찌그러지지 않고 밑으로 쭉 늘어나게 함 */
-    flex: 1 0 auto;
+    /* 💡 핵심 3: 카드는 내용물 높이만큼 자연스럽게 커지게 두고(flex: none), 부모인 stage-page가 스크롤 되도록 변경 */
+    flex: none;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    margin-bottom: 24px;
-    /* 바닥에 딱 붙지 않게 안전 여백 추가 */
 
-    /* 💡 5. 한글 단어가 뚝뚝 끊기며 이상하게 줄바꿈되는 현상 방지 */
-    word-break: keep-all;
-    overflow-wrap: break-word;
+    /* overflow-y: auto; 삭제 (이중 스크롤 원인) */
+    /* margin-bottom: 24px; 삭제 (스크롤 하단 영역을 갉아먹는 원인) */
+    margin: 0 auto;
+    /* 가운데 정렬 */
+    width: 100%;
 }
 
 .stage-title {
@@ -947,21 +954,24 @@ body {
 .stage-page {
     position: absolute;
     top: 0;
+    bottom: 0;
+    /* height: 100%나 70% 대신 bottom: 0으로 바닥에 고정 */
     left: 0;
-    width: 100%;
-    height: 100%;
-    /* 💡 수정: 하단 padding을 더 넉넉하게 주어 바닥에 딱 붙지 않게 함 */
-    padding: 16px 16px 32px 16px;
+    right: 0;
+    padding: 16px;
     box-sizing: border-box;
-    overflow: hidden;
-    background-color: var(--bg-main);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s;
-    transform: translateX(100%);
-    opacity: 0;
-    visibility: hidden;
+    overflow-y: auto;
 
     display: flex;
     flex-direction: column;
+    /* (나머지 애니메이션 속성 transform, opacity 등은 그대로 유지) */
+}
+/* 💡 stage-page 내부 맨 아래에 투명 범퍼를 달아줍니다 */
+.stage-page::after {
+    content: "";
+    display: block;
+    min-height: 80px; /* 잘리던 공간만큼 넉넉한 픽셀 부여 */
+    flex-shrink: 0;   /* 이 범퍼 공간은 절대 찌그러지지 않음 */
 }
 
 .stage-page.active {
@@ -977,24 +987,18 @@ body {
 }
 
 .card {
-    background-color: var(--bg-card);
+  background-color: var(--bg-card);
     border-radius: 16px;
     padding: 24px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
     text-align: center;
-
-    /* 카드 내부만 스크롤 되도록 설정 */
-    flex: 1;
+    
+    flex-shrink: 0; /* 💡 핵심: 카드가 화면에 눌려 찌그러지는 현상 방지 */
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    /* 세로 중앙 정렬 */
-    overflow-y: auto;
-    /* 내용이 길면 카드 안에서만 스크롤 생성 */
-    min-height: 0;
-    /* Flexbox 수축 허용 버그 픽스 */
-    margin: 0;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .step-container {
@@ -1081,5 +1085,45 @@ body {
     .number-stepper input {
         height: 50px;
         font-size: 28px;
+    }
+}
+
+/* =======================================================
+   💡 초소형 화면 (폭 350px 이하 OR 세로 높이 650px 이하) 완벽 압축
+   ======================================================= */
+@media screen and (max-width: 350px), screen and (max-height: 650px) {
+    
+    /* 1. 플러스/마이너스 버튼 크기 축소 */
+    .number-stepper button {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 24px !important;
+    }
+    
+    /* 2. 중앙 숫자 입력창 높이 축소 */
+    .number-stepper input {
+        height: 44px !important;
+        font-size: 24px !important;
+    }
+    
+    /* 3. 입력창 컨테이너 위아래 여백과 요소 간격 최소화 */
+    .hmi-input-group {
+        padding: 12px;
+        gap: 8px;
+    }
+    .input-row {
+        margin-bottom: 8px;
+    }
+    
+    /* 4. 제목 글자 크기도 살짝 줄임 */
+    .step-message {
+        font-size: 20px;
+    }
+    
+    /* 5. 완료 버튼 높이와 여백 축소 */
+    .btn-huge {
+        padding: 14px;
+        font-size: 18px;
+        margin-top: 12px;
     }
 }
