@@ -277,6 +277,9 @@
                     <i class="bi bi-cup-hot"></i> 작업자 라운지
                 </button>
             </div>
+            <button class="btn-menu" id="login-btn" onclick="openLoginModal()">
+                <i class="bi bi-person-circle"></i> 로그인
+            </button>
         </div>
 
         <button class="btn-toggle-status" onclick="toggleStatus()" id="btn-toggle">
@@ -398,7 +401,7 @@
                     <i class="bi bi-battery-charging" style="color: #8b5cf6;"></i> 휴식 하기
                 </button>
                 <button type="button" class="menu-btn" onclick="showLeaveForm()">
-                    <i class="bi bi-house-heart" style="color: #ec4899;"></i> 컨디션 회복 조퇴 신청
+                    <i class="bi bi-house-heart" style="color: #ec4899;"></i> 조퇴 하기
                 </button>
                 <button type="button" class="menu-btn" onclick="showChatBox()">
                     <i class="bi bi-chat-quote" style="color: #64748b;"></i> 관리자와의 따뜻한 소통 (건의/문의)
@@ -480,6 +483,50 @@
         preload="auto"></audio>
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
+        // ============================================================
+        // 💡 로그인 및 사용자 세션 관리 로직
+        // ============================================================
+        function openLoginModal() {
+            const content = `
+        <p style="margin-bottom:16px;">가짜로 로그인을 생성하여 세션스토리지로 작동상황을 잘 볼 수 있어요. 디버깅하고 있습니다.</p>
+        <div class="menu-list">
+            <button class="menu-btn" onclick="performLogin('최현일', '관리자')">최현일 (관리자)</button>
+            <button class="menu-btn" onclick="performLogin('최수아', '일반')">최수아 (일반)</button>
+            <button class="menu-btn" onclick="performLogin('김수민', '일반')">김수민 (일반)</button>
+            <button class="menu-btn" onclick="performLogin('김영희', '헬퍼')">김영희 (헬퍼)</button>
+        </div>
+    `;
+            openActionModal('테스트 로그인', '<i class="bi bi-person-badge"></i>', content);
+        }
+
+        function performLogin(name, role) {
+            const loginTime = new Date().toLocaleTimeString();
+            const userData = { name, role, loginTime };
+
+            sessionStorage.setItem("user", JSON.stringify(userData));
+            closeActionModal();
+            applyLoginState(userData);
+            showHmiToast(`${name}(${role})님 환영합니다! (로그인: ${loginTime})`);
+        }
+
+        function applyLoginState(user) {
+            const btn = document.getElementById('login-btn');
+            if (btn) {
+                btn.innerHTML = `<i class="bi bi-person-check-fill"></i> ${user.name} (${user.role})`;
+            }
+        }
+
+        // 💡 기존 initSession 함수를 아래와 같이 수정
+        function initSession() {
+            try {
+                const userStr = sessionStorage.getItem("user");
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    applyLoginState(user);
+                    appData.user = user;
+                }
+            } catch (e) { console.error("세션 로드 실패", e); }
+        }
         // ============================================================
         // 1. 공정 및 지시서 데이터 모델
         // ============================================================
@@ -614,34 +661,128 @@
         // ============================================================
         // 3. 작업 선택 및 헤더 제어 로직
         // ============================================================
+        // ============================================================
+        // 3. 작업 선택 및 헤더 제어 로직 (휴식 상태 메시지 반영)
+        // ============================================================
         function openTaskSelector() {
             const grid = document.getElementById('task-grid-container');
             if (!grid) return;
             grid.innerHTML = '';
 
             appData.stages.forEach(stage => {
+                // isCurrent: 이 단말기에서 내가 진행 중이던 작업인지 확인
                 const isCurrent = (stage.id === appData.activeStageId);
-                const btnClass = isCurrent ? 'current' : stage.status;
 
-                let statusText = isCurrent ? "내가 작업 중" :
-                    (stage.status === 'occupied' ? `${stage.worker} 작업 중` :
-                        (stage.status === 'disabled' ? "설비 점검" : "참여 가능"));
+                let btnClass = stage.status;
+                let statusText = "";
 
+                if (isCurrent) {
+                    if (isResting) {
+                        // 💡 [수정] 본인(최현일 님)이 휴식 중일 때의 UI
+                        btnClass = 'current'; // 내 작업이므로 파란색 테두리/배경 유지
+                        statusText = `<span style="color:#fcd34d; font-weight:bold;">휴식 중</span><br><span style="font-size:12px; color:rgba(255,255,255,0.85); display:block; margin-top:4px; line-height:1.3;">본인이 참여중인 일입니다.</span>`;
+                    } else {
+                        btnClass = 'current';
+                        statusText = "내가 작업 중";
+                    }
+                } else if (stage.status === 'occupied') {
+                    // 💡 [추가] 타인이 휴식 중인 경우 데모 연출 (박준호 님의 공정이라 가정)
+                    if (stage.worker === '박준호') {
+                        statusText = `<span style="color:var(--warning); font-weight:bold;">${stage.worker} 휴식중</span><br><span style="font-size:12px; color:var(--text-secondary); display:block; margin-top:4px; line-height:1.3;">${stage.worker}님이 다시 참여할 예정입니다.<br>대신할까요?</span>`;
+                    } else {
+                        statusText = `${stage.worker} 작업 중`;
+                    }
+                } else if (stage.status === 'disabled') {
+                    statusText = "설비 점검";
+                } else {
+                    statusText = "참여 가능";
+                }
+
+                // 클릭 함수에 stage.worker(작업자 이름) 데이터도 같이 넘겨줍니다.
                 grid.innerHTML += `
-            <button class="task-btn ${btnClass}" onclick="handleStageClick(${stage.id}, '${stage.status}', '${stage.name}')">
-                <i class="bi ${stage.icon}"></i>
-                <span>Stage ${stage.id}. ${stage.name}</span>
-                <span class="task-status-text ${stage.status}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
-            </button>
+        <button class="task-btn ${btnClass}" onclick="handleStageClick(${stage.id}, '${stage.status}', '${stage.name}', '${stage.worker}')">
+            <i class="bi ${stage.icon}"></i>
+            <span>Stage ${stage.id}. ${stage.name}</span>
+            <span class="task-status-text ${stage.status}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
+        </button>
         `;
             });
             document.getElementById('task-modal').classList.add('open');
         }
 
-        function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
-
         function handleStageClick(stageId, status, stageName) {
-            if (stageId === appData.activeStageId) { closeTaskSelector(); return; }
+            const isCurrent = (stageId === appData.activeStageId);
+
+            // 💡 1. 본인이 휴식 중인데, 자신의 작업 위치를 터치한 경우 -> 작업 진행 차단
+            if (isCurrent && isResting) {
+                alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
+                return;
+            }
+
+            // 2. 현재 정상 작업 중인 곳을 터치한 경우 (창만 닫음)
+            if (isCurrent && !isResting) {
+                closeTaskSelector();
+                return;
+            }
+
+            // 💡 3. 타인이 휴식 중인 공정을 터치한 경우 (캡처 화면처럼 대신하기)
+            if (status === 'occupied' && workerName === '박준호') {
+                if (!confirm(`${workerName}님이 다시 참여할 예정입니다. 대신할까요?\n(확인 시 해당 위치의 작업이 바로 시작됩니다.)`)) return;
+
+                isJobTakenByOther = true;
+
+                if (isResting) simulateEnterQR();
+                moveToStage(stageId, stageName);
+                return;
+            }
+
+            // 4. 그 외 일반적인 공정 이동 상황
+            if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
+            if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
+            if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
+
+            if (isResting) {
+                simulateEnterQR();
+            }
+
+            moveToStage(stageId, stageName);
+        }
+
+        function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
+        // ============================================================
+        // 💡 작업 위치 클릭 시 이벤트 처리 (휴식 중 이동 차단)
+        // ============================================================
+        function handleStageClick(stageId, status, stageName, workerName) {
+            const isCurrent = (stageId === appData.activeStageId);
+
+            // 💡 1. 본인이 휴식 중(작업장 외부)일 때의 클릭 차단 로직
+            if (isResting) {
+                if (isCurrent) {
+                    // 자신의 작업 위치를 눌렀을 때
+                    alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
+                } else {
+                    // 다른 공정(위치 변경)을 눌렀을 때
+                    alert("작업장 밖에 있는 상태(휴식 중)이므로 다른 위치로 변경할 수 없습니다.\n먼저 작업장으로 입장해주세요.");
+                }
+                return; // 여기서 실행을 중단하여 화면 이동(위치 변경)을 완벽히 막습니다.
+            }
+
+            // 💡 2. 현재 정상 작업 중인 내 위치를 터치한 경우 (이동할 필요 없이 창만 닫음)
+            if (isCurrent && !isResting) {
+                closeTaskSelector();
+                return;
+            }
+
+            // 💡 3. 타인이 휴식 중인 공정을 터치한 경우 (대신하기)
+            if (status === 'occupied' && workerName === '박준호') {
+                if (!confirm(`${workerName}님이 다시 참여할 예정입니다. 대신할까요?\n(확인 시 해당 위치의 작업이 바로 시작됩니다.)`)) return;
+
+                isJobTakenByOther = true;
+                moveToStage(stageId, stageName);
+                return;
+            }
+
+            // 💡 4. 그 외 일반적인 공정 이동 상황
             if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
             if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
             if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
@@ -712,17 +853,22 @@
         // ============================================================
         // 4. 시계/급여 타이머 업데이트
         // ============================================================
+        // ============================================================
+        // 4. 시계/급여 타이머 업데이트 (조퇴 완료 시 현재시간만 흐름)
+        // ============================================================
         function updateClocks() {
             const now = new Date();
             const curEl = document.getElementById('clock-current');
             const remEl = document.getElementById('clock-remaining');
             const salEl = document.getElementById('salary-display');
             const restEl = document.getElementById('clock-rest');
-
-            // 💡 모달 창 내부의 휴식 시간 텍스트
             const modalRestEl = document.getElementById('modal-rest-time-display');
 
+            // 💡 1. 현재 시간은 조퇴 여부와 상관없이 무조건 흐르도록 가장 상단에 배치
             if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            // 💡 2. 조퇴(퇴근)가 완료된 상태라면 남은시간/급여/휴식 타이머 로직은 여기서 정지
+            if (typeof isWorkFinished !== 'undefined' && isWorkFinished) return;
 
             // 작업 남은 시간은 무조건 1초씩 감소
             if (remainingSeconds > 0) {
@@ -735,19 +881,10 @@
             } else {
                 // 휴식 중일 때는 [휴식 타이머 증가]
                 restSeconds++;
-
-                // 시간 포맷(00:00:00) 만들기
                 const restTimeStr = `${String(Math.floor(restSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((restSeconds % 3600) / 60)).padStart(2, '0')}:${String(restSeconds % 60).padStart(2, '0')}`;
 
-                // 1. 헤더의 휴식 시간 업데이트
-                if (restEl) {
-                    restEl.textContent = restTimeStr;
-                }
-
-                // 2. 💡 복귀 모달이 열려 있다면, 모달 안의 타이머도 똑같이 업데이트
-                if (modalRestEl) {
-                    modalRestEl.textContent = restTimeStr;
-                }
+                if (restEl) restEl.textContent = restTimeStr;
+                if (modalRestEl) modalRestEl.textContent = restTimeStr;
             }
 
             if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
@@ -915,7 +1052,7 @@
         <div id="help-process-container" style="text-align: center; padding: 10px 0;">
             <i class="bi bi-emoji-smile" style="font-size: 56px; color: var(--primary);"></i>
             <p style="font-size: 18px; margin: 16px 0; color: var(--text-primary); line-height: 1.6;">
-                헬퍼를 불러서, 일 도움을 받습니다.<br>
+                헬퍼님을 불러서, 일 도움을 받습니다.<br>
                 도움 받을 때에 헬퍼는 <strong style="color: var(--warning);">500원</strong>을 받을 수 있어요. 😀😊
             </p>
             <button class="btn-huge primary" onclick="requestStageHelp()">
@@ -1007,25 +1144,176 @@
             addLog("[라운지] " + helpSeconds + "초 동안 헬퍼의 도움을 받았습니다.");
         }
 
+        // ============================================================
+        // 💡 조퇴 기능 관련 변수
+        // ============================================================
+        let leaveTimer = null;
+        let leaveSecondsLeft = 300; // 5분 = 300초
+        let isWorkFinished = false; // 퇴근/조퇴 완료 여부
 
-
-
-
-
-
+        // 1. 조퇴 사유 선택 폼
         function showLeaveForm() {
             const content = `
-                <p style="font-size: 18px; margin-bottom: 16px; color: var(--text-primary);">조퇴 사유를 선택해주세요.</p>
-                <div class="action-options">
-                    <button class="action-option-btn selected" onclick="selectOption(this)">🤒 컨디션 난조</button>
-                    <button class="action-option-btn" onclick="selectOption(this)">🏠 집안일</button>
-                    <button class="action-option-btn" onclick="selectOption(this)">💬 기타</button>
+        <p style="font-size: 18px; margin-bottom: 16px; color: var(--text-primary);">조퇴 사유를 선택해주세요.</p>
+        <div class="action-options">
+            <button class="action-option-btn selected" onclick="selectOption(this)">🤒 컨디션 난조</button>
+            <button class="action-option-btn" onclick="selectOption(this)">💬 기타</button>
+        </div>
+        <button class="btn-huge primary" onclick="processEarlyLeave()">
+            조퇴 승인받기 <i class="bi bi-check-circle"></i>
+        </button>
+    `;
+            openActionModal('조퇴 하기', '<i class="bi bi-house-heart" style="color: #ec4899;"></i>', content);
+        }
+
+        // 2. 조퇴 승인 대기 (5분 타이머 및 무르기 기능)
+        function processEarlyLeave() {
+            leaveSecondsLeft = 300; // 5분 초기화
+
+            const container = document.getElementById('action-modal-body');
+
+            // 시간 포맷(00:00) 변환 함수
+            function renderTimer() {
+                const m = String(Math.floor(leaveSecondsLeft / 60)).padStart(2, '0');
+                const s = String(leaveSecondsLeft % 60).padStart(2, '0');
+                return m + ":" + s;
+            }
+
+            container.innerHTML = `
+        <div style="text-align: center; padding: 10px 0;">
+            <i class="bi bi-hourglass-split spin-anim" style="font-size: 56px; color: var(--warning); display: inline-block;"></i>
+            <p style="font-size: 20px; font-weight: bold; margin-top: 16px; color: var(--text-primary);">
+                조퇴 승인 대기 중...
+            </p>
+            <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 16px;">
+                잘못 누르신 경우, 아래 버튼을 눌러 취소할 수 있습니다.
+            </p>
+            
+            <!-- 데모용 스킵 버튼 (여기를 누르면 5분 즉시 증발) -->
+            <div onclick="skipLeaveTimer()" style="cursor: pointer; font-size: 32px; font-weight: bold; margin: 10px auto; padding: 16px; background: rgba(245, 158, 11, 0.1); border-radius: 12px; color: var(--warning); display: inline-block;">
+                남은 시간: <span id="leave-timer-display">${renderTimer()}</span>
+                <div style="font-size:12px; font-weight:normal; margin-top:8px; color: #94a3b8;">
+                    <i class="bi bi-info-circle"></i> (데모) 여기를 누르면 5분이 바로 지나갑니다.
                 </div>
-                <button class="btn-huge primary" onclick="submitAction('조퇴 신청', '조퇴 신청이 관리자에게 전송되었습니다.')">
-                    서류 제출하기 <i class="bi bi-send-check"></i>
+            </div>
+            
+            <button class="btn-huge danger" style="background-color: var(--danger); color: white; margin-top: 10px;" onclick="undoEarlyLeave()">
+                <i class="bi bi-arrow-counterclockwise"></i> 조퇴 무르기 (취소)
+            </button>
+        </div>
+    `;
+
+            // 1초마다 타이머 감소
+            leaveTimer = setInterval(() => {
+                leaveSecondsLeft--;
+                const display = document.getElementById('leave-timer-display');
+                if (display) {
+                    display.textContent = renderTimer();
+                }
+
+                // 5분이 다 지나면 퇴실 QR 화면으로 이동
+                if (leaveSecondsLeft <= 0) {
+                    clearInterval(leaveTimer);
+                    showLeaveExitScreen();
+                }
+            }, 1000);
+        }
+
+        // 3. 조퇴 무르기 (취소)
+        function undoEarlyLeave() {
+            if (leaveTimer) clearInterval(leaveTimer);
+            showHmiToast('<i class="bi bi-info-circle-fill" style="color: var(--primary);"></i> 조퇴 신청이 취소되었습니다.');
+            showLeaveForm(); // 다시 조퇴 폼으로 복귀
+        }
+
+        // 4. (데모용) 5분 타이머 건너뛰기
+        function skipLeaveTimer() {
+            if (leaveTimer) clearInterval(leaveTimer);
+            showLeaveExitScreen();
+        }
+
+        // 5. 조퇴 처리 완료 및 퇴실 QR 스캔 화면
+        function showLeaveExitScreen() {
+            const content = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; padding-top: 10px;">
+            <i class="bi bi-check-circle-fill" style="font-size: 60px; color: var(--success);"></i>
+            <p style="font-size: 20px; font-weight: bold; color: var(--text-primary); margin: 0; line-height: 1.5;">
+                조퇴처리 되었습니다.<br>퇴실하셔도 좋습니다.<br>이용해주셔서 감사합니다.
+            </p>
+            <p style="font-size: 15px; color: var(--text-secondary); margin: 0;">
+                작업장 입구 QR코드를 스캔하여 완전히 퇴실해주세요.
+            </p>
+            
+            <!-- 퇴장용 QR 스캐너 -->
+            <div class="qr-scanner-box" onclick="simulateLeaveExitQR()" style="margin: 10px auto; border-color: var(--primary); background: rgba(59, 130, 246, 0.05);">
+                <i class="bi bi-qr-code-scan" style="font-size: 60px; color: var(--primary);"></i>
+                <span style="margin-top:10px; font-weight:bold; color:var(--primary);">화면을 눌러 스캔 (퇴실)</span>
+            </div>
+        </div>
+    `;
+            document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-door-closed" style="color: var(--success);"></i> 조퇴 승인 완료`;
+            document.getElementById('action-modal-body').innerHTML = content;
+        }
+
+        // 6. 퇴실 QR 스캔 완료 -> 최종 정산 화면 표출
+        function simulateLeaveExitQR() {
+            playShutterSound();
+            addLog("[조퇴] 작업장 퇴실 완료. 업무가 종료되었습니다.");
+            isWorkFinished = true; // 배경의 급여 타이머 등을 멈추기 위한 플래그
+            showFinalLeaveSummary();
+        }
+
+        // 7. 최종 정산 요약 화면
+        function showFinalLeaveSummary() {
+            // 일한 시간 계산 (7200초에서 남은 시간을 뺌)
+            const workedSeconds = 7200 - remainingSeconds;
+            const workMinutes = Math.floor(workedSeconds / 60);
+            const workSecs = workedSeconds % 60;
+
+            const finalSalary = Math.floor(accumSalary).toLocaleString();
+
+            const content = `
+        <div style="text-align: center; padding: 10px 0;">
+            <p style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 24px;">수고하셨습니다!</p>
+            
+            <div style="background: var(--bg-main); border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 24px; border: 1px solid var(--border-color);">
+                <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 8px;">
+                    <i class="bi bi-clock"></i> 총 일한 시간: 
+                    <strong style="color: var(--text-primary); float: right;">${workMinutes}분 ${workSecs}초</strong>
+                </p>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 8px;">
+                    <i class="bi bi-currency-dollar"></i> 적용 시급: 
+                    <strong style="color: var(--text-primary); float: right;">13,416 원</strong>
+                </p>
+                <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 12px 0;">
+                <p style="font-size: 18px; font-weight: bold; color: var(--text-primary); margin: 0;">
+                    발생 급여액: 
+                    <strong style="color: var(--success); font-size: 24px; float: right;">${finalSalary} 원</strong>
+                </p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="btn-huge" style="background-color: #10b981; color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%;" onclick="openLogFromSummary()">
+                    <i class="bi bi-journal-text"></i> 나의 로그기록 보기
                 </button>
-            `;
-            openActionModal('컨디션 회복 조퇴 신청', '<i class="bi bi-house-heart" style="color: #ec4899;"></i>', content);
+                
+                <button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%;" onclick="alert('퇴근 체험하기 기능은 추후 연동될 예정입니다.')">
+                    <i class="bi bi-box-arrow-right"></i> 퇴근 체험하기
+                </button>
+            </div>
+        </div>
+    `;
+            document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-receipt" style="color: var(--text-primary);"></i> 조퇴 정산 내역`;
+            document.getElementById('action-modal-body').innerHTML = content;
+        }
+
+        // 8. 정산 화면에서 로그 기록 모달 열기
+        function openLogFromSummary() {
+            closeActionModal();
+            // 모달 닫히는 애니메이션 시간(0.35초) 고려 후 로그 창 오픈
+            setTimeout(() => {
+                showWorkLogs();
+            }, 350);
         }
 
         function showChatBox() {
@@ -1323,16 +1611,35 @@
 
             submitAction('작업장 퇴장', '퇴장 처리 완료. 휴식 타이머가 작동합니다.');
         }
+
+        // ============================================================
+        // 💡 교대(작업 뺏김) 상태를 확인할 수 있는 변수 추가
+        // ============================================================
+        let isJobTakenByOther = false; // 타인이 내 작업을 대신하기 시작했는지 여부
+
         // 4. 입장 QR 스캔 완료 -> 타이머 종료 (작업 복귀)
         function simulateEnterQR() {
             playShutterSound();
             isResting = false;
 
-            // 휴식 시간 UI 박스 숨기기 (선택 사항: 주석 처리하면 복귀 후에도 오늘 쉰 시간이 화면에 남습니다)
-            // const restBox = document.getElementById('status-box-rest');
-            // if(restBox) restBox.style.display = 'none';
+            let toastMsg = '입장 처리 완료. 급여 계산이 재개됩니다.';
 
-            submitAction('작업장 입장', '입장 처리 완료. 급여 계산이 재개됩니다.');
+            // 💡 1. 누군가 내 작업을 대신하고 있는 경우 (공정 안내 생략)
+            if (isJobTakenByOther) {
+                toastMsg = '작업장 입장 처리 완료. 급여 계산이 재개됩니다.';
+
+                // 필요한 경우, 여기서 강제로 대기장소(Stage 0)로 이동시킬 수 있습니다.
+                // appData.activeStageId = 0; 
+
+                isJobTakenByOther = false; // 메시지 출력 후 상태 초기화
+            }
+            // 💡 2. 내 작업이 아직 유지되고 있는 경우 (기존 동선 안내)
+            else if (appData.activeStageId > 0) {
+                const stageName = appData.stages.find(s => s.id === appData.activeStageId)?.name || '';
+                toastMsg = `입장 완료. 해당 스테이지[Stage ${appData.activeStageId}. ${stageName}]로 가서 다시 참여해주세요.`;
+            }
+
+            submitAction('작업장 입장', toastMsg);
         }
         function simulateFinalCamera() {
             playShutterSound();
