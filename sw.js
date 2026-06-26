@@ -2,8 +2,8 @@ const CACHE_NAME = 'hmi-cache-v1';
 
 // 💡 캐시할 파일 목록 (경로에 주의하세요!)
 const URLS_TO_CACHE = [
-  '/smartFactory-ex/kimp_ex0.html',
-  '/smartFactory-ex/css/kimp_ex0.css',
+  './kimp_ex0.html',
+  './css/kimp_ex0.css',
   // 사용하신 폰트와 부트스트랩 아이콘, 제이쿼리 등도 추가하면 완벽한 오프라인이 됩니다.
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
@@ -11,11 +11,18 @@ const URLS_TO_CACHE = [
 ];
 
 // 1. 설치 (Install) - 파일을 스마트폰에 저장합니다.
+// 1. 설치 (Install) - 안전한 방식으로 변경
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('캐싱 완료');
-      return cache.addAll(URLS_TO_CACHE);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      console.log('안전한 캐싱 시작');
+      for (let url of URLS_TO_CACHE) {
+        try {
+          await cache.add(url);
+        } catch (e) {
+          console.warn('❌ 이 파일은 없어서 캐시 안 함 (앱은 정상 작동):', url);
+        }
+      }
     })
   );
   self.skipWaiting(); // 즉시 활성화

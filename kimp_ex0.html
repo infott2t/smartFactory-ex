@@ -17,7 +17,7 @@
         body.dark-mode {
             --bg-global: #121824;
             --bg-card: #1e293b;
-            --text-primary: #7879e6;
+            --text-primary: #7aa6f0;
             --text-secondary: #94a3b8;
             --border-color: #334155;
             background-color: var(--bg-global) !important;
@@ -243,9 +243,9 @@
             font-size: 18px;
         }
     </style>
-    <link rel="manifest" href="/smartFactory-ex/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7879e6">
-    <link rel="apple-touch-icon" href="/smartFactory-ex/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
@@ -289,12 +289,18 @@
                 <span class="status-value" id="clock-current">00:00</span>
             </div>
             <div class="status-box">
+                <span class="status-label">예상 급여액</span>
+                <span class="status-value highlight" id="salary-display">0 원</span>
+            </div>
+            <div class="status-box">
                 <span class="status-label">작업 남은 시간</span>
                 <span class="status-value" id="clock-remaining">02:00:00</span>
             </div>
-            <div class="status-box">
-                <span class="status-label">예상 급여액</span>
-                <span class="status-value highlight" id="salary-display">0 원</span>
+            <!-- 💡 추가된 휴식 시간 박스 (기본적으로 숨겨져 있다가 휴식 시작 시 나타남) -->
+            <div class="status-box" id="status-box-rest"
+                style="display: none; border: 1px solid var(--warning); background-color: rgba(245, 158, 11, 0.05);">
+                <span class="status-label" style="color: var(--warning);">휴식 시간 <i class="bi bi-cup-hot"></i></span>
+                <span class="status-value" id="clock-rest" style="color: var(--warning);">00:00:00</span>
             </div>
         </div>
 
@@ -379,64 +385,72 @@
             </div>
 
             <div class="menu-list">
-                <button class="menu-btn" onclick="alert('안전 대피로 및 공정 안내도를 엽니다.')">
-                    <i class="bi bi-map" style="color: #3b82f6;"></i> 현장 안전 및 공정 안내도
+                <button type="button" class="menu-btn" onclick="showSafetyMap()">
+                    <i class="bi bi-map" style="color: #3b82f6;"></i> 공정 안내도
                 </button>
-                <button class="menu-btn" onclick="showWorkLogs()">
+                <button type="button" class="menu-btn" onclick="showWorkLogs()">
                     <i class="bi bi-journal-check" style="color: #10b981;"></i> 나의 작업 기록 및 성과
                 </button>
-                <button class="menu-btn" onclick="alert('근처의 동료나 관리자에게 즉시 도움을 요청합니다.')">
-                    <i class="bi bi-bell-fill" style="color: #f59e0b;"></i> 동료/관리자 긴급 도움 호출
+                <button type="button" class="menu-btn" onclick="showEmergencyHelp()">
+                    <i class="bi bi-bell-fill" style="color: #f59e0b;"></i> 도움 받기
                 </button>
-                <button class="menu-btn" onclick="alert('설비를 안전 모드로 전환하고 휴식 시간을 가집니다.')">
-                    <i class="bi bi-battery-charging" style="color: #8b5cf6;"></i> 에너지 재충전 휴식 가지기
+                <button type="button" class="menu-btn" onclick="showRestMode()">
+                    <i class="bi bi-battery-charging" style="color: #8b5cf6;"></i> 휴식 하기
                 </button>
-                <button class="menu-btn" onclick="alert('건강상의 사유 등으로 조퇴를 신청합니다.')">
+                <button type="button" class="menu-btn" onclick="showLeaveForm()">
                     <i class="bi bi-house-heart" style="color: #ec4899;"></i> 컨디션 회복 조퇴 신청
                 </button>
-                <button class="menu-btn" onclick="alert('관리자에게 불편사항이나 문의를 남깁니다.')">
+                <button type="button" class="menu-btn" onclick="showChatBox()">
                     <i class="bi bi-chat-quote" style="color: #64748b;"></i> 관리자와의 따뜻한 소통 (건의/문의)
                 </button>
+            </div>
 
-                <hr style="border: 0; border-top: 2px dashed var(--border-color); margin: 16px 0;">
+            <hr style="border:0; border-top:2px dashed var(--border-color); margin: 24px 0;">
 
-                <h3 style="font-size: 15px; color: var(--text-primary); margin-bottom: 8px; font-weight: 700;">
-                    <i class="bi bi-gear-fill"></i> HMI 단말기 설정
-                </h3>
+            <h3
+                style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-gear-fill" style="color: var(--text-primary);"></i> HMI 단말기 설정
+            </h3>
 
-                <div class="toggle-switch-container">
-                    <span class="switch-label" id="mode-status-text">
-                        <i class="bi bi-sun"></i> 일반 모드 운전 중
-                    </span>
-                    <label class="switch">
-                        <input type="checkbox" id="dark-mode-toggle" onchange="handleDarkModeToggle(this)">
-                        <span class="slider"></span>
-                    </label>
+            <div class="toggle-switch-container">
+                <span class="switch-label" id="mode-status-text" style="color: var(--text-primary);">
+                    <i class="bi bi-sun"></i> 일반 모드 운전 중
+                </span>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle" onchange="handleDarkModeToggle(this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <hr style="border:0; border-top:2px dashed var(--border-color); margin: 24px 0;">
+
+            <div id="info-box-area"
+                style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 24px 20px; text-align: center; transition: background 0.3s;">
+
+                <div
+                    style="font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="bi bi-info-circle-fill"></i> 시스템 제작 정보
                 </div>
 
-                <hr style="border: 0; border-top: 2px dashed var(--border-color); margin: 16px 0;">
+                <h4 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px;">
+                    Smart Factory HMI Project
+                </h4>
 
-                <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border-color);"
-                    id="info-box-area">
-                    <p style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">
-                        <i class="bi bi-info-circle-fill"></i> 시스템 제작 정보
-                    </p>
-                    <h3 style="font-size: 18px; color: var(--text-primary); margin-bottom: 16px;">Smart Factory HMI
-                        Project</h3>
+                <a href="https://github.com/infott2t/smartFactory-ex" target="_blank"
+                    style="display: flex; justify-content: center; align-items: center; gap: 8px; background: #1e293b; color: #ffffff; text-decoration: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+                    <i class="bi bi-github" style="font-size: 20px;"></i> GitHub 저장소 방문하기
+                </a>
 
-                    <a href="https://github.com/infott2t/smartFactory-ex" target="_blank"
-                        style="display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 14px; background-color: #24292e; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px; transition: transform 0.1s;">
-                        <i class="bi bi-github" style="font-size: 20px;"></i> GitHub 저장소 방문하기
-                    </a>
+                <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+                    본 프로젝트는 스마트 팩토리 공정 관리를 위한<br>
+                    오픈소스 HMI 웹 터미널입니다.<br>
+                    <strong>Developed by infott2t</strong>
+                </p>
 
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; line-height: 1.6;">
-                        본 프로젝트는 스마트 팩토리 공정 관리를 위한<br>오픈소스 HMI 웹 터미널입니다.<br>
-                        <strong>Developed by infott2t</strong>
-                    </p>
-                </div>
             </div>
         </div>
     </div>
+
 
     <div class="modal-overlay" id="log-modal">
         <div class="modal-content" style="max-width: 500px;">
@@ -446,6 +460,16 @@
             </div>
 
             <div class="log-list" id="log-list-container">
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="action-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="action-modal-title">제목</h2>
+                <button class="btn-close-modal" onclick="closeActionModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div id="action-modal-body" style="padding-top: 10px;">
             </div>
         </div>
     </div>
@@ -488,6 +512,29 @@
         let accumSalary = 0;
         const SALARY_PER_SEC = 13416 / 3600;
         let currentStepIndex = 0;
+        let highestStepReached = 0;
+
+        // 👇 여기에 휴식 상태를 관리할 변수를 추가합니다.
+        let isResting = false;  // 휴식 중인지 여부
+        let restSeconds = 0;    // 휴식 타이머 초
+
+        // ============================================================
+        // 💡 누락되었던 로그 기록 및 수정 함수 추가 영역
+        // ============================================================
+        function addLog(text, editableIndex = null) {
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+            appData.logs.push({
+                time: timeStr,
+                text: text,
+                editableIndex: editableIndex
+            });
+        }
+
+        function editLog(index) {
+            alert('수량 재입력 모달이 열립니다. (세부 기능 연동 필요)');
+        }
 
         // ============================================================
         // 2. 초기 로드 (DOM 로딩 후 실행)
@@ -641,6 +688,7 @@
 
             if (stageId === 1) {
                 currentStepIndex = 0;
+                highestStepReached = 0; // 💡 새 작업 시작 시 도달 인덱스 초기화
                 renderCurrentStep();
             }
         }
@@ -669,19 +717,57 @@
             const curEl = document.getElementById('clock-current');
             const remEl = document.getElementById('clock-remaining');
             const salEl = document.getElementById('salary-display');
+            const restEl = document.getElementById('clock-rest');
+
+            // 💡 모달 창 내부의 휴식 시간 텍스트
+            const modalRestEl = document.getElementById('modal-rest-time-display');
 
             if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            if (remainingSeconds > 0) remainingSeconds--;
-            if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
 
-            accumSalary += SALARY_PER_SEC;
+            // 작업 남은 시간은 무조건 1초씩 감소
+            if (remainingSeconds > 0) {
+                remainingSeconds--;
+            }
+
+            if (!isResting) {
+                // 휴식 중이 아닐 때 [급여 증가]
+                accumSalary += SALARY_PER_SEC;
+            } else {
+                // 휴식 중일 때는 [휴식 타이머 증가]
+                restSeconds++;
+
+                // 시간 포맷(00:00:00) 만들기
+                const restTimeStr = `${String(Math.floor(restSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((restSeconds % 3600) / 60)).padStart(2, '0')}:${String(restSeconds % 60).padStart(2, '0')}`;
+
+                // 1. 헤더의 휴식 시간 업데이트
+                if (restEl) {
+                    restEl.textContent = restTimeStr;
+                }
+
+                // 2. 💡 복귀 모달이 열려 있다면, 모달 안의 타이머도 똑같이 업데이트
+                if (modalRestEl) {
+                    modalRestEl.textContent = restTimeStr;
+                }
+            }
+
+            if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
             if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
         }
 
         // ============================================================
         // 5. 작업 로그 모달 제어
         // ============================================================
+        // ============================================================
+        // 5. 작업 로그 및 라운지 모달 제어 (충돌 방지 350ms 딜레이 적용)
+        // ============================================================
+
+        function openMoreMenu() { document.getElementById('more-menu-modal').classList.add('open'); }
+        function closeMoreMenu() { document.getElementById('more-menu-modal').classList.remove('open'); }
+
+        // [작업 로그 보여주기]
         function showWorkLogs() {
+            closeMoreMenu(); // 1. 라운지 메뉴 먼저 닫기
+
             const container = document.getElementById('log-list-container');
             if (appData.logs.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-secondary);">아직 기록된 작업 로그가 없습니다.</div>`;
@@ -692,41 +778,273 @@
                         editBtn = `<button class="btn-menu" style="padding: 4px 8px; font-size: 12px; margin-top: 8px; background: #e0e7ff; color: var(--primary); border:none;" onclick="editLog(${log.editableIndex})"><i class="bi bi-pencil-square"></i> 수량 재입력하기</button>`;
                     }
                     return `
-                <div class="log-item" style="flex-direction: column;">
-                    <div style="display:flex; gap:12px;">
-                        <span class="log-time">${log.time}</span>
-                        <span class="log-text">${log.text}</span>
-                    </div>
-                    ${editBtn}
-                </div>`;
+            <div class="log-item" style="flex-direction: column;">
+                <div style="display:flex; gap:12px;">
+                    <span class="log-time">${log.time}</span>
+                    <span class="log-text">${log.text}</span>
+                </div>
+                ${editBtn}
+            </div>`;
                 }).join('');
             }
-            document.getElementById('more-menu-modal').classList.remove('open');
-            document.getElementById('log-modal').classList.add('open');
+
+            // 2. 💡 0.35초 뒤에 로그 창 열기
+            setTimeout(() => {
+                document.getElementById('log-modal').classList.add('open');
+            }, 350);
         }
 
         function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
 
-        function editLog(targetStepIndex) {
-            closeLogModal();
-            isCompleted = false;
+        // ============================================================
+        // 💡 통합 액션 모달 제어 (안내도, 조퇴 등)
+        // ============================================================
+        function openActionModal(title, iconHtml, contentHtml) {
+            closeMoreMenu(); // 1. 라운지 메뉴 닫기
 
-            if (appData.activeStageId === 0) {
-                moveToStage(1, '배추 1/2 컷팅');
-            }
-            currentStepIndex = targetStepIndex;
-            renderCurrentStep();
+            document.getElementById('action-modal-title').innerHTML = `${iconHtml} ${title}`;
+            document.getElementById('action-modal-body').innerHTML = contentHtml;
+
+            // 2. 💡 0.35초 뒤에 액션 창 열기 (충돌 방지)
+            setTimeout(() => {
+                document.getElementById('action-modal').classList.add('open');
+            }, 0);
         }
 
-        function addLog(text, editableIndex = null) {
-            const now = new Date();
-            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            appData.logs.push({ time: timeStr, text: text, editableIndex: editableIndex });
+        function closeActionModal() {
+            document.getElementById('action-modal').classList.remove('open');
         }
 
-        function openMoreMenu() { document.getElementById('more-menu-modal').classList.add('open'); }
-        function closeMoreMenu() { document.getElementById('more-menu-modal').classList.remove('open'); }
+        function selectOption(btn) {
+            const siblings = btn.parentElement.querySelectorAll('.action-option-btn');
+            siblings.forEach(el => el.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
 
+        // ================= 각 버튼 세부 기능 =================
+
+        function showSafetyMap() {
+            const content = `
+                <div style="width:100%; border-radius:12px; overflow:hidden; background:#1a1a35; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+                    <div style="padding: 12px 16px; background: #2d2d5e; color: #fff; font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="bi bi-geo-alt-fill" style="color: #ff9f43;"></i> 현재 나의 위치</span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px;">Stage ${appData.activeStageId || 0} 구역</span>
+                    </div>
+                    <div style="padding:16px; position:relative;">
+                        <svg viewBox="0 0 400 280" style="width:100%; height:auto; border-radius:8px;">
+                            <rect x="10" y="10" width="380" height="260" rx="8" fill="none" stroke="#4a4a8a" stroke-width="2" />
+
+                            <rect x="20" y="20" width="200" height="140" rx="4" fill="#1e1e3f" stroke="#3d3d7e" stroke-width="1" />
+                            <text x="120" y="95" text-anchor="middle" fill="#76769e" font-size="12" font-family="Inter, sans-serif">🏭 작업장 (Workshop)</text>
+
+                            <rect x="30" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5" />
+                            <text x="57" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter, sans-serif">Task 1</text>
+                            <rect x="95" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5" />
+                            <text x="122" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter, sans-serif">Task 2-3</text>
+                            <rect x="160" y="30" width="55" height="40" rx="3" fill="rgba(123,146,255,0.15)" stroke="#7b92ff" stroke-width="0.5" />
+                            <text x="187" y="55" text-anchor="middle" fill="#7b92ff" font-size="8" font-family="Inter, sans-serif">Task 4-5</text>
+
+                            <rect x="230" y="20" width="80" height="60" rx="4" fill="#2a1f4e" stroke="#6c5ce7" stroke-width="1" />
+                            <text x="270" y="45" text-anchor="middle" fill="#a29bfe" font-size="12" font-family="Inter, sans-serif">👔 탈의실</text>
+                            <text x="270" y="65" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter, sans-serif">사물함 보관</text>
+
+                            <rect x="320" y="20" width="65" height="60" rx="4" fill="#1e3a2a" stroke="#00b894" stroke-width="1" />
+                            <text x="352" y="55" text-anchor="middle" fill="#00b894" font-size="12" font-family="Inter, sans-serif">🧂 절임실</text>
+
+                            <rect x="230" y="100" width="155" height="70" rx="6" fill="rgba(255, 165, 0, 0.15)" stroke="#ff9f43" stroke-width="2" stroke-dasharray="4,2">
+                                <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
+                            </rect>
+                            <text x="307" y="130" text-anchor="middle" fill="#ff9f43" font-size="13" font-weight="bold" font-family="Inter, sans-serif">☕ 휴식공간 (Break Room)</text>
+                            <text x="307" y="148" text-anchor="middle" fill="#ffcc80" font-size="9" font-family="Inter, sans-serif">음료수 · 간식 · 소파 · 충전기</text>
+                            <text x="307" y="162" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter, sans-serif">휴식시간: 10분 이내</text>
+
+                            <rect x="20" y="180" width="100" height="80" rx="6" fill="rgba(0, 206, 209, 0.12)" stroke="#00cec9" stroke-width="2" stroke-dasharray="4,2">
+                                <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
+                            </rect>
+                            <text x="70" y="215" text-anchor="middle" fill="#00cec9" font-size="13" font-weight="bold" font-family="Inter, sans-serif">🚻 화장실 (Restroom)</text>
+                            <text x="70" y="233" text-anchor="middle" fill="#81ecec" font-size="9" font-family="Inter, sans-serif">남/여 구분 · 세면대</text>
+                            <text x="70" y="247" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter, sans-serif">이용 후 손씻기 필수!</text>
+
+                            <rect x="140" y="200" width="80" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8" />
+                            <text x="180" y="225" text-anchor="middle" fill="#dfe6e9" font-size="10" font-family="Inter, sans-serif">📱 QR 입력기</text>
+                            <text x="180" y="240" text-anchor="middle" fill="#76769e" font-size="8" font-family="Inter, sans-serif">(출퇴근)</text>
+
+                            <rect x="240" y="200" width="60" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8" />
+                            <text x="270" y="230" text-anchor="middle" fill="#dfe6e9" font-size="12" font-family="Inter, sans-serif">🚪 입구</text>
+
+                            <rect x="320" y="200" width="65" height="50" rx="4" fill="#2a2a3e" stroke="#dfe6e9" stroke-width="0.8" />
+                            <text x="352" y="230" text-anchor="middle" fill="#dfe6e9" font-size="12" font-family="Inter, sans-serif">🏢 사무실</text>
+
+                            <circle cx="25" y="270" r="4" fill="#ff9f43" />
+                            <text x="35" y="273" fill="#ff9f43" font-size="8" font-family="Inter, sans-serif">= 휴식장소</text>
+                            <circle cx="110" y="270" r="4" fill="#00cec9" />
+                            <text x="120" y="273" fill="#00cec9" font-size="8" font-family="Inter, sans-serif">= 화장실</text>
+                            <circle cx="195" y="270" r="4" fill="#7b92ff" />
+                            <text x="205" y="273" fill="#7b92ff" font-size="8" font-family="Inter, sans-serif">= 작업 구역</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255, 159, 67, 0.1); border: 1px solid rgba(255, 159, 67, 0.3); padding: 16px; border-radius: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 14px; color: #a98e80; font-weight: 700; margin-bottom: 8px;">
+                        <i class="bi bi-info-circle-fill"></i> 시설 이용 안내
+                    </div>
+                    <ul style="font-size: 13px; line-height: 1.6; padding-left: 20px; margin: 0; color: var(--text-secondary);">
+                        <li><strong>휴식공간</strong>은 작업장 우측에 위치해 있습니다.</li>
+                        <li><strong>화장실</strong>은 작업장 좌측 하단에 있습니다.</li>
+                        <li>화장실 이용 후 반드시 손을 깨끗이 씻어주세요.</li>
+                        <li>좋은 하루되세요. 😀😊</li>
+                    </ul>
+                </div>
+
+                
+            `;
+            openActionModal('현장 안전 및 공정 안내도', '<i class="bi bi-map" style="color: #3b82f6;"></i>', content);
+        }
+
+        // ============================================================
+        // 💡 도움받기 기능 관련 타이머 변수
+        // ============================================================
+        let helpWaitTimer = null;     // 대기 3초 타이머
+        let helpProcessTimer = null;  // 도움받는 시간(초) 카운터
+        let helpSeconds = 0;          // 초 저장용 변수
+
+        // 1. 라운지에서 [도움받기] 눌렀을 때 초기 화면
+        function showEmergencyHelp() {
+            const content = `
+        <div id="help-process-container" style="text-align: center; padding: 10px 0;">
+            <i class="bi bi-emoji-smile" style="font-size: 56px; color: var(--primary);"></i>
+            <p style="font-size: 18px; margin: 16px 0; color: var(--text-primary); line-height: 1.6;">
+                헬퍼를 불러서, 일 도움을 받습니다.<br>
+                도움 받을 때에 헬퍼는 <strong style="color: var(--warning);">500원</strong>을 받을 수 있어요. 😀😊
+            </p>
+            <button class="btn-huge primary" onclick="requestStageHelp()">
+                <i class="bi bi-person-plus-fill"></i> Stage 일 도움 받기
+            </button>
+            <button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin-top: 12px;" onclick="callManager()">
+                <i class="bi bi-telephone-fill"></i> 매니저 전화하기
+            </button>
+        </div>
+    `;
+            openActionModal('도움받기', '<i class="bi bi-person-raised-hand" style="color: #f59e0b;"></i>', content);
+        }
+
+        // 2. 매니저 전화하기 기능 (alert 처리)
+        function callManager() {
+            alert("매니저에게 전화를 연결합니다...\\n📞 000-0000-0000");
+        }
+
+        // 3. Stage 일 도움 받기 (스피너 & 대기 모드)
+        function requestStageHelp() {
+            const container = document.getElementById('help-process-container');
+            if (!container) return;
+
+            // 본인 포함 대기 인원 랜덤 생성 (1명 ~ 3명)
+            const waitCount = Math.floor(Math.random() * 3) + 1;
+
+            container.innerHTML = `
+        <i class="bi bi-arrow-repeat spin-anim" style="font-size: 56px; color: var(--warning); display: inline-block;"></i>
+        <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">기다려주십시요.</p>
+        <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+            대기 <strong style="color: var(--warning);">${waitCount}명</strong> (본인 포함)
+        </p>
+        <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
+            <i class="bi bi-x-circle"></i> 도움받기 취소
+        </button>
+    `;
+
+            // 3초 후 헬퍼 도착 화면으로 자동 전환
+            helpWaitTimer = setTimeout(() => {
+                startReceivingHelp();
+            }, 3000);
+        }
+
+        // 4. 도움 받기 취소
+        function cancelStageHelp() {
+            if (helpWaitTimer) clearTimeout(helpWaitTimer); // 3초 타이머 중지
+            showHmiToast('<i class="bi bi-info-circle-fill" style="color: var(--warning);"></i> 도움 요청을 취소했습니다.');
+            showEmergencyHelp(); // 초기 화면으로 되돌리기
+        }
+
+        // 5. 헬퍼 도착 및 초 시계 진행
+        function startReceivingHelp() {
+            const container = document.getElementById('help-process-container');
+            if (!container) return;
+
+            helpSeconds = 0; // 초 초기화
+
+            container.innerHTML = `
+        <i class="bi bi-person-check-fill" style="font-size: 56px; color: var(--success);"></i>
+        <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--success);">
+            도착하였습니다.<br>도움을 받아보세요.
+        </p>
+        <div style="font-size: 24px; font-weight: bold; margin: 24px auto; padding: 16px; max-width: 300px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; color: var(--success);">
+            도움 받는 중... <span id="help-timer-display">0</span>초
+        </div>
+        <button class="btn-huge" style="background-color: var(--text-secondary); color: white;" onclick="finishReceivingHelp()">
+            <i class="bi bi-x-lg"></i> 도움 다 받았음
+        </button>
+    `;
+
+            // 1초마다 타이머 숫자 증가
+            helpProcessTimer = setInterval(() => {
+                helpSeconds++;
+                const timerDisplay = document.getElementById('help-timer-display');
+                if (timerDisplay) timerDisplay.textContent = helpSeconds;
+            }, 1000);
+        }
+
+        // 6. 도움받기 최종 완료 버튼 클릭 시
+        function finishReceivingHelp() {
+            // 작동 중이던 1초 타이머 중지
+            if (helpProcessTimer) clearInterval(helpProcessTimer);
+
+            // 모달 창 닫기
+            closeActionModal();
+
+            // 화면 하단 알림(Toast) 및 로그 기록 처리
+            showHmiToast('<i class="bi bi-coin" style="color: #f59e0b;"></i> 도움을 다 받았습니다. 보너스 +500원을 헬퍼님이 받았습니다.');
+            addLog("[라운지] " + helpSeconds + "초 동안 헬퍼의 도움을 받았습니다.");
+        }
+
+
+
+
+
+
+
+        function showLeaveForm() {
+            const content = `
+                <p style="font-size: 18px; margin-bottom: 16px; color: var(--text-primary);">조퇴 사유를 선택해주세요.</p>
+                <div class="action-options">
+                    <button class="action-option-btn selected" onclick="selectOption(this)">🤒 컨디션 난조</button>
+                    <button class="action-option-btn" onclick="selectOption(this)">🏠 집안일</button>
+                    <button class="action-option-btn" onclick="selectOption(this)">💬 기타</button>
+                </div>
+                <button class="btn-huge primary" onclick="submitAction('조퇴 신청', '조퇴 신청이 관리자에게 전송되었습니다.')">
+                    서류 제출하기 <i class="bi bi-send-check"></i>
+                </button>
+            `;
+            openActionModal('컨디션 회복 조퇴 신청', '<i class="bi bi-house-heart" style="color: #ec4899;"></i>', content);
+        }
+
+        function showChatBox() {
+            const content = `
+                <textarea class="hmi-textarea" placeholder="관리자에게 전달할 건의사항이나 문의 내용을 입력해주세요."></textarea>
+                <button class="btn-huge primary" onclick="submitAction('메시지 전송', '관리자에게 메시지가 성공적으로 전달되었습니다.')">
+                    메시지 보내기 <i class="bi bi-chat-dots"></i>
+                </button>
+            `;
+            openActionModal('관리자와의 소통', '<i class="bi bi-chat-quote" style="color: #64748b;"></i>', content);
+        }
+
+        // 모달창 내에서 최종 동작 실행
+        function submitAction(actionName, toastMsg) {
+            closeActionModal();
+            showHmiToast(`<i class="bi bi-check-circle-fill" style="color: #10b981;"></i> ${toastMsg}`);
+            addLog(`[라운지] ${actionName} 완료`);
+            if (navigator.vibrate) navigator.vibrate(100);
+        }
         // ============================================================
         // 6. Stage 1 세부 공정 프로세스 (Wizard UI)
         // ============================================================
@@ -768,6 +1086,13 @@
             { type: 'report', icon: 'bi-clipboard-check', title: '작업 실적 보고', desc: '작업이 끝났습니다. 수량과 무게를 입력해주세요.', action: '실적 저장' },
             { type: 'final-photo', icon: 'bi-camera', title: '최종 증빙 촬영', desc: '저울 위의 <strong style="color:var(--primary)">배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '작업 완료 및 대기소 복귀' }
         ];
+        // 💡 새로 추가된 뒤로가기 함수
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderCurrentStep();
+            }
+        }
 
         function renderCurrentStep() {
             const container = document.getElementById('stage-1-dynamic-content');
@@ -849,15 +1174,23 @@
             const showIcon = step.type !== 'report';
             const iconHtml = showIcon ? `<i class="bi ${step.icon} step-icon"></i>` : '';
 
+            // 💡 현재 1단계(Index 0)가 아닐 경우에만 뒤로가기 버튼 생성
+            const backBtnHtml = currentStepIndex > 0
+                ? `<button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin-top: 12px;" onclick="prevStep()">
+                     <i class="bi bi-arrow-left-circle"></i> 이전 단계로 돌아가기
+                   </button>`
+                : '';
+
             container.innerHTML = `
-    <div class="step-container">
-        ${iconHtml} <div class="step-message">${step.title}</div>
-        <div class="step-sub-message">${step.desc}</div>
-        ${visualElement}
-        ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
-        ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="nextStep()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
-    </div>
-`;
+        <div class="step-container">
+            ${iconHtml} <div class="step-message">${step.title}</div>
+            <div class="step-sub-message">${step.desc}</div>
+            ${visualElement}
+            ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
+            ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="nextStep()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
+            ${backBtnHtml}
+        </div>
+    `;
 
             const idDisplay = document.getElementById('display-workflow-id');
             if (idDisplay) idDisplay.textContent = `[${appData.currentOrder.id}]`;
@@ -866,28 +1199,43 @@
         function nextStep() {
             const step = stage1Workflow[currentStepIndex];
 
+            // 💡 재수행 여부 판단 (현재 인덱스가 도달했던 최고 인덱스보다 작으면 재수행)
+            const isRepeated = currentStepIndex < highestStepReached;
+            const logPrefix = isRepeated ? "[수정/재수행] " : "";
+
             if (step.type === 'qr' && step.title.includes('체크인')) {
-                addLog(`공정 위치 QR코드를 스캔했습니다.`);
+                addLog(`${logPrefix}공정 위치 QR코드를 스캔했습니다.`);
             } else if (step.type === 'qr' && step.title.includes('맵핑')) {
-                addLog(`생산지시서 [${appData.currentOrder.id}]를 스캔했습니다.`);
+                addLog(`${logPrefix}생산지시서 [${appData.currentOrder.id}]를 스캔했습니다.`);
+            } else if (step.type === 'info' && step.title.includes('자재 창고')) {
+                // 상차 완료 로그 추가
+                addLog(`${logPrefix}자재 상차(싣기)를 완료했습니다.`);
             } else if (step.type === 'input') {
                 const qty = document.getElementById('input-single').value;
-                addLog(`상차 수량 ${qty}포기 입력 완료.`);
+                addLog(`${logPrefix}상차 수량 ${qty}포기 입력 완료.`);
+            } else if (step.type === 'info' && step.title.includes('작업대')) {
+                // 작업대 복귀 완료 로그 추가
+                addLog(`${logPrefix}작업대 복귀를 완료했습니다.`);
             } else if (step.type === 'work') {
-                addLog(`배추 컷팅 작업을 완료했습니다.`);
+                addLog(`${logPrefix}배추 컷팅 작업을 완료했습니다.`);
             } else if (step.type === 'report') {
                 const goodQty = document.getElementById('input-good').value;
                 const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
                 const weight = document.getElementById('input-weight').value;
 
                 const orderId = appData.currentOrder.id;
-                addLog(`[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
+                addLog(`${logPrefix}[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
                 window.tempWeight = weight;
 
                 if (defectQty > 0) {
                     renderDefectPhotoStep(defectQty);
                     return;
                 }
+            }
+
+            // 가장 멀리 간 단계 업데이트
+            if (currentStepIndex >= highestStepReached) {
+                highestStepReached = currentStepIndex;
             }
 
             currentStepIndex++;
@@ -901,7 +1249,91 @@
                 sound.play();
             }
         }
+        // ============================================================
+        // 💡 단계별 휴식 및 QR 스캔 프로세스
+        // ============================================================
 
+        // 1. 라운지에서 [에너지 재충전 휴식] 클릭 시
+        function showRestMode() {
+            if (!isResting) {
+                // [휴식 전] 안내 메시지 및 퇴장 유도
+                const content = `
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <i class="bi bi-cup-hot" style="font-size: 80px; color: var(--text-secondary);"></i>
+                        <p style="font-size: 20px; font-weight: bold; margin-top: 16px; color: var(--text-primary);">
+                           휴식시간을 가져보세요.<br>휴게실이 있습니다.<br>2시간 근무에 30분 권장합니다.</br> 
+                        </p>
+                        <p style="font-size: 15px; margin-top: 16px; padding: 12px; color: #b3b3c9; border-radius: 8px; font-weight: 600;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> 쉬기 위해서는 안전을 위해 작업장에서 벗어나야합니다.
+                        </p>
+                    </div>
+                    <button class="btn-huge primary" onclick="showRestExitQR()">퇴실 절차 진행하기 <i class="bi bi-arrow-right"></i></button>
+                `;
+                openActionModal('휴식하기', '<i class="bi bi-battery-charging" style="color: #8b5cf6;"></i>', content);
+            } else {
+                // [휴식 중] 다시 휴식 메뉴 클릭 시 (입장 유도)
+                const currentRestTime = document.getElementById('clock-rest').textContent;
+                const content = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center;">
+                        <p style="font-size: 20px; font-weight: bold; color: var(--text-primary);">
+                            작업장 입장하기.<br>QR코드를 입력해주세요.
+                        </p>
+                        
+                        <div class="qr-scanner-box" onclick="simulateEnterQR()" style="margin: 0 auto; border-color: var(--success); background: rgba(16, 185, 129, 0.05);">
+                            <i class="bi bi-qr-code-scan" style="font-size: 60px; color: var(--success);"></i>
+                            <span style="margin-top:10px; font-weight:bold; color:var(--success);">화면을 눌러 스캔 (입장)</span>
+                        </div>
+                        
+                        <div style="margin-top: 8px; font-size: 16px; color: var(--warning); font-weight: 700;">
+                            <i class="bi bi-clock-history"></i> 현재 휴식 시간: <span id="modal-rest-time-display">${currentRestTime}</span>
+                        </div>
+                    </div>
+                `;
+                openActionModal('휴식 종료 및 현장 복귀', '<i class="bi bi-door-open-fill" style="color: #10b981;"></i>', content);
+            }
+        }
+        // 2. 퇴장하기 버튼 클릭 시 -> 퇴장 QR 스캔 화면 표출
+        function showRestExitQR() {
+            const content = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center;">
+                    <p style="font-size: 20px; font-weight: bold; color: var(--text-primary);">
+                        <br>작업장 입구 QR코드를 입력해주세요.
+                    </p>
+                    
+                    <!-- 퇴장용 QR 스캐너 -->
+                    <div class="qr-scanner-box" onclick="simulateExitQR()" style="margin: 0 auto;">
+                        <i class="bi bi-qr-code-scan" style="font-size: 60px; color: var(--primary);"></i>
+                        <span style="margin-top:10px; font-weight:bold; color:var(--primary);">화면을 눌러 스캔 (퇴실)</span>
+                    </div>
+                </div>
+            `;
+            // 새로 모달을 띄우지 않고 기존 내용만 부드럽게 교체합니다.
+            document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-qr-code" style="color: #3b82f6;"></i> 작업장 퇴실하기`;
+            document.getElementById('action-modal-body').innerHTML = content;
+        }
+        // 3. 퇴장 QR 스캔 완료 -> 타이머 시작 (휴식 모드 돌입)
+        function simulateExitQR() {
+            playShutterSound();
+            isResting = true;
+            restSeconds = 0; // 휴식 타이머 1초부터 시작
+
+            // 상단 헤더에 휴식 시간 UI 박스 표출
+            const restBox = document.getElementById('status-box-rest');
+            if (restBox) restBox.style.display = 'flex';
+
+            submitAction('작업장 퇴장', '퇴장 처리 완료. 휴식 타이머가 작동합니다.');
+        }
+        // 4. 입장 QR 스캔 완료 -> 타이머 종료 (작업 복귀)
+        function simulateEnterQR() {
+            playShutterSound();
+            isResting = false;
+
+            // 휴식 시간 UI 박스 숨기기 (선택 사항: 주석 처리하면 복귀 후에도 오늘 쉰 시간이 화면에 남습니다)
+            // const restBox = document.getElementById('status-box-rest');
+            // if(restBox) restBox.style.display = 'none';
+
+            submitAction('작업장 입장', '입장 처리 완료. 급여 계산이 재개됩니다.');
+        }
         function simulateFinalCamera() {
             playShutterSound();
 
@@ -968,7 +1400,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // 경로에 주의!
-                navigator.serviceWorker.register('/smartFactory-ex/sw.js')
+                navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('✅ Service Worker 등록 성공! 스코프:', registration.scope);
                     })

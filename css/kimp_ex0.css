@@ -588,6 +588,8 @@ body {
     box-shadow: var(--shadow-md);
     transition: all 0.2s;
     margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .btn-huge.primary {
@@ -966,12 +968,15 @@ body {
     flex-direction: column;
     /* (나머지 애니메이션 속성 transform, opacity 등은 그대로 유지) */
 }
+
 /* 💡 stage-page 내부 맨 아래에 투명 범퍼를 달아줍니다 */
 .stage-page::after {
     content: "";
     display: block;
-    min-height: 80px; /* 잘리던 공간만큼 넉넉한 픽셀 부여 */
-    flex-shrink: 0;   /* 이 범퍼 공간은 절대 찌그러지지 않음 */
+    min-height: 80px;
+    /* 잘리던 공간만큼 넉넉한 픽셀 부여 */
+    flex-shrink: 0;
+    /* 이 범퍼 공간은 절대 찌그러지지 않음 */
 }
 
 .stage-page.active {
@@ -987,14 +992,15 @@ body {
 }
 
 .card {
-  background-color: var(--bg-card);
+    background-color: var(--bg-card);
     border-radius: 16px;
     padding: 24px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
     text-align: center;
-    
-    flex-shrink: 0; /* 💡 핵심: 카드가 화면에 눌려 찌그러지는 현상 방지 */
+
+    flex-shrink: 0;
+    /* 💡 핵심: 카드가 화면에 눌려 찌그러지는 현상 방지 */
     display: flex;
     flex-direction: column;
     margin: 0 auto;
@@ -1091,39 +1097,58 @@ body {
 /* =======================================================
    💡 초소형 화면 (폭 350px 이하 OR 세로 높이 650px 이하) 완벽 압축
    ======================================================= */
-@media screen and (max-width: 350px), screen and (max-height: 650px) {
-    
+@media screen and (max-width: 350px),
+screen and (max-height: 650px) {
+
     /* 1. 플러스/마이너스 버튼 크기 축소 */
     .number-stepper button {
         width: 44px !important;
         height: 44px !important;
         font-size: 24px !important;
     }
-    
+
     /* 2. 중앙 숫자 입력창 높이 축소 */
     .number-stepper input {
         height: 44px !important;
         font-size: 24px !important;
     }
-    
+
     /* 3. 입력창 컨테이너 위아래 여백과 요소 간격 최소화 */
     .hmi-input-group {
         padding: 12px;
         gap: 8px;
     }
+
     .input-row {
         margin-bottom: 8px;
     }
-    
+
     /* 4. 제목 글자 크기도 살짝 줄임 */
     .step-message {
         font-size: 20px;
     }
-    
+
     /* 5. 완료 버튼 높이와 여백 축소 */
     .btn-huge {
         padding: 14px;
         font-size: 18px;
         margin-top: 12px;
     }
+}
+
+/* 💡 추가된 4개의 상태창 박스를  2줄씩(2x2) 정렬하게 만듦 */
+@media screen and (min-width: 769px) {
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+/* =======================================================
+   도움받기 대기 스피너 애니메이션
+   ======================================================= */
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.spin-anim {
+    animation: spin 1.5s linear infinite;
 }
