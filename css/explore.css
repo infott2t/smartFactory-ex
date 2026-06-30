@@ -271,8 +271,10 @@ body {
 .sort-arrows {
     display: flex;
     flex-direction: column;
-    margin-left: 5px;
+    margin-left: 4px;
     justify-content: center;
+    align-items: center;
+    transform: translateY(2px);
 }
 
 /* 위아래 삼각형이 하나의 아이콘처럼 찰싹 달라붙게 간격 조절 */
@@ -354,7 +356,8 @@ img {
     color: var(--upfill);
 }
 .lspace {
-    letter-spacing: 0.3px;
+    letter-spacing: 0px;
+    min-width:25px;
 }
 
 /* 화면 너비가 625px 이하일 때 적용되는 미디어 쿼리 */
@@ -363,7 +366,7 @@ img {
         overflow-x: auto; /* 가로 스크롤 활성화 */
         flex-wrap: nowrap; /* 요소들이 밑으로 떨어지지 않게 한 줄로 강제 */
         gap:0px;
-        min-width: 70px;
+        min-width: 79px;
         top: 131px;
     }
     .sort-item {
@@ -371,10 +374,11 @@ img {
         font-size: 15px;
         padding: 0px 11px;
         text-align:center;
+        justify-content: center;
     }
     .lspace {
         letter-spacing: 0px;
-        min-width:53px;
+        min-width:26px;
     }
     
    
