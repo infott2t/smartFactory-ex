@@ -1492,3 +1492,344 @@
         }
     });
 })();
+
+// ==========================================
+// 중앙 목업 데이터 (main.html, explore.html, kimp.html 공통)
+// ==========================================
+window.MockData = {
+    // 1. explore.html, main.html 작업(Works) 데이터
+    worksJSON: `[
+        {
+            "workId": 1, "workName": "김치만들기", "brandName": "AFood", "iconUrl": "./images/k-icon_150x150.png",
+            "salary": 1.3, "salaryChange": 0.01, "taskCount": 5, "participants": 123, "createdAt": "2024-08-01",
+            "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"],
+            "isNew": false
+        },
+        {
+            "workId": 2, "workName": "우동만들기", "brandName": "Uton", "iconUrl": "./images/Uton_150x150.png",
+            "salary": 1.1, "salaryChange": -0.05, "taskCount": 4, "participants": 70, "createdAt": "2025-03-19",
+            "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"],
+            "isNew": false
+        },
+        {
+            "workId": 3, "workName": "지갑만들기", "brandName": "Persa", "iconUrl": "./images/fancy_150x150.png",
+            "salary": 1.2, "salaryChange": 0.02, "taskCount": 5, "participants": 30, "createdAt": "2026-05-09",
+            "region": "서울시 마포구 합정동", "categories": ["악세사리", "지갑", "만들기"],
+            "isNew": false
+        },
+        {
+            "workId": 6, "workName": "불고기구이", "brandName": "K-Meat", "iconUrl": "./images/beef_500.png",
+            "salary": 1.5, "salaryChange": -0.02, "taskCount": 5, "participants": 80, "createdAt": "2026-06-20",
+            "region": "서울시 종로구 연남동", "categories": ["음식", "요리", "불고기", "고기", "구이"],
+            "isNew": true
+        },
+        {
+            "workId": 7, "workName": "버거만들기", "brandName": "BurgerQueen", "iconUrl": "./images/burger_500.png",
+            "salary": 1.25, "salaryChange": 0.01, "taskCount": 4, "participants": 55, "createdAt": "2026-06-25",
+            "region": "서울시 용산구 이태원", "categories": ["음식", "요리", "버거", "만들기", "패스트푸드"],
+            "isNew": true
+        }
+    ]`,
+
+    // 2. 예약(Reservations) 목업 데이터 생성기
+    getReservations: function(todayStr, tomorrowStr, nextDayStr) {
+        return [
+            { id: 1, userId: "leejisung", userName: "이지성", date: todayStr, slot: 0, role: "general" },
+            { id: 2, userId: "choiwoobin", userName: "최우빈", date: todayStr, slot: 0, role: "general" },
+            { id: 3, userId: "parksangmin", userName: "박상민", date: todayStr, slot: 0, role: "general" },
+
+            { id: 4, userId: "kimsuyoung", userName: "김수영", date: todayStr, slot: 1, role: "general" },
+            { id: 5, userId: "hanjiwon", userName: "한지원", date: todayStr, slot: 1, role: "general" },
+            { id: 6, userId: "helper1", userName: "정우성", date: todayStr, slot: 1, role: "helper" },
+
+            { id: 7, userId: "helper2", userName: "김혜수", date: tomorrowStr, slot: 1, role: "helper" },
+            { id: 8, userId: "helper3", userName: "조진웅", date: tomorrowStr, slot: 1, role: "helper" },
+            { id: 9, userId: "general1", userName: "이선균", date: tomorrowStr, slot: 1, role: "general" }
+        ];
+    },
+
+    // 3. 각 작업(Work)별 세부(Detail) 목업 데이터
+    workDetailJSON: `{
+        "1": {
+            "title": "김치만들기",
+            "iconUrl": "./images/k-icon_150x150.png",
+            "value": 1.3,
+            "change": "+0.03%",
+            "categories": ["요리", "김치", "만들기"],
+            "workTime": "2시간 작업",
+            "productSlogan": "여기서 만든 신선한 김치. 구매해보세요~. 🎁",
+            "products": [
+                { "name": "300g 맛김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_300g.png", "price": "3,000원", "status": "50 남음" },
+                { "name": "1kg 포기김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_1kg.png", "price": "8,000원", "status": "생산 중" },
+                { "name": "3kg 대용량 김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_3kg.png", "price": "20,000원", "status": "생산 중" }
+            ],
+            "chart": {
+                "1h": {
+                    "labels": ["10:00", "11:00", "12:00", "1:00", "2:00", "3:00", "4:00", "5:00"],
+                    "data": [1.1, 1.1, 1.15, 1.15, 1.35, 1.35, 1.3, 1.3]
+                },
+                "1d": {
+                    "labels": ["월", "화", "수", "목", "금", "오늘"],
+                    "data": [1.1, 1.2, 1.3, 1.2, 1.3, 1.2]
+                },
+                "1w": {
+                    "labels": ["1주전", "2주전", "3주전", "이번주"],
+                    "data": [1.2, 1.2, 1.2, 1.3]
+                },
+                "1mo": {
+                    "labels": ["1월", "2월", "3월", "4월", "5월", "이번달"],
+                    "data": [1.2, 1.1, 1.3, 1.15, 1.2, 1.2]
+                },
+                "1y": {
+                    "labels": ["2022", "2023", "2024", "2025", "2026"],
+                    "data": [0.9, 0.95, 0.97, 0.98, 1.2]
+                }
+            },
+            "stats": {
+                "address": "서울시 성동구 성수동",
+                "startDate": "2024년 8월 1일 (목)",
+                "workingHours": "오전 10:00 ~ 오후 5:00",
+                "participants": 123,
+                "rating": "4.7 / 5.0"
+            },
+            "guidelines": [
+                { "icon": "bi-egg-fried", "iconColor": "color-purple", "text": "요리. 배추를 절이는 작업입니다.", "isBanner": false },
+                { "icon": "bi-card-image", "iconColor": "color-red", "text": "신분증, 보건증을 지참해주세요.", "isBanner": false },
+                { "icon": "bi-clock-history", "iconColor": "color-gold", "text": "2시간 단위로 예약가능합니다.\\n2시간 단위로 30분 쉬는 시간을 드려요.", "isBanner": false },
+                { "icon": "bi-ticket-perforated", "iconColor": "color-teal", "text": "혜택, 당일 식권 1매 제공.\\n일주일간 식권 사용가능합니다.", "isBanner": false },
+                { "icon": "bi-person-check", "iconColor": "color-lavender", "text": "단정한 차림으로 입장해주세요.", "isBanner": false },
+                { "icon": "bi-calendar-event", "iconColor": "color-green", "text": "당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊", "isBanner": true, "bannerClass": "banner-green" },
+                { "icon": "bi-gift-fill", "iconColor": "color-lightpurple", "text": "처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉", "textColor": "color-lightpurple", "isBanner": true, "bannerClass": "banner-purple" }
+            ],
+            "workflows": [
+                { "step": 1, "desc": "배추 5단위 적재하기" },
+                { "step": 2, "desc": "배추 손질하기" },
+                { "step": 3, "desc": "배추를 절이는 작업" },
+                { "step": 4, "desc": "양념제조와 양념을 묻히는 작업" },
+                { "step": 5, "desc": "포장용기에 담는 작업" }
+            ]
+        },
+        "2": {
+            "title": "우동만들기",
+            "iconUrl": "./images/Uton_150x150.png",
+            "value": 1.1,
+            "change": "-0.05%",
+            "categories": ["음식", "요리", "우동", "만들기"],
+            "workTime": "1시간 30분 작업",
+            "productSlogan": "갓 뽑은 쫄깃한 우동 면발과 특제 육수. 🍜",
+            "products": [
+                { "name": "수제 쫄깃 우동면 2인분", "brand": "Uton", "imgUrl": "./images/udon_noodle.png", "price": "4,500원", "status": "120 남음" },
+                { "name": "비법 우동 육수 1L", "brand": "Uton", "imgUrl": "./images/udon_soup.png", "price": "6,000원", "status": "생산 중" },
+                { "name": "우동 밀키트 세트 (4인분)", "brand": "Uton", "imgUrl": "./images/udon_kit.png", "price": "15,000원", "status": "생산 중" }
+            ],
+            "chart": {
+                "1h": {
+                    "labels": ["10:00", "11:00", "12:00", "1:00", "2:00", "3:00", "4:00", "5:00"],
+                    "data": [1.0, 1.05, 1.1, 1.08, 1.12, 1.15, 1.1, 1.1]
+                },
+                "1d": {
+                    "labels": ["월", "화", "수", "목", "금", "오늘"],
+                    "data": [1.2, 1.15, 1.1, 1.05, 1.08, 1.1]
+                },
+                "1w": {
+                    "labels": ["1주전", "2주전", "3주전", "이번주"],
+                    "data": [1.1, 1.15, 1.05, 1.1]
+                },
+                "1mo": {
+                    "labels": ["1월", "2월", "3월", "4월", "5월", "이번달"],
+                    "data": [1.0, 1.1, 1.15, 1.12, 1.05, 1.1]
+                },
+                "1y": {
+                    "labels": ["2022", "2023", "2024", "2025", "2026"],
+                    "data": [0.8, 0.9, 1.0, 1.1, 1.1]
+                }
+            },
+            "stats": {
+                "address": "서울시 강남구 역삼동",
+                "startDate": "2025년 3월 19일 (수)",
+                "workingHours": "오전 09:00 ~ 오후 2:00",
+                "participants": 70,
+                "rating": "4.5 / 5.0"
+            },
+            "guidelines": [
+                { "icon": "bi-egg-fried", "iconColor": "color-purple", "text": "요리. 우동 면발을 뽑고 국물을 끓이는 작업입니다.", "isBanner": false },
+                { "icon": "bi-card-image", "iconColor": "color-red", "text": "신분증, 보건증을 지참해주세요.", "isBanner": false },
+                { "icon": "bi-ticket-perforated", "iconColor": "color-teal", "text": "혜택, 당일 식권 1매 제공.", "isBanner": false },
+                { "icon": "bi-calendar-event", "iconColor": "color-green", "text": "당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊", "isBanner": true, "bannerClass": "banner-green" }
+            ],
+            "workflows": [
+                { "step": 1, "desc": "면발 재료 준비하기" },
+                { "step": 2, "desc": "우동 면 뽑기" },
+                { "step": 3, "desc": "우동 국물 끓이기" },
+                { "step": 4, "desc": "포장하기" }
+            ]
+        },
+        "3": {
+            "title": "지갑만들기",
+            "iconUrl": "./images/fancy_150x150.png",
+            "value": 1.2,
+            "change": "+0.02%",
+            "categories": ["악세사리", "지갑", "만들기"],
+            "workTime": "3시간 작업",
+            "productSlogan": "한 땀 한 땀 정성스럽게 만든 수제 가죽 지갑. 👛",
+            "products": [
+                { "name": "천연소가죽 명함지갑", "brand": "Persa", "imgUrl": "./images/wallet_card.png", "price": "25,000원", "status": "15 남음" },
+                { "name": "핸드메이드 반지갑", "brand": "Persa", "imgUrl": "./images/wallet_half.png", "price": "45,000원", "status": "제작 중" },
+                { "name": "프리미엄 장지갑", "brand": "Persa", "imgUrl": "./images/wallet_long.png", "price": "75,000원", "status": "제작 중" }
+            ],
+            "chart": {
+                "1h": {
+                    "labels": ["10:00", "11:00", "12:00", "1:00", "2:00", "3:00", "4:00", "5:00"],
+                    "data": [1.15, 1.18, 1.2, 1.22, 1.2, 1.21, 1.19, 1.2]
+                },
+                "1d": {
+                    "labels": ["월", "화", "수", "목", "금", "오늘"],
+                    "data": [1.1, 1.15, 1.18, 1.19, 1.21, 1.2]
+                },
+                "1w": {
+                    "labels": ["1주전", "2주전", "3주전", "이번주"],
+                    "data": [1.15, 1.17, 1.19, 1.2]
+                },
+                "1mo": {
+                    "labels": ["1월", "2월", "3월", "4월", "5월", "이번달"],
+                    "data": [1.1, 1.12, 1.15, 1.18, 1.19, 1.2]
+                },
+                "1y": {
+                    "labels": ["2022", "2023", "2024", "2025", "2026"],
+                    "data": [1.0, 1.05, 1.1, 1.15, 1.2]
+                }
+            },
+            "stats": {
+                "address": "서울시 마포구 합정동",
+                "startDate": "2026년 5월 9일 (토)",
+                "workingHours": "오후 1:00 ~ 오후 6:00",
+                "participants": 30,
+                "rating": "4.8 / 5.0"
+            },
+            "guidelines": [
+                { "icon": "bi-scissors", "iconColor": "color-purple", "text": "수공예. 가죽을 재단하고 바느질하는 작업입니다.", "isBanner": false },
+                { "icon": "bi-person-check", "iconColor": "color-lavender", "text": "단정한 차림으로 입장해주세요. 안경 지참을 권장합니다.", "isBanner": false },
+                { "icon": "bi-gift-fill", "iconColor": "color-lightpurple", "text": "처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉", "textColor": "color-lightpurple", "isBanner": true, "bannerClass": "banner-purple" }
+            ],
+            "workflows": [
+                { "step": 1, "desc": "가죽 재단하기" },
+                { "step": 2, "desc": "가죽 펀칭하기" },
+                { "step": 3, "desc": "바느질 작업" },
+                { "step": 4, "desc": "로고 각인하기" },
+                { "step": 5, "desc": "포장하기" }
+            ]
+        },
+        "6": {
+            "title": "불고기구이",
+            "iconUrl": "./images/beef_500.png",
+            "value": 1.5,
+            "change": "-0.02%",
+            "categories": ["음식", "요리", "불고기", "고기", "구이"],
+            "workTime": "4시간 작업",
+            "productSlogan": "불향 가득한 달콤짭짤 프리미엄 불고기! 🥩",
+            "products": [
+                { "name": "직화 양념 불고기 500g", "brand": "K-Meat", "imgUrl": "./images/beef_500g.png", "price": "12,000원", "status": "200 남음" },
+                { "name": "프리미엄 불고기 도시락", "brand": "K-Meat", "imgUrl": "./images/beef_dosirak.png", "price": "8,500원", "status": "생산 중" },
+                { "name": "가족용 불고기 밀키트 1.5kg", "brand": "K-Meat", "imgUrl": "./images/beef_kit.png", "price": "32,000원", "status": "생산 중" }
+            ],
+            "chart": {
+                "1h": {
+                    "labels": ["10:00", "11:00", "12:00", "1:00", "2:00", "3:00", "4:00", "5:00"],
+                    "data": [1.4, 1.45, 1.5, 1.48, 1.52, 1.55, 1.5, 1.5]
+                },
+                "1d": {
+                    "labels": ["월", "화", "수", "목", "금", "오늘"],
+                    "data": [1.4, 1.45, 1.48, 1.49, 1.51, 1.5]
+                },
+                "1w": {
+                    "labels": ["1주전", "2주전", "3주전", "이번주"],
+                    "data": [1.45, 1.47, 1.49, 1.5]
+                },
+                "1mo": {
+                    "labels": ["1월", "2월", "3월", "4월", "5월", "이번달"],
+                    "data": [1.4, 1.42, 1.45, 1.48, 1.49, 1.5]
+                },
+                "1y": {
+                    "labels": ["2022", "2023", "2024", "2025", "2026"],
+                    "data": [1.2, 1.25, 1.3, 1.4, 1.5]
+                }
+            },
+            "stats": {
+                "address": "서울시 종로구 연남동",
+                "startDate": "2026년 6월 20일 (토)",
+                "workingHours": "오후 4:00 ~ 오후 8:00",
+                "participants": 80,
+                "rating": "4.9 / 5.0"
+            },
+            "guidelines": [
+                { "icon": "bi-fire", "iconColor": "color-red", "text": "요리. 신선한 소고기를 굽고 포장하는 작업입니다.", "isBanner": false },
+                { "icon": "bi-person-check", "iconColor": "color-lavender", "text": "위생모와 앞치마가 지급됩니다. 편안한 신발을 착용해주세요.", "isBanner": false },
+                { "icon": "bi-ticket-perforated", "iconColor": "color-teal", "text": "혜택, 불고기 도시락 1개 제공.", "isBanner": false },
+                { "icon": "bi-gift-fill", "iconColor": "color-lightpurple", "text": "처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉", "textColor": "color-lightpurple", "isBanner": true, "bannerClass": "banner-purple" }
+            ],
+            "workflows": [
+                { "step": 1, "desc": "소고기 핏물 빼기" },
+                { "step": 2, "desc": "양념장 만들기" },
+                { "step": 3, "desc": "고기 재우기" },
+                { "step": 4, "desc": "직화구이 작업" },
+                { "step": 5, "desc": "도시락 포장하기" }
+            ]
+        },
+        "7": {
+            "title": "버거만들기",
+            "iconUrl": "./images/burger_500.png",
+            "value": 1.25,
+            "change": "+0.01%",
+            "categories": ["음식", "요리", "버거", "만들기", "패스트푸드"],
+            "workTime": "2시간 30분 작업",
+            "productSlogan": "신선한 재료로 바로 만든 수제 버거. 🍔",
+            "products": [
+                { "name": "클래식 치즈버거 단품", "brand": "BurgerQueen", "imgUrl": "./images/burger_cheese.png", "price": "5,500원", "status": "생산 중" },
+                { "name": "더블 패티 시그니처 버거", "brand": "BurgerQueen", "imgUrl": "./images/burger_signature.png", "price": "8,000원", "status": "30 남음" },
+                { "name": "패밀리 버거 세트 (버거4+감튀+음료)", "brand": "BurgerQueen", "imgUrl": "./images/burger_family.png", "price": "24,000원", "status": "생산 중" }
+            ],
+            "chart": {
+                "1h": {
+                    "labels": ["10:00", "11:00", "12:00", "1:00", "2:00", "3:00", "4:00", "5:00"],
+                    "data": [1.2, 1.22, 1.25, 1.24, 1.26, 1.28, 1.25, 1.25]
+                },
+                "1d": {
+                    "labels": ["월", "화", "수", "목", "금", "오늘"],
+                    "data": [1.15, 1.2, 1.22, 1.24, 1.26, 1.25]
+                },
+                "1w": {
+                    "labels": ["1주전", "2주전", "3주전", "이번주"],
+                    "data": [1.2, 1.22, 1.24, 1.25]
+                },
+                "1mo": {
+                    "labels": ["1월", "2월", "3월", "4월", "5월", "이번달"],
+                    "data": [1.1, 1.15, 1.2, 1.22, 1.24, 1.25]
+                },
+                "1y": {
+                    "labels": ["2022", "2023", "2024", "2025", "2026"],
+                    "data": [1.0, 1.05, 1.1, 1.2, 1.25]
+                }
+            },
+            "stats": {
+                "address": "서울시 용산구 이태원",
+                "startDate": "2026년 6월 25일 (목)",
+                "workingHours": "오전 11:00 ~ 오후 1:30",
+                "participants": 55,
+                "rating": "4.6 / 5.0"
+            },
+            "guidelines": [
+                { "icon": "bi-emoji-smile", "iconColor": "color-purple", "text": "요리. 맛있는 수제 버거를 조립하는 작업입니다.", "isBanner": false },
+                { "icon": "bi-card-image", "iconColor": "color-red", "text": "보건증을 반드시 지참해주세요.", "isBanner": false },
+                { "icon": "bi-ticket-perforated", "iconColor": "color-teal", "text": "혜택, 음료 무제한 제공.", "isBanner": false },
+                { "icon": "bi-calendar-event", "iconColor": "color-green", "text": "당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊", "isBanner": true, "bannerClass": "banner-green" }
+            ],
+            "workflows": [
+                { "step": 1, "desc": "번 굽기" },
+                { "step": 2, "desc": "패티 굽기" },
+                { "step": 3, "desc": "채소 손질하기" },
+                { "step": 4, "desc": "버거 조립하기" },
+                { "step": 5, "desc": "포장하기" }
+            ]
+        }
+    }`
+};

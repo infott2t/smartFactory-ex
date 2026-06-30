@@ -202,6 +202,7 @@ body {
     top:13px;
     font-size: 13px;
     color: #979797;
+    white-space: nowrap;
 }
 .box > .down {
     display: flex;

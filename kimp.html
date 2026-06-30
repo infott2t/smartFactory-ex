@@ -662,24 +662,7 @@
                 var tomorrowStr = getFormattedWeekday(1);
                 var nextDayStr = getFormattedWeekday(2);
 
-                var mockDb = [
-                    // 오늘 10시 타임 (일반 3/3명 만석, 헬퍼 0/2명 -> 일반 지원 불가능)
-                    { id: 1, userId: "leejisung", userName: "이지성", date: todayStr, slot: 0, role: "general" },
-                    { id: 2, userId: "choiwoobin", userName: "최우빈", date: todayStr, slot: 0, role: "general" },
-                    { id: 3, userId: "parksangmin", userName: "박상민", date: todayStr, slot: 0, role: "general" },
-
-                    // 오늘 13시 타임 (일반 2/3명, 헬퍼 1/2명 -> 헬퍼가 있으므로 일반 신청 가능!)
-                    { id: 4, userId: "kimsuyoung", userName: "김수영", date: todayStr, slot: 1, role: "general" },
-                    { id: 5, userId: "hanjiwon", userName: "한지원", date: todayStr, slot: 1, role: "general" },
-                    { id: 6, userId: "helper1", userName: "정우성", date: todayStr, slot: 1, role: "helper" },
-
-                    // 내일 15시 타임 (일반 0/3명, 헬퍼 0/2명 -> 헬퍼 없으므로 일반 신청 차단!)
-
-                    // 내일 13시 타임 (일반 1/3명, 헬퍼 2/2명 만석 -> 헬퍼 신청 불가, 일반만 가능)
-                    { id: 7, userId: "helper2", userName: "김혜수", date: tomorrowStr, slot: 1, role: "helper" },
-                    { id: 8, userId: "helper3", userName: "조진웅", date: tomorrowStr, slot: 1, role: "helper" },
-                    { id: 9, userId: "general1", userName: "이선균", date: tomorrowStr, slot: 1, role: "general" }
-                ];
+                var mockDb = window.MockData.getReservations(todayStr, tomorrowStr, nextDayStr);
                 setPartitionedItem('kimp_reservations_db', JSON.stringify(mockDb));
             }
         }
