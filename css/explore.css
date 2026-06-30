@@ -69,6 +69,12 @@ body {
     padding-top: 131px;
     padding-bottom: 20px;
 }
+.main-wrap {
+    width: 100%;
+    /* 💡 데이터가 적어도 화면 전체 높이를 차지하도록 하여, 아래 여백도 터치 영역으로 만듭니다. */
+    min-height: 100vh; 
+    box-sizing: border-box;
+}
 
 .padding-20 {
     padding: 20px;
