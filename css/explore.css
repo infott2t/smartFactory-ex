@@ -13,11 +13,6 @@
     src: url('../font/NotoSansKR-Regular.otf') format('opentype');
 }
 
-@font-face {
-    font-family: 'NotoKR';
-    src: url('../font/NotoSansKR-Regular.otf') format('opentype');
-}
-
 body {
     color: #CCCCCC;
     margin: 0;
@@ -41,14 +36,12 @@ body {
     z-index: 100;
     background-color: var(--var-bg-color);
     color: white;
-    
 }
 
 .header {
     padding-top: 8px;
     padding-left: 9px;
     display: flex;
-
     column-gap: 5px;
     align-items: center;
     padding-bottom: 8px;
@@ -71,7 +64,6 @@ body {
     width: 100%;
     margin: auto;
     max-width: 800px;
-     
     background-color: var(--var-bg-color);
     color: rgb(207, 207, 207);
     padding-top: 131px;
@@ -87,8 +79,9 @@ body {
 .tabs {
     width: 100%;
     background-color: var(--var-bg-color);
-    /* 필요 시 탭 영역 하단에 연한 구분선을 넣으려면 아래 주석을 해제하세요 */
-    /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
+    flex-shrink: 0;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--var-line-color1);
 }
 
 /* 탭 리스트 (가로 스크롤 영역) */
@@ -96,45 +89,24 @@ body {
     display: flex;
     justify-content: space-between;
     list-style: none;
-    height: 45px;
-    padding: 0;
-    /* 화면 좌우 시작점 여백 */
-    margin: 0;
-    position: sticky;
-    z-index: 90;
-    overflow-x: auto;
-    /* 내용이 길면 가로 스크롤 허용 */
-    white-space: nowrap;
-    /* 항목들이 한 줄로 이어지도록 줄바꿈 방지 */
-
-    /* 브라우저 기본 스크롤바 숨기기 (디자인을 깔끔하게 하기 위함) */
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    scrollbar-width: none;
-    /* Firefox */
-}
-
-/* 3. 탭 리스트 고정 */
-.tabs {
-    flex-shrink: 0;
-    overflow-x: auto;
-    /* 탭이 많아지면 옆으로 스크롤 */
-    border-bottom: 1px solid var(--var-line-color1);
-}
-.star-class {
-    color: yellow;
-    width: 25px;
-    height: 25px;
-}
-.tab-list {
-    list-style: none;
-    display: flex;
     padding: 0;
     margin: 0;
     width: 100%;
     height: 52px;
     border-bottom: 1px solid var(--tabline);
     font-size: 15px;
+    position: sticky;
+    z-index: 90;
+    overflow-x: auto;
+    white-space: nowrap;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.star-class {
+    color: yellow;
+    width: 25px;
+    height: 25px;
 }
 
 .tab-item {
@@ -145,28 +117,25 @@ body {
     border-bottom: 2px solid transparent;
     color: #888;
     position:relative;
-     
 }
+
 .tab-item.active {
     color: white;
 }
- 
+
 .tab-item.active::after {
     content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0; /* 요소를 하단에 딱 붙임 */
-  width: 100%;
-  height: 1px; /* 라인 두께 */
-  background-color: #ffffff;
-   
-    /* 밝은 느낌의 포인트 색상 */
+    position: absolute;
+    left: 0;
+    bottom: 0; /* 요소를 하단에 딱 붙임 */
+    width: 100%;
+    height: 1px; /* 라인 두께 */
+    background-color: #ffffff;
 }
 
 /* 4. 콘텐츠 영역 스크롤 설정 */
 .content-area {
     display: block;
-     
     padding: 45px 15px 20px 15px;
     width: 100%;
     box-sizing: border-box;
@@ -176,26 +145,21 @@ body {
 
 .task-item {
     display: block;
-    
     width: 100%;
     box-sizing:  border-box;
     padding: 15px;
-     
-    
     border-bottom: 1px solid var(--var-line-color1);
 }
-
 
 .tab-content {
     display: none;
     width: 100%;
     box-sizing: border-box;
     position: relative;
-
 }
+
 /* 4번째 탭(카테고리 탭)에만 고정된 검색창 높이만큼 추가 여백을 줍니다 */
 .tab-content:nth-child(4) {
-    /* 검색창 박스(46px) + 상하 패딩(20px) = 총 66px */
     padding-top: 66px; 
 }
 
@@ -203,70 +167,74 @@ body {
 .tab-content.active {
     display: block;
 }
-/* (혹시 남아있다면 .tab-content:nth-child(1).active 내부의 animation도 지워주세요) */
 
-/* 2. 애니메이션 키프레임 (transform을 이용해 확실한 가로 이동 강제) */
-@keyframes slideFromRight {
-    from {
-        transform: translateX(100%); /* 화면 오른쪽 바깥에서 대기 */
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);    /* 제자리로 슥~ 안착 */
-        opacity: 1;
-    }
-}
-
-@keyframes slideFromLeft {
-    from {
-        transform: translateX(-100%); /* 화면 왼쪽 바깥에서 대기 */
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);     /* 제자리로 슥~ 안착 */
-        opacity: 1;
-    }
-}
-
-/* 3. 리스트 데이터들이 담긴 상자(.slider-box)에만 애니메이션 부여 */
+/* --------------------------------------
+   💡 동적 방향 슬라이드 애니메이션 (수정됨)
+-------------------------------------- */
+/* 1. 슬라이더 박스 뼈대 */
 .slider-box {
     width: 100%;
     display: block;
-    position: relative; /* 👈 transform 애니메이션이 정상 작동하기 위한 뼈대 */
-    
-    /* 기본적으로 오른쪽에서 왼쪽으로 밀려옵니다 */
-    animation: slideFromRight 0.3s ease-out forwards; 
+    position: relative;
 }
 
-/* 첫 번째 탭(인기 급상승)만 예외적으로 왼쪽에서 오른쪽으로 밀려옵니다 */
-.tab-content:nth-child(1).active .slider-box {
+/* 2. 애니메이션 키프레임 (리스트용) */
+@keyframes slideFromRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideFromLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* 3. 애니메이션 키프레임 (상단 정렬 메뉴용) */
+@keyframes slideSortFromRight {
+    from { transform: translateX(calc(-50% + 100vw)); opacity: 0; }
+    to { transform: translateX(-50%); opacity: 1; }
+}
+
+@keyframes slideSortFromLeft {
+    from { transform: translateX(calc(-50% - 100vw)); opacity: 0; }
+    to { transform: translateX(-50%); opacity: 1; }
+}
+
+/* 4. 방향 클래스별 애니메이션 적용 (다음 탭으로 이동 시) */
+.tab-content.move-next .slider-box {
+    animation: slideFromRight 0.3s ease-out forwards;
+}
+.tab-content.move-next .sort-row {
+    animation: slideSortFromRight 0.3s ease-out forwards;
+}
+
+/* 5. 방향 클래스별 애니메이션 적용 (이전 탭으로 이동 시) */
+.tab-content.move-prev .slider-box {
     animation: slideFromLeft 0.3s ease-out forwards;
 }
+.tab-content.move-prev .sort-row {
+    animation: slideSortFromLeft 0.3s ease-out forwards;
+}
+/* -------------------------------------- */
+
 /* --- 탭 내부 정렬 메뉴 영역 스타일 조절 --- */
 .sort-row {
     display: flex;
     justify-content: flex-start;
     gap: 50px;
-    padding: 11px 0 11px 0;          /* 좌우 여백은 부모의 패딩을 따르도록 0으로 만들고, 아래쪽 여백만 지정 */
-           
+    padding: 11px 0 11px 0;
     border-bottom: 1px solid var(--var-line-color1);
     background-color: var(--var-bg-color);
     width: 100%;
     box-sizing: border-box;
-
     position: fixed;
     top: 131px;
- 
     z-index: 80;
-
-    width: 100%;
     max-width: 800px;
     left: 50%;
     transform: translateX(-50%);
-
-   
 }
- 
+
 /* 화살표 두 개를 위아래로 쌓기 */
 .sort-arrows {
     display: flex;
@@ -279,10 +247,10 @@ body {
 
 /* 위아래 삼각형이 하나의 아이콘처럼 찰싹 달라붙게 간격 조절 */
 .sort-arrows i {
-    font-size: 11px;      /* 화살표 크기 조절 */
-    line-height: 0.6;     /* 위아래 화살표 간격을 바짝 붙임 */
-    color: #555555;       /* 기본 비활성화 색상 (회색) */
-    transition: color 0.2s ease; /* 색상이 부드럽게 변하도록 */
+    font-size: 11px;
+    line-height: 0.6;
+    color: #555555;
+    transition: color 0.2s ease;
 }
 
 .sort-item {
@@ -297,74 +265,76 @@ body {
 
 /* 1. 오름차순(위) 활성화 상태: 글자색 흰색 + 위쪽 화살표 흰색 */
 .sort-item.sort-up {
-    color: #ffffff !important; /* 글자 흰색 변경 */
+    color: #ffffff !important;
 }
 .sort-item.sort-up .bi-caret-up-fill {
-    color: #ffffff !important; /* 위쪽 삼각형 흰색 변경 */
+    color: #ffffff !important;
 }
 .sort-item.sort-up .bi-caret-down-fill {
-    color: #555555 !important; /* 선택 안 된 아래 삼각형은 어두운 회색 유지 */
+    color: #555555 !important;
 }
 
 /* 2. 내림차순(아래) 활성화 상태: 글자색 흰색 + 아래쪽 화살표 흰색 */
 .sort-item.sort-down {
-    color: #ffffff !important; /* 글자 흰색 변경 */
+    color: #ffffff !important;
 }
 .sort-item.sort-down .bi-caret-down-fill {
-    color: #ffffff !important; /* 아래쪽 삼각형 흰색 변경 */
+    color: #ffffff !important;
 }
 .sort-item.sort-down .bi-caret-up-fill {
-    color: #555555 !important; /* 선택 안 된 위쪽 삼각형은 어두운 회색 유지 */
+    color: #555555 !important;
 }
 
 img {
     width: 25px;
     height: 25px;
 }
+
 .task-items0 {
     display: flex;
     justify-content: space-between;
     align-items: center;
     min-height: 43px;
 }
+
 .task-items {
     display: flex;
     align-items: center;
     column-gap: 10px;
 }
+
 .texts {
     display:flex;
     flex-direction: column;
     font-size: 15px;
     font-weight: bold;
 }
-.texts > span:nth-child(2) {
-    
-   
-    font-size: 13px;
-    color: #979797;
-}
+
 .texts > span:nth-child(1) {
-    line-height: 1.2; /* 첫 번째 span의 위아래 기본 공백을 대폭 축소 */
+    line-height: 1.2;
 }
 
 .texts > span:nth-child(2) {
-    line-height: 1.1; /* 두 번째 span의 위아래 공백을 축소 */
-    margin-top: 2px;  /* 원하는 만큼 아주 미세하게 간격 조정 가능 */
+    font-size: 13px;
+    color: #979797;
+    line-height: 1.1;
+    margin-top: 2px;
 }
-.greenfill{
+
+.greenfill {
     color: var(--upfill);
 }
+
 .lspace {
     letter-spacing: 0px;
     min-width:25px;
 }
 
-/* 1. 화면 너비가 625px 이하일 때 기본적으로 적용되는 스타일 (예: 321px ~ 625px) */
+/* 1. 화면 너비가 625px 이하일 때 기본적으로 적용되는 스타일 */
 @media (max-width: 625px) {
     .sort-row {
-        overflow-x: auto; /* 가로 스크롤 활성화 */
-        flex-wrap: nowrap; /* 요소들이 밑으로 떨어지지 않게 한 줄로 강제 */
+        overflow-x: auto;
+        flex-wrap: nowrap;
         gap: 0px;
         min-width: 79px;
         top: 131px;
@@ -386,7 +356,7 @@ img {
 @media (max-width: 320px) {
     .sort-item {
         column-gap: 0px;
-        font-size: 13px; /* 320px 화면에서는 13px이 적용됨 */
+        font-size: 13px;
         padding: 0px 7px;
         text-align: center;
         justify-content: center;
@@ -400,29 +370,22 @@ img {
     align-items: flex-end;
 }
 
-/* 값(숫자) 텍스트 굵기 */
 .task-salary-col .val {
     font-weight: bold;
 }
 
-/* 하단 변동률(%) 텍스트 스타일 */
 .task-salary-col .change-rate {
     font-size: 12px;
     margin-top: 2px;
 }
 
-/* 화살표 아이콘 크기 고정 */
 .task-salary-col i {
     font-size: 12px;
 }
 
-/* 상승/하락 동적 색상 */
-.status-up {
-    color: #00b894;
-}
-.status-down {
-    color: #ff6b6b;
-}
+.status-up { color: #00b894; }
+.status-down { color: #ff6b6b; }
+
 /* 우측 단일 정보(지역, Task, 참여자, 생성일 등) 가로 배치 컨테이너 */
 .task-info-row {
     display: flex;
@@ -431,7 +394,6 @@ img {
     height: 100%;
 }
 
-/* 공통 아이콘 및 텍스트 라벨 스타일 (보라색 포인트) */
 .task-info-row i,
 .task-info-row .info-label {
     color: #a29bfe;
@@ -439,57 +401,47 @@ img {
     margin-right: 4px;
 }
 
-/* 기본 값 텍스트 스타일 (지역, 생성일 등 옅은 회색) */
 .task-info-row .val {
     font-size: 15px;
     color: #ccc;
 }
 
-/* 강조 값 텍스트 스타일 (Task 수, 참여자 등 흰색 볼드체) */
 .task-info-row .val.highlight {
     font-weight: bold;
     color: #fff;
 }
+
 .search-container {
     display: flex;
-    justify-content: flex-end; /* 오른쪽(뒤쪽) 배치 */
+    justify-content: flex-end;
     padding: 10px 1px;
-    border-bottom: 1px solid var(--var-line-color1);
+    border-bottom: none;
     position: fixed;
     top: 172px;
     z-index: 80;
-    width: 94.4%;
     background-color: var(--var-bg-color);
-    /* 👇 1. 폭을 100%로 주되, 앱의 최대 너비인 800px까지만 커지도록 제한합니다. */
     width: 100%;
     max-width: 800px;
-    
-    /* 👇 2. 고정 요소를 화면 정중앙에 배치하는 마법의 공식입니다. */
     left: 50%;
     transform: translateX(-50%);
-
-    /* 👇 3. 본문(.content-area)의 좌우 패딩이 15px이므로, 똑같이 15px을 주어 라인을 맞춥니다. */
     box-sizing: border-box;
     padding: 10px 15px; 
-    
-    /* (이전에 지우기로 했던 선) */
-    border-bottom: none;
 }
 
 .search-box {
     display: flex;
     align-items: center;
-    width: 200px; /* 원하는 너비로 조절 가능 */
-    height: 46px; /* 요청하신 높이 고정 */
+    width: 200px;
+    height: 46px;
     background: var(--var-bg-color);
-    border: 1px solid #3a3a3a ;/* 기존 테마 보더 색상 */
+    border: 1px solid #3a3a3a;
     border-radius: 8px;
     padding: 0 12px;
     transition: border-color 0.2s ease;
 }
 
 .search-box:focus-within {
-    border-color: #7b5cf5; /* 입력창 클릭 시 테두리 보라색 하이라이트 */
+    border-color: #7b5cf5;
 }
 
 .search-box input {
@@ -507,27 +459,27 @@ img {
 }
 
 .search-box i {
-    color: #a29bfe; /* 돋보기 아이콘 색상 */
+    color: #a29bfe;
     font-size: 16px;
     cursor: pointer;
 }
 
 /* --------------------------------------
-   수정: 카테고리 리스트 줄 간격(Gap) 버그 해결
+   카테고리 리스트 줄 간격(Gap) 버그 해결
 -------------------------------------- */
 .category-list-item {
     width: 100%;
     height: 43px;    
-   
     display: flex; 
     align-items: center; 
     justify-content: space-between; 
     padding: 0 15px;
-    margin: 0 !important; /* 불필요한 여백 제거 */
-    box-sizing: border-box; /* 패딩 포함 높이 계산 */
-    flex-shrink: 0; /* 부모 요소 크기에 따라 늘어나거나 줄어들지 않음 */
+    margin: 0 !important;
+    box-sizing: border-box;
+    flex-shrink: 0;
     border-bottom: 1px solid var(--var-line-color1);
 }
+
 /* --------------------------------------
    5. 백엔드 통신 대비 로딩 스피너 (Loading State)
 -------------------------------------- */
@@ -542,10 +494,10 @@ img {
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #bea7e9; /* 연한 보라색 테두리 */
-    border-top: 4px solid #5030cf;             /* 진한 보라색 포인트 */
+    border: 4px solid #bea7e9;
+    border-top: 4px solid #5030cf;
     border-radius: 50%;
-    animation: spin 1s linear infinite;        /* 1초마다 무한 회전 */
+    animation: spin 1s linear infinite;
     margin-bottom: 15px;
 }
 

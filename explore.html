@@ -562,34 +562,47 @@
             // -------------------------
             // 4. 상단 탭 클릭 이벤트
             // -------------------------
+            // -------------------------
+            // 4. 상단 탭 클릭 이벤트
+            // -------------------------
             $(document).on('click', '.tab-list .tab-item', function () {
+                // 👇 [추가된 부분] 현재 활성화된 탭과 새로 누른 탭의 위치(인덱스) 비교
+                let currentIndex = $('.tab-list .tab-item.active').index();
+                let targetIndex = $(this).index();
+
+                // 새로 갈 탭이 현재 탭보다 번호가 크면(오른쪽) next, 작으면(왼쪽) prev
+                let moveDirection = targetIndex > currentIndex ? 'move-next' : 'move-prev';
+
+                // (선택) 같은 탭이거나 처음 로딩 시 예외 처리
+                if (currentIndex === -1 || currentIndex === targetIndex) {
+                    moveDirection = 'move-next';
+                }
+                // 👆 [추가된 부분 끝]
+
                 $('.tab-item').removeClass('active');
                 $(this).addClass('active');
 
-                let tabIndex = $(this).index();
-                let $targetTab = $('.tab-content').eq(tabIndex);
+                let $targetTab = $('.tab-content').eq(targetIndex);
 
-                $('.tab-content').removeClass('active');
-                $targetTab.addClass('active');
+                // 👇 기존 active 클래스를 지울 때, 방향 클래스도 같이 지우고 새 방향을 넣어줍니다.
+                $('.tab-content').removeClass('active move-next move-prev');
+                $targetTab.addClass('active ' + moveDirection);
 
-                if (tabIndex === 1) { // 즐겨찾기 탭
+                // --- 아래부터는 기존 필터링/렌더링 코드 그대로 유지 ---
+                if (targetIndex === 1) { // 즐겨찾기 탭
                     let userEmail = getCurrentUserEmail();
                     let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
                     let favoriteData = isKimpFavorite ? dbData.filter(work => work.workId === 1) : [];
                     renderWorkList(favoriteData, $targetTab);
-                } else if (tabIndex === 2) { // ⭐ 새로운 일 탭
-                    // DB에서 isNew가 true인(새로운 일) 데이터만 먼저 걸러냄
+                } else if (targetIndex === 2) { // 새로운 일 탭
                     let onlyNewData = dbData.filter(work => work.isNew === true);
-
-                    // 걸러낸 데이터를 생성일 기준 내림차순(최신순) 정렬
                     let newData = [...onlyNewData].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-                    // 정렬 헤더 UI 시각적 초기화
                     $targetTab.find('.sort-item').removeClass('sort-up sort-down');
                     $targetTab.find('.sort-item:contains("생성일")').addClass('sort-down');
 
                     renderWorkList(newData, $targetTab);
-                } else if (tabIndex === 3) { // 카테고리 탭
+                } else if (targetIndex === 3) { // 카테고리 탭
                     categoryData.sort((a, b) => a.name.localeCompare(b.name));
                     $targetTab.find('.sort-item').removeClass('sort-up sort-down');
                     $targetTab.find('.sort-item').first().addClass('sort-up');
@@ -619,6 +632,108 @@
             // ⭐ 앱 시작
             init();
         });
+
+        // -------------------------
+        // 5. 스와이프(터치) 기능 추가
+        // -------------------------
+        // -------------------------
+          // -------------------------
+            // 5. 스와이프(터치) 기능 - 손가락 드래그 효과 추가 (버그 픽스 완료!)
+            // -------------------------
+            let startX = 0;
+            let startY = 0;
+            let endX = 0;
+            let isSwiping = false;
+            let isScrolling = false;
+
+            let $activeSlider = null;
+            let $activeSortRow = null;
+            let $activeSearchBox = null;
+
+            function resetSwipeStyles() {
+                if ($activeSlider) $activeSlider.css({ 'transform': '', 'transition': '', 'animation': '' });
+                if ($activeSortRow) $activeSortRow.css({ 'transform': '', 'transition': '', 'animation': '' });
+                if ($activeSearchBox) $activeSearchBox.css({ 'transform': '', 'transition': '', 'animation': '' });
+            }
+
+            $(document).on('touchstart', '.main-wrap', function (e) {
+                startX = e.originalEvent.touches[0].clientX;
+                startY = e.originalEvent.touches[0].clientY;
+                endX = startX;
+                
+                isSwiping = true;
+                isScrolling = false;
+
+                // 💡 [핵심 해결책] 손을 대는 순간 기존 애니메이션 클래스를 강제로 제거하여 화면이 움직일 수 있게 풀어줍니다!
+                $('.tab-content').removeClass('move-next move-prev');
+
+                let $activeTab = $('.tab-content.active');
+                $activeSlider = $activeTab.find('.slider-box');
+                $activeSortRow = $activeTab.find('.sort-row');
+                $activeSearchBox = $activeTab.find('.search-container'); 
+
+                resetSwipeStyles();
+            });
+
+            $(document).on('touchmove', '.main-wrap', function (e) {
+                if (!isSwiping) return;
+
+                let currentX = e.originalEvent.touches[0].clientX;
+                let currentY = e.originalEvent.touches[0].clientY;
+
+                let diffX = currentX - startX;
+                let diffY = currentY - startY;
+
+                if (!isScrolling) {
+                    if (Math.abs(diffY) > Math.abs(diffX)) {
+                        isSwiping = false; 
+                        return;
+                    } else {
+                        isScrolling = true; 
+                    }
+                }
+
+                endX = currentX;
+                let moveX = diffX * 0.8; 
+
+                if ($activeSlider.length) $activeSlider.css('transform', `translateX(${moveX}px)`);
+                if ($activeSortRow.length) $activeSortRow.css('transform', `translateX(calc(-50% + ${moveX}px))`);
+                if ($activeSearchBox.length) $activeSearchBox.css('transform', `translateX(calc(-50% + ${moveX}px))`);
+            });
+
+            $(document).on('touchend', '.main-wrap', function (e) {
+                if (!isSwiping) return;
+                isSwiping = false;
+
+                let swipeDistance = endX - startX; 
+                let screenWidth = $(window).width();
+                let threshold = screenWidth * 0.5;
+
+                let currentIndex = $('.tab-list .tab-item.active').index();
+                let totalTabs = $('.tab-list .tab-item').length;
+
+                if (swipeDistance <= -threshold && currentIndex < totalTabs - 1) {
+                    resetSwipeStyles(); 
+                    $('.tab-list .tab-item').eq(currentIndex + 1).click();
+                } 
+                else if (swipeDistance >= threshold && currentIndex > 0) {
+                    resetSwipeStyles(); 
+                    $('.tab-list .tab-item').eq(currentIndex - 1).click();
+                } 
+                else {
+                    if ($activeSlider.length) {
+                        $activeSlider.css({ 'transform': 'translateX(0)', 'transition': 'transform 0.3s ease-out' });
+                    }
+                    if ($activeSortRow.length) {
+                        $activeSortRow.css({ 'transform': 'translateX(-50%)', 'transition': 'transform 0.3s ease-out' });
+                    }
+                    if ($activeSearchBox.length) {
+                        $activeSearchBox.css({ 'transform': 'translateX(-50%)', 'transition': 'transform 0.3s ease-out' });
+                    }
+
+                    setTimeout(() => { resetSwipeStyles(); }, 300);
+                }
+            });
     </script>
 
 </body>
