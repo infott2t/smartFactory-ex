@@ -360,12 +360,12 @@ img {
     min-width:25px;
 }
 
-/* 화면 너비가 625px 이하일 때 적용되는 미디어 쿼리 */
+/* 1. 화면 너비가 625px 이하일 때 기본적으로 적용되는 스타일 (예: 321px ~ 625px) */
 @media (max-width: 625px) {
     .sort-row {
         overflow-x: auto; /* 가로 스크롤 활성화 */
         flex-wrap: nowrap; /* 요소들이 밑으로 떨어지지 않게 한 줄로 강제 */
-        gap:0px;
+        gap: 0px;
         min-width: 79px;
         top: 131px;
     }
@@ -373,16 +373,26 @@ img {
         column-gap: 0px;
         font-size: 15px;
         padding: 0px 11px;
-        text-align:center;
+        text-align: center;
         justify-content: center;
     }
     .lspace {
         letter-spacing: 0px;
-        min-width:26px;
+        min-width: 26px;
     }
-    
-   
 }
+
+/* 2. 화면 너비가 320px 이하일 때 위(625px)의 스타일을 덮어쓰는 미디어 쿼리 */
+@media (max-width: 320px) {
+    .sort-item {
+        column-gap: 0px;
+        font-size: 13px; /* 320px 화면에서는 13px이 적용됨 */
+        padding: 0px 7px;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
 /* 우측 급여/변동률 세로 배치 컨테이너 */
 .task-salary-col {
     display: flex;
