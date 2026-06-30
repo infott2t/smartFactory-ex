@@ -158,7 +158,7 @@
             let newHtml = "";
             displayNewWorks.forEach(work => {
                 newHtml += `
-                <a class="box" href="./kimp.html">
+                <a class="box" href="./work_detail.html?id=${work.workId}">
                     <div class="up"><img src="${work.iconUrl}" /><div class="texts"><span>${work.workName}</span><span>${work.brandName}</span></div></div>
                     <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">${work.salary}</span></div>
                     <div><span class="val">${work.taskCount}</span><span>Task</span></div>
@@ -176,7 +176,7 @@
             let popHtml = "";
             displayPopWorks.forEach(work => {
                 popHtml += `
-                <a class="box" href="./kimp.html">
+                <a class="box" href="./work_detail.html?id=${work.workId}">
                     <div class="up"><img src="${work.iconUrl}" /><div class="texts"><span>${work.workName}</span><span>${work.brandName}</span></div></div>
                     <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">${work.salary}</span></div>
                     <div><span class="val">${work.taskCount}</span><span>Task</span></div>
@@ -288,7 +288,7 @@ $(document).ready(function(){
         e.preventDefault();
         e.stopPropagation();
         var targetHref = $(this).attr("href");
-        if (targetHref && targetHref.indexOf("kimp.html") !== -1) {
+        if (targetHref && (targetHref.indexOf("kimp.html") !== -1 || targetHref.indexOf("work_detail.html") !== -1)) {
             checkLoginAndRedirect(targetHref);
         }
     });

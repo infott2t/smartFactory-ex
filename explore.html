@@ -382,8 +382,6 @@
             <button class="btn-go-popular">새로운 작업 둘러보기</button>
         </div>`;
                 } else {
-                    let userEmail = getCurrentUserEmail();
-                    let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
                     let isFavoriteTab = $targetTab.index() === 1;
 
                     dataArray.forEach(function (item) {
@@ -413,7 +411,9 @@
                             rightSideHtml = `<div class="task-info-row"><i class="bi bi-calendar-check"></i><span class="val">${item.createdAt}</span></div>`;
                         }
 
-                        let showStarIcon = (isFavoriteTab && item.workId === 1 && isKimpFavorite);
+                        let favorites = JSON.parse(localStorage.getItem('kimp_favorites') || '[]');
+                        let isFav = favorites.includes(String(item.workId));
+                        let showStarIcon = (isFavoriteTab && isFav);
                         let iconHtml = showStarIcon
                             ? `<div class="star-class"><i class="bi bi-star-fill" style="color: yellow;"></i></div>`
                             : `<img src="${item.iconUrl}">`;
@@ -509,9 +509,8 @@
                     // ⭐ 각 탭에 맞게 필터링 후 렌더링
                     if (tabIndex === 1) {
                         // 즐겨찾기 탭 필터링
-                        let userEmail = getCurrentUserEmail();
-                        let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
-                        let favoriteData = isKimpFavorite ? dbData.filter(work => work.workId === 1) : [];
+                        let favorites = JSON.parse(localStorage.getItem('kimp_favorites') || '[]');
+                        let favoriteData = dbData.filter(work => favorites.includes(String(work.workId)));
                         renderWorkList(favoriteData, $activeTab);
                     } else if (tabIndex === 2) {
                         // 새로운 일 탭 필터링 (isNew가 true인 것만)
@@ -555,9 +554,8 @@
 
                 // --- 아래부터는 기존 필터링/렌더링 코드 그대로 유지 ---
                 if (targetIndex === 1) { // 즐겨찾기 탭
-                    let userEmail = getCurrentUserEmail();
-                    let isKimpFavorite = localStorage.getItem('kimp_favorite_' + userEmail) === 'true';
-                    let favoriteData = isKimpFavorite ? dbData.filter(work => work.workId === 1) : [];
+                    let favorites = JSON.parse(localStorage.getItem('kimp_favorites') || '[]');
+                    let favoriteData = dbData.filter(work => favorites.includes(String(work.workId)));
                     renderWorkList(favoriteData, $targetTab);
                 } else if (targetIndex === 2) { // 새로운 일 탭
                     let onlyNewData = dbData.filter(work => work.isNew === true);
@@ -580,6 +578,14 @@
             // 빈 화면에서 돌아가기 버튼
             $(document).on('click', '.btn-go-popular', function () {
                 $('.tab-list .tab-item').eq(0).click();
+            });
+
+            // 작업 아이템 클릭 시 상세 페이지로 이동
+            $(document).on('click', '.task-item', function() {
+                let id = $(this).data('id');
+                if (id) {
+                    window.location.href = './work_detail.html?id=' + id;
+                }
             });
 
             // 카테고리 검색 기능
