@@ -269,6 +269,9 @@
             </div>
 
             <div class="header-actions">
+                <button id="btn-complete-experience" class="btn-menu" style="background-color: #3b82f6; color: white; border: none; font-weight:bold;" onclick="completeExperience()">
+                    <i class="bi bi-check-circle-fill"></i> <span id="exp-timer-text">체험완료하기</span>
+                </button>
                 <button class="btn-select-task" onclick="openTaskSelector()">
                     <i class="bi bi-grid-fill"></i> 위치 변경
                 </button>
@@ -332,8 +335,8 @@
 
         <div class="stage-page" id="stage-2">
             <div class="card">
-                <h1 class="stage-title">Stage 2. 배추 절이기</h1>
-                <p class="stage-desc">염수 탱크의 염도를 맞추고 배추를 투입합니다.</p>
+                <div id="stage-2-dynamic-content">
+                </div>
             </div>
         </div>
 
@@ -367,13 +370,13 @@
     </main>
 
     <div class="modal-overlay" id="task-modal">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content" style="height: 500px; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
                 <h2 class="modal-title">어디에서 일할까요?</h2>
                 <button class="btn-close-modal" onclick="closeTaskSelector()"><i class="bi bi-x-lg"></i></button>
             </div>
 
-            <div class="task-grid" id="task-grid-container">
+            <div class="task-grid" id="task-grid-container" style="overflow-y: auto; flex-grow: 1; padding-bottom: 10px;">
             </div>
         </div>
     </div>
@@ -456,13 +459,19 @@
 
 
     <div class="modal-overlay" id="log-modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2 class="modal-title"><i class="bi bi-clock-history"></i> 나의 작업 로그</h2>
+        <div class="modal-content" style="max-width: 500px; display: flex; flex-direction: column; height: 80vh;">
+            <div class="modal-header" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h2 class="modal-title" id="log-modal-title"><i class="bi bi-clock-history"></i> 나의 작업 로그</h2>
+                    <button id="btn-show-performance" class="btn-menu" style="background-color: var(--primary); color: white; padding: 4px 8px; font-size: 14px; border: none; border-radius: 4px; font-weight: bold;" onclick="toggleLogView()">작업성과</button>
+                </div>
                 <button class="btn-close-modal" onclick="closeLogModal()"><i class="bi bi-x-lg"></i></button>
             </div>
 
-            <div class="log-list" id="log-list-container">
+            <div class="log-list" id="log-list-container" style="flex: 1; overflow-y: auto;">
+            </div>
+            
+            <div class="log-list" id="perf-list-container" style="flex: 1; overflow-y: auto; display: none;">
             </div>
         </div>
     </div>
@@ -479,8 +488,8 @@
 
     <div id="hmi-toast" class="hmi-toast"></div>
 
-    <audio id="shutter-sound" src="https://actions.google.com/sounds/v1/alarms/camera_shutter.ogg"
-        preload="auto"></audio>
+    <!-- 💡 카메라 촬영 효과음 (404 에러 수정) -->
+    <audio id="shutter-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYxLjEuMTAwAAAAAAAAAAAAAAD/+0DAAAAAAAAAAAAAAAAAAAAAAABlu/xAABgAAgAQAAD+cM8AAAAAAAAP/7QMAAABkZgAAAAABmZmQAAAAAP/7QMAAABkZgAAAAABmZmQAAAAA" preload="auto"></audio>
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
         // ============================================================
@@ -544,11 +553,11 @@
             currentOrder: { id: `${dateStr}-${initialQty}-${dailyOrderSuffix}`, title: "김치만들기", qty: initialQty, regCount: 0 },
             stages: [
                 { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", worker: "" },
-                { id: 2, name: "배추 절이기", icon: "bi-water", status: "occupied", worker: "박준호" },
-                { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "disabled", worker: "" },
+                { id: 2, name: "배추 절이기", icon: "bi-water", status: "available", worker: "" },
+                { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "available", worker: "" },
                 { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", worker: "" },
-                { id: 5, name: "양념 버무리기", icon: "bi-basket", status: "occupied", worker: "이영희" },
-                { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "disabled", worker: "" }
+                { id: 5, name: "양념 버무리기", icon: "bi-basket", status: "available", worker: "" },
+                { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "available", worker: "" }
             ],
             activeStageId: 0,
             user: { name: "손님", id: "guest" },
@@ -590,6 +599,30 @@
             initSession();
             updateHeaderInfo();
             setInterval(updateClocks, 1000);
+
+            // 💡 체험 완료 3분 타이머 로직
+            const is3min = localStorage.getItem('kimp_ex0_is3min') === 'true';
+            const timerText = document.getElementById('exp-timer-text');
+            
+            if (!is3min && timerText) {
+                let timeLeft = 180; // 3분 (180초)
+                timerText.textContent = `체험 3:00`;
+                
+                window.expTimer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        clearInterval(window.expTimer);
+                        localStorage.setItem('kimp_ex0_is3min', 'true');
+                        timerText.textContent = '체험완료하기';
+                    } else {
+                        const m = Math.floor(timeLeft / 60);
+                        const s = String(timeLeft % 60).padStart(2, '0');
+                        timerText.textContent = `가상체험중 ${m}:${s}`;
+                    }
+                }, 1000);
+            } else if (timerText) {
+                timerText.textContent = '체험완료하기';
+            }
 
             // 시스템 다크모드 기본값 복원 (로컬 스토리지 연동)
             const savedDarkMode = localStorage.getItem('hmi-dark-mode');
@@ -791,6 +824,13 @@
         }
 
         function moveToStage(stageId, stageName) {
+            if (stageId > 0) {
+                window.stageStartTimes = window.stageStartTimes || {};
+                if (!window.stageStartTimes[stageId]) {
+                    window.stageStartTimes[stageId] = Date.now();
+                }
+            }
+
             if (stageId > 0 && isCompleted) {
                 dailyOrderSuffix++;
                 appData.currentOrder.id = `${dateStr}-${appData.currentOrder.qty}-${dailyOrderSuffix}`;
@@ -827,7 +867,7 @@
                 addLog(`작업자가 [Stage ${stageId}. ${stageName}] 위치로 이동했습니다.`);
             }
 
-            if (stageId === 1) {
+            if (stageId === 1 || stageId === 2) {
                 currentStepIndex = 0;
                 highestStepReached = 0; // 💡 새 작업 시작 시 도달 인덱스 초기화
                 renderCurrentStep();
@@ -1374,6 +1414,18 @@
             { type: 'report', icon: 'bi-clipboard-check', title: '작업 실적 보고', desc: '작업이 끝났습니다. 수량과 무게를 입력해주세요.', action: '실적 저장' },
             { type: 'final-photo', icon: 'bi-camera', title: '최종 증빙 촬영', desc: '저울 위의 <strong style="color:var(--primary)">배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '작업 완료 및 대기소 복귀' }
         ];
+
+        const stage2Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'input', icon: 'bi-cart-check', title: '수량확인', desc: '배추의 수량을 확인해주세요.', label: '수량 (포기)', defaultVal: appData.currentOrder.qty, action: '입력 완료' },
+            { type: 'info', icon: 'bi-droplet', title: '염수 체크', desc: '염수가 수조에 담아져 있는지 체크해주세요.', action: '확인 완료' },
+            { type: 'work', icon: 'bi-water', title: '배추 절이기 작업', desc: '배추를 염수에 담그면서 소금을 밑둥부분에 뿌려주세요.', action: '작업 완료' },
+            { type: 'report', icon: 'bi-clipboard-check', title: '수량 무게재기', desc: '작업 완료 후 수량과 무게를 재주세요.', action: '실적 저장' },
+            { type: 'final-photo', icon: 'bi-camera', title: '사진찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송' },
+            { type: 'info', icon: 'bi-truck', title: '숙성실로 가져가기', desc: '절여진 배추를 숙성실로 옮겨주세요.', action: '이동 완료' },
+            { type: 'timer', icon: 'bi-stopwatch', title: '23시간 타이머 시작', desc: '숙성을 위해 23시간 타이머를 시작합니다.', action: '타이머 시작 및 대기소 복귀' }
+        ];
         // 💡 새로 추가된 뒤로가기 함수
         function prevStep() {
             if (currentStepIndex > 0) {
@@ -1383,10 +1435,11 @@
         }
 
         function renderCurrentStep() {
-            const container = document.getElementById('stage-1-dynamic-content');
+            const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
             if (!container) return;
 
-            const step = stage1Workflow[currentStepIndex];
+            const workflow = appData.activeStageId === 2 ? stage2Workflow : stage1Workflow;
+            const step = workflow[currentStepIndex];
 
             if (!step) {
                 finishStage();
@@ -1485,7 +1538,8 @@
         }
 
         function nextStep() {
-            const step = stage1Workflow[currentStepIndex];
+            const workflow = appData.activeStageId === 2 ? stage2Workflow : stage1Workflow;
+            const step = workflow[currentStepIndex];
 
             // 💡 재수행 여부 판단 (현재 인덱스가 도달했던 최고 인덱스보다 작으면 재수행)
             const isRepeated = currentStepIndex < highestStepReached;
@@ -1496,16 +1550,28 @@
             } else if (step.type === 'qr' && step.title.includes('맵핑')) {
                 addLog(`${logPrefix}생산지시서 [${appData.currentOrder.id}]를 스캔했습니다.`);
             } else if (step.type === 'info' && step.title.includes('자재 창고')) {
-                // 상차 완료 로그 추가
                 addLog(`${logPrefix}자재 상차(싣기)를 완료했습니다.`);
             } else if (step.type === 'input') {
                 const qty = document.getElementById('input-single').value;
-                addLog(`${logPrefix}상차 수량 ${qty}포기 입력 완료.`);
+                if (step.title.includes('수량확인')) {
+                    addLog(`${logPrefix}수량 ${qty}포기 확인 완료.`);
+                } else {
+                    addLog(`${logPrefix}상차 수량 ${qty}포기 입력 완료.`);
+                }
             } else if (step.type === 'info' && step.title.includes('작업대')) {
-                // 작업대 복귀 완료 로그 추가
                 addLog(`${logPrefix}작업대 복귀를 완료했습니다.`);
+            } else if (step.type === 'info' && step.title.includes('염수 체크')) {
+                addLog(`${logPrefix}염수 체크를 완료했습니다.`);
+            } else if (step.type === 'info' && step.title.includes('숙성실')) {
+                addLog(`${logPrefix}절인 배추를 숙성실로 이동 완료했습니다.`);
+            } else if (step.type === 'timer') {
+                addLog(`${logPrefix}23시간 숙성 타이머를 시작했습니다.`);
             } else if (step.type === 'work') {
-                addLog(`${logPrefix}배추 컷팅 작업을 완료했습니다.`);
+                if (appData.activeStageId === 2) {
+                    addLog(`${logPrefix}배추 절이기 작업을 완료했습니다.`);
+                } else {
+                    addLog(`${logPrefix}배추 컷팅 작업을 완료했습니다.`);
+                }
             } else if (step.type === 'report') {
                 const goodQty = document.getElementById('input-good').value;
                 const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
@@ -1664,7 +1730,7 @@
         }
 
         function renderDefectPhotoStep(defectQty) {
-            const container = document.getElementById('stage-1-dynamic-content');
+            const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
             container.innerHTML = `
             <div class="step-container">
                 <i class="bi bi-camera step-icon" style="color: var(--danger);"></i>
@@ -1697,9 +1763,65 @@
         }
 
         function finishStage() {
+            const stageId = appData.activeStageId;
+            if (stageId > 0) {
+                const startTime = (window.stageStartTimes && window.stageStartTimes[stageId]) ? window.stageStartTimes[stageId] : Date.now();
+                const elapsedMs = Date.now() - startTime;
+                const elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
+                
+                let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                
+                perfs.push({
+                    time: timeStr,
+                    stage: stageId,
+                    elapsed: elapsedMin,
+                    orderId: appData.currentOrder.id
+                });
+                localStorage.setItem('kimp_ex0_performance', JSON.stringify(perfs));
+                
+                // 해당 스테이지 타이머 초기화 (다음 수행을 위해)
+                if (window.stageStartTimes) window.stageStartTimes[stageId] = null;
+            }
+
             currentStepIndex = 0;
             isCompleted = true;
             moveToStage(0, '대기장소');
+        }
+
+        function completeExperience() {
+            if (localStorage.getItem('kimp_ex0_is3min') !== 'true') {
+                showHmiToast(`<i class="bi bi-info-circle-fill" style="color: #3b82f6;"></i> 데모로 3분이전에 넘어갑니다.`);
+                localStorage.setItem('kimp_ex0_is3min', 'true');
+                if (window.expTimer) clearInterval(window.expTimer);
+                const timerText = document.getElementById('exp-timer-text');
+                if (timerText) timerText.textContent = '체험완료하기';
+
+                // 토스트 메시지를 볼 수 있도록 약간의 지연 후 페이지 이동
+                setTimeout(() => {
+                    if (typeof setPartitionedItem === 'function') {
+                        setPartitionedItem('experienceCompleted', 'true');
+                    } else if (window.parent && typeof window.parent.setPartitionedItem === 'function') {
+                        window.parent.setPartitionedItem('experienceCompleted', 'true');
+                    } else {
+                        localStorage.setItem('experienceCompleted', 'true');
+                    }
+                    alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
+                    history.back();
+                }, 1000);
+                return;
+            }
+
+            if (typeof setPartitionedItem === 'function') {
+                setPartitionedItem('experienceCompleted', 'true');
+            } else if (window.parent && typeof window.parent.setPartitionedItem === 'function') {
+                window.parent.setPartitionedItem('experienceCompleted', 'true');
+            } else {
+                localStorage.setItem('experienceCompleted', 'true');
+            }
+            alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
+            history.back();
         }
         // ============================================================
         // PWA 서비스 워커 등록
