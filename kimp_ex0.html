@@ -584,7 +584,9 @@
             appData.logs.push({
                 time: timeStr,
                 text: text,
-                editableIndex: editableIndex
+                editableIndex: editableIndex,
+                stageId: appData.activeStageId,
+                timestamp: now.getTime()
             });
         }
 
@@ -965,10 +967,91 @@
                 }).join('');
             }
 
+            // 성과 창이 열려있다면 닫고 로그 창으로 초기화
+            document.getElementById('perf-list-container').style.display = 'none';
+            document.getElementById('log-list-container').style.display = 'block';
+            document.getElementById('btn-show-performance').textContent = '작업성과';
+            document.getElementById('log-modal-title').innerHTML = '<i class="bi bi-clock-history"></i> 나의 작업 로그';
+
             // 2. 💡 0.35초 뒤에 로그 창 열기
             setTimeout(() => {
                 document.getElementById('log-modal').classList.add('open');
             }, 350);
+        }
+
+        function toggleLogView() {
+            const logContainer = document.getElementById('log-list-container');
+            const perfContainer = document.getElementById('perf-list-container');
+            const toggleBtn = document.getElementById('btn-show-performance');
+            const modalTitle = document.getElementById('log-modal-title');
+            
+            if (logContainer.style.display !== 'none') {
+                logContainer.style.display = 'none';
+                perfContainer.style.display = 'block';
+                toggleBtn.textContent = '작업로그';
+                modalTitle.innerHTML = '<i class="bi bi-award-fill"></i> 나의 작업 성과';
+                renderPerformance();
+            } else {
+                perfContainer.style.display = 'none';
+                logContainer.style.display = 'block';
+                toggleBtn.textContent = '작업성과';
+                modalTitle.innerHTML = '<i class="bi bi-clock-history"></i> 나의 작업 로그';
+            }
+        }
+
+        function renderPerformance() {
+            const container = document.getElementById('perf-list-container');
+            let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
+            
+            const totalStageCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            
+            const displayPerfs = perfs.map(p => {
+                if (totalStageCounts[p.stage] !== undefined) {
+                    totalStageCounts[p.stage]++;
+                }
+                return {
+                    ...p,
+                    runningCount: totalStageCounts[p.stage] || 1
+                };
+            });
+            
+            let badgesHtml = '<div class="perf-badges-container">';
+            let hasBadges = false;
+            for (let i = 1; i <= 6; i++) {
+                if (totalStageCounts[i] > 0) {
+                    hasBadges = true;
+                    badgesHtml += `
+                        <div class="perf-badge">
+                            <span class="perf-badge-label">Stage ${i}</span>
+                            ${totalStageCounts[i]}회 완료
+                        </div>
+                    `;
+                }
+            }
+            badgesHtml += '</div>';
+            
+            if (!hasBadges) {
+                badgesHtml = ''; // 0회 완료만 있을 경우 (또는 기록이 없을 경우) 뱃지 영역 숨김
+            }
+            
+            let listHtml = '';
+            if (displayPerfs.length === 0) {
+                listHtml = `<div class="perf-empty-msg">아직 기록된 작업 성과가 없습니다.</div>`;
+            } else {
+                listHtml = displayPerfs.reverse().map(p => {
+                    return `
+                    <div class="perf-list-item">
+                        <span class="perf-log-time">[${p.time}]</span>
+                        <span class="perf-log-text">
+                            <strong class="perf-stage-title">Stage ${p.stage}</strong>&nbsp;&nbsp;${p.runningCount}회 완료. 
+                            경과시간 <span class="perf-elapsed-time">${p.elapsed}m</span> 
+                            <span class="perf-order-id">[${p.orderId}]</span>
+                        </span>
+                    </div>`;
+                }).join('');
+            }
+            
+            container.innerHTML = badgesHtml + listHtml;
         }
 
         function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
@@ -1765,9 +1848,17 @@
         function finishStage() {
             const stageId = appData.activeStageId;
             if (stageId > 0) {
-                const startTime = (window.stageStartTimes && window.stageStartTimes[stageId]) ? window.stageStartTimes[stageId] : Date.now();
-                const elapsedMs = Date.now() - startTime;
-                const elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
+                // 첫 로그와 마지막 로그 시간으로 경과 시간 계산
+                const stageLogs = appData.logs.filter(l => l.stageId === stageId);
+                let elapsedMin = 0;
+                if (stageLogs.length >= 2) {
+                    const firstLog = stageLogs[0];
+                    const lastLog = stageLogs[stageLogs.length - 1];
+                    const elapsedMs = lastLog.timestamp - firstLog.timestamp;
+                    elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
+                } else if (stageLogs.length === 1) {
+                    elapsedMin = 1;
+                }
                 
                 let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
                 const now = new Date();

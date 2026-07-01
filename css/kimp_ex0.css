@@ -1152,3 +1152,78 @@ screen and (max-height: 650px) {
 .spin-anim {
     animation: spin 1.5s linear infinite;
 }
+
+/* =======================================================
+   10. 나의 작업 성과 UI 클래스
+   ======================================================= */
+.perf-badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.perf-badge {
+    background: #f1f5f9;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border: 1px solid #e2e8f0;
+}
+
+.perf-badge-label {
+    background: var(--primary);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+}
+
+.perf-empty-msg {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-secondary);
+}
+
+.perf-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.perf-log-time {
+    min-width: 55px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.perf-log-text {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.perf-stage-title {
+    color: var(--primary);
+    padding: 10px;
+}
+
+.perf-elapsed-time {
+    color: var(--success);
+    font-weight: bold;
+}
+
+.perf-order-id {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-left: 4px;
+}
