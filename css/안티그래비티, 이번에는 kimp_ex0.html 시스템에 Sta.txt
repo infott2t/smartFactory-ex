@@ -1,0 +1,41 @@
+안티그래비티, 이번에는 kimp_ex0.html 시스템에 Stage 4 (밀봉 및 보관) 공정 워크플로우를 추가하려고 해.
+
+기존에 작성했던 방식(type, icon, title, desc, action 활용)을 그대로 적용해서 stage4Workflow 배열을 작성해 줘. 기획된 상세 공정 순서는 아래와 같아.
+
+[Stage 4 기획 순서]
+
+공정 위치 체크인 (type: 'qr')
+
+생산지시서 맵핑 (type: 'qr')
+
+사진 심사 (type: 'final-photo') - 물기가 빠진 배추의 상태 확인용 촬영
+
+비닐에 담기 (type: 'work') - 물기 뺀 배추를 규격 비닐에 담기
+
+비닐 밀봉하기 (type: 'work') - 배추가 담긴 비닐을 단단히 밀봉하기
+
+수량 및 무게재기 (type: 'report') - 밀봉 완료 후 수량 및 무게 측정
+
+숙성실로 이동하기 (type: 'info') - 작업 완료된 배추를 숙성실(저온창고)로 이동
+
+사진 찍어서 전송하기 (type: 'final-photo') - 최종 완료 및 지시서 증빙 촬영
+
+[요청 사항]
+
+위 기획을 바탕으로 const stage4Workflow = [ ... ] 배열을 만들어 줘.
+
+renderCurrentStep()과 nextStep() 함수에서 분기 처리 로직을 수정하여, appData.activeStageId === 4일 때 stage4Workflow가 정상적으로 렌더링되고 동작하도록 만들어 줘.
+
+마지막 8번 '사진 찍어서 전송하기' 단계에서 모형 카메라 화면(#mock-photo)에 **"밀봉 완료 배추"**라는 텍스트가 표시되도록 동적 처리를 확실히 해 줘.
+
+const stage4Workflow = [
+    { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+    { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+
+    { type: 'final-photo', icon: 'bi-camera', title: '사진 심사', desc: '물기 빼기가 완료된 배추의 상태를 촬영해주세요.', action: '촬영 완료' },
+    { type: 'work', icon: 'bi-bag-plus', title: '비닐에 담기', desc: '물기를 뺀 배추를 준비된 규격 비닐에 차곡차곡 담아주세요.', action: '담기 완료' },
+    { type: 'work', icon: 'bi-box-seam', title: '비닐 밀봉하기', desc: '배추가 담긴 비닐 안의 공기를 빼고 단단하게 밀봉해주세요.', action: '밀봉 완료' },
+    { type: 'report', icon: 'bi-clipboard-check', title: '수량 및 무게재기', desc: '밀봉된 배추의 최종 수량과 무게를 재주세요.', action: '실적 저장' },
+    { type: 'info', icon: 'bi-truck', title: '숙성실로 이동하기', desc: '무게 측정이 끝난 배추를 숙성실(저온창고)로 이동시켜주세요.', action: '이동 완료' },
+    { type: 'final-photo', icon: 'bi-camera', title: '사진 찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">밀봉된 배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송 및 대기소 복귀' }
+];

@@ -1,0 +1,51 @@
+말씀해주신 필수 공정(시작 부분의 QR 체크인, 자재 가져오기, 마지막의 실적 보고 및 숙성실 이동) 사이에 실제 양념을 바르고 마무리하는 디테일한 중간 작업을 자연스럽게 추가하여 워크플로우를 구성해 보았습니다.
+
+안티그래비티가 완벽하게 이해하고 코드를 작성할 수 있도록 프롬프트를 정리해 드립니다.
+
+📋 안티그래비티에게 전달할 프롬프트 (복사해서 사용하세요)
+[복사 시작]
+
+안티그래비티, 이전에 분리했던 Stage 5의 두 번째 파트인 Stage 5-2 (양념 바르기) 공정 워크플로우를 추가하려고 해.
+
+기존과 동일한 데이터 구조를 사용하여 stage5_2Workflow 배열을 작성해 줘. 기획된 상세 공정 순서는 아래와 같아. (중간의 양념 바르기 작업 디테일이 추가되었어)
+
+[Stage 5-2 기획 순서]
+
+공정 위치 체크인 (type: 'qr')
+
+생산지시서 맵핑 (type: 'qr')
+
+배추 준비하기 (type: 'info') - "숙성실에 밀봉된 배추를 가져와서 작업을 이어가세요. 만약 숙성실에 배추가 없다면, 이전 공정(세척 및 물기 빼기 등) 구역에서 가져와주세요."라는 안내 메시지 출력.
+
+양념 준비하기 (type: 'info') - "미리 만들어둔 양념(Stage 5-1)을 작업대로 가져와주세요."
+
+양념 바르기 (type: 'work') - "배추 잎사귀 사이사이에 양념이 뭉치지 않게 골고루 펴 발라주세요."
+
+겉잎으로 감싸기 (type: 'work') - "양념이 빠져나오지 않도록 배추의 가장 겉잎으로 전체를 둥글게 잘 감싸주세요."
+
+수량 및 무게재기 (type: 'report') - 완성된 김치의 수량(포기)과 총 무게 재기.
+
+사진 찍어서 전송하기 (type: 'final-photo') - 저울 위 완성된 김치와 지시서 촬영.
+
+숙성실로 가져가기 (type: 'info') - 완성된 김치를 보관 용기에 담아 숙성실로 이동.
+
+[요청 사항]
+
+위 기획을 바탕으로 const stage5_2Workflow = [ ... ] 배열을 만들어 줘.
+
+renderCurrentStep()과 nextStep() 로직에 분기 처리를 추가해서, UI에서 Stage 5-2를 선택했을 때 이 워크플로우가 정상적으로 작동하도록 만들어 줘.
+
+마지막 8번 '사진 찍어서 전송하기' 단계에서 모형 카메라 화면(#mock-photo)에 **"완성된 포기김치"**라는 텍스트가 표시되도록 동적 처리를 적용해 줘.
+
+
+const stage5_2Workflow = [
+    { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+    { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+    { type: 'info', icon: 'bi-box-seam', title: '배추 준비하기', desc: '숙성실에 밀봉된 배추를 가져와서 작업을 이어가세요.<br><strong style="color:var(--warning);">※ 없다면, 이전 공정(세척 및 물기 빼기 등) 구역에서 가져와주세요.</strong>', action: '배추 준비 완료' },
+    { type: 'info', icon: 'bi-basket', title: '양념 준비하기', desc: '숙성실에서 미리 만들어둔 양념을 작업대로 가져와주세요.', action: '양념 준비 완료' },
+    { type: 'work', icon: 'bi-brush', title: '양념 바르기', desc: '배추 잎사귀 사이사이에 양념이 뭉치지 않게 골고루 펴 발라주세요.', action: '바르기 완료' },
+    { type: 'work', icon: 'bi-arrow-repeat', title: '겉잎으로 감싸기', desc: '양념이 빠져나오지 않도록 배추의 가장 겉잎으로 전체를 둥글게 잘 감싸주세요.', action: '감싸기 완료' },
+    { type: 'report', icon: 'bi-clipboard-check', title: '수량 및 무게재기', desc: '완성된 포기김치의 최종 수량과 무게를 재주세요.', action: '실적 저장' },
+    { type: 'final-photo', icon: 'bi-camera', title: '사진 찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">완성된 포기김치</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송' },
+    { type: 'info', icon: 'bi-truck', title: '숙성실로 가져가기', desc: '완성된 김치를 보관 용기에 담아 숙성실(저온창고)로 이동시켜주세요.', action: '이동 완료 및 대기소 복귀' }
+];

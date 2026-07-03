@@ -1,0 +1,41 @@
+안티그래비티, 드디어 마지막 공정인 Stage 6 (포장 및 출하 대기) 워크플로우를 시스템에 추가하려고 해.
+
+기존과 동일한 데이터 구조를 사용하여 stage6Workflow 배열을 작성해 줘. 이번 공정은 포장 작업 중심이며, 자재(포장용기) 보충과 그에 대한 사진 증빙 과정이 추가되었어.
+
+[Stage 6 기획 순서]
+
+공정 위치 체크인 (type: 'qr')
+
+포장용 생산지시서 맵핑 (type: 'qr') - 제목을 '포장용 생산지시서 맵핑'으로 변경.
+
+김치 가져오기 (type: 'info') - "숙성실에서 양념된 배추를 가져와서 작업을 이어가세요. (숙성실에 없다면, 이전 공정인 Stage 5-2 구역에서 가져와주세요.)"
+
+포장 용기 준비 및 보충 (type: 'info') - "지시서에 맞는 포장 용기(300g 맛김치 팩, 1kg 포기김치 팩, 3kg 대용량 팩)를 준비하세요. 용기가 부족하면 자재창고에서 새로 가져와주세요."
+
+자재 준비 사진 심사 (type: 'final-photo') - "가져온 양념 배추와 포장 용기의 상태를 사진으로 찍어 전송해주세요."
+
+김치 포장 및 밀봉 작업 (type: 'work') - "지시된 규격에 맞게 김치를 용기에 담고, 내용물이 새지 않도록 꼼꼼하게 밀봉해주세요."
+
+포장 수량 세기 (type: 'report') - "포장이 완료된 제품의 수량(팩 수)과 총 무게를 입력해주세요."
+
+최종 완료 사진 전송 (type: 'final-photo') - "포장 완료된 김치와 포장용 생산지시서가 함께 보이도록 촬영해주세요."
+
+[요청 사항]
+
+위 기획을 바탕으로 const stage6Workflow = [ ... ] 배열을 만들어 줘.
+
+renderCurrentStep()과 nextStep() 로직을 업데이트해서 Stage 6도 정상적으로 화면에 렌더링되고 작동하도록 분기 처리를 해 줘.
+
+중간에 있는 5번 단계(자재 준비 사진)의 모형 카메라 화면에는 **"포장 용기 및 김치 준비"**라는 텍스트가, 마지막 8번 단계(최종 사진)에는 **"최종 포장 완료 제품"**이라는 텍스트가 동적으로 표시되도록 UI 처리를 확실히 해 줘.
+
+
+const stage6Workflow = [
+    { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+    { type: 'qr', icon: 'bi-upc-scan', title: '포장용 생산지시서 맵핑', desc: `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+    { type: 'info', icon: 'bi-box-seam', title: '김치 가져오기', desc: '숙성실에서 양념된 배추를 가져와서 작업을 이어가세요.<br><strong style="color:var(--warning);">※ 숙성실에 없다면, Stage 5-2 구역에서 가져와주세요.</strong>', action: '김치 준비 완료' },
+    { type: 'info', icon: 'bi-box', title: '포장 용기 준비 및 보충', desc: '지시서에 맞는 포장 용기(300g 맛김치 팩, 1kg 포기김치 팩, 3kg 대용량 팩)를 준비하세요.<br>용기가 부족하면 자재창고에서 새로 가져와주세요.', action: '용기 준비 완료' },
+    { type: 'final-photo', icon: 'bi-camera', title: '자재 준비 사진 심사', desc: '가져온 양념 배추와 포장 용기의 상태를 사진으로 찍어 전송해주세요.', action: '사진 전송' },
+    { type: 'work', icon: 'bi-bag-check', title: '김치 포장 및 밀봉 작업', desc: '지시된 규격(300g, 1kg, 3kg)에 맞게 김치를 용기에 담고, 꼼꼼하게 밀봉해주세요.', action: '포장 완료' },
+    { type: 'report', icon: 'bi-clipboard-check', title: '포장 수량 세기', desc: '포장이 완료된 제품의 수량(팩 수)과 총 무게를 입력해주세요.', action: '실적 저장' },
+    { type: 'final-photo', icon: 'bi-camera', title: '최종 완료 사진 전송', desc: '포장 완료된 <strong style="color:var(--primary)">최종 제품</strong>과 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송 및 출하 대기' }
+];

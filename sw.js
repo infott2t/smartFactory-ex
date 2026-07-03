@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hmi-cache-v1';
+const CACHE_NAME = 'hmi-cache-v2';
 
 // 💡 캐시할 파일 목록 (경로에 주의하세요!)
 const URLS_TO_CACHE = [

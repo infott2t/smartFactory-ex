@@ -1,0 +1,49 @@
+안티그래비티, 우리가 만들고 있는 kimp_ex0.html 시스템의 Stage 5 공정을 두 단계로 세분화하려고 해. 기존의 '양념 버무리기'를 **Stage 5-1(양념 만들기)**와 **Stage 5-2(양념 바르기)**로 나눌 예정이야.
+
+우선 Stage 5-1 (양념 만들기) 워크플로우를 먼저 적용해 줘. 기획된 공정 순서는 아래와 같아.
+
+[Stage 5-1 기획 순서]
+
+공정 위치 체크인 (type: 'qr')
+
+양념용 생산지시서 맵핑 (type: 'qr') - 제목을 '양념용 생산지시서 맵핑'으로 변경
+
+사진 심사 (type: 'final-photo') - "생산지시서 작업할 재료의 사진을 찍어주세요." 메시지 출력
+
+채소 다듬기 (type: 'work') - 생강 깎기, 파 다듬기, 양파 갈기
+
+밀가루풀 사용/제조 확인 (type: 'info' 또는 분기형 UI) - 밀가루풀이 지시서만큼 있는지 확인. "있다면 바로 사용하고, 없으면 새로 만들어야 합니다. 새로 만들 경우 온도가 식어야 하므로 작업이 약 3시간 지연됩니다."라는 안내 메시지 포함.
+
+1차 양념 섞기 (type: 'work') - 밀가루풀 + 멸치액젓 + 고춧가루 섞기
+
+2차 양념 섞기 (type: 'work') - 파, 생강, 양파 간 것을 넣고 잘 저어주기
+
+무게 재기 (type: 'report-weight-only' ※중요) - 보관 용기에 담아 무게만 잼. 수량(양품/불량 포기 수) 입력란은 숨기고 무게(kg) 입력란만 보이도록 UI 예외 처리 필요.
+
+사진 찍어서 전송하기 (type: 'final-photo') - 완성된 양념 사진 전송
+
+숙성실로 가져가기 (type: 'info')
+
+[요청 사항]
+
+appData.stages 배열을 수정해서 기존 5번 공정을 '5-1. 양념 만들기', '5-2. 양념 바르기' 등으로 구조를 개편해 줘.
+
+위 기획을 바탕으로 stage5_1Workflow 배열을 만들어 줘.
+
+renderCurrentStep() 함수를 수정하여, 이번 Stage에서는 '수량 입력' UI가 노출되지 않도록 타입(report-weight-only 등)을 새로 추가하거나 조건부 렌더링을 적용해 줘.
+
+단계별 화면 메시지(desc)가 기획 내용에 맞게 출력되도록 꼼꼼히 반영해 줘.
+
+
+const stage5_1Workflow = [
+    { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+    { type: 'qr', icon: 'bi-upc-scan', title: '양념용 생산지시서 맵핑', desc: `오늘 작업할 양념용 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+    { type: 'final-photo', icon: 'bi-camera', title: '재료 사진 심사', desc: '생산지시서에 따라 작업할 재료들의 사진을 찍어주세요.', action: '촬영 완료' },
+    { type: 'work', icon: 'bi-basket', title: '채소 다듬기', desc: '생강 깎기, 파 다듬기, 양파 갈기 작업을 진행해주세요.', action: '다듬기 완료' },
+    { type: 'info', icon: 'bi-exclamation-circle', title: '밀가루풀 확인', desc: '밀가루풀이 생산지시서만큼 있습니까?<br>있다면 사용하고, 없다면 만들어주세요.<br><strong style="color:var(--warning);">※ 새로 만들 경우 밀가루풀이 식어야 하므로 약 3시간 후에 작업이 가능합니다.</strong>', action: '확인 및 준비 완료' },
+    { type: 'work', icon: 'bi-cup-straw', title: '1차 양념 섞기', desc: '밀가루풀 + 멸치액젓 + 고춧가루를 잘 섞어주세요.', action: '1차 섞기 완료' },
+    { type: 'work', icon: 'bi-arrow-repeat', title: '2차 양념 섞기', desc: '미리 준비한 파, 생강, 양파 간 것을 넣고 골고루 저어주세요.', action: '2차 섞기 완료' },
+    { type: 'report-weight-only', icon: 'bi-clipboard-check', title: '보관 용기 무게 재기', desc: '보관 용기에 담은 양념의 무게를 재주세요. (수량 입력 없음)', action: '실적 저장' },
+    { type: 'final-photo', icon: 'bi-camera', title: '사진 찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">완성된 양념</strong>과 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송' },
+    { type: 'info', icon: 'bi-truck', title: '숙성실로 가져가기', desc: '완성된 양념을 숙성실로 안전하게 옮겨주세요.', action: '이동 완료 및 대기소 복귀' }
+];

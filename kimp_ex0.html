@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>생산 공정 터미널</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
@@ -249,14 +252,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
-</head>
 
 <body>
     <header class="global-header" id="main-header">
         <div class="header-top">
             <div class="job-info-group">
                 <div class="job-title" id="display-job-title">
-                    <i class="bi bi-box-seam"></i> 김치만들기
+                    <i class="bi bi-box-seam"></i> 김치만들기 v2.1
                 </div>
 
                 <div class="compact-toggle-inline" onclick="toggleCompactMode()">
@@ -344,6 +346,7 @@
             <div class="card">
                 <h1 class="stage-title">Stage 3. 세척 및 물기 빼기</h1>
                 <p class="stage-desc">절인 배추를 맑은 물에 씻어내고 건조망에 올립니다.</p>
+                <div id="stage-3-dynamic-content"></div>
             </div>
         </div>
 
@@ -351,13 +354,23 @@
             <div class="card">
                 <h1 class="stage-title">Stage 4. 밀봉 및 보관</h1>
                 <p class="stage-desc">물기가 빠진 배추를 규격 비닐에 밀봉하여 저온창고에 보관합니다.</p>
+                <div id="stage-4-dynamic-content"></div>
             </div>
         </div>
 
-        <div class="stage-page" id="stage-5">
+        <div class="stage-page" id="stage-5-1">
             <div class="card">
-                <h1 class="stage-title">Stage 5. 양념 버무리기</h1>
+                <h1 class="stage-title">Stage 5-1. 양념 만들기</h1>
+                <p class="stage-desc">생산지시서에 맞춰 각종 채소를 다듬고 밀가루풀과 양념을 섞어 준비합니다.</p>
+                <div id="stage-5-1-dynamic-content"></div>
+            </div>
+        </div>
+
+        <div class="stage-page" id="stage-5-2">
+            <div class="card">
+                <h1 class="stage-title">Stage 5-2. 양념 바르기</h1>
                 <p class="stage-desc">제조된 양념을 배추 잎사귀 사이사이에 골고루 바릅니다.</p>
+                <div id="stage-5-2-dynamic-content"></div>
             </div>
         </div>
 
@@ -365,6 +378,7 @@
             <div class="card">
                 <h1 class="stage-title">Stage 6. 포장 및 출하 대기</h1>
                 <p class="stage-desc">완성된 김치를 중량에 맞게 박스 포장하고 라벨을 부착합니다.</p>
+                <div id="stage-6-dynamic-content"></div>
             </div>
         </div>
     </main>
@@ -556,7 +570,8 @@
                 { id: 2, name: "배추 절이기", icon: "bi-water", status: "available", worker: "" },
                 { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "available", worker: "" },
                 { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", worker: "" },
-                { id: 5, name: "양념 버무리기", icon: "bi-basket", status: "available", worker: "" },
+                { id: "5-1", name: "양념 만들기", icon: "bi-basket", status: "available", worker: "" },
+                { id: "5-2", name: "양념 바르기", icon: "bi-brush", status: "available", worker: "" },
                 { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "available", worker: "" }
             ],
             activeStageId: 0,
@@ -858,7 +873,7 @@
 
                 // 클릭 함수에 stage.worker(작업자 이름) 데이터도 같이 넘겨줍니다.
                 grid.innerHTML += `
-        <button class="task-btn ${btnClass}" onclick="handleStageClick(${stage.id}, '${stage.status}', '${stage.name}', '${stage.worker}')">
+        <button class="task-btn ${btnClass}" onclick="handleStageClick('${stage.id}', '${stage.status}', '${stage.name}', '${stage.worker}')">
             <i class="bi ${stage.icon}"></i>
             <span>Stage ${stage.id}. ${stage.name}</span>
             <span class="task-status-text ${stage.status}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
@@ -869,6 +884,7 @@
         }
 
         function handleStageClick(stageId, status, stageName) {
+            stageId = isNaN(stageId) ? stageId : Number(stageId);
             const isCurrent = (stageId === appData.activeStageId);
 
             // 💡 1. 본인이 휴식 중인데, 자신의 작업 위치를 터치한 경우 -> 작업 진행 차단
@@ -949,14 +965,14 @@
         }
 
         function moveToStage(stageId, stageName) {
-            if (stageId > 0) {
+            if (stageId !== 0) {
                 window.stageStartTimes = window.stageStartTimes || {};
                 if (!window.stageStartTimes[stageId]) {
                     window.stageStartTimes[stageId] = Date.now();
                 }
             }
 
-            if (stageId > 0 && isCompleted) {
+            if (stageId !== 0 && isCompleted) {
                 dailyOrderSuffix++;
                 appData.currentOrder.id = `${dateStr}-${appData.currentOrder.qty}-${dailyOrderSuffix}`;
                 appData.currentOrder.regCount = 0;
@@ -971,6 +987,8 @@
             document.querySelectorAll('.stage-page').forEach(p => {
                 p.classList.remove('active');
                 p.classList.add('past');
+                const dynContent = p.querySelector('div[id$="-dynamic-content"]');
+                if (dynContent) dynContent.innerHTML = '';
             });
             const target = document.getElementById(`stage-${stageId}`);
             if (target) {
@@ -980,7 +998,7 @@
             closeTaskSelector();
 
             const header = document.getElementById('main-header');
-            if (stageId > 0) {
+            if (stageId !== 0) {
                 header.classList.remove('hide-toggle');
                 header.classList.add('compact');
             } else {
@@ -988,11 +1006,8 @@
                 header.classList.remove('compact');
             }
 
-            if (stageId > 0) {
+            if (stageId !== 0) {
                 addLog(`작업자가 [Stage ${stageId}. ${stageName}] 위치로 이동했습니다.`);
-            }
-
-            if (stageId === 1 || stageId === 2) {
                 currentStepIndex = 0;
                 highestStepReached = 0; // 💡 새 작업 시작 시 도달 인덱스 초기화
                 renderCurrentStep();
@@ -1625,7 +1640,7 @@
 
         const stage2Workflow = [
             { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
-            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `전 공정에서 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>를 가져와서 <br> QR코드를 스캔해주세요.`, action: '지시서 확인' },
             { type: 'input', icon: 'bi-cart-check', title: '수량확인', desc: '배추의 수량을 확인해주세요.', label: '수량 (포기)', defaultVal: appData.currentOrder.qty, action: '입력 완료' },
             { type: 'info', icon: 'bi-droplet', title: '염수 체크', desc: '염수가 수조에 담아져 있는지 체크해주세요.', action: '확인 완료' },
             { type: 'work', icon: 'bi-water', title: '배추 절이기 작업', desc: '배추를 염수에 담그면서 소금을 밑둥부분에 뿌려주세요.', action: '작업 완료' },
@@ -1634,6 +1649,61 @@
             { type: 'info', icon: 'bi-truck', title: '숙성실로 가져가기', desc: '절여진 배추를 숙성실로 옮겨주세요.', action: '이동 완료' },
             { type: 'timer', icon: 'bi-stopwatch', title: '23시간 타이머 시작', desc: '숙성을 위해 23시간 타이머를 시작합니다.', action: '타이머 시작 및 대기소 복귀' }
         ];
+
+        const stage3Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'final-photo', icon: 'bi-camera', title: '사진 심사', desc: '세척 전 절여진 배추의 상태를 촬영해주세요.', action: '촬영 완료' },
+            { type: 'work', icon: 'bi-droplet-half', title: '배추 3단 세척하기', desc: '물을 받은 후, 3단 통을 차례로 이동하며 배추를 세척해주세요.', action: '세척 완료' },
+            { type: 'timer', icon: 'bi-stopwatch', title: '배추 물기 빼기 (1시간)', desc: '배추 물기 빼는 곳에서 1시간 동안 물기를 빼주세요.<br><strong style="color:var(--warning);">※ 물기가 빠질 때동안 다른 작업을 하셔도 좋습니다.</strong>', action: '타이머 시작' },
+            { type: 'report', icon: 'bi-clipboard-check', title: '수량 및 무게재기', desc: '물기가 다 빠진 후, 최종 수량과 무게를 재주세요.', action: '실적 저장' },
+            { type: 'final-photo', icon: 'bi-camera', title: '사진 찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">세척된 배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송 및 대기소 복귀' }
+        ];
+
+        const stage4Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'final-photo', icon: 'bi-camera', title: '사진 심사', desc: '물기 빼기가 완료된 배추의 상태를 촬영해주세요.', action: '촬영 완료' },
+            { type: 'work', icon: 'bi-bag-plus', title: '비닐에 담기', desc: '물기를 뺀 배추를 준비된 규격 비닐에 차곡차곡 담아주세요.', action: '담기 완료' },
+            { type: 'work', icon: 'bi-box-seam', title: '비닐 밀봉하기', desc: '배추가 담긴 비닐 안의 공기를 빼고 단단하게 밀봉해주세요.', action: '밀봉 완료' },
+            { type: 'report', icon: 'bi-clipboard-check', title: '수량 및 무게재기', desc: '밀봉된 배추의 최종 수량과 무게를 재주세요.', action: '실적 저장' },
+            { type: 'info', icon: 'bi-truck', title: '숙성실로 이동하기', desc: '무게 측정이 끝난 배추를 숙성실(저온창고)로 이동시켜주세요.', action: '이동 완료' },
+            { type: 'final-photo', icon: 'bi-camera', title: '사진 찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">밀봉된 배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송 및 대기소 복귀' }
+        ];
+
+        const stage5_1Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '양념용 생산지시서 맵핑', desc: `오늘 작업할 양념용 생산지시서<br><strong style="color:var(--primary)">260703-3-1</strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'info', icon: 'bi-truck', title: '자재창고 이동', desc: '생산지시서에 적힌 생강 100g, 대파 1단, 양파 10개, 고추가루 1kg, 멸치액젓 750g, 밀가루풀 2kg를 가지고 옴니다.', action: '적재완료' },
+            { type: 'input-materials', icon: 'bi-cart-check', title: '실제 상차 수량입력', desc: '가져온 재료의 수량을 각각 입력해주세요.', action: '입력 완료' },
+            { type: 'final-photo', icon: 'bi-camera', title: '자재 사진 찍어서 전송', desc: '가져온 재료가 모두 보이도록 촬영해주세요.', action: '사진 전송' },
+            { type: 'work', icon: 'bi-basket', title: '재료 다듬고 섞기', desc: '각 재료를 다듬고, 양파와 생강은 믹서기에 갈아줌니다. 대파를 손질하여 잘 썰어주고, 그리고 볼이나 믹서기에 잘 섞어줌니다.', action: '작업 완료' },
+            { type: 'info', icon: 'bi-box-seam', title: '숙성실 이동', desc: '전용용기에 담고, 생산지시서를 붙이고, 숙성실에 놓아줌니다.', action: '숙성실로 이동 완료' }
+        ];
+
+        const stage5_2Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `오늘 작업할 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'info', icon: 'bi-box-seam', title: '배추 준비하기', desc: '숙성실에 밀봉된 배추를 가져와서 작업을 이어가세요.<br><strong style="color:var(--warning);">※ 없다면, 이전 공정(세척 및 물기 빼기 등) 구역에서 가져와주세요.</strong>', action: '배추 준비 완료' },
+            { type: 'info', icon: 'bi-basket', title: '양념 준비하기', desc: '숙성실에서 미리 만들어둔 양념을 작업대로 가져와주세요.', action: '양념 준비 완료' },
+            { type: 'work', icon: 'bi-brush', title: '양념 바르기', desc: '배추 잎사귀 사이사이에 양념이 뭉치지 않게 골고루 펴 발라주세요.', action: '바르기 완료' },
+            { type: 'work', icon: 'bi-arrow-repeat', title: '겉잎으로 감싸기', desc: '양념이 빠져나오지 않도록 배추의 가장 겉잎으로 전체를 둥글게 잘 감싸주세요.', action: '감싸기 완료' },
+            { type: 'report', icon: 'bi-clipboard-check', title: '수량 및 무게재기', desc: '완성된 포기김치의 최종 수량과 무게를 재주세요.', action: '실적 저장' },
+            { type: 'final-photo', icon: 'bi-camera', title: '사진 찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">완성된 포기김치</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송' },
+            { type: 'info', icon: 'bi-truck', title: '숙성실로 가져가기', desc: '완성된 김치를 보관 용기에 담아 숙성실(저온창고)로 이동시켜주세요.', action: '이동 완료 및 대기소 복귀' }
+        ];
+
+        const stage6Workflow = [
+            { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '포장용 생산지시서 맵핑', desc: `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'info', icon: 'bi-box-seam', title: '김치 가져오기', desc: '숙성실에서 양념된 배추를 가져와서 작업을 이어가세요.<br><strong style="color:var(--warning);">※ 숙성실에 없다면, Stage 5-2 구역에서 가져와주세요.</strong>', action: '김치 준비 완료' },
+            { type: 'info', icon: 'bi-box', title: '포장 용기 준비 및 보충', desc: '지시서에 맞는 포장 용기(300g 맛김치 팩, 1kg 포기김치 팩, 3kg 대용량 팩)를 준비하세요.<br>용기가 부족하면 자재창고에서 새로 가져와주세요.', action: '용기 준비 완료' },
+            { type: 'final-photo', icon: 'bi-camera', title: '자재 준비 사진 심사', desc: '가져온 양념 배추와 포장 용기의 상태를 사진으로 찍어 전송해주세요.', action: '사진 전송' },
+            { type: 'work', icon: 'bi-bag-check', title: '김치 포장 및 밀봉 작업', desc: '지시된 규격(300g, 1kg, 3kg)에 맞게 김치를 용기에 담고, 꼼꼼하게 밀봉해주세요.', action: '포장 완료' },
+            { type: 'report', icon: 'bi-clipboard-check', title: '포장 수량 세기', desc: '포장이 완료된 제품의 수량(팩 수)과 총 무게를 입력해주세요.', action: '실적 저장' },
+            { type: 'final-photo', icon: 'bi-camera', title: '최종 완료 사진 전송', desc: '포장 완료된 <strong style="color:var(--primary)">최종 제품</strong>과 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송 및 출하 대기' }
+        ];
+
         // 💡 새로 추가된 뒤로가기 함수
         function prevStep() {
             if (currentStepIndex > 0) {
@@ -1646,7 +1716,12 @@
             const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
             if (!container) return;
 
-            const workflow = appData.activeStageId === 2 ? stage2Workflow : stage1Workflow;
+            let workflow;
+            if (appData.activeStageId === 4) workflow = stage4Workflow;
+            else if (appData.activeStageId === 3) workflow = stage3Workflow;
+            else if (appData.activeStageId === 2) workflow = stage2Workflow;
+            else workflow = stage1Workflow;
+
             const step = workflow[currentStepIndex];
 
             if (!step) {
@@ -1706,21 +1781,78 @@
                 </div>
             `;
             }
+            else if (step.type === 'report-weight-only') {
+                visualElement = `
+                <div class="hmi-input-group">
+                    <div class="input-row" style="margin-bottom:0;">
+                        <label>총 무게 (kg)</label>
+                        <div class="number-stepper">
+                            <button onclick="changeValue('input-weight', -0.5)"><i class="bi bi-dash"></i></button>
+                            <input type="number" step="0.1" id="input-weight" value="15.0" readonly />
+                            <button onclick="changeValue('input-weight', 0.5)"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }
+            else if (step.type === 'input-materials') {
+                visualElement = `
+                <div class="hmi-input-group" style="text-align:left; font-size:16px; margin-top: 16px;">
+                    <div class="input-row"><label>생강 (g)</label><input type="number" id="mat-1" value="100"></div>
+                    <div class="input-row"><label>대파 (단)</label><input type="number" id="mat-2" value="1"></div>
+                    <div class="input-row"><label>양파 (개)</label><input type="number" id="mat-3" value="10"></div>
+                    <div class="input-row"><label>고추가루 (kg)</label><input type="number" step="0.1" id="mat-4" value="1.0"></div>
+                    <div class="input-row"><label>멸치액젓 (g)</label><input type="number" id="mat-5" value="750"></div>
+                    <div class="input-row" style="margin-bottom:0;"><label>밀가루풀 (kg)</label><input type="number" step="0.1" id="mat-6" value="2.0"></div>
+                </div>
+                `;
+            }
             else if (step.type === 'final-photo') {
+                let photoText = "배추 촬영 증빙";
+                if (step.title.includes('자재 준비')) {
+                    photoText = "포장 용기 및 김치 준비";
+                } else if (step.title.includes('최종 완료')) {
+                    photoText = "최종 포장 완료 제품";
+                } else if (step.title.includes('재료')) {
+                    photoText = "작업할 재료";
+                } else if (step.title.includes('사진 심사')) {
+                    photoText = "작업 전 상태";
+                } else {
+                    if (appData.activeStageId === 1) photoText = "1/2 컷팅 배추";
+                    else if (appData.activeStageId === 2) photoText = "절인 배추";
+                    else if (appData.activeStageId === 3) photoText = "세척된 배추";
+                    else if (appData.activeStageId === 4) photoText = "밀봉 완료 배추";
+                    else if (appData.activeStageId === "5-1") photoText = "완성된 양념";
+                    else if (appData.activeStageId === "5-2") photoText = "완성된 포기김치";
+                    else if (appData.activeStageId === 6) photoText = "최종 포장 완료 제품";
+                }
+
                 visualElement = `
                 <div class="qr-scanner-box" style="width:100%; max-width:400px; height:220px; border-color:var(--success); background:#f8fafc;" onclick="simulateFinalCamera()">
                     <i class="bi bi-camera-fill" id="camera-icon" style="font-size: 50px; color: var(--success);"></i>
                     <div id="mock-photo" style="display:none; text-align:center;">
                         <div style="background:#e2e8f0; border-radius:8px; padding:12px; margin-top:8px; color: #1e293b;">
-                            🥬 1/2 컷팅 배추<br>📄 지시서 [${appData.currentOrder.id}]<br>⚖️ <span id="mock-weight"></span> kg
+                            🥬 ${photoText}<br>📄 지시서 [${appData.currentOrder.id}]<br>⚖️ <span id="mock-weight"></span> kg
                         </div>
                     </div>
                     <span id="camera-text" style="margin-top:10px; font-weight:bold; color:var(--success);">화면을 눌러 촬영</span>
                 </div>
             `;
             }
+            else if (step.type === 'timer') {
+                visualElement = `
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
+                    <i class="bi bi-hourglass-split spin-anim" style="font-size: 48px; color: var(--warning); display: inline-block; margin-bottom: 12px;"></i>
+                    <div style="font-size: 20px; font-weight: bold; color: var(--warning); margin-bottom: 8px;">타이머 설정 대기</div>
+                    <div style="font-size: 15px; color: var(--text-secondary); line-height: 1.5;">
+                        <strong style="color:var(--warning);">※ 남은 시간 동안 다른 작업을 하셔도 좋습니다.</strong><br>
+                        타이머를 시작하고 다른 공정으로 이동할 수 있습니다.
+                    </div>
+                </div>
+            `;
+            }
 
-            const showIcon = step.type !== 'report';
+            const showIcon = step.type !== 'report' && step.type !== 'report-weight-only';
             const iconHtml = showIcon ? `<i class="bi ${step.icon} step-icon"></i>` : '';
 
             // 💡 현재 1단계(Index 0)가 아닐 경우에만 뒤로가기 버튼 생성
@@ -1746,7 +1878,14 @@
         }
 
         function nextStep() {
-            const workflow = appData.activeStageId === 2 ? stage2Workflow : stage1Workflow;
+            let workflow;
+            if (appData.activeStageId === 6) workflow = stage6Workflow;
+            else if (appData.activeStageId === "5-2") workflow = stage5_2Workflow;
+            else if (appData.activeStageId === "5-1") workflow = stage5_1Workflow;
+            else if (appData.activeStageId === 4) workflow = stage4Workflow;
+            else if (appData.activeStageId === 3) workflow = stage3Workflow;
+            else if (appData.activeStageId === 2) workflow = stage2Workflow;
+            else workflow = stage1Workflow;
             const step = workflow[currentStepIndex];
 
             // 💡 재수행 여부 판단 (현재 인덱스가 도달했던 최고 인덱스보다 작으면 재수행)
@@ -1770,28 +1909,57 @@
                 addLog(`${logPrefix}작업대 복귀를 완료했습니다.`);
             } else if (step.type === 'info' && step.title.includes('염수 체크')) {
                 addLog(`${logPrefix}염수 체크를 완료했습니다.`);
+            } else if (step.type === 'input-materials') {
+                addLog(`${logPrefix}[지시서: 260703-3-1] 재료 수량 확인 및 입력 완료`);
+            } else if (step.type === 'info' && step.title.includes('숙성실 이동')) {
+                addLog(`${logPrefix}완성된 양념을 숙성실로 이동 완료했습니다.`);
             } else if (step.type === 'info' && step.title.includes('숙성실')) {
-                addLog(`${logPrefix}절인 배추를 숙성실로 이동 완료했습니다.`);
+                if (appData.activeStageId === "5-2") {
+                    addLog(`${logPrefix}완성된 김치를 숙성실로 이동 완료했습니다.`);
+                } else if (appData.activeStageId === 4) {
+                    addLog(`${logPrefix}밀봉된 배추를 숙성실로 이동 완료했습니다.`);
+                } else {
+                    addLog(`${logPrefix}절인 배추를 숙성실로 이동 완료했습니다.`);
+                }
             } else if (step.type === 'timer') {
-                addLog(`${logPrefix}23시간 숙성 타이머를 시작했습니다.`);
+                if (appData.activeStageId === 3) {
+                    addLog(`${logPrefix}1시간 물기 빼기 타이머를 시작했습니다.`);
+                } else {
+                    addLog(`${logPrefix}23시간 숙성 타이머를 시작했습니다.`);
+                }
             } else if (step.type === 'work') {
-                if (appData.activeStageId === 2) {
+                if (appData.activeStageId === 6) {
+                    addLog(`${logPrefix}${step.title} 작업을 완료했습니다.`);
+                } else if (appData.activeStageId === "5-2") {
+                    addLog(`${logPrefix}${step.title} 작업을 완료했습니다.`);
+                } else if (appData.activeStageId === "5-1") {
+                    addLog(`${logPrefix}${step.title} 작업을 완료했습니다.`);
+                } else if (appData.activeStageId === 4) {
+                    addLog(`${logPrefix}${step.title} 작업을 완료했습니다.`);
+                } else if (appData.activeStageId === 3) {
+                    addLog(`${logPrefix}배추 3단 세척 작업을 완료했습니다.`);
+                } else if (appData.activeStageId === 2) {
                     addLog(`${logPrefix}배추 절이기 작업을 완료했습니다.`);
                 } else {
                     addLog(`${logPrefix}배추 컷팅 작업을 완료했습니다.`);
                 }
-            } else if (step.type === 'report') {
-                const goodQty = document.getElementById('input-good').value;
-                const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
+            } else if (step.type === 'report' || step.type === 'report-weight-only') {
                 const weight = document.getElementById('input-weight').value;
-
                 const orderId = appData.currentOrder.id;
-                addLog(`${logPrefix}[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
-                window.tempWeight = weight;
 
-                if (defectQty > 0) {
-                    renderDefectPhotoStep(defectQty);
-                    return;
+                if (step.type === 'report') {
+                    const goodQty = document.getElementById('input-good').value;
+                    const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
+                    addLog(`${logPrefix}[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
+                    window.tempWeight = weight;
+
+                    if (defectQty > 0) {
+                        renderDefectPhotoStep(defectQty);
+                        return;
+                    }
+                } else {
+                    addLog(`${logPrefix}[지시서: ${orderId}] 실적 등록 (무게: ${weight}kg)`);
+                    window.tempWeight = weight;
                 }
             }
 
@@ -1972,7 +2140,7 @@
 
         function finishStage() {
             const stageId = appData.activeStageId;
-            if (stageId > 0) {
+            if (stageId !== 0 && stageId !== "0") {
                 // 첫 로그와 마지막 로그 시간으로 경과 시간 계산
                 const stageLogs = appData.logs.filter(l => l.stageId === stageId);
                 let elapsedMin = 0;
