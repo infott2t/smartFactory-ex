@@ -517,9 +517,22 @@
             <button class="menu-btn" onclick="performLogin('최수아', '일반')">최수아 (일반)</button>
             <button class="menu-btn" onclick="performLogin('김수민', '일반')">김수민 (일반)</button>
             <button class="menu-btn" onclick="performLogin('김영희', '헬퍼')">김영희 (헬퍼)</button>
+            <div style="border-top:1px solid #e5e7eb; margin: 12px 0;"></div>
+            <button class="menu-btn" onclick="clearAllSessions()" style="background-color: #fee2e2; color: #b91c1c; border: 1px solid #f87171;"><i class="bi bi-trash"></i> 전체 세션/데이터 초기화</button>
         </div>
     `;
             openActionModal('테스트 로그인', '<i class="bi bi-person-badge"></i>', content);
+        }
+
+        function clearAllSessions() {
+            if (!confirm("모든 로그인 세션, 공정 점유 동기화 데이터, 실적 기록 등 로컬 데이터를 모두 삭제하시겠습니까?")) return;
+            sessionStorage.removeItem("user");
+            localStorage.removeItem("kimp_stages_sync");
+            localStorage.removeItem("kimp_ex0_performance");
+            localStorage.removeItem("kimp_ex0_is3min");
+            
+            alert("모든 데이터가 초기화되었습니다. 페이지를 새로고침합니다.");
+            location.reload();
         }
 
         function performLogin(name, role) {
@@ -529,7 +542,16 @@
             sessionStorage.setItem("user", JSON.stringify(userData));
             closeActionModal();
             applyLoginState(userData);
+            
+            appData.user = userData;
+            const userDisplay = document.querySelector('.user-info span');
+            if (userDisplay) userDisplay.textContent = name;
+
             showHmiToast(`${name}(${role})님 환영합니다! (로그인: ${loginTime})`);
+            
+            if (document.getElementById('task-modal').classList.contains('open')) {
+                openTaskSelector();
+            }
         }
 
         function applyLoginState(user) {
@@ -547,6 +569,8 @@
                     const user = JSON.parse(userStr);
                     applyLoginState(user);
                     appData.user = user;
+                    const userDisplay = document.querySelector('.user-info span');
+                    if (userDisplay) userDisplay.textContent = user.name;
                 }
             } catch (e) { console.error("세션 로드 실패", e); }
         }
@@ -837,31 +861,138 @@
         // ============================================================
         // 3. 작업 선택 및 헤더 제어 로직 (휴식 상태 메시지 반영)
         // ============================================================
+        function syncStagesToStorage() {
+            localStorage.setItem('kimp_stages_sync', JSON.stringify(appData.stages));
+        }
+
+        function loadStagesFromStorage() {
+            const saved = localStorage.getItem('kimp_stages_sync');
+            if (saved) {
+                appData.stages = JSON.parse(saved);
+            }
+        }
+
+        // 다른 탭에서 상태 변경 시 즉시 반영하기 위한 리스너
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'kimp_stages_sync') {
+                loadStagesFromStorage();
+                // 만약 현재 작업선택창이 열려있다면 새로고침
+                if (document.getElementById('task-modal').classList.contains('open')) {
+                    openTaskSelector();
+                }
+            } else if (e.key === 'kimp_handover_req') {
+                const reqStr = e.newValue;
+                if (!reqStr) return;
+                const req = JSON.parse(reqStr);
+
+                // 💡 내가 타겟이고, 상태가 pending일 때
+                if (req.to === appData.user.name && req.status === 'pending') {
+                    // 브라우저 팝업 차단을 피하기 위해 커스텀 모달 사용
+                    const content = `
+                        <div style="text-align:center; padding:20px;">
+                            <p style="font-size:18px; margin-bottom:20px;"><strong>[${req.from}]</strong>님이 작업 인수를 요청했습니다.<br>허락하시겠습니까?</p>
+                            <div style="display:flex; gap:10px; justify-content:center;">
+                                <button class="btn btn-secondary w-50" onclick="respondHandover('${req.reqId}', false)">거절</button>
+                                <button class="btn btn-primary w-50" onclick="respondHandover('${req.reqId}', true)">수락</button>
+                            </div>
+                        </div>
+                    `;
+                    openActionModal('작업 인수 요청 수신', '<i class="bi bi-bell-fill" style="color:var(--warning);"></i>', content);
+                }
+                // 💡 상대방이 요청을 취소한 경우 알람 닫기 (내가 타겟일 때)
+                else if (req.to === appData.user.name && req.status === 'cancelled') {
+                    closeActionModal();
+                    alert(`[${req.from}]님이 작업 인수 요청을 취소했습니다.`);
+                }
+            }
+        });
+
+        // 💡 작업 인수 요청 수신 응답
+        function respondHandover(reqIdStr, isAccepted) {
+            const reqStr = localStorage.getItem('kimp_handover_req');
+            if (!reqStr) return;
+            const req = JSON.parse(reqStr);
+            if (req.reqId !== Number(reqIdStr)) return;
+
+            if (!isAccepted) {
+                req.status = 'rejected';
+                localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+                closeActionModal();
+                return;
+            }
+
+            // 💡 1차 수락 상태 전송 (요청자에게 이동하라고 알림)
+            req.status = 'accepted_moving';
+            localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+
+            // 수락한 경우 - 인수인계 절차 시작
+            const content = `
+                <div style="text-align:center; padding:20px;">
+                    <p style="font-size:18px; margin-bottom:10px;">교대자(<strong>${req.from}</strong>)에게 구두로 <strong>전달사항</strong>을 알려주세요.</p>
+                    <p style="font-size:14px; color:var(--text-secondary); margin-bottom:30px;">전달이 모두 끝났다면 아래 완료 버튼을 눌러주세요.</p>
+                    <button class="btn btn-success w-100" onclick="finishHandover('${reqIdStr}')">인수인계 완료 및 대기장소로 이동</button>
+                </div>
+            `;
+            openActionModal('인수인계 진행', '<i class="bi bi-mic-fill" style="color:var(--primary);"></i>', content);
+        }
+
+        // 💡 인수인계 완료 처리
+        function finishHandover(reqIdStr) {
+            const reqStr = localStorage.getItem('kimp_handover_req');
+            if (!reqStr) return;
+            const req = JSON.parse(reqStr);
+            if (req.reqId !== Number(reqIdStr)) return;
+
+            req.status = 'accepted';
+            localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+            closeActionModal();
+            
+            alert("교대가 완료되었습니다. 대기장소로 이동합니다.");
+            moveToStage(0, '대기장소');
+        }
+
+        // 💡 작업 인수 요청 취소
+        function cancelHandover() {
+            const reqStr = localStorage.getItem('kimp_handover_req');
+            if (reqStr) {
+                const req = JSON.parse(reqStr);
+                if (req.from === appData.user.name && req.status === 'pending') {
+                    req.status = 'cancelled';
+                    localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+                }
+            }
+            closeActionModal();
+        }
+
         function openTaskSelector() {
+            loadStagesFromStorage(); // 열 때 항상 최신 상태 로드
             const grid = document.getElementById('task-grid-container');
             if (!grid) return;
             grid.innerHTML = '';
 
             appData.stages.forEach(stage => {
-                // isCurrent: 이 단말기에서 내가 진행 중이던 작업인지 확인
                 const isCurrent = (stage.id === appData.activeStageId);
 
                 let btnClass = stage.status;
                 let statusText = "";
 
-                if (isCurrent) {
+                if (stage.worker === appData.user.name && stage.worker !== "") {
+                    // 💡 나의 공정일 때
                     if (isResting) {
-                        // 💡 [수정] 본인(최현일 님)이 휴식 중일 때의 UI
-                        btnClass = 'current'; // 내 작업이므로 파란색 테두리/배경 유지
+                        btnClass = 'current'; 
                         statusText = `<span style="color:#fcd34d; font-weight:bold;">휴식 중</span><br><span style="font-size:12px; color:rgba(255,255,255,0.85); display:block; margin-top:4px; line-height:1.3;">본인이 참여중인 일입니다.</span>`;
                     } else {
                         btnClass = 'current';
                         statusText = "내가 작업 중";
                     }
-                } else if (stage.status === 'occupied') {
-                    // 💡 [추가] 타인이 휴식 중인 경우 데모 연출 (박준호 님의 공정이라 가정)
-                    if (stage.worker === '박준호') {
-                        statusText = `<span style="color:var(--warning); font-weight:bold;">${stage.worker} 휴식중</span><br><span style="font-size:12px; color:var(--text-secondary); display:block; margin-top:4px; line-height:1.3;">${stage.worker}님이 다시 참여할 예정입니다.<br>대신할까요?</span>`;
+                } else if (stage.worker !== appData.user.name && stage.worker !== "") {
+                    // 💡 타인의 공정일 때
+                    if (stage.status === 'occupied') {
+                        statusText = `${stage.worker} 작업 중`;
+                        btnClass = 'occupied';
+                    } else if (stage.status === 'resting') {
+                        statusText = `<span style="color:var(--warning); font-weight:bold;">${stage.worker} 휴식 중</span><br><span style="font-size:12px; color:var(--text-secondary); display:block; margin-top:4px; line-height:1.3;">${stage.worker}님이 다시 참여할 예정입니다.<br>대신할까요?</span>`;
+                        btnClass = 'resting';
                     } else {
                         statusText = `${stage.worker} 작업 중`;
                     }
@@ -871,7 +1002,6 @@
                     statusText = "참여 가능";
                 }
 
-                // 클릭 함수에 stage.worker(작업자 이름) 데이터도 같이 넘겨줍니다.
                 grid.innerHTML += `
         <button class="task-btn ${btnClass}" onclick="handleStageClick('${stage.id}', '${stage.status}', '${stage.name}', '${stage.worker}')">
             <i class="bi ${stage.icon}"></i>
@@ -884,12 +1014,11 @@
         }
 
         function handleStageClick(stageId, status, stageName, workerName) {
-            // "5-1", "5-2" 같은 문자열 ID를 유지하되, 숫자로 변환 가능한 경우에만 변환합니다.
             const parsedStageId = isNaN(Number(stageId)) ? stageId : Number(stageId);
             const finalStageId = (typeof stageId === 'string' && (stageId === "5-1" || stageId === "5-2")) ? stageId : parsedStageId;
             const isCurrent = (finalStageId === appData.activeStageId);
 
-            // 💡 1. 본인이 휴식 중(작업장 외부)일 때의 클릭 차단 로직
+            // 1. 본인이 휴식 중(작업장 외부)일 때의 클릭 차단 로직
             if (isResting) {
                 if (isCurrent) {
                     alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
@@ -899,25 +1028,121 @@
                 return;
             }
 
-            // 💡 2. 현재 정상 작업 중인 곳을 터치한 경우 (창만 닫음)
+            // 2. 현재 정상 작업 중인 곳을 터치한 경우 (창만 닫음)
             if (isCurrent && !isResting) {
                 closeTaskSelector();
                 return;
             }
 
-            // 💡 3. 타인이 휴식 중인 공정을 터치한 경우 (대신하기)
-            if (status === 'occupied' && workerName === '박준호') {
-                if (!confirm(`${workerName}님이 다시 참여할 예정입니다. 대신할까요?\n(확인 시 해당 위치의 작업이 바로 시작됩니다.)`)) return;
+            // 3. 타인의 공정 클릭 시
+            if (workerName !== "" && workerName !== appData.user.name) {
+                if (status === 'occupied') {
+                    if (!confirm(`${workerName}님이 작업 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
+                } else if (status === 'resting') {
+                    // 요구사항: 대기장소가 아니라 현장에 있을 경우에 확인창 띄우기
+                    if (appData.activeStageId !== 0) {
+                        if (!confirm(`${workerName}님이 휴식 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
+                    } else {
+                        // 대기장소일 때도 안전하게 한 번 더 물어보기 (원하지 않으면 이 if문을 통합해도 됨)
+                        if (!confirm(`${workerName}님이 휴식 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
+                    }
+                }
 
-                isJobTakenByOther = true;
-                moveToStage(finalStageId, stageName);
-                return;
+                // 💡 상대방에게 인수 요청 보내기
+                const reqId = Date.now();
+                const reqObj = { reqId: reqId, from: appData.user.name, to: workerName, stageId: finalStageId, stageName: stageName, status: 'pending' };
+                localStorage.setItem('kimp_handover_req', JSON.stringify(reqObj));
+
+                // 대기 UI 표시
+                const content = `
+                    <div style="text-align:center; padding:20px;">
+                        <div style="font-size:40px; margin-bottom:20px; color:#3b82f6;"><i class="bi bi-hourglass-split"></i></div>
+                        <p id="handover-waiting-text" style="margin-bottom:20px;"><strong>${workerName}</strong>님의 수락을 기다리고 있습니다...</p>
+                        <button class="btn btn-outline-danger w-100" onclick="cancelHandover()">요청 취소</button>
+                    </div>
+                `;
+                openActionModal('작업 인수 요청', '<i class="bi bi-send"></i>', content);
+
+                // 요청 응답 대기 리스너
+                const responseListener = function(e) {
+                    if (e.key === 'kimp_handover_req') {
+                        const resStr = e.newValue;
+                        if (!resStr) return;
+                        const res = JSON.parse(resStr);
+                        
+                        if (res.reqId === reqId && res.from === appData.user.name) {
+                            if (res.status === 'accepted_moving') {
+                                // 💡 1차 수락 시: 이동 안내 메시지로 대기창 내용 변경
+                                const waitingContent = document.getElementById('handover-waiting-text');
+                                if (waitingContent) {
+                                    waitingContent.innerHTML = `상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span>`;
+                                } else {
+                                    // 기존 모달이 없거나 덮어씌워졌다면 다시 띄움
+                                    const content = `
+                                        <div style="text-align:center; padding:20px;">
+                                            <div style="font-size:40px; margin-bottom:20px; color:#3b82f6;"><i class="bi bi-person-walking"></i></div>
+                                            <p id="handover-waiting-text" style="margin-bottom:20px;">상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span></p>
+                                        </div>
+                                    `;
+                                    openActionModal('이동 안내', '<i class="bi bi-info-circle"></i>', content);
+                                }
+                            } else if (res.status === 'accepted') {
+                                // 💡 2차 최종 완료 시: 실제 교대 처리
+                                window.removeEventListener('storage', responseListener);
+                                closeActionModal();
+                                
+                                // 실제 교대 점유 실행
+                                const targetStage = appData.stages.find(s => s.id === finalStageId);
+                                if (targetStage) {
+                                    targetStage.worker = appData.user.name;
+                                    targetStage.status = 'occupied';
+                                }
+                                if (appData.activeStageId !== 0) {
+                                    const prevStage = appData.stages.find(s => s.id === appData.activeStageId);
+                                    if (prevStage && prevStage.worker === appData.user.name) {
+                                        prevStage.worker = "";
+                                        prevStage.status = "available";
+                                    }
+                                }
+                                syncStagesToStorage();
+                                moveToStage(finalStageId, stageName);
+
+                            } else if (res.status === 'rejected') {
+                                window.removeEventListener('storage', responseListener);
+                                closeActionModal();
+                                alert("상대방이 거절하셨습니다. 교대가 취소되었습니다.");
+                            } else if (res.status === 'cancelled') {
+                                window.removeEventListener('storage', responseListener);
+                            }
+                        }
+                    }
+                };
+                window.addEventListener('storage', responseListener);
+                return; // 수락될 때까지 진입 차단
+            } else if (status === 'disabled') {
+                alert("현재 작업 불가한 공정입니다."); return;
+            } else {
+                if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
             }
 
-            // 💡 4. 그 외 일반적인 공정 이동 상황
-            if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
-            if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
-            if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
+            // 교대 수락 및 일반 이동 시 공통 액션: 
+            // 타인의 공정을 교대받은 경우 즉시 내 이름으로 덮어쓰고 점유. 
+            // 일반 진입(available)인 경우 체크인(Step 0) 통과 후 점유하도록 여기서는 상태를 바꾸지 않음.
+            const targetStage = appData.stages.find(s => s.id === finalStageId);
+            if (targetStage && (targetStage.status === 'occupied' || targetStage.status === 'resting')) {
+                targetStage.worker = appData.user.name;
+                targetStage.status = 'occupied';
+            }
+            
+            // 기존 작업장에 있던 내 정보를 초기화 (다른 곳으로 이동하므로)
+            if (appData.activeStageId !== 0) {
+                const prevStage = appData.stages.find(s => s.id === appData.activeStageId);
+                if (prevStage && prevStage.worker === appData.user.name) {
+                    prevStage.worker = "";
+                    prevStage.status = "available";
+                }
+            }
+            syncStagesToStorage(); // 💡 상태 변경 후 로컬 스토리지에 동기화
 
             moveToStage(finalStageId, stageName);
         }
@@ -968,8 +1193,17 @@
 
             if (stageId !== 0) {
                 addLog(`작업자가 [Stage ${stageId}. ${stageName}] 위치로 이동했습니다.`);
-                currentStepIndex = 0;
-                highestStepReached = 0; // 💡 새 작업 시작 시 도달 인덱스 초기화
+                
+                // 💡 휴식/교대 시 화면을 기억하기 위해, 저장된 상태가 있으면 복원하고 없으면 초기화
+                let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
+                if (stageStates[stageId]) {
+                    currentStepIndex = stageStates[stageId].stepIndex || 0;
+                    highestStepReached = stageStates[stageId].highest || 0;
+                } else {
+                    currentStepIndex = 0;
+                    highestStepReached = 0; // 새 작업 시작 시 도달 인덱스 초기화
+                }
+                
                 renderCurrentStep();
             }
         }
@@ -1173,6 +1407,22 @@
 
         function closeActionModal() {
             document.getElementById('action-modal').classList.remove('open');
+            
+            // 💡 작업 인수 요청 모달을 X로 닫은 경우 자동 취소(거절) 처리
+            const reqStr = localStorage.getItem('kimp_handover_req');
+            if (reqStr) {
+                const req = JSON.parse(reqStr);
+                // 내가 대상자인데 수락/거절을 명시적으로 안 하고 창을 닫아버렸을 때
+                if (req.to === appData.user.name && (req.status === 'pending' || req.status === 'accepted_moving')) {
+                    req.status = 'rejected';
+                    localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+                }
+                // 내가 요청자인데 기다리다가 X로 창을 닫아버렸을 때
+                if (req.from === appData.user.name && (req.status === 'pending' || req.status === 'accepted_moving')) {
+                    req.status = 'cancelled';
+                    localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+                }
+            }
         }
 
         function selectOption(btn) {
@@ -1690,9 +1940,23 @@
             const step = workflow[currentStepIndex];
 
             if (!step) {
+                // 공정이 완전히 종료될 때 저장된 상태 삭제
+                let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
+                if (stageStates[appData.activeStageId]) {
+                    delete stageStates[appData.activeStageId];
+                    localStorage.setItem('kimp_stage_states', JSON.stringify(stageStates));
+                }
                 finishStage();
                 return;
             }
+
+            // 💡 현재 렌더링되는 화면의 상태(인덱스)를 로컬스토리지에 무조건 저장
+            let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
+            stageStates[appData.activeStageId] = { 
+                stepIndex: currentStepIndex, 
+                highest: highestStepReached 
+            };
+            localStorage.setItem('kimp_stage_states', JSON.stringify(stageStates));
 
             let visualElement = '';
             if (step.type === 'qr') {
@@ -1934,6 +2198,17 @@
             }
 
             currentStepIndex++;
+            
+            // 💡 최초 QR 체크인(Step 0 -> Step 1) 통과 시점에 현재 스테이지를 '작업 중'으로 공식 점유
+            if (currentStepIndex === 1 && appData.activeStageId !== 0) {
+                const targetStage = appData.stages.find(s => s.id === appData.activeStageId);
+                if (targetStage && targetStage.status === 'available') {
+                    targetStage.worker = appData.user.name;
+                    targetStage.status = 'occupied';
+                    syncStagesToStorage();
+                }
+            }
+
             renderCurrentStep();
         }
 
@@ -2102,6 +2377,15 @@
             isResting = true;
             restSeconds = 0; // 휴식 타이머 1초부터 시작
 
+            // 내가 속한 스테이지 상태를 resting으로 변경
+            if (appData.activeStageId !== 0) {
+                const myStage = appData.stages.find(s => s.id === appData.activeStageId);
+                if (myStage && myStage.worker === appData.user.name) {
+                    myStage.status = 'resting';
+                    syncStagesToStorage(); // 💡 상태 변경 후 로컬 스토리지에 동기화
+                }
+            }
+
             // 상단 헤더에 휴식 시간 UI 박스 표출
             const restBox = document.getElementById('status-box-rest');
             if (restBox) restBox.style.display = 'flex';
@@ -2118,6 +2402,16 @@
         function simulateEnterQR() {
             playShutterSound();
             isResting = false;
+
+            // 내가 속한 스테이지 상태를 occupied로 복귀
+            if (appData.activeStageId !== 0) {
+                const myStage = appData.stages.find(s => s.id === appData.activeStageId);
+                // 타인이 가져가지 않았다면 다시 occupied로
+                if (myStage && myStage.worker === appData.user.name) {
+                    myStage.status = 'occupied';
+                    syncStagesToStorage(); // 💡 상태 변경 후 로컬 스토리지에 동기화
+                }
+            }
 
             let toastMsg = '입장 처리 완료. 급여 계산이 재개됩니다.';
 
@@ -2230,6 +2524,14 @@
                 
                 // 해당 스테이지 타이머 초기화 (다음 수행을 위해)
                 if (window.stageStartTimes) window.stageStartTimes[stageId] = null;
+
+                // 💡 작업 완료 후 내 점유 상태 해제
+                const myStage = appData.stages.find(s => s.id === stageId);
+                if (myStage && myStage.worker === appData.user.name) {
+                    myStage.worker = "";
+                    myStage.status = "available";
+                    syncStagesToStorage();
+                }
             }
 
             currentStepIndex = 0;
@@ -2285,6 +2587,10 @@
                     });
             });
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initSystem();
+        });
     </script>
 </body>
 
