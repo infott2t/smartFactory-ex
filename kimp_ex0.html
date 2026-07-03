@@ -827,7 +827,7 @@
         function updateHeaderInfo() {
             const titleEl = document.getElementById('display-job-title');
             const orderEl = document.getElementById('display-work-order');
-            if (titleEl) titleEl.innerHTML = `<i class="bi bi-box-seam"></i> 김치만들기`;
+            if (titleEl) titleEl.innerHTML = `<i class="bi bi-box-seam"></i> 김치만들기 v2.1`;
             if (orderEl) orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${appData.currentOrder.id}`;
         }
 
@@ -883,65 +883,23 @@
             document.getElementById('task-modal').classList.add('open');
         }
 
-        function handleStageClick(stageId, status, stageName) {
-            stageId = isNaN(stageId) ? stageId : Number(stageId);
-            const isCurrent = (stageId === appData.activeStageId);
-
-            // 💡 1. 본인이 휴식 중인데, 자신의 작업 위치를 터치한 경우 -> 작업 진행 차단
-            if (isCurrent && isResting) {
-                alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
-                return;
-            }
-
-            // 2. 현재 정상 작업 중인 곳을 터치한 경우 (창만 닫음)
-            if (isCurrent && !isResting) {
-                closeTaskSelector();
-                return;
-            }
-
-            // 💡 3. 타인이 휴식 중인 공정을 터치한 경우 (캡처 화면처럼 대신하기)
-            if (status === 'occupied' && workerName === '박준호') {
-                if (!confirm(`${workerName}님이 다시 참여할 예정입니다. 대신할까요?\n(확인 시 해당 위치의 작업이 바로 시작됩니다.)`)) return;
-
-                isJobTakenByOther = true;
-
-                if (isResting) simulateEnterQR();
-                moveToStage(stageId, stageName);
-                return;
-            }
-
-            // 4. 그 외 일반적인 공정 이동 상황
-            if (status === 'disabled') { alert("현재 작업 불가한 공정입니다."); return; }
-            if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
-            if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
-
-            if (isResting) {
-                simulateEnterQR();
-            }
-
-            moveToStage(stageId, stageName);
-        }
-
-        function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
-        // ============================================================
-        // 💡 작업 위치 클릭 시 이벤트 처리 (휴식 중 이동 차단)
-        // ============================================================
         function handleStageClick(stageId, status, stageName, workerName) {
-            const isCurrent = (stageId === appData.activeStageId);
+            // "5-1", "5-2" 같은 문자열 ID를 유지하되, 숫자로 변환 가능한 경우에만 변환합니다.
+            const parsedStageId = isNaN(Number(stageId)) ? stageId : Number(stageId);
+            const finalStageId = (typeof stageId === 'string' && (stageId === "5-1" || stageId === "5-2")) ? stageId : parsedStageId;
+            const isCurrent = (finalStageId === appData.activeStageId);
 
             // 💡 1. 본인이 휴식 중(작업장 외부)일 때의 클릭 차단 로직
             if (isResting) {
                 if (isCurrent) {
-                    // 자신의 작업 위치를 눌렀을 때
                     alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
                 } else {
-                    // 다른 공정(위치 변경)을 눌렀을 때
                     alert("작업장 밖에 있는 상태(휴식 중)이므로 다른 위치로 변경할 수 없습니다.\n먼저 작업장으로 입장해주세요.");
                 }
-                return; // 여기서 실행을 중단하여 화면 이동(위치 변경)을 완벽히 막습니다.
+                return;
             }
 
-            // 💡 2. 현재 정상 작업 중인 내 위치를 터치한 경우 (이동할 필요 없이 창만 닫음)
+            // 💡 2. 현재 정상 작업 중인 곳을 터치한 경우 (창만 닫음)
             if (isCurrent && !isResting) {
                 closeTaskSelector();
                 return;
@@ -952,7 +910,7 @@
                 if (!confirm(`${workerName}님이 다시 참여할 예정입니다. 대신할까요?\n(확인 시 해당 위치의 작업이 바로 시작됩니다.)`)) return;
 
                 isJobTakenByOther = true;
-                moveToStage(stageId, stageName);
+                moveToStage(finalStageId, stageName);
                 return;
             }
 
@@ -961,8 +919,10 @@
             if (status === 'occupied') { if (!confirm("타인이 작업 중입니다. 교대하시겠습니까?")) return; }
             if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
 
-            moveToStage(stageId, stageName);
+            moveToStage(finalStageId, stageName);
         }
+
+        function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
 
         function moveToStage(stageId, stageName) {
             if (stageId !== 0) {
@@ -1678,6 +1638,7 @@
             { type: 'input-materials', icon: 'bi-cart-check', title: '실제 상차 수량입력', desc: '가져온 재료의 수량을 각각 입력해주세요.', action: '입력 완료' },
             { type: 'final-photo', icon: 'bi-camera', title: '자재 사진 찍어서 전송', desc: '가져온 재료가 모두 보이도록 촬영해주세요.', action: '사진 전송' },
             { type: 'work', icon: 'bi-basket', title: '재료 다듬고 섞기', desc: '각 재료를 다듬고, 양파와 생강은 믹서기에 갈아줌니다. 대파를 손질하여 잘 썰어주고, 그리고 볼이나 믹서기에 잘 섞어줌니다.', action: '작업 완료' },
+            { type: 'final-photo', icon: 'bi-camera', title: '양념 및 지시서 촬영', desc: '전용용기에 담은 완성된 양념과 생산지시서가 함께 보이도록 사진을 찍어 전송해주세요.', action: '사진 전송' },
             { type: 'info', icon: 'bi-box-seam', title: '숙성실 이동', desc: '전용용기에 담고, 생산지시서를 붙이고, 숙성실에 놓아줌니다.', action: '숙성실로 이동 완료' }
         ];
 
@@ -1695,13 +1656,14 @@
 
         const stage6Workflow = [
             { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
-            { type: 'qr', icon: 'bi-upc-scan', title: '포장용 생산지시서 맵핑', desc: `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
+            { type: 'qr', icon: 'bi-upc-scan', title: '포장용 생산지시서 맵핑', desc: `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--primary)">300g 5개, 1kg 5개</strong><br>위 수량대로 포장을 진행해주세요.<br>QR코드를 스캔해주세요.`, action: '지시서 확인' },
             { type: 'info', icon: 'bi-box-seam', title: '김치 가져오기', desc: '숙성실에서 양념된 배추를 가져와서 작업을 이어가세요.<br><strong style="color:var(--warning);">※ 숙성실에 없다면, Stage 5-2 구역에서 가져와주세요.</strong>', action: '김치 준비 완료' },
             { type: 'info', icon: 'bi-box', title: '포장 용기 준비 및 보충', desc: '지시서에 맞는 포장 용기(300g 맛김치 팩, 1kg 포기김치 팩, 3kg 대용량 팩)를 준비하세요.<br>용기가 부족하면 자재창고에서 새로 가져와주세요.', action: '용기 준비 완료' },
             { type: 'final-photo', icon: 'bi-camera', title: '자재 준비 사진 심사', desc: '가져온 양념 배추와 포장 용기의 상태를 사진으로 찍어 전송해주세요.', action: '사진 전송' },
-            { type: 'work', icon: 'bi-bag-check', title: '김치 포장 및 밀봉 작업', desc: '지시된 규격(300g, 1kg, 3kg)에 맞게 김치를 용기에 담고, 꼼꼼하게 밀봉해주세요.', action: '포장 완료' },
+            { type: 'work', icon: 'bi-speedometer2', title: '저울 0점 맞추기 및 정량 계량', desc: '저울에 빈 포장용기를 올리고 0점(영점)을 맞춘 다음, 김치를 담아서 정확한 무게수를 맞춰주세요.', action: '계량 완료' },
+            { type: 'work', icon: 'bi-bag-check', title: '김치 포장 및 밀봉 작업', desc: '지시된 수량(300g 5개, 1kg 5개)에 맞게 정량 계량된 김치를 꼼꼼하게 밀봉해주세요.', action: '포장 완료' },
             { type: 'report', icon: 'bi-clipboard-check', title: '포장 수량 세기', desc: '포장이 완료된 제품의 수량(팩 수)과 총 무게를 입력해주세요.', action: '실적 저장' },
-            { type: 'final-photo', icon: 'bi-camera', title: '최종 완료 사진 전송', desc: '포장 완료된 <strong style="color:var(--primary)">최종 제품</strong>과 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송 및 출하 대기' }
+            { type: 'final-photo', icon: 'bi-camera', title: '최종 완료 사진 전송', desc: '포장 완료된 <strong style="color:var(--primary)">최종 제품</strong>과 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 사진을 찍고 승인을 요청해주세요.', action: '사진 전송 및 승인 요청' }
         ];
 
         // 💡 새로 추가된 뒤로가기 함수
@@ -1717,7 +1679,10 @@
             if (!container) return;
 
             let workflow;
-            if (appData.activeStageId === 4) workflow = stage4Workflow;
+            if (appData.activeStageId === 6) workflow = stage6Workflow;
+            else if (appData.activeStageId === "5-2") workflow = stage5_2Workflow;
+            else if (appData.activeStageId === "5-1") workflow = stage5_1Workflow;
+            else if (appData.activeStageId === 4) workflow = stage4Workflow;
             else if (appData.activeStageId === 3) workflow = stage3Workflow;
             else if (appData.activeStageId === 2) workflow = stage2Workflow;
             else workflow = stage1Workflow;
