@@ -1229,6 +1229,29 @@
                 }
                 
                 renderCurrentStep();
+                
+                // 💡 이전 작업자가 남긴 자동 인수인계 메시지가 있는지 확인하고 모달 띄우기
+                const autoMsg = localStorage.getItem(`kimp_auto_handover_msg_${stageId}`);
+                if (autoMsg) {
+                    const content = `
+                        <div style="text-align: left; margin-bottom: 24px;">
+                            <h3 style="color: var(--text-primary); margin-bottom: 12px; font-size: 18px;"><i class="bi bi-clipboard-check"></i> 자동 인수인계 사항</h3>
+                            <div class="auto-handover-box" style="background-color: var(--bg-primary); padding: 16px; border-radius: 8px; color: var(--text-secondary); line-height: 1.5; font-size: 15px; border: 1px solid var(--border-color);">
+                                ${autoMsg}
+                            </div>
+                            <p style="font-size: 14px; margin-top: 16px; color: #b3b3c9;">
+                                <i class="bi bi-info-circle"></i> 위 내용은 시스템이 현재 상태를 읽어 자동으로 작성한 인수인계 내용입니다.
+                            </p>
+                        </div>
+                        <button class="btn-huge primary w-100" onclick="closeActionModal()">확인</button>
+                    `;
+                    // 약간의 딜레이를 주어 UI가 렌더링된 후 모달이 뜨도록 함
+                    setTimeout(() => {
+                        openActionModal('작업 인수인계', '<i class="bi bi-briefcase" style="color: #8b5cf6;"></i>', content);
+                    }, 100);
+                    
+                    localStorage.removeItem(`kimp_auto_handover_msg_${stageId}`);
+                }
             }
         }
 
@@ -1846,19 +1869,7 @@
                 return;
             }
 
-            const total = appData.currentOrder.qty;
-
-            if (inputId === 'input-defect') {
-                if (val > total) val = total;
-                input.value = val;
-                document.getElementById('input-good').value = total - val;
-            } else if (inputId === 'input-good') {
-                if (val > total) val = total;
-                input.value = val;
-                document.getElementById('input-defect').value = total - val;
-            } else {
-                input.value = val;
-            }
+            input.value = val;
         }
 
         const stage1Workflow = [
@@ -2010,7 +2021,7 @@
                         <label>양품 (정상)</label>
                         <div class="number-stepper">
                             <button onclick="changeValue('input-good', -1)"><i class="bi bi-dash"></i></button>
-                            <input type="number" id="input-good" value="${appData.currentOrder.qty}" readonly />
+                            <input type="number" id="input-good" value="0" readonly />
                             <button onclick="changeValue('input-good', 1)"><i class="bi bi-plus"></i></button>
                         </div>
                     </div>
@@ -2265,39 +2276,39 @@
             let msg = `지시서 [${orderId}] - `;
 
             if (stage === 1) {
-                if (step <= 1) msg += "QR코드 체크인 단계입니다. 아직 실제 작업에 들어가지 않았습니다.";
-                else if (step <= 4) msg += `자재 창고에서 배추 상차 및 이동 중입니다.`;
-                else if (step === 5) msg += "배추 컷팅 작업 진행 중입니다. (아직 컷팅이 완료되지 않은 상태로 인계합니다)";
-                else if (step === 6) msg += "컷팅 완료 후 수량/무게 실적 입력 대기 중입니다.";
-                else msg += "실적 입력은 끝났고, 마지막 증빙 사진 촬영만 남았습니다.";
+                if (step <= 1) msg += "QR코드 체크인 단계였습니다. 아직 실제 작업에 들어가지 않았습니다.";
+                else if (step <= 4) msg += `자재 창고에서 배추 상차 및 이동 중이었습니다.`;
+                else if (step === 5) msg += "배추 컷팅 작업 진행 중이었습니다. (아직 컷팅이 완료되지 않은 상태로 인계합니다)";
+                else if (step === 6) msg += "컷팅 완료 후 수량/무게 실적 입력 대기 중이었습니다.";
+                else msg += "실적 입력은 끝났고, 마지막 증빙 사진 촬영만 남았었습니다.";
             } else if (stage === 2) {
-                if (step <= 2) msg += "절이기 전 수량 확인 단계입니다.";
-                else if (step <= 4) msg += "수조에 배추를 넣고 염수 및 소금 치기 작업 진행 중입니다.";
-                else if (step <= 6) msg += "절이기 완료 후 무게 측정 및 사진 촬영 단계입니다.";
-                else msg += "숙성실로 이동하여 23시간 타이머 시작 대기 중입니다.";
+                if (step <= 2) msg += "절이기 전 수량 확인 단계였습니다.";
+                else if (step <= 4) msg += "수조에 배추를 넣고 염수 및 소금 치기 작업 진행 중이었습니다.";
+                else if (step <= 6) msg += "절이기 완료 후 무게 측정 및 사진 촬영 단계였습니다.";
+                else msg += "숙성실로 이동하여 23시간 타이머 시작 대기 중이었습니다.";
             } else if (stage === 3) {
-                if (step <= 2) msg += "세척 전 절인 배추 상태 확인(사진 촬영) 단계입니다.";
-                else if (step === 3) msg += "배추 3단 세척 작업 진행 중입니다. (다음 작업자가 이어서 세척 필요)";
-                else if (step === 4) msg += "세척 완료 후 1시간 물기 빼기 대기 중입니다.";
-                else msg += "물기 빼기 완료 후 최종 실적 입력 및 증빙 촬영 단계입니다.";
+                if (step <= 2) msg += "세척 전 절인 배추 상태 확인(사진 촬영) 단계였습니다.";
+                else if (step === 3) msg += "배추 3단 세척 작업 진행 중이었습니다. (다음 작업자가 이어서 세척 필요)";
+                else if (step === 4) msg += "세척 완료 후 1시간 물기 빼기 대기 중이었습니다.";
+                else msg += "물기 빼기 완료 후 최종 실적 입력 및 증빙 촬영 단계였습니다.";
             } else if (stage === 4) {
-                if (step <= 2) msg += "밀봉 전 물기 빠진 배추 상태 확인 단계입니다.";
-                else if (step <= 4) msg += "배추를 비닐에 담고 공기를 빼며 밀봉하는 작업 진행 중입니다.";
-                else msg += "밀봉 완료 후 무게 측정 및 숙성실(저온창고) 보관 대기 중입니다.";
+                if (step <= 2) msg += "밀봉 전 물기 빠진 배추 상태 확인 단계였습니다.";
+                else if (step <= 4) msg += "배추를 비닐에 담고 공기를 빼며 밀봉하는 작업 진행 중이었습니다.";
+                else msg += "밀봉 완료 후 무게 측정 및 숙성실(저온창고) 보관 대기 중이었습니다.";
             } else if (stage === "5-1") {
-                if (step <= 3) msg += "양념 자재(생강, 파, 고춧가루 등) 수량 확인 및 상차 중입니다.";
-                else if (step <= 5) msg += "가져온 재료를 다듬고 믹서기에 갈아 양념을 배합하는 작업 중입니다.";
-                else msg += "완성된 양념 사진 촬영 및 숙성실 이동 대기 중입니다.";
+                if (step <= 3) msg += "양념 자재(생강, 파, 고춧가루 등) 수량 확인 및 상차 중이었습니다.";
+                else if (step <= 5) msg += "가져온 재료를 다듬고 믹서기에 갈아 양념을 배합하는 작업 중이었습니다.";
+                else msg += "완성된 양념 사진 촬영 및 숙성실 이동 대기 중이었습니다.";
             } else if (stage === "5-2") {
-                if (step <= 3) msg += "숙성실에서 절인 배추와 양념을 작업대로 가져와 준비하는 단계입니다.";
-                else if (step <= 5) msg += "배추에 양념을 펴 바르고 겉잎으로 감싸는 포기김치 완성 작업 중입니다.";
-                else msg += "김치 완성 후 무게 측정 및 보관 용기 이동 대기 중입니다.";
+                if (step <= 3) msg += "숙성실에서 절인 배추와 양념을 작업대로 가져와 준비하는 단계였습니다.";
+                else if (step <= 5) msg += "배추에 양념을 펴 바르고 겉잎으로 감싸는 포기김치 완성 작업 중이었습니다.";
+                else msg += "김치 완성 후 무게 측정 및 보관 용기 이동 대기 중이었습니다.";
             } else if (stage === 6) {
-                if (step <= 4) msg += "지시서 규격(300g, 1kg 등)에 맞는 포장 용기를 준비하고 확인하는 단계입니다.";
-                else if (step <= 6) msg += "저울 0점을 맞추고 김치를 정량 계량하여 팩에 밀봉하는 작업 진행 중입니다.";
-                else msg += "포장 완료된 팩 수량 입력 및 최종 출하 대기(사진 승인) 단계입니다.";
+                if (step <= 4) msg += "지시서 규격(300g, 1kg 등)에 맞는 포장 용기를 준비하고 확인하는 단계였습니다.";
+                else if (step <= 6) msg += "저울 0점을 맞추고 김치를 정량 계량하여 팩에 밀봉하는 작업 진행 중이었습니다.";
+                else msg += "포장 완료된 팩 수량 입력 및 최종 출하 대기(사진 승인) 단계였습니다.";
             } else {
-                msg += "작업 대기 중입니다.";
+                msg += "작업 대기 중이었습니다.";
             }
             return msg;
         }
@@ -2309,6 +2320,12 @@
             } else {
                 addLog(`[인수인계] ${msg}`);
             }
+            
+            // 💡 다음 작업자가 볼 수 있도록 localStorage에 메시지 저장
+            if (appData.activeStageId !== 0) {
+                localStorage.setItem(`kimp_auto_handover_msg_${appData.activeStageId}`, msg);
+            }
+            
             showRestExitQR();
         }
 
