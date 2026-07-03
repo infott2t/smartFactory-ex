@@ -1948,23 +1948,113 @@
         // 💡 단계별 휴식 및 QR 스캔 프로세스
         // ============================================================
 
+        function getAutoHandoverMessage() {
+            const stage = appData.activeStageId;
+            const step = currentStepIndex;
+            const orderId = appData.currentOrder.id || '없음';
+            let msg = `지시서 [${orderId}] - `;
+
+            if (stage === 1) {
+                if (step <= 1) msg += "QR코드 체크인 단계입니다. 아직 실제 작업에 들어가지 않았습니다.";
+                else if (step <= 4) msg += `자재 창고에서 배추 상차 및 이동 중입니다.`;
+                else if (step === 5) msg += "배추 컷팅 작업 진행 중입니다. (아직 컷팅이 완료되지 않은 상태로 인계합니다)";
+                else if (step === 6) msg += "컷팅 완료 후 수량/무게 실적 입력 대기 중입니다.";
+                else msg += "실적 입력은 끝났고, 마지막 증빙 사진 촬영만 남았습니다.";
+            } else if (stage === 2) {
+                if (step <= 2) msg += "절이기 전 수량 확인 단계입니다.";
+                else if (step <= 4) msg += "수조에 배추를 넣고 염수 및 소금 치기 작업 진행 중입니다.";
+                else if (step <= 6) msg += "절이기 완료 후 무게 측정 및 사진 촬영 단계입니다.";
+                else msg += "숙성실로 이동하여 23시간 타이머 시작 대기 중입니다.";
+            } else if (stage === 3) {
+                if (step <= 2) msg += "세척 전 절인 배추 상태 확인(사진 촬영) 단계입니다.";
+                else if (step === 3) msg += "배추 3단 세척 작업 진행 중입니다. (다음 작업자가 이어서 세척 필요)";
+                else if (step === 4) msg += "세척 완료 후 1시간 물기 빼기 대기 중입니다.";
+                else msg += "물기 빼기 완료 후 최종 실적 입력 및 증빙 촬영 단계입니다.";
+            } else if (stage === 4) {
+                if (step <= 2) msg += "밀봉 전 물기 빠진 배추 상태 확인 단계입니다.";
+                else if (step <= 4) msg += "배추를 비닐에 담고 공기를 빼며 밀봉하는 작업 진행 중입니다.";
+                else msg += "밀봉 완료 후 무게 측정 및 숙성실(저온창고) 보관 대기 중입니다.";
+            } else if (stage === "5-1") {
+                if (step <= 3) msg += "양념 자재(생강, 파, 고춧가루 등) 수량 확인 및 상차 중입니다.";
+                else if (step <= 5) msg += "가져온 재료를 다듬고 믹서기에 갈아 양념을 배합하는 작업 중입니다.";
+                else msg += "완성된 양념 사진 촬영 및 숙성실 이동 대기 중입니다.";
+            } else if (stage === "5-2") {
+                if (step <= 3) msg += "숙성실에서 절인 배추와 양념을 작업대로 가져와 준비하는 단계입니다.";
+                else if (step <= 5) msg += "배추에 양념을 펴 바르고 겉잎으로 감싸는 포기김치 완성 작업 중입니다.";
+                else msg += "김치 완성 후 무게 측정 및 보관 용기 이동 대기 중입니다.";
+            } else if (stage === 6) {
+                if (step <= 4) msg += "지시서 규격(300g, 1kg 등)에 맞는 포장 용기를 준비하고 확인하는 단계입니다.";
+                else if (step <= 6) msg += "저울 0점을 맞추고 김치를 정량 계량하여 팩에 밀봉하는 작업 진행 중입니다.";
+                else msg += "포장 완료된 팩 수량 입력 및 최종 출하 대기(사진 승인) 단계입니다.";
+            } else {
+                msg += "작업 대기 중입니다.";
+            }
+            return msg;
+        }
+
+        function submitHandover(isFromHelper) {
+            const msg = window.currentHandoverMessage;
+            if (isFromHelper) {
+                addLog(`[인수인계] 헬퍼가 도착하여 구두로 전달됨: ${msg}`);
+            } else {
+                addLog(`[인수인계] ${msg}`);
+            }
+            showRestExitQR();
+        }
+
+        function callHelper() {
+            const isSuccess = Math.random() < 0.7; // 70% 성공 확률
+            if (isSuccess) {
+                alert("헬퍼가 매칭되었습니다! 인수인계가 완료되었습니다.");
+                accumSalary -= 2000; // 마이너스 급여 허용 (즉시 차감)
+                const salEl = document.getElementById('accum-salary');
+                if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
+                
+                submitHandover(true);
+            } else {
+                alert("현재 대기 중인 헬퍼가 없습니다.\n직접 인수인계 사항을 남겨주세요.");
+            }
+        }
+
         // 1. 라운지에서 [에너지 재충전 휴식] 클릭 시
         function showRestMode() {
             if (!isResting) {
-                // [휴식 전] 안내 메시지 및 퇴장 유도
-                const content = `
-                    <div style="text-align: center; margin-bottom: 24px;">
-                        <i class="bi bi-cup-hot" style="font-size: 80px; color: var(--text-secondary);"></i>
-                        <p style="font-size: 20px; font-weight: bold; margin-top: 16px; color: var(--text-primary);">
-                           휴식시간을 가져보세요.<br>휴게실이 있습니다.<br>2시간 근무에 30분 권장합니다.</br> 
-                        </p>
-                        <p style="font-size: 15px; margin-top: 16px; padding: 12px; color: #b3b3c9; border-radius: 8px; font-weight: 600;">
-                            <i class="bi bi-exclamation-triangle-fill"></i> 쉬기 위해서는 안전을 위해 작업장에서 벗어나야합니다.
-                        </p>
-                    </div>
-                    <button class="btn-huge primary" onclick="showRestExitQR()">퇴실 절차 진행하기 <i class="bi bi-arrow-right"></i></button>
-                `;
-                openActionModal('휴식하기', '<i class="bi bi-battery-charging" style="color: #8b5cf6;"></i>', content);
+                if (appData.activeStageId === 0) {
+                    // [휴식 전] 대기장소일 때 안내 메시지 및 퇴장 유도
+                    const content = `
+                        <div style="text-align: center; margin-bottom: 24px;">
+                            <i class="bi bi-cup-hot" style="font-size: 80px; color: var(--text-secondary);"></i>
+                            <p style="font-size: 20px; font-weight: bold; margin-top: 16px; color: var(--text-primary);">
+                               휴식시간을 가져보세요.<br>휴게실이 있습니다.<br>2시간 근무에 30분 권장합니다.</br> 
+                            </p>
+                            <p style="font-size: 15px; margin-top: 16px; padding: 12px; color: #b3b3c9; border-radius: 8px; font-weight: 600;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 쉬기 위해서는 안전을 위해 작업장에서 벗어나야합니다.
+                            </p>
+                        </div>
+                        <button class="btn-huge primary" onclick="showRestExitQR()">퇴실 절차 진행하기 <i class="bi bi-arrow-right"></i></button>
+                    `;
+                    openActionModal('휴식하기', '<i class="bi bi-battery-charging" style="color: #8b5cf6;"></i>', content);
+                } else {
+                    // 작업 중일 때는 인수인계 모달 진행
+                    const autoMsg = getAutoHandoverMessage();
+                    window.currentHandoverMessage = autoMsg; // 글로벌 저장
+                    const content = `
+                        <div style="text-align: left; margin-bottom: 24px;">
+                            <h3 style="color: var(--text-primary); margin-bottom: 12px; font-size: 18px;"><i class="bi bi-clipboard-check"></i> 자동 인수인계 사항</h3>
+                            <div class="auto-handover-box" style="background-color: var(--bg-primary); padding: 16px; border-radius: 8px; color: var(--text-secondary); line-height: 1.5; font-size: 15px; border: 1px solid var(--border-color);">
+                                ${autoMsg}
+                            </div>
+                            <p style="font-size: 14px; margin-top: 16px; color: #b3b3c9;">
+                                <i class="bi bi-info-circle"></i> 위 내용은 시스템이 현재 상태를 읽어 자동으로 작성한 인수인계 내용입니다.
+                            </p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn-huge primary" onclick="submitHandover(false)">작업 인수인계 남기기 <i class="bi bi-check-circle"></i></button>
+                            <button class="btn-huge" style="background-color: #6366f1; color: white;" onclick="callHelper()">헬퍼 호출하기 (수수료 2,000원) <i class="bi bi-person-badge"></i></button>
+                        </div>
+                    `;
+                    openActionModal('작업 인수인계', '<i class="bi bi-briefcase" style="color: #8b5cf6;"></i>', content);
+                }
             } else {
                 // [휴식 중] 다시 휴식 메뉴 클릭 시 (입장 유도)
                 const currentRestTime = document.getElementById('clock-rest').textContent;
