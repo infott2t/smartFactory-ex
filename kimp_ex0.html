@@ -245,6 +245,12 @@
         .hmi-toast i {
             font-size: 18px;
         }
+        
+        body.resting-mode main.main-content {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(80%);
+        }
     </style>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#7879e6">
@@ -904,6 +910,24 @@
                     closeActionModal();
                     alert(`[${req.from}]님이 작업 인수 요청을 취소했습니다.`);
                 }
+            } else if (e.key === 'kimp_handover_msg') {
+                const msgStr = e.newValue;
+                if (!msgStr) return;
+                const msgObj = JSON.parse(msgStr);
+
+                // 💡 내가 타겟(원래 작업하던 휴식자)일 때 메시지를 받음
+                if (msgObj.to === appData.user.name) {
+                    const content = `
+                        <div style="text-align:center; padding:20px;">
+                            <p style="font-size:18px; margin-bottom:20px;"><strong>[${msgObj.from}]</strong>님이 휴식 중인 공정(Stage ${msgObj.stageId})을 인수하며 메시지를 남겼습니다.</p>
+                            <div style="background:var(--bg-card); padding:15px; border-radius:10px; margin-bottom:20px; text-align:left; color:white; border: 1px solid var(--border-color);">
+                                ${msgObj.message.replace(/\n/g, '<br>')}
+                            </div>
+                            <button class="btn btn-primary w-100" onclick="closeActionModal()">확인</button>
+                        </div>
+                    `;
+                    openActionModal('작업 인수 메시지 도착', '<i class="bi bi-envelope-open-fill" style="color:var(--primary);"></i>', content);
+                }
             }
         });
 
@@ -965,6 +989,11 @@
         }
 
         function openTaskSelector() {
+            if (isResting) {
+                alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
+                return;
+            }
+
             loadStagesFromStorage(); // 열 때 항상 최신 상태 로드
             const grid = document.getElementById('task-grid-container');
             if (!grid) return;
@@ -1013,6 +1042,24 @@
             document.getElementById('task-modal').classList.add('open');
         }
 
+        function finalizeStageMove(finalStageId, stageName) {
+            const targetStage = appData.stages.find(s => s.id === finalStageId);
+            if (targetStage && (targetStage.status === 'occupied' || targetStage.status === 'resting')) {
+                targetStage.worker = appData.user.name;
+                targetStage.status = 'occupied';
+            }
+            if (appData.activeStageId !== 0) {
+                const prevStage = appData.stages.find(s => s.id === appData.activeStageId);
+                if (prevStage && prevStage.worker === appData.user.name) {
+                    prevStage.worker = "";
+                    prevStage.status = "available";
+                }
+            }
+            syncStagesToStorage();
+            moveToStage(finalStageId, stageName);
+        }
+
+
         function handleStageClick(stageId, status, stageName, workerName) {
             const parsedStageId = isNaN(Number(stageId)) ? stageId : Number(stageId);
             const finalStageId = (typeof stageId === 'string' && (stageId === "5-1" || stageId === "5-2")) ? stageId : parsedStageId;
@@ -1038,20 +1085,11 @@
             if (workerName !== "" && workerName !== appData.user.name) {
                 if (status === 'occupied') {
                     if (!confirm(`${workerName}님이 작업 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
-                } else if (status === 'resting') {
-                    // 요구사항: 대기장소가 아니라 현장에 있을 경우에 확인창 띄우기
-                    if (appData.activeStageId !== 0) {
-                        if (!confirm(`${workerName}님이 휴식 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
-                    } else {
-                        // 대기장소일 때도 안전하게 한 번 더 물어보기 (원하지 않으면 이 if문을 통합해도 됨)
-                        if (!confirm(`${workerName}님이 휴식 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
-                    }
-                }
 
-                // 💡 상대방에게 인수 요청 보내기
-                const reqId = Date.now();
-                const reqObj = { reqId: reqId, from: appData.user.name, to: workerName, stageId: finalStageId, stageName: stageName, status: 'pending' };
-                localStorage.setItem('kimp_handover_req', JSON.stringify(reqObj));
+                    // 💡 상대방에게 인수 요청 보내기 (occupied일 때만)
+                    const reqId = Date.now();
+                    const reqObj = { reqId: reqId, from: appData.user.name, to: workerName, stageId: finalStageId, stageName: stageName, status: 'pending' };
+                    localStorage.setItem('kimp_handover_req', JSON.stringify(reqObj));
 
                 // 대기 UI 표시
                 const content = `
@@ -1092,20 +1130,7 @@
                                 closeActionModal();
                                 
                                 // 실제 교대 점유 실행
-                                const targetStage = appData.stages.find(s => s.id === finalStageId);
-                                if (targetStage) {
-                                    targetStage.worker = appData.user.name;
-                                    targetStage.status = 'occupied';
-                                }
-                                if (appData.activeStageId !== 0) {
-                                    const prevStage = appData.stages.find(s => s.id === appData.activeStageId);
-                                    if (prevStage && prevStage.worker === appData.user.name) {
-                                        prevStage.worker = "";
-                                        prevStage.status = "available";
-                                    }
-                                }
-                                syncStagesToStorage();
-                                moveToStage(finalStageId, stageName);
+                                finalizeStageMove(finalStageId, stageName);
 
                             } else if (res.status === 'rejected') {
                                 window.removeEventListener('storage', responseListener);
@@ -1117,34 +1142,22 @@
                         }
                     }
                 };
+                
                 window.addEventListener('storage', responseListener);
                 return; // 수락될 때까지 진입 차단
-            } else if (status === 'disabled') {
+
+            } else if (status === 'resting') {
+                // 💡 휴식 중일 때는 즉시 교대 확인창 표시
+                if (!confirm(`[${workerName}]님이 휴식 중입니다.\n대신 작업하시겠습니까?`)) return;
+            }
+        } else if (status === 'disabled') {
                 alert("현재 작업 불가한 공정입니다."); return;
             } else {
                 if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
             }
 
             // 교대 수락 및 일반 이동 시 공통 액션: 
-            // 타인의 공정을 교대받은 경우 즉시 내 이름으로 덮어쓰고 점유. 
-            // 일반 진입(available)인 경우 체크인(Step 0) 통과 후 점유하도록 여기서는 상태를 바꾸지 않음.
-            const targetStage = appData.stages.find(s => s.id === finalStageId);
-            if (targetStage && (targetStage.status === 'occupied' || targetStage.status === 'resting')) {
-                targetStage.worker = appData.user.name;
-                targetStage.status = 'occupied';
-            }
-            
-            // 기존 작업장에 있던 내 정보를 초기화 (다른 곳으로 이동하므로)
-            if (appData.activeStageId !== 0) {
-                const prevStage = appData.stages.find(s => s.id === appData.activeStageId);
-                if (prevStage && prevStage.worker === appData.user.name) {
-                    prevStage.worker = "";
-                    prevStage.status = "available";
-                }
-            }
-            syncStagesToStorage(); // 💡 상태 변경 후 로컬 스토리지에 동기화
-
-            moveToStage(finalStageId, stageName);
+            finalizeStageMove(finalStageId, stageName);
         }
 
         function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
@@ -1202,6 +1215,17 @@
                 } else {
                     currentStepIndex = 0;
                     highestStepReached = 0; // 새 작업 시작 시 도달 인덱스 초기화
+                }
+                
+                // 💡 만약 복원된 인덱스가 0보다 크면(즉, 이미 체크인을 통과한 이력이 있으면),
+                // 현재 공정을 내가 다시 점유해야 함 (타인이 점유 중이지 않을 때만)
+                if (currentStepIndex > 0) {
+                    const targetStage = appData.stages.find(s => s.id === stageId);
+                    if (targetStage && targetStage.status === 'available') {
+                        targetStage.worker = appData.user.name;
+                        targetStage.status = 'occupied';
+                        syncStagesToStorage();
+                    }
                 }
                 
                 renderCurrentStep();
@@ -2107,6 +2131,17 @@
         }
 
         function nextStep() {
+            // 💡 최초 QR 체크인 시도 시, 그 사이에 다른 사람이 먼저 선점했는지(동시 진입) 확인
+            if (currentStepIndex === 0 && appData.activeStageId !== 0) {
+                loadStagesFromStorage();
+                const targetStage = appData.stages.find(s => s.id === appData.activeStageId);
+                if (targetStage && targetStage.status === 'occupied' && targetStage.worker !== appData.user.name) {
+                    alert(`[${targetStage.worker}]님이 먼저 해당 공정에 진입하여 작업 중입니다.\n대기장소로 돌아갑니다.`);
+                    moveToStage(0, '대기장소');
+                    return;
+                }
+            }
+
             let workflow;
             if (appData.activeStageId === 6) workflow = stage6Workflow;
             else if (appData.activeStageId === "5-2") workflow = stage5_2Workflow;
@@ -2375,6 +2410,7 @@
         function simulateExitQR() {
             playShutterSound();
             isResting = true;
+            document.body.classList.add('resting-mode');
             restSeconds = 0; // 휴식 타이머 1초부터 시작
 
             // 내가 속한 스테이지 상태를 resting으로 변경
@@ -2402,6 +2438,7 @@
         function simulateEnterQR() {
             playShutterSound();
             isResting = false;
+            document.body.classList.remove('resting-mode');
 
             // 내가 속한 스테이지 상태를 occupied로 복귀
             if (appData.activeStageId !== 0) {
