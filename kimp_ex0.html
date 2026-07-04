@@ -417,6 +417,9 @@
                 <button type="button" class="menu-btn" onclick="showWorkLogs()">
                     <i class="bi bi-journal-check" style="color: #10b981;"></i> 나의 작업 기록 및 성과
                 </button>
+                <button type="button" class="menu-btn" onclick="showWorkRules()">
+                    <i class="bi bi-info-circle-fill" style="color: #0ea5e9;"></i> 작업 룰 소개
+                </button>
                 <button type="button" class="menu-btn" onclick="showEmergencyHelp()">
                     <i class="bi bi-bell-fill" style="color: #f59e0b;"></i> 도움 받기
                 </button>
@@ -477,6 +480,45 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="work-rules-modal">
+        <div class="modal-content" style="max-width: 500px; height: 480px; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2 class="modal-title" style="color: var(--primary);">
+                    <i class="bi bi-info-circle-fill"></i> 작업 룰 소개
+                </h2>
+                <button class="btn-close-modal" onclick="closeWorkRules()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="work-rules-content" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 15px; line-height: 1.6; color: var(--text-primary);">
+                <ul style="list-style: none; padding-left: 0; margin-top: 0;">
+                    <li style="margin-bottom: 16px; display: flex; gap: 8px;">
+                        <i class="bi bi-clock-fill" style="color: #10b981; margin-top: 3px;"></i>
+                        <span><strong>2시간 근무에 30분 휴식을 권장합니다.</strong> 작업이 끝난 후 되도록 휴식 갑시다.</span>
+                    </li>
+                    <li style="margin-bottom: 16px; display: flex; gap: 8px;">
+                        <i class="bi bi-cup-hot-fill" style="color: #8b5cf6; margin-top: 3px;"></i>
+                        <span>휴식시 휴게실 이용이 가능하며, 나가서 휴식을 취하셔도 괜찮습니다.</span>
+                    </li>
+                    <li style="margin-bottom: 16px; display: flex; gap: 8px;">
+                        <i class="bi bi-person-badge-fill" style="color: #3b82f6; margin-top: 3px;"></i>
+                        <span>일은 하는 일에 따라 <strong>일반, 헬퍼(도우미), 모니터요원(사진심사등)</strong>으로 구분합니다.</span>
+                    </li>
+                    <li style="margin-bottom: 16px; display: flex; gap: 8px;">
+                        <i class="bi bi-coin" style="color: #f59e0b; margin-top: 3px;"></i>
+                        <span>헬퍼의 도움을 받을 때에는 <strong>500원</strong>이 차감되며, 초심자의 경우에는 <strong>5회 무료</strong>로 도움을 받을 수 있습니다.</span>
+                    </li>
+                    <li style="margin-bottom: 16px; display: flex; gap: 8px;">
+                        <i class="bi bi-diagram-3-fill" style="color: #ec4899; margin-top: 3px;"></i>
+                        <span><strong>[작업 프로세스]</strong><br>
+                        1. 작업 전 공정 완료된 제품 수령<br>
+                        2. 생산지시서와 실제 제품 수량 확인<br>
+                        3. 실제 작업 진행<br>
+                        4. 작업 후 수량 확인 및 사진 심사<br>
+                        5. 완료 후 완료 구역에 제품 이동</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="log-modal">
         <div class="modal-content" style="max-width: 500px; display: flex; flex-direction: column; height: 80vh;">
@@ -1321,6 +1363,12 @@
 
         function openMoreMenu() { document.getElementById('more-menu-modal').classList.add('open'); }
         function closeMoreMenu() { document.getElementById('more-menu-modal').classList.remove('open'); }
+
+        function showWorkRules() {
+            closeMoreMenu();
+            document.getElementById('work-rules-modal').classList.add('open');
+        }
+        function closeWorkRules() { document.getElementById('work-rules-modal').classList.remove('open'); }
 
         // [작업 로그 보여주기]
         function showWorkLogs() {
@@ -2626,6 +2674,327 @@
             alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
             history.back();
         }
+
+        // ============================================================
+        // 헬퍼(김영희) 및 도움 요청 스택(FIFO) 시스템 오버라이드
+        // ============================================================
+        let helperPollInterval = null;
+        let requesterPollInterval = null;
+        let currentRequestId = null;
+        let alertedRequests = new Set(); 
+        let activeHelpInterval = null;
+        let helpTimerInterval = null;
+        let activeHelpSeconds = 0; 
+
+        function getHelperQueue() { return JSON.parse(localStorage.getItem('kimp_helper_queue') || '[]'); }
+        function saveHelperQueue(queue) { localStorage.setItem('kimp_helper_queue', JSON.stringify(queue)); }
+        function getHelperFreeCounts() { return JSON.parse(localStorage.getItem('kimp_helper_free_counts') || '{}'); }
+        function saveHelperFreeCounts(counts) { localStorage.setItem('kimp_helper_free_counts', JSON.stringify(counts)); }
+
+        const originalApplyLoginState = applyLoginState;
+        applyLoginState = function(user) {
+            originalApplyLoginState(user);
+            
+            if (helperPollInterval) clearInterval(helperPollInterval);
+            if (requesterPollInterval) clearInterval(requesterPollInterval);
+            
+            const helperBtnContainer = document.getElementById('helper-floating-btn');
+            if (user.role === '헬퍼') {
+                if (helperBtnContainer) helperBtnContainer.style.display = 'block';
+                document.documentElement.style.setProperty('--primary', '#8b5cf6');
+                helperPollInterval = setInterval(checkHelperQueue, 2000);
+                checkHelperQueue(); 
+            } else {
+                if (helperBtnContainer) helperBtnContainer.style.display = 'none';
+                document.documentElement.style.setProperty('--primary', '#3b82f6');
+            }
+        };
+
+        requestStageHelp = function() {
+            const container = document.getElementById('help-process-container');
+            if (!container) return;
+
+            let counts = getHelperFreeCounts();
+            let freeLeft = counts[appData.user.name] ?? 5;
+
+            currentRequestId = Date.now().toString();
+            let queue = getHelperQueue();
+            queue.push({
+                id: currentRequestId,
+                requester: appData.user.name,
+                stage: appData.activeStageId,
+                status: 'pending',
+                timestamp: Date.now()
+            });
+            saveHelperQueue(queue);
+
+            container.innerHTML = `
+                <i class="bi bi-arrow-repeat spin-anim" style="font-size: 56px; color: var(--warning); display: inline-block;"></i>
+                <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 대기 중...</p>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                    <span id="help-pending-dynamic-text">대기열에 요청을 등록했습니다.<br>헬퍼님이 수락할 때까지 기다려주세요.</span><br>
+                    <span style="color:var(--primary); font-weight:bold; display:inline-block; margin-top: 8px;">(남은 무료 횟수: ${freeLeft}회)</span>
+                </p>
+                <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
+                    <i class="bi bi-x-circle"></i> 도움받기 취소
+                </button>
+            `;
+            requesterPollInterval = setInterval(checkMyRequestStatus, 1500);
+        };
+
+        cancelStageHelp = function() {
+            if (requesterPollInterval) clearInterval(requesterPollInterval);
+            if (currentRequestId) {
+                let queue = getHelperQueue();
+                let req = queue.find(q => q.id === currentRequestId);
+                if (req) {
+                    req.status = 'canceled';
+                    saveHelperQueue(queue);
+                }
+                currentRequestId = null;
+            }
+            showHmiToast('<i class="bi bi-info-circle-fill" style="color: var(--warning);"></i> 도움 요청을 취소했습니다.');
+            showEmergencyHelp();
+        };
+
+        function checkMyRequestStatus() {
+            if (!currentRequestId) return;
+            let queue = getHelperQueue();
+            let req = queue.find(q => q.id === currentRequestId);
+            if (!req) {
+                clearInterval(requesterPollInterval);
+                return;
+            }
+            const container = document.getElementById('help-process-container');
+            if (req.status === 'pending') {
+                let dynamicTextEl = document.getElementById('help-pending-dynamic-text');
+                if (dynamicTextEl) {
+                    let activeReq = queue.find(q => q.status === 'accepted' || q.status === 'arrived');
+                    let pendingArr = queue.filter(q => q.status === 'pending').sort((a,b) => a.timestamp - b.timestamp);
+                    let myIndex = pendingArr.findIndex(q => q.id === currentRequestId);
+                    let myRank = myIndex + 1;
+                    
+                    let newHtml = "";
+                    if (activeReq) {
+                        newHtml += `도움받기에 <strong>${activeReq.requester}</strong>님을 도와주고 있습니다.<br>`;
+                    }
+                    newHtml += `다음 순번(<strong>${myRank}번째</strong> 순번)입니다.<br>기다려주세요.`;
+                    
+                    if (dynamicTextEl.innerHTML !== newHtml) {
+                        dynamicTextEl.innerHTML = newHtml;
+                    }
+                }
+            } else if (req.status === 'accepted') {
+                container.innerHTML = `
+                    <i class="bi bi-person-walking" style="font-size: 56px; color: #10b981;"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 이동 중!</p>
+                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        헬퍼님이 도착하여 도움을 드리겠습니다.<br>기다려주세요.
+                    </p>
+                    <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
+                        <i class="bi bi-x-circle"></i> 도움받기 취소
+                    </button>
+                `;
+            } else if (req.status === 'arrived') {
+                container.innerHTML = `
+                    <i class="bi bi-people-fill" style="font-size: 56px; color: #3b82f6;"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼가 지금 도착했습니다.</p>
+                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        헬퍼님이 도움을 드리고 있습니다.<br>잠시만 기다려주세요.
+                    </p>
+                `;
+            } else if (req.status === 'completed') {
+                clearInterval(requesterPollInterval);
+                let counts = getHelperFreeCounts();
+                let freeLeft = counts[appData.user.name] ?? 5;
+                let costMsg = freeLeft > 0 ? `무료 횟수 1회가 차감되었습니다. (남은 횟수: ${freeLeft - 1}회)` : "500원이 차감되었습니다.";
+                
+                if (freeLeft > 0) {
+                    counts[appData.user.name] = freeLeft - 1;
+                    saveHelperFreeCounts(counts);
+                }
+                
+                let helperName = req.helperName || '헬퍼';
+                let m = Math.floor((req.duration || 0) / 60);
+                let s = (req.duration || 0) % 60;
+                let timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+                addLog(`[라운지] ${timeStr} 동안 ${helperName} 헬퍼님에게 도움을 받았습니다. (${costMsg})`);
+
+                let newQueue = getHelperQueue().filter(q => q.id !== req.id);
+                saveHelperQueue(newQueue);
+                
+                container.innerHTML = `
+                    <i class="bi bi-check-circle-fill" style="font-size: 56px; color: var(--primary);"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">도움 완료</p>
+                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        헬퍼의 도움을 성공적으로 받았습니다.<br>
+                        <strong style="color: #ef4444;">${costMsg}</strong>
+                    </p>
+                    <button class="btn-huge primary" onclick="closeActionModal()">확인 및 작업 복귀</button>
+                `;
+                currentRequestId = null;
+            }
+        }
+
+        function checkHelperQueue() {
+            let queue = getHelperQueue();
+            let pending = queue.filter(q => q.status === 'pending');
+            
+            const badge = document.getElementById('helper-badge-count');
+            if (badge) {
+                badge.textContent = pending.length;
+                badge.style.display = pending.length > 0 ? 'inline-block' : 'none';
+            }
+
+            if (pending.length > 0) {
+                pending.sort((a,b) => a.timestamp - b.timestamp); // FIFO
+                let oldest = pending[0];
+                if (!alertedRequests.has(oldest.id)) {
+                    showHelperAlert(oldest);
+                }
+            }
+        }
+
+        function showHelperAlert(req) {
+            alertedRequests.add(req.id);
+            document.getElementById('helper-alert-msg').innerHTML = `
+                <strong style="color:var(--primary); font-size:18px;">${req.requester}</strong>님이 Stage ${req.stage}에서 도움을 요청했습니다!
+            `;
+            document.getElementById('helper-alert-req-id').value = req.id;
+            document.getElementById('helper-alert-modal').classList.add('open');
+        }
+
+        function closeHelperAlert() {
+            document.getElementById('helper-alert-modal').classList.remove('open');
+        }
+
+        function acceptHelpFromAlert() {
+            const reqId = document.getElementById('helper-alert-req-id').value;
+            closeHelperAlert();
+            acceptHelp(reqId);
+        }
+
+        function openHelperQueue() {
+            let queue = getHelperQueue();
+            let pending = queue.filter(q => q.status === 'pending');
+            pending.sort((a,b) => a.timestamp - b.timestamp); 
+
+            const listContainer = document.getElementById('helper-queue-list');
+            if (pending.length === 0) {
+                listContainer.innerHTML = '<div style="text-align:center; color:var(--text-secondary); padding:20px;">대기 중인 요청이 없습니다.</div>';
+            } else {
+                listContainer.innerHTML = pending.map((req, index) => {
+                    let minPassed = Math.floor((Date.now() - req.timestamp) / 60000);
+                    return `
+                    <div style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <span style="font-size:12px; font-weight:bold; background:#e2e8f0; padding:2px 6px; border-radius:4px; color:#475569;">#${index+1}</span>
+                            <strong style="margin-left:6px;">${req.requester}</strong> (Stage ${req.stage})
+                            <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">대기: ${minPassed}분 전</div>
+                        </div>
+                        <button class="btn-menu" style="background:var(--primary); color:white; padding:6px 12px; font-size:14px; border:none; border-radius:4px;" onclick="acceptHelp('${req.id}')">지금 가기</button>
+                    </div>`;
+                }).join('');
+            }
+            document.getElementById('helper-queue-modal').classList.add('open');
+        }
+
+        function closeHelperQueue() {
+            document.getElementById('helper-queue-modal').classList.remove('open');
+        }
+
+        function acceptHelp(reqId) {
+            let queue = getHelperQueue();
+            let req = queue.find(q => q.id === reqId);
+            if (req && req.status === 'pending') {
+                req.status = 'accepted';
+                req.helperName = appData.user.name;
+                saveHelperQueue(queue);
+                closeHelperQueue();
+                closeActionModal();
+                closeLogModal();
+                document.getElementById('active-help-req-id').value = reqId;
+                document.getElementById('active-help-msg').innerHTML = `현재 <strong>${req.requester}</strong>님의 Stage ${req.stage} 작업을 돕고 있습니다.`;
+                
+                let btnContainer = document.getElementById('active-help-btn-container');
+                if (btnContainer) {
+                    btnContainer.innerHTML = `<button class="btn-huge primary" style="padding: 12px; font-size: 15px; width: 100%;" onclick="helperArrived()">도착알림</button>`;
+                }
+                document.getElementById('active-help-modal').classList.add('open');
+                
+                if (activeHelpInterval) clearInterval(activeHelpInterval);
+                activeHelpInterval = setInterval(() => {
+                    let q = getHelperQueue();
+                    let r = q.find(x => x.id === reqId);
+                    if (r && r.status === 'canceled') {
+                        clearInterval(activeHelpInterval);
+                        if (helpTimerInterval) clearInterval(helpTimerInterval);
+                        document.getElementById('active-help-modal').classList.remove('open');
+                        alert("도움받기가 취소되었습니다.");
+                        let newQueue = getHelperQueue().filter(x => x.id !== reqId);
+                        saveHelperQueue(newQueue);
+                    }
+                }, 1000);
+            } else {
+                alert("이미 처리되었거나 취소된 요청입니다.");
+                openHelperQueue();
+            }
+        }
+
+        function helperArrived() {
+            const reqId = document.getElementById('active-help-req-id').value;
+            let queue = getHelperQueue();
+            let req = queue.find(q => q.id === reqId);
+            if (req) {
+                req.status = 'arrived';
+                saveHelperQueue(queue);
+            }
+            document.getElementById('active-help-msg').innerHTML = `도움 받는 중! 헬퍼님이 도움을 드리고 있습니다.<br><span id="help-timer-display" style="font-size:28px; font-weight:bold; color:var(--primary); margin-top: 10px; display:block;">00:00</span>`;
+            
+            let btnContainer = document.getElementById('active-help-btn-container');
+            if (btnContainer) {
+                btnContainer.innerHTML = `
+                    <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; color: #475569;">
+                        현장 지원을 마친 후 아래 버튼을 눌러 본인 작업으로 복귀하세요.
+                    </div>
+                    <button class="btn-huge" style="background: #10b981; color: white;" onclick="completeActiveHelp()">
+                        <i class="bi bi-check-circle-fill"></i> 도움 완료 및 복귀
+                    </button>
+                `;
+            }
+            activeHelpSeconds = 0;
+            if (helpTimerInterval) clearInterval(helpTimerInterval);
+            helpTimerInterval = setInterval(() => {
+                activeHelpSeconds++;
+                let m = Math.floor(activeHelpSeconds / 60).toString().padStart(2, '0');
+                let s = (activeHelpSeconds % 60).toString().padStart(2, '0');
+                let td = document.getElementById('help-timer-display');
+                if (td) td.textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function completeActiveHelp() {
+            if (activeHelpInterval) clearInterval(activeHelpInterval);
+            if (helpTimerInterval) clearInterval(helpTimerInterval);
+            
+            const reqId = document.getElementById('active-help-req-id').value;
+            let queue = getHelperQueue();
+            let req = queue.find(q => q.id === reqId);
+            if (req) {
+                req.status = 'completed';
+                req.duration = activeHelpSeconds;
+                saveHelperQueue(queue);
+
+                let m = Math.floor(activeHelpSeconds / 60);
+                let s = activeHelpSeconds % 60;
+                let timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+                addLog(`[헬퍼 임무] Stage ${req.stage}에서 ${req.requester}님에게 ${timeStr} 동안 도움을 주었습니다. 수익 500원.`);
+            }
+            document.getElementById('active-help-modal').classList.remove('open');
+            showHmiToast('<i class="bi bi-check-circle-fill" style="color: #10b981;"></i> 도움을 완료하고 복귀했습니다.');
+            checkHelperQueue();
+        }
+
         // ============================================================
         // PWA 서비스 워커 등록
         // ============================================================
@@ -2642,10 +3011,57 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initSystem();
-        });
+        // document.addEventListener('DOMContentLoaded', () => {
+        //     initSystem();
+        // });
     </script>
+
+    <!-- 헬퍼 모드 UI 플로팅 버튼 -->
+    <div id="helper-floating-btn" style="display:none; position:fixed; bottom: 20px; right: 20px; z-index: 9999;">
+        <button onclick="openHelperQueue()" style="background-color: var(--primary); color: white; border: none; border-radius: 30px; padding: 12px 20px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+            <i class="bi bi-bell-fill"></i> 도움 요청 대기
+            <span id="helper-badge-count" style="display:none; background: #ef4444; color: white; font-size: 12px; border-radius: 10px; padding: 2px 6px; margin-left: 4px;">0</span>
+        </button>
+    </div>
+
+    <!-- 헬퍼 큐 모달 -->
+    <div class="modal-overlay" id="helper-queue-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 class="modal-title" style="color: var(--text-primary);"><i class="bi bi-list-task"></i> 도움 요청 순서</h2>
+                <button class="btn-close-modal" onclick="closeHelperQueue()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div id="helper-queue-list" style="max-height: 300px; overflow-y: auto; padding-right: 4px; padding-top: 10px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- 헬퍼 신규 알림 팝업 -->
+    <div class="modal-overlay" id="helper-alert-modal">
+        <div class="modal-content" style="max-width: 320px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <i class="bi bi-exclamation-circle-fill" style="font-size: 48px; color: var(--primary); margin-bottom: 12px; display: inline-block;"></i>
+            <h3 style="margin:0 0 12px 0; color: var(--text-primary);">신규 도움 요청</h3>
+            <p id="helper-alert-msg" style="margin-bottom: 20px; font-size: 15px; color: var(--text-secondary);"></p>
+            <input type="hidden" id="helper-alert-req-id">
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-huge primary" style="flex:1; padding: 12px; font-size: 15px;" onclick="acceptHelpFromAlert()">지금 가기</button>
+                <button class="btn-huge" style="flex:1; padding: 12px; font-size: 15px; background: #e2e8f0; color: #475569;" onclick="closeHelperAlert()">나중에 가기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 헬퍼 수행 중 모달 -->
+    <div class="modal-overlay" id="active-help-modal" style="background: rgba(0,0,0,0.8);">
+        <div class="modal-content" style="max-width: 400px; text-align: center; border-top: 5px solid #10b981;">
+            <i class="bi bi-tools" style="font-size: 56px; color: #10b981; margin-bottom: 16px; display: inline-block;"></i>
+            <h2 style="margin-bottom: 12px; color: var(--text-primary);">헬퍼 임무 수행 중</h2>
+            <p id="active-help-msg" style="margin-bottom: 24px; font-size: 16px; color: var(--text-secondary);"></p>
+            <input type="hidden" id="active-help-req-id">
+            <div id="active-help-btn-container">
+                <button class="btn-huge primary" style="padding: 12px; font-size: 15px; width: 100%;" onclick="helperArrived()">도착알림</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
