@@ -158,8 +158,6 @@
                 </div>
             </div>
 
-            <!-- User Logout Button -->
-            <button type="button" class="btn-logout-mypage" onclick="AuthManager.logout()" >로그아웃</button>
 
             <!-- Simulation and Logout -->
             <div class="sim-panel-toggle" onclick="toggleSimPanel()">
@@ -570,7 +568,7 @@
         }
 
         function toggleSettings() {
-            alert("기본 설정 메뉴입니다.\n현재 버전: v1.2.0 (스마트팩토리 체험관 마이페이지)");
+            window.location.href = "settings.html";
         }
     </script>
 </body>

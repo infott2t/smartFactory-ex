@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/mypage.css?v=1.0.1">
+    <link rel="stylesheet" href="./css/settings.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>보건증 올리기 | 스마트팩토리</title>
+    <style>
+        .upload-card {
+            background-color: #111622;
+            border: 1px solid #1a2030;
+            border-radius: 8px;
+            padding: 30px 20px;
+            margin: 20px 15px;
+            text-align: center;
+        }
+        .upload-icon {
+            font-size: 40px;
+            color: #7b92ff;
+            margin-bottom: 15px;
+        }
+        .upload-text {
+            color: #dfdfdf;
+            font-size: 16px;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        .upload-btn {
+            background-color: #1d1d36;
+            color: #dfdfdf;
+            border: 1px solid #1a2030;
+            border-radius: 8px;
+            padding: 15px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-btn:hover {
+            background-color: #7b92ff;
+            color: white;
+            border-color: #7b92ff;
+        }
+        .success-message {
+            color: #00b894;
+            font-size: 15px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrap settings-wrap">
+        <main class="main-settings">
+            <!-- Header -->
+            <div class="fixed-header-wrap">
+                <div class="menu-bar mypage" style="justify-content: space-between;">
+                    <div style="padding-left: 5px;">
+                        <span>보건증 올리기</span>
+                    </div>
+                    <div class="header-icon" onclick="location.href='settings.html'" style="cursor: pointer;">
+                        <i class="bi bi-x-lg" style="font-size: 24px; color: #76769e;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="padding-15"></div>
+
+            <div class="upload-card">
+                <i class="bi bi-file-earmark-medical upload-icon" id="status-icon"></i>
+                
+                <!-- State 1: Need Upload -->
+                <div class="upload-text" id="status-text-need" style="display: none;">
+                    보건증 파일 또는 사진을 첨부해주세요.
+                </div>
+                
+                <!-- State 2: Pending -->
+                <div class="success-message" id="status-text-pending" style="display: none; color: #feca57; margin-bottom: 20px;">
+                    사진이나 파일이 첨부된 경우, 심사에 시간이 소요가 됨니다.<br>기다려주세요.
+                </div>
+
+                <!-- State 3: Approved -->
+                <div class="success-message" id="status-text-approved" style="display: none; color: #1dd1a1; margin-bottom: 25px;">
+                    보건증이 인증되었습니다.<br>인증일 <span id="cert-date"></span>로 부터 1년간 사용가능합니다.
+                </div>
+
+                <button class="upload-btn" id="upload-btn" onclick="document.getElementById('health-cert-upload').click()" style="display: none;">
+                    <i class="bi bi-camera" style="margin-right: 8px;"></i> <span id="upload-btn-text">파일 첨부 및 촬영</span>
+                </button>
+                <input type="file" id="health-cert-upload" accept="image/*" style="display: none;" onchange="handleFileUpload()">
+
+                <!-- Demo Button -->
+                <div id="demo-section" style="margin-top: 30px; border-top: 1px solid #1a2030; padding-top: 20px; display: none;">
+                    <button class="upload-btn" style="background-color: #2b2b40;" onclick="demoApprove()">
+                        <i class="bi bi-magic" style="margin-right: 8px;"></i> [데모] 인증 완료하기
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderState();
+        });
+
+        function renderState() {
+            let profile = JSON.parse(sessionStorage.getItem("kimp_worker_profile")) || {};
+            let status = profile.healthCertificateStatus;
+
+            const icon = document.getElementById('status-icon');
+            const needText = document.getElementById('status-text-need');
+            const uploadBtn = document.getElementById('upload-btn');
+            const uploadBtnText = document.getElementById('upload-btn-text');
+            const pendingText = document.getElementById('status-text-pending');
+            const approvedText = document.getElementById('status-text-approved');
+            const demoSection = document.getElementById('demo-section');
+
+            // Reset UI
+            icon.className = 'bi bi-file-earmark-medical upload-icon';
+            icon.style.color = '#7b92ff';
+            needText.style.display = 'none';
+            uploadBtn.style.display = 'none';
+            pendingText.style.display = 'none';
+            approvedText.style.display = 'none';
+            demoSection.style.display = 'none';
+
+            if (status === 'approved') {
+                icon.className = 'bi bi-check-circle upload-icon';
+                icon.style.color = '#1dd1a1';
+                approvedText.style.display = 'block';
+                uploadBtn.style.display = 'block'; 
+                uploadBtnText.innerText = '다시 인증해서 기간 늘리기 파일첨부';
+                
+                // Format Date
+                let certDate = profile.healthCertificateDate || new Date().toISOString();
+                let d = new Date(certDate);
+                document.getElementById('cert-date').innerText = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+            } else if (status === 'pending') {
+                icon.className = 'bi bi-hourglass-split upload-icon';
+                icon.style.color = '#feca57';
+                pendingText.style.display = 'block';
+                demoSection.style.display = 'block'; // Show demo button only when pending
+            } else {
+                needText.style.display = 'block';
+                uploadBtn.style.display = 'block';
+                uploadBtnText.innerText = '파일 첨부 및 촬영';
+            }
+        }
+
+        function handleFileUpload() {
+            const input = document.getElementById('health-cert-upload');
+            if (input.files && input.files.length > 0) {
+                let profile = JSON.parse(sessionStorage.getItem("kimp_worker_profile")) || {};
+                profile.healthCertificateStatus = 'pending';
+                profile.healthCertificateImage = 'uploaded_cert.png';
+                sessionStorage.setItem("kimp_worker_profile", JSON.stringify(profile));
+                renderState();
+            }
+        }
+
+        function demoApprove() {
+            let profile = JSON.parse(sessionStorage.getItem("kimp_worker_profile")) || {};
+            profile.healthCertificateStatus = 'approved';
+            profile.healthCertificateDate = new Date().toISOString();
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(profile));
+            renderState();
+        }
+    </script>
+</body>
+</html>

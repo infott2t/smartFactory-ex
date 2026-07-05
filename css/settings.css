@@ -1,0 +1,192 @@
+.settings-wrap {
+    height: 500px;
+    min-height: 450px;
+    background-color: var(--bg-color);
+}
+
+.main-settings {
+    width: 100%;
+    margin: auto;
+    max-width: 800px;
+    background-color: var(--bg-color);
+    color: rgb(134 134 134);
+    margin-top: 43px;
+    position: relative;
+    height: calc(100% - 43px);
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-container {
+    padding: 0 15px;
+    margin-top: 20px;
+}
+
+.settings-title {
+    font-size: 16px;
+    color: #dfdfdf;
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding-left: 5px;
+}
+
+.settings-box {
+    background-color: #111622;
+    border: 1px solid #1a2030;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.settings-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #1a2030;
+    color: #dfdfdf;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+}
+
+.settings-item:hover {
+    background-color: #1a2030;
+}
+
+.logout-container {
+    margin-top: auto;
+    padding: 20px 15px;
+    margin-bottom: 30px;
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: #1d1d36;
+    color: #dfdfdf;
+    border: 1px solid #1a2030;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background-color: #e85d04;
+    color: white;
+}
+
+.form-container {
+    padding: 20px 15px;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #dfdfdf;
+    font-size: 14px;
+}
+.form-group input {
+    width: 100%;
+    padding: 15px;
+    background-color: #111622;
+    border: 1px solid #1a2030;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+.form-group input::placeholder {
+    color: #4a4a6a;
+}
+.form-group input:focus {
+    outline: none;
+    border-color: #6c6cad;
+}
+.btn-primary {
+    width: 100%;
+    padding: 15px;
+    background-color: #7b92ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.account-card {
+    background-color: #111622;
+    border: 1px solid #1a2030;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 15px;
+}
+.account-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 15px;
+}
+.account-row:last-child {
+    margin-bottom: 0;
+}
+.account-label {
+    color: #76769e;
+}
+.account-value {
+    color: #dfdfdf;
+    font-weight: 500;
+}
+.btn-container {
+    padding: 0 15px;
+}
+
+
+.input-item {
+    padding: 0;
+}
+.input-item input {
+    width: 100%;
+    padding: 15px 20px;
+    background-color: transparent;
+    border: none;
+    color: #dfdfdf;
+    font-size: 16px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+.input-item input::placeholder {
+    color: #76769e;
+}
+.input-item input:focus {
+    outline: none;
+}
+
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: auto;
+}
+.badge-needed {
+    background-color: #ff6b6b;
+    color: white;
+}
+.badge-pending {
+    background-color: #feca57;
+    color: #212529;
+}
+.badge-approved {
+    background-color: #1dd1a1;
+    color: white;
+}
+
