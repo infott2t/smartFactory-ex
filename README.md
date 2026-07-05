@@ -30,7 +30,7 @@
 
 
 ### 화면 캡처해봤습니다. 오픈소스이구요. 개발해보세요. 일하기가 더 좋아지겠죠~. 
-![작업자 라운지](https://github.com/user-attachments/assets/f0d2e35b-0513-47ee-9352-d7a99350cf2b)
+![작업자 라운지](https://github.com/user-attachments/assets/73b56cf9-43bb-450d-a4ce-37940144e447)
 
 
 ![나의 작업 로그](https://github.com/user-attachments/assets/1de63e05-c1af-41ef-8b4e-54c1e4b0cff8)
