@@ -2642,6 +2642,19 @@
         }
 
         function completeExperience() {
+            var userId = sessionStorage.getItem('user-id');
+            if (!userId) {
+                var userStr = sessionStorage.getItem('user');
+                if (userStr) {
+                    try {
+                        var userObj = JSON.parse(userStr);
+                        userId = userObj.id || userObj.name;
+                    } catch(e) {}
+                }
+            }
+            userId = userId || 'guest';
+            var key = 'experienceCompleted_' + userId;
+
             if (localStorage.getItem('kimp_ex0_is3min') !== 'true') {
                 showHmiToast(`<i class="bi bi-info-circle-fill" style="color: #3b82f6;"></i> 데모로 3분이전에 넘어갑니다.`);
                 localStorage.setItem('kimp_ex0_is3min', 'true');
@@ -2652,11 +2665,11 @@
                 // 토스트 메시지를 볼 수 있도록 약간의 지연 후 페이지 이동
                 setTimeout(() => {
                     if (typeof setPartitionedItem === 'function') {
-                        setPartitionedItem('experienceCompleted', 'true');
+                        setPartitionedItem(key, 'true');
                     } else if (window.parent && typeof window.parent.setPartitionedItem === 'function') {
-                        window.parent.setPartitionedItem('experienceCompleted', 'true');
+                        window.parent.setPartitionedItem(key, 'true');
                     } else {
-                        localStorage.setItem('experienceCompleted', 'true');
+                        localStorage.setItem(key, 'true');
                     }
                     alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
                     history.back();
@@ -2665,11 +2678,11 @@
             }
 
             if (typeof setPartitionedItem === 'function') {
-                setPartitionedItem('experienceCompleted', 'true');
+                setPartitionedItem(key, 'true');
             } else if (window.parent && typeof window.parent.setPartitionedItem === 'function') {
-                window.parent.setPartitionedItem('experienceCompleted', 'true');
+                window.parent.setPartitionedItem(key, 'true');
             } else {
-                localStorage.setItem('experienceCompleted', 'true');
+                localStorage.setItem(key, 'true');
             }
             alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
             history.back();

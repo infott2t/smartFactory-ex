@@ -246,27 +246,7 @@
                 FactoryStore.dispatch({ type: 'SET_HISTORY', payload: defaultHistory });
             }
 
-            // Seed mock reservation in store if not present
-            let db = FactoryStore.getState().reservations;
-            const hasMockRes = db.some(r => r.date === "2026-06-17" && r.slot === 0 && (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name));
-            if (!hasMockRes) {
-                let role = 'general';
-                if (currentUser.name === '최현일') role = 'manager';
-                else if (currentUser.name === '김영희') role = 'helper';
 
-                const newId = db.length > 0 ? Math.max.apply(null, db.map(r => r.id)) + 1 : 1;
-                FactoryStore.dispatch({
-                    type: 'ADD_RESERVATION',
-                    payload: {
-                        id: newId,
-                        userId: currentUser.id,
-                        userName: currentUser.name,
-                        date: "2026-06-17",
-                        slot: 0,
-                        role: role
-                    }
-                });
-            }
 
             if (FactoryStore.getState().udonHours === 0) {
                 let defH = 0;
@@ -408,7 +388,22 @@
             const container = $('#reservations-container');
             container.empty();
 
-            const db = FactoryStore.getState().reservations;
+            let db = FactoryStore.getState().reservations || [];
+            try {
+                let kimpDb = JSON.parse(sessionStorage.getItem('kimp_reservations_db') || '[]');
+                if (kimpDb && kimpDb.length > 0) {
+                    db = db.concat(kimpDb);
+                }
+            } catch(e) {}
+            
+            // Deduplicate by id, date, slot (in case of overlap)
+            let uniqueDbMap = {};
+            db.forEach(r => {
+                const key = r.date + '_' + r.slot + '_' + r.userId;
+                uniqueDbMap[key] = r;
+            });
+            db = Object.values(uniqueDbMap);
+
             const myReservations = db.filter(r => String(r.userId) === String(currentUser.id) || r.userName === currentUser.name);
 
             if (myReservations.length === 0) {
