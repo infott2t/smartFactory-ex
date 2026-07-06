@@ -390,7 +390,7 @@
 
             let db = FactoryStore.getState().reservations || [];
             try {
-                let kimpDb = JSON.parse(sessionStorage.getItem('app_reservations_db') || '[]');
+                let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
                 if (kimpDb && kimpDb.length > 0) {
                     db = db.concat(kimpDb);
                 }

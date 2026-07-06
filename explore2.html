@@ -185,7 +185,7 @@
                 } else if (index === 1) {
                     let db = [];
                     try {
-                        db = JSON.parse(sessionStorage.getItem('app_reservations_db') || '[]');
+                        db = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
                     } catch(e) {}
 
                     const myReservations = db.filter(r => String(r.userId) === String(user.id) || r.userName === user.name);
@@ -212,22 +212,29 @@
                             const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
                             const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
 
+                            let minimumWage = 10320;
+                            let expectedPay = Math.floor(minimumWage * 2.6); // 2시간 * 1.3배
+
                             html += `
                                 <div class="task-item" style="margin-bottom: 12px; display: block;">
-                                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #fff;">
-                                        ${parts[0]}년 ${parts[1]}월 ${parts[2]}일 ${dayName}
-                                    </div>
-                                    <div class="task-items0">
-                                        <div class="task-items">
+                                    <div class="task-items0" style="align-items: center;">
+                                        <div class="task-items" style="flex: 1;">
                                             <img class="icon" src="./images/k-icon_150x150.png" alt="icon"> 
                                             <div class="texts">
-                                                <span style="font-size:12px; color:#a29bfe;">${slotLabels[r.slot]}</span>
                                                 <span>김치만들기</span>
+                                                <span>AFood</span>
                                             </div>
                                         </div>
-                                        <div class="task-info-right" style="flex-direction: column; align-items: flex-end;">
-                                            <span class="${badgeClass}" style="margin-bottom:4px;">${roleLabel}</span>
-                                            <span class="box-time">2h</span>
+                                        <div class="task-info-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 0 5px;">
+                                            <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 3px;">
+                                                <span class="box-time">2h</span>
+                                                <span class="${badgeClass}">${roleLabel}</span>
+                                            </div>
+                                            <span style="font-size: 11px; color: #a29bfe;">${slotLabels[r.slot]}</span>
+                                        </div>
+                                        <div class="task-info-col" style="flex: 1; text-align: right; align-items: flex-end;">
+                                            <span class="date-text">${parts[0]}.${parts[1]}.${parts[2]}</span>
+                                            <span class="pay-text" style="color: #ccc; font-size:12px;">예정 +₩ ${expectedPay.toLocaleString()}</span>  
                                         </div>
                                     </div>
                                 </div>

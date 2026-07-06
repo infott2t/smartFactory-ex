@@ -664,7 +664,7 @@
             if (!container) return;
 
             var db = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
-            var userId = getPartitionedItem('kimp_logged_in_user') || (window.AuthManager && window.AuthManager.getCurrentUser() ? window.AuthManager.getCurrentUser().id : '2');
+            var userId = getWorkerProfile().userId;
 
             var now = new Date();
             var isToday = false;
@@ -797,6 +797,10 @@
         function getWorkerProfile() {
             var profileStr = sessionStorage.getItem('kimp_worker_profile');
             var sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (!sessionUser) {
+                var userJson = sessionStorage.getItem('user');
+                if (userJson) sessionUser = JSON.parse(userJson);
+            }
             var fallbackId = sessionUser ? sessionUser.id : '2';
             var fallbackName = sessionUser ? sessionUser.name : '최수아';
             var fallbackWorkedHours = sessionUser ? sessionUser.workedHours : 22;
