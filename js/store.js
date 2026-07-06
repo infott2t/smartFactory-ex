@@ -484,7 +484,7 @@
     // Partitioning helper functions (matching js/auth-guard.js)
     if (!window.getStorageKey) {
         window.getStorageKey = function(key) {
-            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request' || key === 'kimp_workers_progress') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request' || key === 'kimp_workers_progress') {
                 return key;
             }
             const userId = sessionStorage.getItem("user-id") || "guest";
@@ -596,7 +596,7 @@
 
         // 2. Reservations
         try {
-            let parsed = JSON.parse(localStorage.getItem(getStorageKey('kimp_reservations_db')) || '[]');
+            let parsed = JSON.parse(localStorage.getItem(getStorageKey('app_reservations_db')) || '[]');
             state.reservations = Array.isArray(parsed) ? parsed : [];
         } catch(e) {
             state.reservations = [];
@@ -819,7 +819,7 @@
 
         // 2. Reservations
         if (shouldSave('reservations')) {
-            localStorage.setItem(getStorageKey('kimp_reservations_db'), JSON.stringify(state.reservations));
+            localStorage.setItem(getStorageKey('app_reservations_db'), JSON.stringify(state.reservations));
         }
 
         // 3. History
@@ -1264,7 +1264,7 @@
     window.getPartitionedItem = function(key) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request') {
                 return localStorage.getItem(key);
             }
             return localStorage.getItem(key + "_" + userId);
@@ -1273,7 +1273,7 @@
         const currentUserId = state.currentUser ? state.currentUser.id : "guest";
         const worker = state.workers[currentUserId] || {};
 
-        if (key === 'kimp_reservations_db') {
+        if (key === 'app_reservations_db') {
             return JSON.stringify(state.reservations);
         }
         if (key === 'kimp_production_orders') {
@@ -1370,7 +1370,7 @@
     window.setPartitionedItem = function(key, value) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
                 localStorage.setItem(key, value);
             } else {
                 localStorage.setItem(key + "_" + userId, value);
@@ -1378,7 +1378,7 @@
             window.dispatchEvent(new Event('storage'));
             return;
         }
-        if (key === 'kimp_reservations_db') {
+        if (key === 'app_reservations_db') {
             window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: JSON.parse(value) });
             return;
         }
@@ -1459,7 +1459,7 @@
     window.removePartitionedItem = function(key) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'kimp_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
                 localStorage.removeItem(key);
             } else {
                 localStorage.removeItem(key + "_" + userId);

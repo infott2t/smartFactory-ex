@@ -51,7 +51,7 @@
             <!-- Partner Grades Box -->
             <div class="comment-mypage">
                 <div>나의 파트너 등급 <i class="bi bi-award"></i></div>
-                <div><a href="#">더 보기</a></div>
+                <div><a href="./explore2.html?tab=partner">더 보기</a></div>
             </div>
             <div class="mypage-box23">
 
@@ -103,7 +103,7 @@
             <!-- New Section 1: 나의 공정 예약 내역 -->
             <div class="comment-mypage">
                 <div>나의 일 예약 내역 <i class="bi bi-calendar-check-fill res-title-icon"></i></div>
-                <div><a href="#">더 보기</a></div>
+                <div><a href="./explore2.html?tab=reservation">더 보기</a></div>
             </div>
             <div id="reservations-container">
                 <!-- Dynamic reservations render here -->
@@ -112,7 +112,7 @@
             <div class="padding-40"></div>
             <div class="comment-mypage">
                 <div>내가 했던 일 <i class="bi bi-clock-history hist-title-icon"></i></div>
-                <div><a href="#">더 보기</a></div>
+                <div><a href="./explore2.html?tab=history">더 보기</a></div>
             </div>
 
             <!-- New Section 2: 내가 했던 일 -->
@@ -390,7 +390,7 @@
 
             let db = FactoryStore.getState().reservations || [];
             try {
-                let kimpDb = JSON.parse(sessionStorage.getItem('kimp_reservations_db') || '[]');
+                let kimpDb = JSON.parse(sessionStorage.getItem('app_reservations_db') || '[]');
                 if (kimpDb && kimpDb.length > 0) {
                     db = db.concat(kimpDb);
                 }

@@ -648,7 +648,7 @@
 
         // 예약 DB 데이터 세팅 및 시딩 (일반 정원 3인 및 헬퍼 2인 요건 테스트용)
         function seedMockReservations() {
-            var oldDb = getPartitionedItem('kimp_reservations_db');
+            var oldDb = getPartitionedItem('app_reservations_db');
             var needsReSeed = false;
             if (oldDb) {
                 var parsed = JSON.parse(oldDb);
@@ -663,7 +663,7 @@
                 var nextDayStr = getFormattedWeekday(2);
 
                 var mockDb = window.MockData.getReservations(todayStr, tomorrowStr, nextDayStr);
-                setPartitionedItem('kimp_reservations_db', JSON.stringify(mockDb));
+                setPartitionedItem('app_reservations_db', JSON.stringify(mockDb));
             }
         }
 
@@ -773,7 +773,7 @@
             var container = document.getElementById('time-slots');
             if (!container) return;
 
-            var db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            var db = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
             var userId = getPartitionedItem('kimp_logged_in_user') || (window.AuthManager && window.AuthManager.getCurrentUser() ? window.AuthManager.getCurrentUser().id : '2');
 
             var html = '';
@@ -1458,7 +1458,7 @@
                 return;
             }
 
-            var db = JSON.parse(getPartitionedItem('kimp_reservations_db') || '[]');
+            var db = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
 
             // 2. 예약 한도 및 마감 확인
             var slotRes = db.filter(function (r) {
@@ -1511,7 +1511,7 @@
                 role: selectedRole
             };
             db.push(newReservation);
-            setPartitionedItem('kimp_reservations_db', JSON.stringify(db));
+            setPartitionedItem('app_reservations_db', JSON.stringify(db));
 
             if (typeof window.addAppLog === 'function') {
                 var roleLabel = '일반';

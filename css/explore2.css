@@ -1,0 +1,130 @@
+  .header {
+      padding-bottom: 48px;
+  }
+
+  /* 기본 탭 설정 및 여백 조정 */
+  .content-area {
+      padding: 0;
+      /* 기존 padding 제거하여 탭과 sort-row 간격 최소화 */
+      padding-bottom: 80px;
+  }
+
+  .tab-content {
+      display: none;
+  }
+
+  .tab-content.active {
+      display: block;
+  }
+
+  /* sort-row 탭 하단 밀착 */
+  .sort-row {
+      padding: 10px 15px;
+      /* explore.html 스타일 유지 */
+      border-bottom: 1px solid #2a2a35;
+  }
+
+  /* --------------------------------------
+           Task Item (explore.html 방식 리스트 구조)
+        -------------------------------------- */
+  .task-item {
+      height: 80px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0 15px;
+      /* 좌우 여백 */
+      border-bottom: 1px solid #2a2a35;
+      /* var(--var-line-color1) 대체 다크 테마 라인 */
+  }
+
+  .task-items0 {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+  }
+
+  .task-items {
+      display: flex;
+      align-items: center;
+  }
+
+  .task-item .icon {
+      width: 25px;
+      height: 25px;
+      border-radius: 6px;
+      margin-right: 12px;
+      object-fit: cover;
+  }
+
+  /* 텍스트 스타일 */
+  .texts {
+      display: flex;
+      flex-direction: column;
+  }
+
+  .texts>span:nth-child(1) {
+      font-size: 16px;
+      font-weight: bold;
+      color: #e4e4e4;
+      line-height: 1.2;
+      margin-bottom: 2px;
+  }
+
+  .texts>span:nth-child(2) {
+      font-size: 14px;
+      color: #979797;
+  }
+
+  /* 우측 데이터 스타일 */
+  .task-info-right {
+      display: flex;
+      align-items: center;
+  }
+
+  .box-time {
+      font-weight: bold;
+      color: #e4e4e4;
+      margin-right: 10px;
+  }
+
+  .pay-text {
+      color: #00b894;
+      font-weight: bold;
+      font-size: 16px;
+  }
+
+  .badge03 {
+      background: #3c3c4a;
+      color: #8c8cff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+  }
+
+  .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #a7a7a7;
+  }
+
+  /* 우측 데이터 세로 정렬 (날짜 + 수입) */
+  .task-info-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      /* 오른쪽 정렬 */
+      justify-content: center;
+  }
+
+  /* 날짜 텍스트 스타일 */
+  .date-text {
+      font-size: 12px;
+      color: #979797;
+      margin-bottom: 4px;
+      /* 수입과의 간격 */
+  }

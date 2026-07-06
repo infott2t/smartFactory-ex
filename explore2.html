@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/explore.css?v=1.0.2">
+    <link rel="stylesheet" href="./css/explore2.css?v=1.0.2">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <title>나의 활동 내역 | 스마트팩토리</title>
+
+</head>
+
+<body>
+    <div class="header-wrap">
+        <div class="header menu-bar mypage">
+            <div class="chevron" onclick="window.history.back();" style="cursor: pointer;">
+                <i class="bi bi-chevron-left back"></i>
+            </div>
+            <div class="title"><span>나의 활동 내역</span></div>
+        </div>
+
+        <div class="tabs">
+            <ul class="tab-list">
+                <li class="tab-item active" data-target="partner">파트너 등급</li>
+                <li class="tab-item" data-target="reservation">예약 내역</li>
+                <li class="tab-item" data-target="history">근로 이력</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="main-wrap">
+        <main class="main">
+            <div class="content-area">
+
+                <section class="tab-content active" id="tab-partner">
+                    <div class="sort-row">
+                        <div class="sort-item sort-down">
+                            <span class="lspace">최근 활동순</span>
+                            <div class="sort-arrows">
+                                <i class="bi bi-caret-up-fill"></i>
+                                <i class="bi bi-caret-down-fill"></i>
+                            </div>
+                        </div>
+                        <div class="sort-item">
+                            <span class="lspace">근로시간순</span>
+                            <div class="sort-arrows">
+                                <i class="bi bi-caret-up-fill"></i>
+                                <i class="bi bi-caret-down-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="partner-container" style="margin-top: 47px;">
+                    </div>
+                </section>
+
+                <section class="tab-content" id="tab-reservation">
+                    <div id="reservation-container" style="margin-top: 20px;">
+                    </div>
+                </section>
+
+                <section class="tab-content" id="tab-history">
+                    <div class="sort-row">
+                        <div class="sort-item sort-down">
+                            <span class="lspace">날짜</span>
+                            <div class="sort-arrows">
+                                <i class="bi bi-caret-up-fill"></i>
+                                <i class="bi bi-caret-down-fill"></i>
+                            </div>
+                        </div>
+                        <div class="sort-item">
+                            <span class="lspace">급여</span>
+                            <div class="sort-arrows">
+                                <i class="bi bi-caret-up-fill"></i>
+                                <i class="bi bi-caret-down-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="history-container" style="margin-top: 42px;">
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // URL 파라미터로 초기 탭 설정
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialTab = urlParams.get('tab') || 'partner';
+
+            let targetIndex = 0;
+            if (initialTab === 'reservation') targetIndex = 1;
+            if (initialTab === 'history') targetIndex = 2;
+
+            $('.tab-item').removeClass('active');
+            $('.tab-item').eq(targetIndex).addClass('active');
+            $('.tab-content').removeClass('active').eq(targetIndex).addClass('active');
+
+            // 탭 변경 이벤트
+            $(document).on('click', '.tab-list .tab-item', function () {
+                let currentIndex = $('.tab-list .tab-item.active').index();
+                let newIndex = $(this).index();
+                let moveDirection = newIndex > currentIndex ? 'move-next' : 'move-prev';
+
+                $('.tab-item').removeClass('active');
+                $(this).addClass('active');
+
+                $('.tab-content').removeClass('active move-next move-prev');
+                $('.tab-content').eq(newIndex).addClass('active ' + moveDirection);
+
+                renderCurrentTab(newIndex);
+            });
+
+            // ★ 정렬 토글 기능 (오름차순/내림차순)
+            $(document).on('click', '.sort-item', function () {
+                let $this = $(this);
+
+                // 다른 정렬 항목들의 화살표 초기화
+                $('.sort-item').not(this).removeClass('sort-up sort-down');
+
+                // 클릭한 항목 방향 전환
+                if ($this.hasClass('sort-up')) {
+                    $this.removeClass('sort-up').addClass('sort-down');
+                } else {
+                    $this.removeClass('sort-down').addClass('sort-up');
+                }
+            });
+
+            // 데이터 불러오기 유틸리티
+            function getCurrentUser() {
+                let userJson = sessionStorage.getItem("user");
+                if (userJson) return JSON.parse(userJson);
+                // AuthManager fallback
+                if (window.AuthManager) return window.AuthManager.getCurrentUser();
+                return { id: '2', name: '최수아', email: 'sua.choi@example.com' };
+            }
+
+            function getWorkerProfile(userName) {
+                let profileStr = sessionStorage.getItem("kimp_worker_profile");
+                if (profileStr) return JSON.parse(profileStr);
+                // Mock fallback
+                let hours = 22;
+                if (userName === '최현일') hours = 150;
+                else if (userName === '김영희') hours = 35;
+                else if (userName === '김수민') hours = 5;
+                return { workedHours: hours };
+            }
+
+            // 렌더링 함수
+            function renderCurrentTab(index) {
+                const user = getCurrentUser();
+                
+                if (index === 0) {
+                    const profile = getWorkerProfile(user.name);
+                    const hours = Math.floor(profile.workedHours || 0);
+                    let label = '일반';
+                    let badgeClass = 'badge01';
+                    if (hours >= 120) {
+                        label = '매니저';
+                        badgeClass = 'badge03';
+                    } else if (hours >= 30) {
+                        label = '헬퍼';
+                        badgeClass = 'badge02';
+                    }
+
+                    $('#partner-container').html(`
+                        <div class="task-item">
+                            <div class="task-items0">
+                                <div class="task-items">
+                                    <img class="icon" src="./images/k-icon_150x150.png" alt="icon"> 
+                                    <div class="texts">
+                                        <span>김치만들기</span> <span>AFood</span>
+                                    </div>
+                                </div>
+                                <div class="task-info-right">
+                                    <span class="box-time">${hours}h</span>
+                                    <span class="${badgeClass}">${label}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                } else if (index === 1) {
+                    let db = [];
+                    try {
+                        db = JSON.parse(sessionStorage.getItem('app_reservations_db') || '[]');
+                    } catch(e) {}
+
+                    const myReservations = db.filter(r => String(r.userId) === String(user.id) || r.userName === user.name);
+
+                    if (myReservations.length === 0) {
+                        $('#reservation-container').html(`
+                            <div class="empty-state">
+                                <i class="bi bi-calendar-x empty-state-icon" style="font-size: 40px; margin-bottom:10px;"></i>
+                                <div>예약된 일정이 없습니다.</div>
+                            </div>
+                        `);
+                    } else {
+                        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                        let html = '';
+                        myReservations.forEach(r => {
+                            const parts = r.date.split('-');
+                            let dayName = '';
+                            if (parts.length === 3) {
+                                const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                                dayName = dayNames[d.getDay()];
+                            }
+
+                            const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
+                            const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
+
+                            html += `
+                                <div class="task-item" style="margin-bottom: 12px; display: block;">
+                                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #fff;">
+                                        ${parts[0]}년 ${parts[1]}월 ${parts[2]}일 ${dayName}
+                                    </div>
+                                    <div class="task-items0">
+                                        <div class="task-items">
+                                            <img class="icon" src="./images/k-icon_150x150.png" alt="icon"> 
+                                            <div class="texts">
+                                                <span style="font-size:12px; color:#a29bfe;">${slotLabels[r.slot]}</span>
+                                                <span>김치만들기</span>
+                                            </div>
+                                        </div>
+                                        <div class="task-info-right" style="flex-direction: column; align-items: flex-end;">
+                                            <span class="${badgeClass}" style="margin-bottom:4px;">${roleLabel}</span>
+                                            <span class="box-time">2h</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        $('#reservation-container').html(html);
+                    }
+                } else if (index === 2) {
+                    function getMockHistory(name) {
+                        const today = new Date();
+                        const formatDate = (daysAgo) => {
+                            const d = new Date();
+                            d.setDate(today.getDate() - daysAgo);
+                            return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, '0') + "." + String(d.getDate()).padStart(2, '0');
+                        };
+                        if (name === '최현일') {
+                            return [
+                                { date: formatDate(1), job: "지갑만들기", role: "매니저", pay: 220000, status: "완료", slot: '10:00 ~ 12:00' },
+                                { date: formatDate(3), job: "우동만들기", role: "매니저", pay: 190000, status: "완료", slot: '13:00 ~ 15:00' },
+                                { date: formatDate(5), job: "김치만들기", role: "매니저", pay: 180000, status: "완료", slot: '15:00 ~ 17:00' }
+                            ];
+                        } else if (name === '최수아') {
+                            return [
+                                { date: formatDate(2), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", slot: '10:00 ~ 12:00' },
+                                { date: formatDate(6), job: "지갑만들기", role: "일반", pay: 50000, status: "완료", slot: '13:00 ~ 15:00' },
+                                { date: formatDate(10), job: "김치만들기", role: "일반", pay: 45000, status: "완료", slot: '15:00 ~ 17:00' }
+                            ];
+                        } else if (name === '김수민') {
+                            return [
+                                { date: formatDate(4), job: "우동만들기", role: "일반", pay: 45000, status: "완료", slot: '13:00 ~ 15:00' }
+                            ];
+                        } else if (name === '김영희') {
+                            return [
+                                { date: formatDate(1), job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료", slot: '10:00 ~ 12:00' },
+                                { date: formatDate(3), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", slot: '15:00 ~ 17:00' },
+                                { date: formatDate(8), job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료", slot: '10:00 ~ 12:00' }
+                            ];
+                        }
+                        return [
+                            { date: formatDate(2), job: "김치만들기", role: "일반", pay: 40000, status: "완료", slot: '10:00 ~ 12:00' }
+                        ];
+                    }
+
+                    const historyData = getMockHistory(user.name);
+                    let html = '';
+
+                    historyData.forEach(h => {
+                        let corpName = 'AFood';
+                        let iconSrc = './images/k-icon_150x150.png';
+                        if (h.job === '우동만들기') {
+                            corpName = 'Uton';
+                            iconSrc = './images/Uton_150x150.png';
+                        } else if (h.job === '지갑만들기') {
+                            corpName = 'Persa';
+                            iconSrc = './images/fancy_150x150.png';
+                        }
+
+                        let badgeClass = 'badge01';
+                        if (h.role === '매니저') badgeClass = 'badge03';
+                        else if (h.role === '헬퍼') badgeClass = 'badge02';
+
+                        html += `
+                        <div class="task-item" style="margin-bottom: 12px;">
+                            <div class="task-items0" style="align-items: center;">
+                                <div class="task-items" style="flex: 1;">
+                                    <img class="icon" src="${iconSrc}" alt="icon"> 
+                                    <div class="texts">
+                                        <span>${h.job}</span>
+                                        <span>${corpName}</span> 
+                                    </div>
+                                </div>
+                                <div class="task-info-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 0 5px;">
+                                    <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 3px;">
+                                        <span class="box-time">2h</span>
+                                        <span class="${badgeClass}">${h.role}</span>
+                                    </div>
+                                    <span style="font-size: 11px; color: #a29bfe;">${h.slot || '10:00 ~ 12:00'}</span>
+                                </div>
+                                <div class="task-info-col" style="flex: 1; text-align: right; align-items: flex-end;">
+                                    <span class="date-text">${h.date}</span>
+                                    <span class="pay-text">+₩ ${h.pay.toLocaleString()}</span>  
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+
+                    $('#history-container').html(html);
+                }
+            }
+
+            // 초기 로딩 렌더링
+            renderCurrentTab(targetIndex);
+        });
+    </script>
+</body>
+
+</html>

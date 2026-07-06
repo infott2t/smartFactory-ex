@@ -2361,7 +2361,7 @@
         const localStorage = {
             getItem: function(key) {
                 const state = window.FactoryStore.getState();
-                if (key === 'kimp_reservations_db') {
+                if (key === 'app_reservations_db') {
                     return JSON.stringify(state.reservations);
                 }
                 if (key === 'kimp_production_orders') {
@@ -2386,7 +2386,7 @@
                     window.localStorage.setItem(key, value);
                     return;
                 }
-                if (key === 'kimp_reservations_db') {
+                if (key === 'app_reservations_db') {
                     window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: JSON.parse(value) });
                     return;
                 }
