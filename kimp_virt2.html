@@ -1725,12 +1725,18 @@
             
             progressMap[targetId].status = "active";
             progressMap[targetId].checkInTime = checkInTime;
-            progressMap[targetId].location = "Task 1 (적재)";
-            progressMap[targetId].stepName = "출근 완료";
+            progressMap[targetId].location = "Stage0 대기장소";
+            progressMap[targetId].stepName = "Stage0 대기장소";
             progressMap[targetId].currentStep = 7;
             progressMap[targetId].lastActiveTime = new Date().toISOString();
             
             localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+            
+            // kimp_ex1.html에서 로그인 상태를 유지하도록 세션스토리지에 재저장
+            if (sessionUser) {
+                sessionStorage.setItem("user", JSON.stringify(sessionUser));
+                sessionStorage.setItem("user-id", userId);
+            }
             
             setPartitionedItem('kimp_checkin_prep_completed', 'true');
             completeStep(7);
@@ -1739,7 +1745,7 @@
                 if (sessionUser && sessionUser.role === '헬퍼') {
                     window.location.href = "kimp_helper.html";
                 } else {
-                    window.location.href = "kimp_experience2.html";
+                    window.location.href = "kimp_ex1.html";
                 }
             }, 500);
         }

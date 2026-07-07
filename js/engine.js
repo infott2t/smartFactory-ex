@@ -64,17 +64,8 @@
         const currentUserId = state.currentUser ? state.currentUser.id : null;
         const currentWorker = currentUserId ? state.workers[currentUserId] : null;
 
-        // A. Increment worked hours for current logged-in user
-        if (state.currentUser && currentWorker) {
-            const hourDelta = deltaTime / 3600; // Increment hours fraction
-            store.dispatch({
-                type: 'INCREMENT_WORKED_HOURS',
-                payload: {
-                    userId: state.currentUser.id,
-                    value: hourDelta
-                }
-            });
-        }
+        // 💡 [수정됨] A 파트(근로시간 증가)와 D 파트(휴식시간 증가) 제거 완료!
+        // manager.html의 완벽한 중앙 타이머가 이 역할을 전담하므로 중복 방지
 
         // B. Decrement experienceRemainingSeconds
         if (state.experienceRemainingSeconds > 0) {
@@ -97,20 +88,6 @@
                 secondCounter: sysTime.getSeconds()
             }
         });
-
-        // D. Update Break times if on break
-        if (currentWorker && currentWorker.isOnBreak) {
-            const newBreakRem = Math.max(0, (currentWorker.breakRemainingSeconds || 1800) - deltaTime);
-            const newAccumBreak = (currentWorker.accumBreakSeconds || 0) + deltaTime;
-            store.dispatch({
-                type: 'SET_BREAK_TIME',
-                payload: {
-                    userId: state.currentUser.id,
-                    breakRemainingSeconds: newBreakRem,
-                    accumBreakSeconds: newAccumBreak
-                }
-            });
-        }
 
         // E. Update Helper Countdown in localStorage
         try {
@@ -183,12 +160,12 @@
             if (typeof experienceRemainingSeconds !== 'undefined') {
                 experienceRemainingSeconds = state.experienceRemainingSeconds;
             }
-            if (typeof accumBreakSeconds !== 'undefined') {
-                accumBreakSeconds = worker.accumBreakSeconds || 0;
-            }
-            if (typeof breakRemainingSeconds !== 'undefined') {
-                breakRemainingSeconds = worker.breakRemainingSeconds || 1800;
-            }
+            
+            // 💡 단말기(kimp_ex1)에서 manager.html 데이터를 읽어오도록 수정했으므로, 
+            // 아래의 store 동기화 변수는 중단 (충돌 방지)
+            // if (typeof accumBreakSeconds !== 'undefined') { accumBreakSeconds = worker.accumBreakSeconds || 0; }
+            // if (typeof breakRemainingSeconds !== 'undefined') { breakRemainingSeconds = worker.breakRemainingSeconds || 1800; }
+            
             if (typeof isOnBreak !== 'undefined') {
                 isOnBreak = worker.isOnBreak || false;
             }

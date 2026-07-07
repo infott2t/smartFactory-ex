@@ -78,9 +78,9 @@
             // 당일 주문/출하/배송 현황 (포장 규격 5종)
             const initialDailyOrders = {
                 p300g: { ordered: 10, shipped: 8, price: 3000 },
-                p1kg:  { ordered: 20, shipped: 16, price: 8000 },
-                p3kg:  { ordered: 10, shipped: 8, price: 20000 },
-                p5kg:  { ordered: 10, shipped: 8, price: 32000 },
+                p1kg: { ordered: 20, shipped: 16, price: 8000 },
+                p3kg: { ordered: 10, shipped: 8, price: 20000 },
+                p5kg: { ordered: 10, shipped: 8, price: 32000 },
                 p10kg: { ordered: 1, shipped: 0, price: 60000 }
             };
             localStorage.setItem("kimp_daily_orders", JSON.stringify(initialDailyOrders));
@@ -183,20 +183,11 @@
             var currentSecs = currentMins * 60 + now.getSeconds();
 
             var shifts = [
-                { start: 8*60, end: 10*60 },
-                { start: 10*60, end: 12*60 },
-                { start: 12*60, end: 13*60 },
-                { start: 13*60, end: 15*60 },
-                { start: 15*60, end: 17*60 },
-                { start: 17*60, end: 19*60 },
-                { start: 19*60, end: 21*60 },
-                { start: 21*60, end: 23*60 },
-                { start: 23*60, end: 24*60 },
-                { start: 0, end: 1*60 },
-                { start: 1*60, end: 3*60 },
-                { start: 3*60, end: 5*60 },
-                { start: 5*60, end: 7*60 },
-                { start: 7*60, end: 8*60 }
+                { start: 8 * 60, end: 10 * 60 }, { start: 10 * 60, end: 12 * 60 }, { start: 12 * 60, end: 13 * 60 },
+                { start: 13 * 60, end: 15 * 60 }, { start: 15 * 60, end: 17 * 60 }, { start: 17 * 60, end: 19 * 60 },
+                { start: 19 * 60, end: 21 * 60 }, { start: 21 * 60, end: 23 * 60 }, { start: 23 * 60, end: 24 * 60 },
+                { start: 0, end: 1 * 60 }, { start: 1 * 60, end: 3 * 60 }, { start: 3 * 60, end: 5 * 60 },
+                { start: 5 * 60, end: 7 * 60 }, { start: 7 * 60, end: 8 * 60 }
             ];
 
             var activeShift = null;
@@ -217,77 +208,26 @@
         let remaining = getShiftTimeRemaining();
         localStorage.setItem("kimp_remaining_seconds", remaining.toString());
 
-        // B. 근로자 근무 시간 및 실시간 급여 정산
-        let workers = {};
-        try {
-            workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
-        } catch (e) {}
+        // ======================================================================
+        // 🚨 2초 폭주의 주범이었던 'B. 근로자 근무 시간 중복 증가 로직'을 완전히 도려냈습니다!
+        // 이제 manager.html의 완벽한 중앙 타이머 엔진이 홀로 정직하게 1초씩 올려줍니다.
+        // ======================================================================
 
         let finance = { revenue: 194500, cost: 87600 };
         try {
             finance = JSON.parse(localStorage.getItem("kimp_factory_finance") || '{"revenue":194500,"cost":87600}');
-        } catch (e) {}
-
-        let totalSalaryAccumulatedThisSecond = 0;
-
-        // 시급 정의
-        const wageRates = {
-            general: 10000, // 일반 시급 10,000원
-            helper: 12000,  // 헬퍼 시급 12,000원
-            manager: 15000  // 매니저 시급 15,000원
-        };
-
-        // 가상/실제 근로자 급여 누적
-        Object.keys(workers).forEach(userId => {
-            const w = workers[userId];
-            if (w.checkInTime) {
-                // 초당 수당 계산
-                let rate = wageRates.general;
-                if (w.isHelper) rate = wageRates.helper;
-                else if (w.role === "MANAGER") rate = wageRates.manager;
-
-                const perSecondWage = rate / 3600;
-
-                if (w.status === "on_break") {
-                    if (w.accumBreakSeconds === undefined) w.accumBreakSeconds = 0;
-                    w.accumBreakSeconds++;
-                    // 휴식시간에도 기본급 지급 (또는 무급 설정 가능하나 여기서는 실 근로시간에 대해서만 적립되도록 구현)
-                } else {
-                    if (w.accumWorkSeconds === undefined) w.accumWorkSeconds = 0;
-                    w.accumWorkSeconds++;
-                    totalSalaryAccumulatedThisSecond += perSecondWage;
-                }
-                w.lastActiveTime = new Date().toISOString();
-            }
-        });
-
-        // 매니저 본인 급여 누적
-        let mgrState = { location: "office", activity: "supervising", assignedTask: null, checkInTime: "22:00:00" };
-        try {
-            mgrState = JSON.parse(localStorage.getItem("kimp_manager_own_state") || "{}");
-        } catch (e) {}
-
-        if (mgrState.checkInTime) {
-            const mgrPerSecondWage = wageRates.manager / 3600;
-            totalSalaryAccumulatedThisSecond += mgrPerSecondWage;
-        }
-
-        // 지출 비용 누적
-        finance.cost = Math.floor(finance.cost + totalSalaryAccumulatedThisSecond);
-        localStorage.setItem("kimp_factory_finance", JSON.stringify(finance));
-        localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+        } catch (e) { }
 
         // C. 6시간 절임실 타이머 처리 및 숙성완료 배추 연동
         let saltingBatches = [];
         try {
             saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
-        } catch (e) {}
+        } catch (e) { }
 
         let maturedCabbages = parseInt(localStorage.getItem("kimp_factory_matured_cabbages") || "15");
         let saltingChanged = false;
 
         saltingBatches.forEach(batch => {
-            // Force status to "salting" for batch 1 and 2 if they are currently marked matured in local storage
             if (batch.id && (batch.id.endsWith("-15-1") || batch.id.endsWith("-15-2"))) {
                 if (batch.status === "matured") {
                     batch.status = "salting";
@@ -322,7 +262,7 @@
             let products = {};
             try {
                 products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
-            } catch (e) {}
+            } catch (e) { }
 
             const choice = Math.random();
             let size = "p1kg";
@@ -336,7 +276,7 @@
                 finance.revenue += item.price; // 수익 증가
                 localStorage.setItem("kimp_factory_products", JSON.stringify(products));
                 localStorage.setItem("kimp_factory_finance", JSON.stringify(finance));
-                
+
                 // 전역 로그 추가
                 if (window.addAppLog) {
                     window.addAppLog(`[주문 유입] 완제품 ${item.name} 1개 주문 출하 완료 (수익 +${item.price}원)`);
