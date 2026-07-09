@@ -2402,7 +2402,16 @@
                         <h3><i class="bi bi-snow2"></i> 냉장 절임(Stage2) & 절임 세척 배추보관용(Stage3) 냉장고와 물기제거 상황</h3>
                         <span class="badge badge-blue" id="salting-batch-total-lbl">진행 중 0개</span>
                     </div>
-                    <p style="font-size: 13px; color: var(--text-secondary);">
+                    
+                    <!-- 💡 [추가] 기본 절임 시간 설정 컨트롤러 상자 -->
+                    <div class="salting-setting-box" style="margin-top: 10px; margin-bottom: 15px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background-color: rgba(156, 39, 176, 0.05); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--accent-purple);"><i class="bi bi-clock-fill"></i> 기본 절임 시간 설정:</span>
+                        <input type="number" id="input-salting-hours" min="1" max="99" value="17" style="width: 70px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-family: var(--font-outfit); font-weight: bold; text-align: center;">
+                        <span style="font-size: 13px; font-weight: 500;">시간 (1~99시간)</span>
+                        <button class="top-action-btn" onclick="saveSaltingTimeSetting()" style="padding: 4px 12px; font-size: 12px; background-color: var(--accent-purple); color: #fff; border: none; border-radius: 4px; cursor: pointer;">설정 저장</button>
+                    </div>
+
+                    <p style="font-size: 13px; color: var(--text-secondary);" id="salting-guide-text">
                         배추를 소금물에 절여 17시간 동안 숙성시키는 저온 절임 냉장고 보관 상태를 모니터링합니다. 17시간이 초과되어 절임 완료(Stage2 완료)가 되면, 'Stage 3으로
                         전달' 버튼을 통해 다음 공정(세척/탈수)으로 전달할 수 있습니다.
                     </p>
@@ -2702,6 +2711,40 @@
             clear: function () { window.localStorage.clear(); }
         };
 
+        // 💡 [절임 시간 설정 헬퍼 함수군]
+        function getSaltingTimeSetting() {
+            let setting = localStorage.getItem("kimp_salting_time_setting");
+            if (setting !== null) {
+                let parsed = parseInt(setting);
+                if (parsed >= 1 && parsed <= 99) {
+                    return parsed;
+                }
+            }
+            return 17; // 기본값
+        }
+
+        function saveSaltingTimeSetting() {
+            const input = document.getElementById("input-salting-hours");
+            if (!input) return;
+            let val = parseInt(input.value);
+            if (isNaN(val) || val < 1 || val > 99) {
+                alert("절임 시간은 1시간에서 99시간 사이로 설정해야 합니다.");
+                input.value = getSaltingTimeSetting();
+                return;
+            }
+            localStorage.setItem("kimp_salting_time_setting", val.toString());
+            updateSaltingGuideText(val);
+            alert(`기본 절임 시간이 ${val}시간으로 변경되었습니다. 이후에 생성되는 생산지시서의 절임시간에 반영됩니다.`);
+            refreshAllData();
+        }
+
+        function updateSaltingGuideText(hours) {
+            const guideEl = document.getElementById("salting-guide-text");
+            if (guideEl) {
+                guideEl.innerHTML = `배추를 소금물에 절여 <b>${hours}시간</b> 동안 숙성시키는 저온 절임 냉장고 보관 상태를 모니터링합니다. <b>${hours}시간</b>이 초과되어 절임 완료(Stage2 완료)가 되면, 'Stage 3으로 전달' 버튼을 통해 다음 공정(세척/탈수)으로 전달할 수 있습니다.`;
+            }
+        }
+
         // ── A. 글로벌 상태 변수 ──
         let activeTab = 'dashboard';
         let remainingSeconds = 7200;
@@ -2860,10 +2903,12 @@
             const yesterdayDateStr = `${yy}${mm}${dd}`;
 
             // 5.3. 3개 절임 배치 초기 세팅 (2시간 시프트에 가동할 데이터 구조 맞춰두기)
+            const currentSettingHours = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+            const currentSettingMs = currentSettingHours * 3600 * 1000;
             const initialSalting = [
-                { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, startTime: Date.now() - 4 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, startTime: Date.now() - 3 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, startTime: Date.now() - (17 * 3600 * 1000 - 60000), saltingTimeLimit: 17 * 3600 * 1000, status: "salting" }
+                { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, startTime: Date.now() - 4 * 3600 * 1000, saltingTimeLimit: currentSettingMs, status: "salting" },
+                { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, startTime: Date.now() - 3 * 3600 * 1000, saltingTimeLimit: currentSettingMs, status: "salting" },
+                { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, startTime: Date.now() - (currentSettingMs - 60000), saltingTimeLimit: currentSettingMs, status: "salting" }
             ];
             localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSalting));
             localStorage.setItem("kimp_factory_matured_cabbages", "0");
@@ -4103,8 +4148,63 @@
             if (deltaSecs >= 1) {
                 lastEngineTick += deltaSecs * 1000;
 
+                // 💡 [실시간 근로자 레코드 상호 동기화] 중복 키(이메일 형식, 숫자 ID 등) 간에 출근시간 및 진행 상태를 최신 상태로 일치 복사시킨다!
                 let workers = {};
-                try { workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); } catch (e) { }
+                try { 
+                    workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); 
+                    let nameMap = {};
+                    
+                    // 1차 패스: 각 사용자 이름별로 가장 최신의 출근시간 및 상태 정보 병합
+                    Object.keys(workers).forEach(k => {
+                        const w = workers[k];
+                        if (!w || !w.userName) return;
+                        const name = w.userName;
+                        if (!nameMap[name]) {
+                            nameMap[name] = { checkInTime: null, accumWorkSeconds: 0, accumBreakSeconds: 0, completedOrdersCount: 0, currentStep: 1, stepName: "대기", location: "대기실", status: "active", lastActiveTime: "" };
+                        }
+                        
+                        // 더 최근에 들어온 유효한 출근 시각 복제
+                        if (w.checkInTime && w.checkInTime !== "" && w.checkInTime !== "null" && w.checkInTime !== "-") {
+                            if (!nameMap[name].checkInTime || (w.lastActiveTime > nameMap[name].lastActiveTime)) {
+                                nameMap[name].checkInTime = w.checkInTime;
+                            }
+                        }
+                        
+                        // 더 최신의 상태 정보 병합
+                        if (w.lastActiveTime > nameMap[name].lastActiveTime) {
+                            nameMap[name].accumWorkSeconds = w.accumWorkSeconds || 0;
+                            nameMap[name].accumBreakSeconds = w.accumBreakSeconds || 0;
+                            nameMap[name].completedOrdersCount = w.completedOrdersCount || 0;
+                            nameMap[name].currentStep = w.currentStep || 1;
+                            nameMap[name].stepName = w.stepName || "대기";
+                            nameMap[name].location = w.location || "대기실";
+                            nameMap[name].status = w.status || "active";
+                            nameMap[name].lastActiveTime = w.lastActiveTime;
+                        }
+                    });
+                    
+                    // 2차 패스: 동일 이름을 가진 모든 레코드에 병합된 최신 정보 전파
+                    Object.keys(workers).forEach(k => {
+                        const w = workers[k];
+                        if (!w || !w.userName) return;
+                        const merged = nameMap[w.userName];
+                        if (merged) {
+                            w.checkInTime = merged.checkInTime || w.checkInTime;
+                            w.accumWorkSeconds = merged.accumWorkSeconds;
+                            w.accumBreakSeconds = merged.accumBreakSeconds;
+                            w.completedOrdersCount = merged.completedOrdersCount;
+                            w.currentStep = merged.currentStep;
+                            w.stepName = merged.stepName;
+                            w.location = merged.location;
+                            w.status = merged.status;
+                            w.lastActiveTime = merged.lastActiveTime || w.lastActiveTime;
+                        }
+                    });
+                    
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                } catch (e) { 
+                    workers = {};
+                }
                 const stagesSync = JSON.parse(localStorage.getItem("kimp_stages_sync") || "[]");
                 const stageStates = JSON.parse(localStorage.getItem("kimp_stage_states") || "{}");
 
@@ -4130,10 +4230,20 @@
                     }
                 });
 
-                // A) 근로자 시간 증가 (현실 시간 deltaSecs 만큼만 더함)
+                // A) 근로자 시간 증가 및 강제 리셋 방어 (현실 시간 deltaSecs 만큼만 더함)
                 Object.keys(workers).forEach(k => {
                     const w = workers[k];
-                    if (w.checkInTime) {
+                    
+                    // 💡 [실시간 강제 0초 리셋 및 고정] 준비 중(currentStep < 7)인 경우 근로시간을 무조건 0으로 정지 및 초기화한다!
+                    if (!w.currentStep || w.currentStep < 7) {
+                        w.accumWorkSeconds = 0;
+                        w.accumBreakSeconds = 0;
+                        w.completedOrdersCount = 0;
+                        isChanged = true;
+                    }
+                    
+                    // 💡 [수정] 체험관에 최종 입장 완료(currentStep >= 7)한 상태인 경우에만 실시간 근로시간을 누적 가산한다!
+                    if (w.checkInTime && w.currentStep >= 7) {
                         if (w.status === "active") {
                             w.accumWorkSeconds = (w.accumWorkSeconds || 0) + deltaSecs;
                             isChanged = true;
@@ -4221,8 +4331,63 @@
             document.getElementById("stats-salting-batches-count").textContent = `절임 진행 배치: ${activeSalts}개`;
 
             // 5. 근로자 현황 화면 렌더링
+            // 💡 [실시간 근로자 레코드 상호 동기화] 중복 키(이메일 형식, 숫자 ID 등) 간에 출근시간 및 진행 상태를 최신 상태로 일치 복사시킨다!
             let workers = {};
-            try { workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); } catch (e) { }
+            try { 
+                workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); 
+                let nameMap = {};
+                
+                // 1차 패스: 각 사용자 이름별로 가장 최신의 출근시간 및 상태 정보 병합
+                Object.keys(workers).forEach(k => {
+                    const w = workers[k];
+                    if (!w || !w.userName) return;
+                    const name = w.userName;
+                    if (!nameMap[name]) {
+                        nameMap[name] = { checkInTime: null, accumWorkSeconds: 0, accumBreakSeconds: 0, completedOrdersCount: 0, currentStep: 1, stepName: "대기", location: "대기실", status: "active", lastActiveTime: "" };
+                    }
+                    
+                    // 더 최근에 들어온 유효한 출근 시각 복제
+                    if (w.checkInTime && w.checkInTime !== "" && w.checkInTime !== "null" && w.checkInTime !== "-") {
+                        if (!nameMap[name].checkInTime || (w.lastActiveTime > nameMap[name].lastActiveTime)) {
+                            nameMap[name].checkInTime = w.checkInTime;
+                        }
+                    }
+                    
+                    // 더 최신의 상태 정보 병합
+                    if (w.lastActiveTime > nameMap[name].lastActiveTime) {
+                        nameMap[name].accumWorkSeconds = w.accumWorkSeconds || 0;
+                        nameMap[name].accumBreakSeconds = w.accumBreakSeconds || 0;
+                        nameMap[name].completedOrdersCount = w.completedOrdersCount || 0;
+                        nameMap[name].currentStep = w.currentStep || 1;
+                        nameMap[name].stepName = w.stepName || "대기";
+                        nameMap[name].location = w.location || "대기실";
+                        nameMap[name].status = w.status || "active";
+                        nameMap[name].lastActiveTime = w.lastActiveTime;
+                    }
+                });
+                
+                // 2차 패스: 동일 이름을 가진 모든 레코드에 병합된 최신 정보 전파
+                Object.keys(workers).forEach(k => {
+                    const w = workers[k];
+                    if (!w || !w.userName) return;
+                    const merged = nameMap[w.userName];
+                    if (merged) {
+                        w.checkInTime = merged.checkInTime || w.checkInTime;
+                        w.accumWorkSeconds = merged.accumWorkSeconds;
+                        w.accumBreakSeconds = merged.accumBreakSeconds;
+                        w.completedOrdersCount = merged.completedOrdersCount;
+                        w.currentStep = merged.currentStep;
+                        w.stepName = merged.stepName;
+                        w.location = merged.location;
+                        w.status = merged.status;
+                        w.lastActiveTime = merged.lastActiveTime || w.lastActiveTime;
+                    }
+                });
+                
+                localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+            } catch (e) { 
+                workers = {};
+            }
 
             let activeCount = 0, breakCount = 0, helperCount = 0;
             Object.keys(workers).forEach(k => {
@@ -4532,12 +4697,13 @@
 
                                     const existingBatch = saltingBatches.find(b => b.orderId === orderId);
                                     if (!existingBatch) {
+                                        const currentSettingHours = getSaltingTimeSetting();
                                         saltingBatches.push({
                                             id: orderId,
                                             orderId: orderId,
                                             cabbageHeads: req.postWorkQty || orders[orderId].stages[stageNum].postWorkQty || 15,
                                             startTime: Date.now(),
-                                            saltingTimeLimit: 17 * 3600 * 1000,
+                                            saltingTimeLimit: currentSettingHours * 3600 * 1000,
                                             status: "salting"
                                         });
                                         localStorage.setItem("kimp_factory_salting", JSON.stringify(saltingBatches));
@@ -4613,18 +4779,20 @@
                 if (o.productId === "raw_cabbage") {
                     let b = saltingBatches.find(batch => batch.orderId === o.orderId);
                     if (b) {
+                        const currentSettingHours = getSaltingTimeSetting();
+                        const currentSettingMs = currentSettingHours * 3600 * 1000;
                         if (b.status === 'matured') {
                             isCompletedTask3 = true;
-                            saltingTimeInfo = `<div style="font-size:11px; color:var(--accent-green); font-weight:600; margin-top:2px;"><i class="bi bi-patch-check-fill"></i> 절임 완료 (17시간)</div>`;
+                            saltingTimeInfo = `<div style="font-size:11px; color:var(--accent-green); font-weight:600; margin-top:2px;"><i class="bi bi-patch-check-fill"></i> 절임 완료 (${currentSettingHours}시간)</div>`;
                         } else {
                             const elapsed = Date.now() - b.startTime;
-                            const limit = b.saltingTimeLimit || 61200000;
+                            const limit = b.saltingTimeLimit || currentSettingMs;
                             if (elapsed >= limit) {
                                 isCompletedTask3 = true;
-                                saltingTimeInfo = `<div style="font-size:11px; color:var(--accent-green); font-weight:600; margin-top:2px;"><i class="bi bi-patch-check-fill"></i> 절임 완료 (17시간)</div>`;
+                                saltingTimeInfo = `<div style="font-size:11px; color:var(--accent-green); font-weight:600; margin-top:2px;"><i class="bi bi-patch-check-fill"></i> 절임 완료 (${currentSettingHours}시간)</div>`;
                             } else {
                                 const elapsedHours = elapsed / 3600000;
-                                saltingTimeInfo = `<div style="font-size:11px; color:var(--accent-purple); font-weight:600; margin-top:2px;"><i class="bi bi-clock-history"></i> 절임: ${elapsedHours.toFixed(1)}시간 / 17시간</div>`;
+                                saltingTimeInfo = `<div style="font-size:11px; color:var(--accent-purple); font-weight:600; margin-top:2px;"><i class="bi bi-clock-history"></i> 절임: ${elapsedHours.toFixed(1)}시간 / ${currentSettingHours}시간</div>`;
                             }
                         }
                     }
@@ -4885,9 +5053,28 @@
                     speedHtml = `<span style="color:var(--accent-red); font-weight:700;"><i class="bi bi-caret-down-fill"></i> ${speedDiff}개</span>`;
                 }
 
+                // 💡 [실시간 출근 시간 바인딩 보강]
+                let displayCheckInTime = w.checkInTime;
+                
+                // 1순위: 로컬 스토리지의 사용자별 직접 출근 키 조회
+                const localCheckInTime = localStorage.getItem("kimp_check_in_time_" + k);
+                if (localCheckInTime && localCheckInTime !== "" && localCheckInTime !== "null") {
+                    displayCheckInTime = localCheckInTime;
+                }
+                
+                // 2순위: 중앙 스토어 상태 조회
+                if (!displayCheckInTime || displayCheckInTime === '-') {
+                    if (window.FactoryStore) {
+                        const storeWorker = window.FactoryStore.getState().workers[k];
+                        if (storeWorker && storeWorker.checkInTime) {
+                            displayCheckInTime = storeWorker.checkInTime;
+                        }
+                    }
+                }
+
                 // 예약 출석 상태
                 let attendanceBadge = `<span class="badge badge-gray">미출석 (대기)</span>`;
-                if (w.checkInTime) {
+                if (displayCheckInTime) {
                     attendanceBadge = `<span class="badge badge-green">출석 완료</span>`;
                 }
 
@@ -4898,7 +5085,7 @@
                     <td>${locationBadge}</td>
                     <td>${stepBadge}</td>
                     <td>${attendanceBadge}</td>
-                    <td style="font-family: var(--font-outfit); font-weight: 600;">${w.checkInTime || '-'}</td>
+                    <td style="font-family: var(--font-outfit); font-weight: 600;">${displayCheckInTime || '-'}</td>
                     <td style="font-family: var(--font-outfit); font-weight: 600; color: ${isBreak ? 'var(--text-secondary)' : 'var(--accent-blue)'};">${workTimeStr}</td>
                     <td style="font-family: var(--font-outfit); font-weight: ${isBreak ? '700' : '500'}; color: ${isBreak ? 'var(--accent-yellow)' : 'var(--text-primary)'};">${breakTimeStr}</td>
                     <td>${speedHtml}</td>
@@ -5043,6 +5230,10 @@
             const now = Date.now();
             let updated = false;
 
+            // 💡 [추가] 절임시간 설정값 획득
+            const currentSettingHours = getSaltingTimeSetting();
+            const currentSettingMs = currentSettingHours * 3600 * 1000;
+
             // Remove legacy prefix/EXP batches
             const originalLength = batches.length;
             batches = batches.filter(b => {
@@ -5072,7 +5263,7 @@
                         } else {
                             b.startTime = now - 3 * 3600 * 1000;
                         }
-                        b.saltingTimeLimit = 17 * 3600 * 1000;
+                        b.saltingTimeLimit = currentSettingMs;
                         if (b.maturedTime) delete b.maturedTime;
                         updated = true;
                     }
@@ -5080,7 +5271,6 @@
             });
 
             if (batches.length === 0) {
-                const seventeenHours = 17 * 3600000;
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
                 const yy = String(yesterday.getFullYear()).slice(-2);
@@ -5089,9 +5279,9 @@
                 const yesterdayDateStr = `${yy}${mm}${dd}`;
 
                 batches = [
-                    { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, status: "salting", startTime: now - 4 * 3600000, saltingTimeLimit: seventeenHours },
-                    { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, status: "salting", startTime: now - 3 * 3600000, saltingTimeLimit: seventeenHours },
-                    { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, status: "salting", startTime: now - (seventeenHours - 60000), saltingTimeLimit: seventeenHours }
+                    { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, status: "salting", startTime: now - 4 * 3600000, saltingTimeLimit: currentSettingMs },
+                    { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, status: "salting", startTime: now - 3 * 3600000, saltingTimeLimit: currentSettingMs },
+                    { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, status: "salting", startTime: now - (currentSettingMs - 60000), saltingTimeLimit: currentSettingMs }
                 ];
                 localStorage.setItem("kimp_factory_salting", JSON.stringify(batches));
                 localStorage.setItem("kimp_factory_matured_cabbages", "0");
@@ -5103,7 +5293,7 @@
             batches.forEach(b => {
                 if (b.status === 'salting') {
                     const elapsed = now - b.startTime;
-                    const limit = b.saltingTimeLimit || 61200000;
+                    const limit = b.saltingTimeLimit || currentSettingMs;
                     if (elapsed >= limit) {
                         b.status = 'matured';
                         b.maturedTime = b.startTime + limit;
@@ -5129,7 +5319,7 @@
                 let cardBody = "";
                 if (b.status === 'matured') {
                     // Feature 6: Show elapsed storage time since maturation
-                    const maturedAt = b.maturedTime || (b.startTime + (b.saltingTimeLimit || 61200000));
+                    const maturedAt = b.maturedTime || (b.startTime + (b.saltingTimeLimit || currentSettingMs));
                     const storageDuration = now - maturedAt;
                     const stgHrs = Math.floor(storageDuration / 3600000);
                     const stgMins = Math.floor((storageDuration % 3600000) / 60000);
@@ -5148,7 +5338,7 @@
                     `;
                 } else {
                     const elapsed = now - b.startTime;
-                    const remaining = Math.max(0, (b.saltingTimeLimit || 61200000) - elapsed);
+                    const remaining = Math.max(0, (b.saltingTimeLimit || currentSettingMs) - elapsed);
 
                     const hrs = Math.floor(remaining / 3600000);
                     const mins = Math.floor((remaining % 3600000) / 60000);
@@ -5163,7 +5353,7 @@
                         투입: 배추 <b>${b.cabbageHeads}포기</b> (${b.orderId || '지시서연동'})
                     </div>
                     <div class="salting-countdown">${countdownStr}</div>
-                    <div style="font-size:11px; color:var(--text-secondary);">17시간 절임 카운트다운</div>
+                    <div style="font-size:11px; color:var(--text-secondary);">${currentSettingHours}시간 절임 카운트다운</div>
                     `;
                 }
 
@@ -6006,6 +6196,15 @@
             // 매니저 전용 상태 로딩
             loadManagerStatus();
             initKimpDeliveryData(); // 주문 출하 및 부자재 초기화
+            
+            // 💡 [초기 설정 동기화] 저장된 절임 시간 설정을 입력 폼 및 가이드 텍스트에 적용
+            const initialSaltingSetting = getSaltingTimeSetting();
+            const inputSalting = document.getElementById("input-salting-hours");
+            if (inputSalting) {
+                inputSalting.value = initialSaltingSetting;
+            }
+            updateSaltingGuideText(initialSaltingSetting);
+
             refreshAllData();
             calculateFormWeights(); // 수동 지시서 예상 중량 계산기 초기화
 

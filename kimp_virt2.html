@@ -1231,6 +1231,81 @@
                 window.location.href = "kimp.html";
             });
 
+            // 💡 [출근 전면 리셋] kimp_virt2.html 진입 시 기존 출근 및 위생 체크 상태를 완전히 리셋하여 처음부터 다시 진행하게 함
+            try {
+                const userId = (window.AuthManager ? window.AuthManager.getUserId() : null) || sessionStorage.getItem("user-id") || "guest";
+                
+                // 1. 공정 점유 상태(kimp_stages_sync)에서 이 사용자를 즉각 퇴출(자리 비움) 처리하여 근로시간 증가 멈춤!
+                let sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                let userName = "손님";
+                if (sessionUser) userName = sessionUser.name;
+                else {
+                    try { userName = JSON.parse(sessionStorage.getItem("user")).name || "손님"; } catch(e) {}
+                }
+
+                if (userName && userName !== "손님") {
+                    let stagesSync = [];
+                    try { stagesSync = JSON.parse(localStorage.getItem('kimp_stages_sync') || '[]'); } catch(e) {}
+                    
+                    let isSyncChanged = false;
+                    stagesSync.forEach(stage => {
+                        if (stage.worker === userName) {
+                            stage.worker = ""; // 점유 해제
+                            stage.status = "empty";
+                            isSyncChanged = true;
+                        }
+                    });
+                    if (isSyncChanged) {
+                        localStorage.setItem('kimp_stages_sync', JSON.stringify(stagesSync));
+                    }
+                }
+
+                // 2. 개별 출근 시간 관련 로컬 키 삭제
+                localStorage.removeItem('kimp_check_in_time');
+                if (userId && userId !== "guest") {
+                    localStorage.removeItem('kimp_check_in_time_' + userId);
+                }
+                localStorage.removeItem('kimp_checkin_prep_completed');
+                sessionStorage.removeItem('kimp_checkin_prep_completed');
+
+                // 3. kimp_workers_state 내의 해당 사용자 checkInTime 및 근로시간 정보 초기화 (0으로 리셋)
+                if (userId && userId !== "guest") {
+                    let workersState = JSON.parse(localStorage.getItem('kimp_workers_state') || '{}');
+                    if (workersState[userId]) {
+                        workersState[userId].checkInTime = null;
+                        workersState[userId].accumWorkSeconds = 0;
+                        workersState[userId].accumBreakSeconds = 0;
+                        workersState[userId].completedOrdersCount = 0;
+                        localStorage.setItem('kimp_workers_state', JSON.stringify(workersState));
+                    }
+                    // workedHours 레거시 정산 데이터 리셋
+                    localStorage.setItem("mypage_hours_udon_" + userId, "0");
+                    localStorage.setItem("mypage_hours_wallet_" + userId, "0");
+                }
+
+                // 4. kimp_workers_progress 내의 진행 단계 정보 리셋 (Step 1로 원복, 근로시간 0초 리셋)
+                let progressMap = {};
+                try {
+                    progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                } catch(e) {}
+                
+                let targetId = userId;
+
+                if (progressMap[targetId]) {
+                    progressMap[targetId].currentStep = 1;
+                    progressMap[targetId].stepName = "Step 1. 오시는 길";
+                    progressMap[targetId].status = "active";
+                    progressMap[targetId].checkInTime = null;
+                    progressMap[targetId].location = "AFood Kimchi룸 입구";
+                    progressMap[targetId].accumWorkSeconds = 0;
+                    progressMap[targetId].accumBreakSeconds = 0;
+                    progressMap[targetId].completedOrdersCount = 0;
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+                }
+            } catch(e) {
+                console.error("Failed to reset check-in session on load:", e);
+            }
+
             // progress-line 초기 넓이 지정
             updateProgressBar();
         });
@@ -1331,7 +1406,7 @@
             
             let location = "준비중";
             let customStepName = stepName;
-            const checkInTime = getPartitionedItem("kimp_check_in_time");
+            const checkInTime = getPartitionedItem("kimp_check_in_time") || localStorage.getItem("kimp_check_in_time_" + userId);
 
             if (currentStep === 3 || currentStep === 4) {
                 location = "AFood QR코드입력기";
@@ -1344,11 +1419,8 @@
                 location = "AFood Kimchi룸 입구";
             }
             
+            // 💡 [단일 식별화] 중복 및 레거시 이메일 키 방지를 위해 로그인한 고유 회원 ID(userId)를 최우선 키로 단일 고정한다!
             let targetId = userId;
-            const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userName);
-            if (existingKey) {
-                targetId = existingKey;
-            }
             
             const oldData = progressMap[targetId] || {};
             progressMap[targetId] = {
@@ -1463,6 +1535,21 @@
 
                 // partitioned storage에 저장
                 setPartitionedItem('kimp_check_in_time', checkInTime);
+
+                // 💡 [실시간 연동] kimp_workers_state 에도 출근 시간 강제 업데이트
+                try {
+                    const userId = sessionStorage.getItem("user-id") || "guest";
+                    if (userId && userId !== "guest") {
+                        let workersState = JSON.parse(localStorage.getItem('kimp_workers_state') || '{}');
+                        if (!workersState[userId]) {
+                            workersState[userId] = {};
+                        }
+                        workersState[userId].checkInTime = checkInTime;
+                        localStorage.setItem('kimp_workers_state', JSON.stringify(workersState));
+                    }
+                } catch(e) {
+                    console.error("Failed to update checkInTime in kimp_workers_state:", e);
+                }
 
                 showToast(`출근이 성공적으로 등록되었습니다: ${checkInTime}`);
                 completeStep(3);
@@ -1707,11 +1794,8 @@
                 progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
             } catch(e) {}
             
+            // 💡 [단일 식별화] 고유 회원 ID(userId)를 최우선 키로 단일 고정한다!
             let targetId = userId;
-            const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userName);
-            if (existingKey) {
-                targetId = existingKey;
-            }
             
             if (!progressMap[targetId]) {
                 progressMap[targetId] = {

@@ -57,9 +57,11 @@
             };
             localStorage.setItem("kimp_factory_products", JSON.stringify(initialCatalog));
 
-            // 냉장 숙성/절임실 초기 배치 (17시간 절임 타이머 테스트용)
+            // 냉장 숙성/절임실 초기 배치 (절임 타이머 테스트용)
             // 시작 시간을 밀리초 단위로 역산하여 저장
             const now = Date.now();
+            const currentSettingHours = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+            const currentSettingMs = currentSettingHours * 3600 * 1000;
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yy = String(yesterday.getFullYear()).slice(-2);
@@ -68,9 +70,9 @@
             const yesterdayDateStr = `${yy}${mm}${dd}`;
 
             const initialSaltingBatches = [
-                { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, startTime: now - 4 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, startTime: now - 3 * 3600 * 1000, saltingTimeLimit: 17 * 3600 * 1000, status: "salting" },
-                { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, startTime: now - (17 * 3600 * 1000 - 60 * 1000), saltingTimeLimit: 17 * 3600 * 1000, status: "salting" }
+                { id: yesterdayDateStr + "-15-1", orderId: yesterdayDateStr + "-15-1", cabbageHeads: 15, startTime: now - 4 * 3600 * 1000, saltingTimeLimit: currentSettingMs, status: "salting" },
+                { id: yesterdayDateStr + "-15-2", orderId: yesterdayDateStr + "-15-2", cabbageHeads: 15, startTime: now - 3 * 3600 * 1000, saltingTimeLimit: currentSettingMs, status: "salting" },
+                { id: yesterdayDateStr + "-15-3", orderId: yesterdayDateStr + "-15-3", cabbageHeads: 15, startTime: now - (currentSettingMs - 60 * 1000), saltingTimeLimit: currentSettingMs, status: "salting" }
             ];
             localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSaltingBatches));
             localStorage.setItem("kimp_factory_matured_cabbages", "0");
@@ -279,7 +281,8 @@
                     } else {
                         batch.startTime = now - 3 * 3600 * 1000;
                     }
-                    batch.saltingTimeLimit = 17 * 3600 * 1000;
+                    const currentSettingHours = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+                    batch.saltingTimeLimit = currentSettingHours * 3600 * 1000;
                     if (batch.maturedTime) delete batch.maturedTime;
                     saltingChanged = true;
                 }

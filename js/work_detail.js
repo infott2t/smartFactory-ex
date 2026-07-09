@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productHtml = data.products.map((p, i) => {
                     const stockColor = p.status.includes('남음') ? '#ff7675' : '#7b92ff';
                     return `
-                        <a class="box" href="kimp_detail.html?product=p${i}" style="width: 220px; min-width: 220px; flex-shrink: 0; background: #1a1a33; border: 1px solid #2d2d5e; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; color: #fff; transition: transform 0.2s;">
+                        <a class="box" href="kimp_detail.html?productId=${p.id || ('p' + i)}&workId=${workId}" style="width: 220px; min-width: 220px; flex-shrink: 0; background: #1a1a33; border: 1px solid #2d2d5e; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; color: #fff; transition: transform 0.2s;">
                             <div class="up" style="display: flex; align-items: center; margin-bottom: 8px;">
                                 <img src="${p.imgUrl}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="${p.name}">
                                 <div class="texts" style="display: flex; flex-direction: column; position: static; margin-left: 12px; justify-content: center; height: 80px; flex-grow: 1;">

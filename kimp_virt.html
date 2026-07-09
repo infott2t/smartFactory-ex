@@ -1407,6 +1407,70 @@
             checkInSession.userId = userInfo.id;
             checkInSession.userName = userInfo.name;
 
+            // 💡 [출근 전면 리셋] kimp_virt.html 진입 시 기존 출근 및 위생 체크 상태를 완전히 리셋하여 처음부터 다시 진행하게 함
+            try {
+                // 1. 공정 점유 상태(kimp_stages_sync)에서 이 사용자를 즉각 퇴출(자리 비움) 처리하여 근로시간 증가 멈춤!
+                if (userInfo.name && userInfo.name !== "손님") {
+                    let stagesSync = [];
+                    try { stagesSync = JSON.parse(localStorage.getItem('kimp_stages_sync') || '[]'); } catch(e) {}
+                    
+                    let isSyncChanged = false;
+                    stagesSync.forEach(stage => {
+                        if (stage.worker === userInfo.name) {
+                            stage.worker = ""; // 점유 해제
+                            stage.status = "empty";
+                            isSyncChanged = true;
+                        }
+                    });
+                    if (isSyncChanged) {
+                        localStorage.setItem('kimp_stages_sync', JSON.stringify(stagesSync));
+                    }
+                }
+
+                // 2. 개별 출근 시간 관련 로컬 키 삭제
+                localStorage.removeItem('kimp_check_in_time');
+                localStorage.removeItem('kimp_check_in_time_' + userId);
+                localStorage.removeItem('kimp_checkin_prep_completed');
+                sessionStorage.removeItem('kimp_checkin_prep_completed');
+
+                // 3. kimp_workers_state 내의 해당 사용자 checkInTime 및 근로시간 정보 초기화 (0으로 리셋)
+                let workersState = JSON.parse(localStorage.getItem('kimp_workers_state') || '{}');
+                if (workersState[userId]) {
+                    workersState[userId].checkInTime = null;
+                    workersState[userId].accumWorkSeconds = 0;
+                    workersState[userId].accumBreakSeconds = 0;
+                    workersState[userId].completedOrdersCount = 0;
+                    localStorage.setItem('kimp_workers_state', JSON.stringify(workersState));
+                }
+                // workedHours 레거시 정산 데이터 리셋
+                localStorage.setItem("mypage_hours_udon_" + userId, "0");
+                localStorage.setItem("mypage_hours_wallet_" + userId, "0");
+
+                // 4. kimp_workers_progress 내의 진행 단계 정보 리셋 (Step 1로 원복, 근로시간 0초 리셋)
+                let progressMap = {};
+                try {
+                    progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                } catch(e) {}
+                
+                let targetId = userId;
+                const existingKey = Object.keys(progressMap).find(k => progressMap[k] && progressMap[k].userName === userInfo.name);
+                if (existingKey) targetId = existingKey;
+
+                if (progressMap[targetId]) {
+                    progressMap[targetId].currentStep = 1;
+                    progressMap[targetId].stepName = "Step 1. 오시는 길";
+                    progressMap[targetId].status = "active";
+                    progressMap[targetId].checkInTime = null;
+                    progressMap[targetId].location = "AFood Kimchi룸 입구";
+                    progressMap[targetId].accumWorkSeconds = 0;
+                    progressMap[targetId].accumBreakSeconds = 0;
+                    progressMap[targetId].completedOrdersCount = 0;
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+                }
+            } catch(e) {
+                console.error("Failed to reset check-in session on load:", e);
+            }
+
             // 2) 작업(Job) 데이터 화면에 바인딩
             document.querySelector('.header-title').textContent = `${currentJob.title} (가상체험관)`;
             document.querySelector('.address-container .address-box').textContent = currentJob.address;
@@ -1535,6 +1599,21 @@
                 checkInSession.checkInTime = res.time;
                 checkInSession.location = res.location;
                 setPartitionedItem('kimp_check_in_time', res.time); // 기존 호환성 유지
+
+                // 💡 [실시간 연동] kimp_workers_state 에도 출근 시간 강제 업데이트
+                try {
+                    const userId = sessionStorage.getItem("user-id") || "guest";
+                    if (userId && userId !== "guest") {
+                        let workersState = JSON.parse(localStorage.getItem('kimp_workers_state') || '{}');
+                        if (!workersState[userId]) {
+                            workersState[userId] = {};
+                        }
+                        workersState[userId].checkInTime = res.time;
+                        localStorage.setItem('kimp_workers_state', JSON.stringify(workersState));
+                    }
+                } catch(e) {
+                    console.error("Failed to update checkInTime in kimp_workers_state:", e);
+                }
 
                 showToast(`출근 등록 완료: ${res.time}`);
                 advanceToNextStep(3, `출근 등록 완료 [${res.time}]`);

@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- MockData Store -->
+    <script src="./js/store.js" type="text/javascript"></script>
     <style>
         :root {
             --bg-color: #0b0b16;
@@ -549,19 +551,19 @@
             <!-- 상품정보 탭 -->
             <div class="tab-content active" id="tab-content-info">
                 <div class="info-block">
-                    <div class="info-block-title">
+                    <div class="info-block-title" id="info-block-title-1">
                         <i class="bi bi-stars"></i> 스마트 숙성 공법
                     </div>
                     <div class="info-block-text" id="product-desc-long">
-                        엄선된 100% 국산 배추와 양념으로 정성껏 버무린 맛김치입니다. 1인 가구 또는 소가족이 신선하고 깔끔하게 드실 수 있는 300g 소포장 규격입니다. 숙성 온도 조절을 통해 가장 알맞은 익음 상태로 바로 드실 수 있습니다.
+                        엄선된 100% 국산 배추 and 양념으로 정성껏 버무린 맛김치입니다. 1인 가구 또는 소가족이 신선하고 깔끔하게 드실 수 있는 300g 소포장 규격입니다. 숙성 온도 조절을 통해 가장 알맞은 익음 상태로 바로 드실 수 있습니다.
                     </div>
                 </div>
 
                 <div class="info-block">
-                    <div class="info-block-title">
+                    <div class="info-block-title" id="info-block-title-2">
                         <i class="bi bi-shield-check"></i> 위생 및 안심 마크
                     </div>
-                    <div class="info-block-text">
+                    <div class="info-block-text" id="info-block-desc-2">
                         AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.
                     </div>
                 </div>
@@ -577,7 +579,7 @@
                         </tr>
                         <tr>
                             <th>식품의 유형</th>
-                            <td>김치 (비살균제품)</td>
+                            <td id="spec-category">김치 (비살균제품)</td>
                         </tr>
                         <tr>
                             <th>포장 단위별 내용물 용량</th>
@@ -585,15 +587,15 @@
                         </tr>
                         <tr>
                             <th>원재료명 및 함량</th>
-                            <td>절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등</td>
+                            <td id="spec-ingredients">절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등</td>
                         </tr>
                         <tr>
                             <th>보관방법</th>
-                            <td>냉장보관 (0~10℃)</td>
+                            <td id="spec-storage">냉장보관 (0~10℃)</td>
                         </tr>
                         <tr>
                             <th>제조원 및 판매원</th>
-                            <td>스마트팩토리 AFood 김치사업부</td>
+                            <td id="spec-manufacturer">스마트팩토리 AFood 김치사업부</td>
                         </tr>
                     </table>
                 </div>
@@ -689,22 +691,62 @@
 
         // ── 2. 초기 로드 및 파라미터 파싱 ──
         let currentProductId = "p300g"; // 디폴트
+        let currentProductData = null;
+        let currentWorkId = null;
 
         window.addEventListener('load', function() {
             // URL 파라미터 파싱
             const urlParams = new URLSearchParams(window.location.search);
-            const prodParam = urlParams.get('product');
-            if (prodParam && productCatalog[prodParam]) {
-                currentProductId = prodParam;
+            let prodId = urlParams.get('productId') || urlParams.get('product');
+            currentWorkId = urlParams.get('workId');
+
+            // 1. window.MockData.products에서 조회 시도
+            if (prodId && window.MockData && window.MockData.products && window.MockData.products[prodId]) {
+                currentProductId = prodId;
+                currentProductData = window.MockData.products[prodId];
+            } 
+            // 2. 만약 productCatalog에만 존재하는 키인 경우 (예: 기존 김치 매핑)
+            else if (prodId && productCatalog[prodId]) {
+                currentProductId = prodId;
+                currentProductData = {
+                    ...productCatalog[prodId],
+                    category: "김치 (비살균제품)",
+                    ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+                    storage: "냉장보관 (0~10℃)",
+                    manufacturer: "스마트팩토리 AFood 김치사업부"
+                };
+            } 
+            // 3. 디폴트 처리
+            else {
+                currentProductId = "p300g";
+                currentProductData = (window.MockData && window.MockData.products && window.MockData.products["p300g"]) || {
+                    ...productCatalog["p300g"],
+                    category: "김치 (비살균제품)",
+                    ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+                    storage: "냉장보관 (0~10℃)",
+                    manufacturer: "스마트팩토리 AFood 김치사업부"
+                };
             }
 
             renderProductDetails();
             renderDeliverySchedule();
+
+            // 뒤로 가기 버튼 동적 바인딩
+            const backBtn = document.querySelector('.back-btn') || document.querySelector('.bi-chevron-left')?.parentElement;
+            if (backBtn) {
+                backBtn.onclick = function() {
+                    if (currentWorkId) {
+                        window.location.href = 'work_detail.html?id=' + currentWorkId;
+                    } else {
+                        window.location.href = 'main.html';
+                    }
+                };
+            }
         });
 
         // ── 3. 제품 정보 렌더링 ──
         function renderProductDetails() {
-            const product = productCatalog[currentProductId];
+            const product = currentProductData;
             if (!product) return;
 
             // 텍스트 & 이미지 바인딩
@@ -716,13 +758,66 @@
             document.getElementById('reviews-tab-total').textContent = product.reviews;
             document.getElementById('product-price').textContent = product.price.toLocaleString() + "원";
             
+            // 브랜드 정보 바인딩
+            const brandEl = document.querySelector('.brand-name');
+            if (brandEl) {
+                brandEl.textContent = product.brand || 'AFood Kimchi';
+            }
+            
+            // 판매처 정보 바인딩
+            const vendorEls = document.querySelectorAll('.info-item-content');
+            vendorEls.forEach(el => {
+                const titleNode = el.querySelector('.info-item-title');
+                if (titleNode && titleNode.textContent.includes('판매처:')) {
+                    titleNode.textContent = `판매처: ${product.brand || 'AFood'}`;
+                }
+            });
+            
             // 100g당 단가 계산 (price / weight * 100)
-            const unitPriceVal = Math.round((product.price / product.weight) * 100);
-            document.getElementById('unit-price').textContent = `(100g당 ${unitPriceVal.toLocaleString()}원)`;
+            const unitPriceEl = document.getElementById('unit-price');
+            if (unitPriceEl) {
+                if (product.category && product.category.includes('가죽')) {
+                    unitPriceEl.style.display = 'none';
+                } else {
+                    unitPriceEl.style.display = 'inline';
+                    const unitPriceVal = Math.round((product.price / product.weight) * 100);
+                    unitPriceEl.textContent = `(100g당 ${unitPriceVal.toLocaleString()}원)`;
+                }
+            }
             
             document.getElementById('product-desc-long').textContent = product.desc;
+
+            // 정보 블록 1 제목 & 본문
+            const infoTitle1El = document.getElementById('info-block-title-1');
+            if (infoTitle1El) {
+                infoTitle1El.innerHTML = `<i class="bi bi-stars"></i> ${product.infoTitle1 || '스마트 숙성 공법'}`;
+            }
+
+            // 정보 블록 2 제목 & 본문
+            const infoTitle2El = document.getElementById('info-block-title-2');
+            const infoDesc2El = document.getElementById('info-block-desc-2');
+            if (infoTitle2El) {
+                infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> ${product.infoTitle2 || '위생 및 안심 마크'}`;
+            }
+            if (infoDesc2El) {
+                infoDesc2El.textContent = product.infoDesc2 || 'AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.';
+            }
+
             document.getElementById('spec-name').textContent = product.name;
             document.getElementById('spec-weight').textContent = product.weight >= 1000 ? (product.weight / 1000) + "kg" : product.weight + "g";
+
+            // 동적 스펙 테이블 정보 바인딩
+            const catEl = document.getElementById('spec-category');
+            if (catEl && product.category) catEl.textContent = product.category;
+
+            const ingEl = document.getElementById('spec-ingredients');
+            if (ingEl && product.ingredients) ingEl.textContent = product.ingredients;
+
+            const storEl = document.getElementById('spec-storage');
+            if (storEl && product.storage) storEl.textContent = product.storage;
+
+            const manuEl = document.getElementById('spec-manufacturer');
+            if (manuEl && product.manufacturer) manuEl.textContent = product.manufacturer;
 
             // 리뷰 목록 렌더링
             renderReviews();
@@ -752,7 +847,10 @@
             if (!container) return;
 
             let html = "";
-            dummyComments.forEach(comment => {
+            const product = currentProductData;
+            const commentsToRender = (product && product.comments) ? product.comments : dummyComments;
+
+            commentsToRender.forEach(comment => {
                 // 평점에 따라 별 문자열 생성
                 let starHtml = "";
                 for (let i = 1; i <= 5; i++) {
@@ -786,8 +884,11 @@
 
         // ── 6. 인터랙션 기능 ──
         function goBack() {
-            // kimp.html 로 이동
-            window.location.href = "kimp.html";
+            if (currentWorkId) {
+                window.location.href = 'work_detail.html?id=' + currentWorkId;
+            } else {
+                window.location.href = "main.html";
+            }
         }
 
         function switchTab(tabType) {

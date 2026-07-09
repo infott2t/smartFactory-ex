@@ -215,12 +215,13 @@
         );
 
         if (matchedBatch) {
-            const limit = matchedBatch.saltingTimeLimit || 61200000;
+            const currentSettingHours = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+            const limit = matchedBatch.saltingTimeLimit || (currentSettingHours * 3600 * 1000);
             const elapsed = Date.now() - matchedBatch.startTime;
             const remaining = Math.max(0, limit - elapsed);
 
             s2.saltingStartTime = new Date(matchedBatch.startTime).toLocaleTimeString();
-            s2.targetDuration = limit / 3600000; // e.g. 17
+            s2.targetDuration = limit / 3600000; // e.g. 17 or dynamically changed
             s2.isTurnedOver = matchedBatch.status === "matured" || elapsed >= limit;
             
             // Map status properties
@@ -573,17 +574,20 @@
                     }
                 }
             }
-            if (!w.checkInTime) {
-                for (let oldId of oldUserIds) {
-                    let v = localStorage.getItem("kimp_check_in_time_" + oldId);
-                    if (v !== null) {
-                        w.checkInTime = v;
-                        break;
-                    }
+            // 💡 [실시간 출근 시간 덮어쓰기] 로컬스토리지에 저장된 출근 스캔 시각이 있다면 w.checkInTime 에 무조건 오버라이트 반영한다!
+            let hasCheckInTime = false;
+            for (let oldId of oldUserIds) {
+                let v = localStorage.getItem("kimp_check_in_time_" + oldId);
+                if (v !== null && v !== "" && v !== "null") {
+                    w.checkInTime = v;
+                    hasCheckInTime = true;
+                    break;
                 }
-                if (!w.checkInTime && state.currentUser && String(state.currentUser.id) === String(uId)) {
-                    let v = localStorage.getItem("kimp_check_in_time");
-                    if (v) w.checkInTime = v;
+            }
+            if (!hasCheckInTime && state.currentUser && String(state.currentUser.id) === String(uId)) {
+                let v = localStorage.getItem("kimp_check_in_time");
+                if (v && v !== "" && v !== "null") {
+                    w.checkInTime = v;
                 }
             }
             if (state.currentUser && String(state.currentUser.id) === String(uId)) {
@@ -671,6 +675,9 @@
 
                 // Also initialize refrigerator salting batches
                 const now = Date.now();
+                const currentSettingHours = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+                const currentSettingMs = currentSettingHours * 3600 * 1000;
+                
                 const initialSalting = [
                     {
                         id: order1Id,
@@ -678,7 +685,7 @@
                         cabbageHeads: 15,
                         status: "salting",
                         startTime: now - 4 * 3600 * 1000,
-                        saltingTimeLimit: 17 * 3600 * 1000
+                        saltingTimeLimit: currentSettingMs
                     },
                     {
                         id: order2Id,
@@ -686,15 +693,15 @@
                         cabbageHeads: 15,
                         status: "salting",
                         startTime: now - 3 * 3600 * 1000,
-                        saltingTimeLimit: 17 * 3600 * 1000
+                        saltingTimeLimit: currentSettingMs
                     },
                     {
                         id: order3Id,
                         orderId: order3Id,
                         cabbageHeads: 15,
                         status: "salting",
-                        startTime: now - (17 * 3600 * 1000 - 60 * 1000),
-                        saltingTimeLimit: 17 * 3600 * 1000
+                        startTime: now - (currentSettingMs - 60 * 1000),
+                        saltingTimeLimit: currentSettingMs
                     }
                 ];
                 localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSalting));
@@ -1630,9 +1637,9 @@ window.MockData = {
             "workTime": "2시간 작업",
             "productSlogan": "여기서 만든 신선한 김치. 구매해보세요~. 🎁",
             "products": [
-                { "name": "300g 맛김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_300g.png", "price": "3,000원", "status": "50 남음" },
-                { "name": "1kg 포기김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_1kg.png", "price": "8,000원", "status": "생산 중" },
-                { "name": "3kg 대용량 김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_3kg.png", "price": "20,000원", "status": "생산 중" }
+                { "id": "p300g", "name": "300g 맛김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_300g.png", "price": "3,000원", "status": "50 남음" },
+                { "id": "p1kg", "name": "1kg 포기김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_1kg.png", "price": "8,000원", "status": "생산 중" },
+                { "id": "p3kg", "name": "3kg 대용량 김치 팩", "brand": "AFood", "imgUrl": "./images/kimchi_3kg.png", "price": "20,000원", "status": "생산 중" }
             ],
             "chart": {
                 "1h": {
@@ -1689,9 +1696,9 @@ window.MockData = {
             "workTime": "1시간 30분 작업",
             "productSlogan": "갓 뽑은 쫄깃한 우동 면발과 특제 육수. 🍜",
             "products": [
-                { "name": "수제 쫄깃 우동면 2인분", "brand": "Uton", "imgUrl": "./images/udon_noodle.png", "price": "4,500원", "status": "120 남음" },
-                { "name": "비법 우동 육수 1L", "brand": "Uton", "imgUrl": "./images/udon_soup.png", "price": "6,000원", "status": "생산 중" },
-                { "name": "우동 밀키트 세트 (4인분)", "brand": "Uton", "imgUrl": "./images/udon_kit.png", "price": "15,000원", "status": "생산 중" }
+                { "id": "udon_01", "name": "수제 쫄깃 우동면 2인분", "brand": "Uton", "imgUrl": "./images/udon_noodle.png", "price": "4,500원", "status": "120 남음" },
+                { "id": "udon_02", "name": "비법 우동 육수 1L", "brand": "Uton", "imgUrl": "./images/udon_soup.png", "price": "6,000원", "status": "생산 중" },
+                { "id": "udon_03", "name": "우동 밀키트 세트 (4인분)", "brand": "Uton", "imgUrl": "./images/udon_kit.png", "price": "15,000원", "status": "생산 중" }
             ],
             "chart": {
                 "1h": {
@@ -1744,9 +1751,9 @@ window.MockData = {
             "workTime": "3시간 작업",
             "productSlogan": "한 땀 한 땀 정성스럽게 만든 수제 가죽 지갑. 👛",
             "products": [
-                { "name": "천연소가죽 명함지갑", "brand": "Persa", "imgUrl": "./images/wallet_card.png", "price": "25,000원", "status": "15 남음" },
-                { "name": "핸드메이드 반지갑", "brand": "Persa", "imgUrl": "./images/wallet_half.png", "price": "45,000원", "status": "제작 중" },
-                { "name": "프리미엄 장지갑", "brand": "Persa", "imgUrl": "./images/wallet_long.png", "price": "75,000원", "status": "제작 중" }
+                { "id": "wallet_01", "name": "천연소가죽 명함지갑", "brand": "Persa", "imgUrl": "./images/wallet_card.png", "price": "25,000원", "status": "15 남음" },
+                { "id": "wallet_02", "name": "핸드메이드 반지갑", "brand": "Persa", "imgUrl": "./images/wallet_half.png", "price": "45,000원", "status": "제작 중" },
+                { "id": "wallet_03", "name": "프리미엄 장지갑", "brand": "Persa", "imgUrl": "./images/wallet_long.png", "price": "75,000원", "status": "제작 중" }
             ],
             "chart": {
                 "1h": {
@@ -1799,9 +1806,9 @@ window.MockData = {
             "workTime": "4시간 작업",
             "productSlogan": "불향 가득한 달콤짭짤 프리미엄 불고기! 🥩",
             "products": [
-                { "name": "직화 양념 불고기 500g", "brand": "K-Meat", "imgUrl": "./images/beef_500g.png", "price": "12,000원", "status": "200 남음" },
-                { "name": "프리미엄 불고기 도시락", "brand": "K-Meat", "imgUrl": "./images/beef_dosirak.png", "price": "8,500원", "status": "생산 중" },
-                { "name": "가족용 불고기 밀키트 1.5kg", "brand": "K-Meat", "imgUrl": "./images/beef_kit.png", "price": "32,000원", "status": "생산 중" }
+                { "id": "bulgogi_01", "name": "직화 양념 불고기 500g", "brand": "K-Meat", "imgUrl": "./images/beef_500g.png", "price": "12,000원", "status": "200 남음" },
+                { "id": "bulgogi_02", "name": "프리미엄 불고기 도시락", "brand": "K-Meat", "imgUrl": "./images/beef_dosirak.png", "price": "8,500원", "status": "생산 중" },
+                { "id": "bulgogi_03", "name": "가족용 불고기 밀키트 1.5kg", "brand": "K-Meat", "imgUrl": "./images/beef_kit.png", "price": "32,000원", "status": "생산 중" }
             ],
             "chart": {
                 "1h": {
@@ -1855,9 +1862,9 @@ window.MockData = {
             "workTime": "2시간 30분 작업",
             "productSlogan": "신선한 재료로 바로 만든 수제 버거. 🍔",
             "products": [
-                { "name": "클래식 치즈버거 단품", "brand": "BurgerQueen", "imgUrl": "./images/burger_cheese.png", "price": "5,500원", "status": "생산 중" },
-                { "name": "더블 패티 시그니처 버거", "brand": "BurgerQueen", "imgUrl": "./images/burger_signature.png", "price": "8,000원", "status": "30 남음" },
-                { "name": "패밀리 버거 세트 (버거4+감튀+음료)", "brand": "BurgerQueen", "imgUrl": "./images/burger_family.png", "price": "24,000원", "status": "생산 중" }
+                { "id": "burger_01", "name": "클래식 치즈버거 단품", "brand": "BurgerQueen", "imgUrl": "./images/burger_cheese.png", "price": "5,500원", "status": "생산 중" },
+                { "id": "burger_02", "name": "더블 패티 시그니처 버거", "brand": "BurgerQueen", "imgUrl": "./images/burger_signature.png", "price": "8,000원", "status": "30 남음" },
+                { "id": "burger_03", "name": "패밀리 버거 세트 (버거4+감튀+음료)", "brand": "BurgerQueen", "imgUrl": "./images/burger_family.png", "price": "24,000원", "status": "생산 중" }
             ],
             "chart": {
                 "1h": {
@@ -1902,5 +1909,393 @@ window.MockData = {
                 { "step": 5, "desc": "포장하기" }
             ]
         }
-    }`
+    }`,
+    // 4. 제품(Products) 상세 DB
+    products: {
+        p300g: {
+            id: "p300g",
+            name: "300g 맛김치 팩",
+            brand: "AFood",
+            price: 3000,
+            weight: 300,
+            rating: 4.8,
+            reviews: 142,
+            img: "./images/kimchi_product_300g.png",
+            desc: "1인 가구용 실속형 맛김치. 한 끼에 드시기 알맞은 깔끔한 맛김치입니다. 100% 국산 농산물 원료를 사용하여 아삭한 식감과 깊은 고소함을 느낄 수 있습니다.",
+            category: "김치 (비살균제품)",
+            ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 AFood 김치사업부",
+            status: "50 남음",
+            infoTitle1: "스마트 숙성 공법",
+            infoTitle2: "위생 및 안심 마크",
+            infoDesc2: "AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.",
+            comments: [
+                { name: "김*우", score: 5, date: "2026.06.14", body: "진짜 신선하고 아삭하네요! 스마트팩토리에서 생산되자마자 바로 와서 그런지 마트 김치랑은 비교가 안 되게 청결하고 시원합니다. 무료배송인 것도 감동이에요." },
+                { name: "박*혜", score: 5, date: "2026.06.13", body: "익은 김치 좋아하시는 분들은 실온에 하루 이틀 뒀다가 냉장고에 넣으시면 딱이에요. 양념 비율이 환상적입니다. 라면이랑 꿀조합!" },
+                { name: "이*민", score: 4, date: "2026.06.11", body: "포장이 정말 단단하고 꼼꼼하게 잘 되어 왔네요. 냄새 1도 안 새고 아주 신선한 상태로 배송되었습니다. 찌개용으로 쟁여두려고 더 시켰어요." },
+                { name: "최*현", score: 5, date: "2026.06.10", body: "국산 100% 원재료라고 해서 믿고 시켰는데 역시 기대를 저버리지 않네요. 적당히 매콤하면서도 감칠맛이 풍부합니다. 강추합니다." }
+            ]
+        },
+        p1kg: {
+            id: "p1kg",
+            name: "1kg 포기김치 팩",
+            brand: "AFood",
+            price: 8000,
+            weight: 1000,
+            rating: 4.9,
+            reviews: 320,
+            img: "./images/kimchi_product_1kg.png",
+            desc: "가정용 표준 포장 프리미엄 김치. 전통 방식 그대로 버무린 1kg 가정용 포기김치입니다. 적당하게 깊은 전라도식 맛깔나는 액젓 배합으로 밥도둑이 따로 없습니다.",
+            category: "김치 (비살균제품)",
+            ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 AFood 김치사업부",
+            status: "생산 중",
+            infoTitle1: "스마트 숙성 공법",
+            infoTitle2: "위생 및 안심 마크",
+            infoDesc2: "AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.",
+            comments: [
+                { name: "임*현", score: 5, date: "2026.06.15", body: "가족들이 너무 잘 먹네요. 배송도 정말 빠르고 김치가 너무 깔끔해요." }
+            ]
+        },
+        p3kg: {
+            id: "p3kg",
+            name: "3kg 대용량 김치 팩",
+            brand: "AFood",
+            price: 20000,
+            weight: 3000,
+            rating: 4.7,
+            reviews: 198,
+            img: "./images/kimchi_product_3kg.png",
+            desc: "다인가구 및 김장 보관용 실용 김치. 온 가족이 풍족하게 나누어 먹을 수 있는 3kg 대용량 김치입니다. 찌개, 찜 등 요리에 사용하기에도 넉넉한 부피입니다.",
+            category: "김치 (비살균제품)",
+            ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 AFood 김치사업부",
+            status: "생산 중",
+            infoTitle1: "스마트 숙성 공법",
+            infoTitle2: "위생 및 안심 마크",
+            infoDesc2: "AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.",
+            comments: [
+                { name: "강*진", score: 5, date: "2026.06.12", body: "양도 푸짐하고 국물 맛이 일품입니다. 익은 후 찌개 끓여먹었는데 예술이네요." }
+            ]
+        },
+        p5kg: {
+            id: "p5kg",
+            name: "5kg 실속 김치 팩",
+            brand: "AFood",
+            price: 32000,
+            weight: 5000,
+            rating: 4.8,
+            reviews: 85,
+            img: "./images/kimchi_product_1kg.png",
+            desc: "대가족 및 업소용 실속 포장. 대용량 실속 파우치에 담긴 5kg 배추김치입니다. 양념을 아낌없이 가득 버무려 오래 두고 먹어도 감칠맛이 살아서 변치 않습니다.",
+            category: "김치 (비살균제품)",
+            ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 AFood 김치사업부",
+            status: "생산 중",
+            infoTitle1: "스마트 숙성 공법",
+            infoTitle2: "위생 및 안심 마크",
+            infoDesc2: "AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.",
+            comments: [
+                { name: "송*아", score: 5, date: "2026.06.08", body: "이 김치만 시켜 먹어요. 원재료가 다 국산이라 믿고 안심하고 먹을 수 있습니다." }
+            ]
+        },
+        p10kg: {
+            id: "p10kg",
+            name: "10kg 업소용 김치",
+            brand: "AFood",
+            price: 60000,
+            weight: 10000,
+            rating: 4.6,
+            reviews: 43,
+            img: "./images/kimchi_product_3kg.png",
+            desc: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다. 스마트팩토리의 품질 관리 기술로 균일하고 검증된 품질을 보장합니다.",
+            category: "김치 (비살균제품)",
+            ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 AFood 김치사업부",
+            status: "생산 중",
+            infoTitle1: "스마트 숙성 공법",
+            infoTitle2: "위생 및 안심 마크",
+            infoDesc2: "AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.",
+            comments: [
+                { name: "김*식", score: 4, date: "2026.06.01", body: "식당 밑반찬용으로 늘 주문합니다. 손님들이 김치 맛있다고 칭찬하네요. 추천합니다." }
+            ]
+        },
+        bulgogi_01: {
+            id: "bulgogi_01",
+            name: "직화 양념 불고기 500g",
+            brand: "K-Meat",
+            price: 12000,
+            weight: 500,
+            rating: 4.9,
+            reviews: 240,
+            img: "./images/beef_500g.png",
+            desc: "불향 가득한 달콤짭짤 프리미엄 불고기! 100% 엄선된 소고기에 특제 양념 소스를 버무려 직화로 구워냈습니다. 가정에서 간편하게 즐기실 수 있도록 500g 진공 포장하였습니다.",
+            category: "양념육 (비살균제품)",
+            ingredients: "소고기 60%(미국산), 양념소스 30%[간장(국산), 설탕, 마늘, 양파, 배즙], 대파, 통깨 등",
+            storage: "냉장보관 (0~10℃) 또는 즉시 섭취",
+            manufacturer: "스마트팩토리 K-Meat 육가공사업부",
+            status: "200 남음",
+            infoTitle1: "직화 화덕 초벌 공법",
+            infoTitle2: "안전 냉장 유통 마크",
+            infoDesc2: "K-Meat 불고기는 위생적인 가공 시스템을 거쳐 급속 동결 및 진공 포장됩니다. 엄격한 콜드체인 시스템으로 신선함을 그대로 배송합니다.",
+            comments: [
+                { name: "강*호", score: 5, date: "2026.07.04", body: "후라이팬에 살짝 볶기만 했는데도 불향이 확 살아나서 밥 한 그릇 뚝딱했습니다. 고기도 야들야들하네요." },
+                { name: "유*민", score: 5, date: "2026.07.01", body: "아이들이 너무 맛있게 잘 먹어요. 짜지 않고 적당히 달달해서 밥반찬으로 최적입니다." }
+            ]
+        },
+        bulgogi_02: {
+            id: "bulgogi_02",
+            name: "프리미엄 불고기 도시락",
+            brand: "K-Meat",
+            price: 8500,
+            weight: 400,
+            rating: 4.8,
+            reviews: 185,
+            img: "./images/beef_dosirak.png",
+            desc: "바쁜 일상 속 든든한 한 끼를 위한 프리미엄 불고기 도시락입니다. 엄선한 소불고기와 신선한 쌈채소, 수제 반찬으로 구성되어 맛과 영양을 모두 잡았습니다.",
+            category: "즉석섭취식품",
+            ingredients: "쌀 40%(국산), 소불고기 30%[소고기, 간장, 마늘], 계란말이, 볶음김치, 시금치나물 등",
+            storage: "냉장보관 (0~10℃) / 구입 후 바로 섭취 권장",
+            manufacturer: "스마트팩토리 K-Meat 델리사업부",
+            status: "생산 중",
+            infoTitle1: "당일 즉석 조리 원칙",
+            infoTitle2: "위생 도시락 안심 캡",
+            infoDesc2: "모든 도시락은 당일 신선하게 제조되어 친환경 안심 밀폐 캡으로 실링됩니다. 외부 이물질 유입을 차단하여 신선하고 청결한 상태를 유지합니다.",
+            comments: [
+                { name: "조*우", score: 5, date: "2026.07.06", body: "점심시간에 배달시켜 먹었는데 양도 푸짐하고 고기 질이 훌륭합니다. 수제 반찬 구성도 영양 균형이 잘 맞네요." },
+                { name: "임*서", score: 4, date: "2026.07.02", body: "포장이 단단해서 흐트러짐 없이 배송되었습니다. 쌈채소가 아주 신선하고 불고기와 꿀맛 케미예요." }
+            ]
+        },
+        bulgogi_03: {
+            id: "bulgogi_03",
+            name: "가족용 불고기 밀키트 1.5kg",
+            brand: "K-Meat",
+            price: 32000,
+            weight: 1500,
+            rating: 4.9,
+            reviews: 310,
+            img: "./images/beef_kit.png",
+            desc: "온 가족이 넉넉하게 즐길 수 있는 1.5kg 대용량 불고기 밀키트입니다. 손질된 소고기, 양념 소스, 신선한 야채(버섯, 대파, 양파 등)가 모두 포함되어 있어 바로 볶아 드실 수 있습니다.",
+            category: "간편조리세트 (밀키트)",
+            ingredients: "양념소고기 50%[소고기 70%(미국산), 양념소스 30%], 양파, 새송이버섯, 팽이버섯, 대파, 당면 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 K-Meat 육가공사업부",
+            status: "생산 중",
+            infoTitle1: "신선 보존 진공 패키징",
+            infoTitle2: "신선도 보장 안심 스티커",
+            infoDesc2: "야채와 고기, 면류가 개별 밀포장되어 위생적입니다. 전 배송 차량 내 콜드체인 적용으로 최상의 신선도를 보장하는 보냉 팩에 안전하게 배송됩니다.",
+            comments: [
+                { name: "최*현", score: 5, date: "2026.07.05", body: "캠핑장에 가져가서 온 가족이 푸짐하게 먹었습니다. 야채가 손질되어 있어 손 갈 것도 없고 간도 딱 맞아요." }
+            ]
+        },
+        udon_01: {
+            id: "udon_01",
+            name: "수제 쫄깃 우동면 2인분",
+            brand: "Uton",
+            price: 4500,
+            weight: 400,
+            rating: 4.7,
+            reviews: 88,
+            img: "./images/udon_noodle.png",
+            desc: "스마트팩토리의 정밀 온습도 관리 공법으로 숙성시킨 수제 우동면입니다. 끓는 물에 삶았을 때 극강의 쫄깃함을 느끼실 수 있습니다.",
+            category: "면류 (숙면/비살균제품)",
+            ingredients: "밀가루 95%(밀: 미국산, 호주산), 정제소금, 면류첨가알칼리제 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 Uton 제면사업부",
+            status: "120 남음",
+            infoTitle1: "정밀 온습도 숙성 면발",
+            infoTitle2: "청결 밀폐 면 포장",
+            infoDesc2: "Uton 우동면은 미생물 차단 HACCP 위생 등급 공장에서 전량 자동 자동 밀폐 포장됩니다. 먼지나 이물질 접촉 우려가 전혀 없는 안심 청결 제품입니다.",
+            comments: [
+                { name: "김*주", score: 5, date: "2026.07.02", body: "라면 끓이듯이 가볍게 삶았는데 면발 탱글함이 사 먹는 수제 우동집 뺨치게 쫄깃해요. 냉우동으로 먹어도 최고입니다." }
+            ]
+        },
+        udon_02: {
+            id: "udon_02",
+            name: "비법 우동 육수 1L",
+            brand: "Uton",
+            price: 6000,
+            weight: 1000,
+            rating: 4.8,
+            reviews: 105,
+            img: "./images/udon_soup.png",
+            desc: "가쓰오부시와 다시마, 디포리를 최적의 비율로 우려내어 깊고 진한 감칠맛을 자랑하는 비법 육수입니다.",
+            category: "소스 (살균제품)",
+            ingredients: "가쓰오부시 추출액 40%[가쓰오부시(일본산)], 다시마추출액, 디포리, 정제소금, 국산간장 등",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 Uton 식품사업부",
+            status: "생산 중",
+            infoTitle1: "가쓰오 전통 추출 기법",
+            infoTitle2: "고온 살균 안심 보틀",
+            infoDesc2: "육수는 고온 가열 살균 직후 내열 안심 보틀에 충전 밀봉됩니다. 방부제를 첨가하지 않아도 유통기한 내내 깊고 맑은 첫 맛이 안전하게 변치 않습니다.",
+            comments: [
+                { name: "임*우", score: 5, date: "2026.07.01", body: "국물 간이 너무 세지 않고 훈연 향이 입안에 은은하게 돕니다. 오뎅탕 끓이거나 국수 장국 베이스로 쓰기 만능이네요." }
+            ]
+        },
+        udon_03: {
+            id: "udon_03",
+            name: "우동 밀키트 세트 (4인분)",
+            brand: "Uton",
+            price: 15000,
+            weight: 1800,
+            rating: 4.9,
+            reviews: 210,
+            img: "./images/udon_kit.png",
+            desc: "수제 우동면과 비법 육수, 쑥갓, 어묵, 텐카스까지 한 팩에 담은 종합 밀키트입니다. 가정이나 캠핑장에서 5분 만에 일품 우동을 완성하세요.",
+            category: "간편조리세트 (밀키트)",
+            ingredients: "우동면 50%, 우동육수 30%, 모둠어묵 10%, 야채 및 고명 10%",
+            storage: "냉장보관 (0~10℃)",
+            manufacturer: "스마트팩토리 Uton 제면/식품사업부",
+            status: "생산 중",
+            infoTitle1: "정통 일식 재료 큐레이팅",
+            infoTitle2: "콜드체인 냉장 밀포장",
+            infoDesc2: "쑥갓과 어묵 등 신선 식자재가 보냉 안심 패킹되어 신선함을 고스란히 배송합니다. 전 구간 10도 이하 콜드체인 물류로 위생 배송을 약속합니다.",
+            comments: [
+                { name: "신*민", score: 5, date: "2026.07.07", body: "어묵이랑 텐카스까지 정통 일식집 비주얼로 가득 들어있어 주말 야식으로 가족들과 배부르고 기분 좋게 끓여 먹었네요." }
+            ]
+        },
+        wallet_01: {
+            id: "wallet_01",
+            name: "천연소가죽 명함지갑",
+            brand: "Persa",
+            price: 25000,
+            weight: 80,
+            rating: 4.9,
+            reviews: 72,
+            img: "./images/wallet_card.png",
+            desc: "엄선된 최고급 천연 소가죽을 사용하여 한 땀 한 땀 마감한 명함지갑입니다. 사용할수록 손때가 타며 깊은 멋을 더해갑니다.",
+            category: "가죽제품 (지갑)",
+            ingredients: "천연 소가죽 100%(이탈리아산), 독일제 고강도 봉사",
+            storage: "습기를 피하고 서늘한 곳 보관 / 가죽 전용 크림 관리 권장",
+            manufacturer: "스마트팩토리 Persa 레더사업부",
+            status: "15 남음",
+            infoTitle1: "전통 핸드메이드 스티치",
+            infoTitle2: "천연 가죽 품질 보증",
+            infoDesc2: "Persa의 모든 가죽 제품은 최고급 이탈리아산 베지터블 소가죽을 사용하여 100% 수공예로 정교하게 바느질됩니다. 실밥 터짐 등 결함 시 1년 무상 A/S를 제공합니다.",
+            comments: [
+                { name: "강*현", score: 5, date: "2026.07.01", body: "지갑 가죽 질감이 정말 부드럽고 명함도 많이 들어가네요! 박음질 마감도 흠잡을 곳 없이 깔끔합니다." },
+                { name: "임*우", score: 5, date: "2026.06.28", body: "선물용으로 샀는데 너무 고급스러워 보여서 대만족입니다. 에이징되는 모습이 기대돼요." },
+                { name: "신*민", score: 4, date: "2026.06.20", body: "크기도 적당하고 수납공간이 알차네요. 처음이라 가죽이 약간 빳빳한데 쓰다보면 부드러워질 것 같습니다." }
+            ]
+        },
+        wallet_02: {
+            id: "wallet_02",
+            name: "핸드메이드 반지갑",
+            brand: "Persa",
+            price: 45000,
+            weight: 150,
+            rating: 4.8,
+            reviews: 94,
+            img: "./images/wallet_half.png",
+            desc: "클래식하고 실용적인 수제 반지갑입니다. 지폐 수납부 2곳과 카드 슬롯 6곳으로 수납력이 매우 뛰어나며 슬림한 두께를 유지합니다.",
+            category: "가죽제품 (지갑)",
+            ingredients: "천연 소가죽 100%(이탈리아산), 독일제 고강도 봉사",
+            storage: "습기를 피하고 서늘한 곳 보관",
+            manufacturer: "스마트팩토리 Persa 레더사업부",
+            status: "제작 중",
+            infoTitle1: "전통 핸드메이드 스티치",
+            infoTitle2: "천연 가죽 품질 보증",
+            infoDesc2: "Persa의 모든 가죽 제품은 최고급 이탈리아산 베지터블 소가죽을 사용하여 100% 수공예로 정교하게 바느질됩니다. 실밥 터짐 등 결함 시 1년 무상 A/S를 제공합니다.",
+            comments: [
+                { name: "이*진", score: 5, date: "2026.07.03", body: "남자친구 선물로 줬는데 카드 수납공간이 많고 슬림해서 주머니에 넣기 좋대요. 최고!" },
+                { name: "박*호", score: 5, date: "2026.06.29", body: "바느질 상태가 견고하고 실밥 하나 튀어나온 곳이 없네요. 1년 무상 A/S가 보장된다니 더 안심입니다." },
+                { name: "정*서", score: 4, date: "2026.06.22", body: "가죽 냄새가 은은하게 나서 좋아요. 수공예품이라 그런지 스티치가 정말 정교합니다." }
+            ]
+        },
+        wallet_03: {
+            id: "wallet_03",
+            name: "프리미엄 장지갑",
+            brand: "Persa",
+            price: 75000,
+            weight: 250,
+            rating: 4.9,
+            reviews: 58,
+            img: "./images/wallet_long.png",
+            desc: "수공예의 진수를 보여주는 프리미엄 장지갑입니다. 넉넉한 수납 공간과 스마트폰까지 수납이 가능한 설계로 활용도가 매우 높습니다.",
+            category: "가죽제품 (지갑)",
+            ingredients: "천연 소가죽 100%(이탈리아산), YKK 지퍼, 독일제 고강도 봉사",
+            storage: "습기를 피하고 가죽 전용 클리너 사용 권장",
+            manufacturer: "스마트팩토리 Persa 레더사업부",
+            status: "제작 중",
+            infoTitle1: "전통 핸드메이드 스티치",
+            infoTitle2: "천연 가죽 품질 보증",
+            infoDesc2: "Persa의 모든 가죽 제품은 최고급 이탈리아산 베지터블 소가죽을 사용하여 100% 수공예로 정교하게 바느질됩니다. 실밥 터짐 등 결함 시 1년 무상 A/S를 제공합니다.",
+            comments: [
+                { name: "윤*영", score: 5, date: "2026.07.05", body: "수납공간이 정말 광활합니다. 폰도 쏙 들어가고 지퍼도 부드럽게 열리네요. 부모님 선물로 드렸는데 아주 좋아하십니다." },
+                { name: "한*재", score: 5, date: "2026.06.30", body: "이 가격에 이 퀄리티 가죽 장지갑이라니 믿을 수가 없네요. 마감이 정말 명품 못지않습니다." },
+                { name: "김*아", score: 5, date: "2026.06.25", body: "가죽 표면 질감이 독특하고 고급스러워요. 오래오래 잘 쓸 것 같습니다." }
+            ]
+        },
+        burger_01: {
+            id: "burger_01",
+            name: "클래식 치즈버거 단품",
+            brand: "BurgerQueen",
+            price: 5500,
+            weight: 220,
+            rating: 4.6,
+            reviews: 115,
+            img: "./images/burger_cheese.png",
+            desc: "육즙이 가득한 소고기 패티와 고소한 체다 치즈가 어우러진 버거퀸의 정통 클래식 치즈버거입니다.",
+            category: "즉석섭취식품 (햄버거)",
+            ingredients: "버거번[밀가루(미국산)], 소고기 패티 35%[소고기 80%(호주산), 돼지고기 20%], 체다치즈, 양파, 피클 등",
+            storage: "구입 후 즉시 섭취 / 냉장보관 시 24시간 이내",
+            manufacturer: "스마트팩토리 BurgerQueen 델리사업부",
+            status: "생산 중",
+            infoTitle1: "100% 직화 순쇠고기 패티",
+            infoTitle2: "콜드체인 야채 신선보장",
+            infoDesc2: "BurgerQueen은 당일 아침 배송된 100% 무농약 국내산 토마토와 양상추만을 사용하며, 조리 전까지 영상 4도의 특수 신선실에서 철저히 보관 및 통제됩니다.",
+            comments: [
+                { name: "김*태", score: 5, date: "2026.07.03", body: "패티가 퍽퍽하지 않고 육즙이 가득 차 있어서 목넘김이 아주 좋습니다. 치즈가 살포시 녹아든 밸런스가 최고네요." }
+            ]
+        },
+        burger_02: {
+            id: "burger_02",
+            name: "더블 패티 시그니처 버거",
+            brand: "BurgerQueen",
+            price: 8000,
+            weight: 320,
+            rating: 4.8,
+            reviews: 145,
+            img: "./images/burger_signature.png",
+            desc: "두툼한 소고기 패티 2장과 특제 바비큐 소스, 그리고 싱싱한 토마토와 양상추가 아낌없이 들어간 버거퀸의 시그니처 수제 버거입니다.",
+            category: "즉석섭취식품 (햄버거)",
+            ingredients: "소고기 패티 50%[소고기(호주산)], 버거번, 토마토, 양상추, 특제소스[간장, 양파, 설탕] 등",
+            storage: "구입 후 즉시 섭취 권장",
+            manufacturer: "스마트팩토리 BurgerQueen 델리사업부",
+            status: "30 남음",
+            infoTitle1: "100% 직화 순쇠고기 패티",
+            infoTitle2: "콜드체인 야채 신선보장",
+            infoDesc2: "BurgerQueen은 당일 아침 배송된 100% 무농약 국내산 토마토와 양상추만을 사용하며, 조리 전까지 영상 4도의 특수 신선실에서 철저히 보관 및 통제됩니다.",
+            comments: [
+                { name: "이*혁", score: 5, date: "2026.07.02", body: "패티가 2장이라 그런지 입에 꽉 차는 고기 식감이 대박입니다. 특제 바비큐 소스도 달콤해서 환상 궁합이네요." }
+            ]
+        },
+        burger_03: {
+            id: "burger_03",
+            name: "패밀리 버거 세트 (버거4+감튀+음료)",
+            brand: "BurgerQueen",
+            price: 24000,
+            weight: 1500,
+            rating: 4.7,
+            reviews: 92,
+            img: "./images/burger_family.png",
+            desc: "온 가족이 배불리 먹을 수 있는 실속 구성 세트입니다. 치즈버거 2개, 시그니처 버거 2개, 대용량 감자튀김과 1.5L 콜라가 포함되어 있습니다.",
+            category: "즉석섭취식품 (복합세트)",
+            ingredients: "햄버거 4종, 감자튀김[감자(미국산), 식물성유지], 탄산음료 등",
+            storage: "구입 즉시 섭취 권장",
+            manufacturer: "스마트팩토리 BurgerQueen 델리사업부",
+            status: "생산 중",
+            infoTitle1: "주문 즉시 패키징 출고",
+            infoTitle2: "에어타이트 보온 밀봉 봉투",
+            infoDesc2: "많은 수량의 패밀리 세트 특성상, 배송 중 식지 않도록 특수 보온 에어 실링 백에 전용 밀봉 처리되어 갓 조리한 온도 그대로 도착합니다.",
+            comments: [
+                { name: "송*아", score: 5, date: "2026.07.06", body: "주말 저녁 패밀리 팩으로 해결했는데 가성비가 최고네요. 감자튀김도 갓 튀긴 듯 바삭하고 따끈하게 도착했습니다." }
+            ]
+        }
+    }
 };

@@ -729,12 +729,22 @@
                 }
 
                 // status === 'in_progress' 이고 currentTask === stageId 이며 orderId가 유효한 지시서 필터링
-                const candidateOrders = orders.filter(o => 
+                let candidateOrders = orders.filter(o => 
                     o && 
                     o.orderId && 
                     o.status === 'in_progress' && 
                     String(o.currentTask) === String(stageId)
                 );
+
+                // 💡 [수정] Stage 2(절임)인 경우, 이미 절임 중이거나 절임 완료되어 kimp_factory_salting에 들어간 지시서는 제외한다!
+                if (String(stageId) === "2") {
+                    let saltingBatches = [];
+                    try {
+                        saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                    } catch(e) {}
+                    const activeSaltingOrderIds = saltingBatches.map(b => b.orderId || b.id).filter(Boolean);
+                    candidateOrders = candidateOrders.filter(o => !activeSaltingOrderIds.includes(o.orderId));
+                }
 
                 const stage = appData.stages.find(s => String(s.id) === String(stageId));
 
@@ -1780,9 +1790,71 @@
             }
         }
 
-        // ============================================================
-        // 4. 시계/급여 타이머 업데이트
-        // ============================================================
+        // 💡 [2시간 단위 시프트 남은 시간 계산 헬퍼]
+        function getShiftRemainingSeconds() {
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const currentSeconds = now.getSeconds();
+            
+            // 2시간 단위 시프트 정의 (점심시간 12:00~13:00 제외)
+            const shifts = [
+                { start: 10 * 60, end: 12 * 60 },
+                { start: 13 * 60, end: 15 * 60 },
+                { start: 15 * 60, end: 17 * 60 },
+                { start: 17 * 60, end: 19 * 60 },
+                { start: 19 * 60, end: 21 * 60 },
+                { start: 21 * 60, end: 23 * 60 }
+            ];
+            
+            let matchedShift = shifts.find(s => currentMinutes >= s.start && currentMinutes < s.end);
+            
+            if (!matchedShift) {
+                // 시프트 외부 시점인 경우 다음으로 가장 가까운 시프트 탐색
+                matchedShift = shifts.find(s => s.start > currentMinutes);
+            }
+            
+            if (!matchedShift) {
+                // 밤 23:00 이후라면 다음날 오전 10:00~12:00 윈도우 타겟팅
+                const endMin = 24 * 60 + 12 * 60;
+                const diffMin = endMin - currentMinutes;
+                return diffMin * 60 - currentSeconds;
+            }
+            
+            const diffMin = matchedShift.end - currentMinutes;
+            return diffMin * 60 - currentSeconds;
+        }
+
+        // 💡 [출근 이후 경과 초 계산 헬퍼]
+        function getElapsedSecondsFromCheckIn() {
+            const userId = sessionStorage.getItem("user-id") || "guest";
+            
+            // 💡 [방어 코드] window.getPartitionedItem 이 정의 안 된 상황을 완벽하게 방지
+            let checkInTimeStr = null;
+            if (typeof window.getPartitionedItem === 'function') {
+                try { checkInTimeStr = window.getPartitionedItem("kimp_check_in_time"); } catch(e) {}
+            }
+            if (!checkInTimeStr) {
+                checkInTimeStr = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
+            }
+            
+            if (!checkInTimeStr || checkInTimeStr === '-' || checkInTimeStr === 'null') {
+                return 0;
+            }
+            
+            const parts = checkInTimeStr.split(':');
+            if (parts.length < 2) return 0;
+            
+            const now = new Date();
+            const checkInDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                parseInt(parts[0]), parseInt(parts[1]), parts[2] ? parseInt(parts[2]) : 0);
+            
+            let diffMs = now.getTime() - checkInDate.getTime();
+            if (diffMs < 0) {
+                diffMs = 0;
+            }
+            return Math.floor(diffMs / 1000);
+        }
+
         // ============================================================
         // 4. 시계/급여 타이머 업데이트 (조퇴 완료 시 현재시간만 흐름)
         // ============================================================
@@ -1797,28 +1869,25 @@
             if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             if (typeof isWorkFinished !== 'undefined' && isWorkFinished) return;
 
-            // shift(시프트) 남은 시간은 단말기 공통이므로 그대로 둡니다.
-            if (remainingSeconds > 0) {
-                remainingSeconds--;
-            }
+            // 💡 2시간 단위 시프트 기반으로 작업 남은 시간을 실시간 계산 및 반영
+            remainingSeconds = getShiftRemainingSeconds();
 
-            // 💡 [수정 핵심] 단말기 자체 연산을 모두 버리고, 매니저가 계산해준 데이터만 100% 읽어와서 화면에 반영합니다!
             try {
                 let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
                 let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
 
                 if (myKey && workers[myKey]) {
-                    // 매니저가 계산해서 올려둔 진짜 휴식 시간과 근로 시간을 가져옵니다.
+                    // 매니저가 계산해서 올려둔 진짜 휴식 시간 정보 동기화
                     restSeconds = workers[myKey].accumBreakSeconds || 0;
-                    const wSecs = workers[myKey].accumWorkSeconds || 0;
-
-                    // 급여도 매니저의 근로 시간 데이터를 바탕으로만 그려줍니다.
-                    const rate = workers[myKey].isHelper ? 12000 : 10000;
-                    accumSalary = (wSecs * rate) / 3600;
                 }
             } catch (e) {
                 console.error("데이터 동기화 에러:", e);
             }
+
+            // 💡 예상 급여액 실시간 초당 누적 계산 (2026년 최저임금 10,320원의 1.2배인 12,384원 기준)
+            const elapsedSecs = getElapsedSecondsFromCheckIn();
+            const wageRatePerSecond = 12384 / 3600; // 초당 3.44원
+            accumSalary = elapsedSecs * wageRatePerSecond;
 
             // 💡 화면 렌더링 (가져온 데이터 렌더링)
             if (restEl || modalRestEl) {
@@ -2421,8 +2490,18 @@
             { type: 'report', icon: 'bi-clipboard-check', title: '수량 무게재기', desc: '작업 완료 후 수량과 무게를 재주세요.', action: '실적 저장' },
             { type: 'final-photo', icon: 'bi-camera', title: '사진찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송' },
             { type: 'info', icon: 'bi-truck', title: '숙성실로 가져가기', desc: '절여진 배추를 숙성실로 옮겨주세요.', action: '이동 완료' },
-            { type: 'timer', icon: 'bi-stopwatch', title: '23시간 타이머 시작', desc: '숙성을 위해 23시간 타이머를 시작합니다.', action: '타이머 시작 및 대기소 복귀' }
+            { type: 'timer', icon: 'bi-stopwatch', title: '17시간 타이머 시작', desc: '숙성을 위해 17시간 타이머를 시작합니다.', action: '타이머 시작 및 대기소 복귀' }
         ];
+
+        // 💡 [추가] 절임시간 셋팅에 연계하여 타이머 설명 동적 갱신
+        function updateStage2WorkflowText() {
+            const hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+            if (stage2Workflow && stage2Workflow[8]) {
+                stage2Workflow[8].title = `${hoursSetting}시간 타이머 시작`;
+                stage2Workflow[8].desc = `숙성을 위해 ${hoursSetting}시간 타이머를 시작합니다.`;
+            }
+        }
+        updateStage2WorkflowText();
 
         const stage3Workflow = [
             { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
@@ -2746,7 +2825,8 @@
                 if (appData.activeStageId === 3) {
                     addLog(`${logPrefix}1시간 물기 빼기 타이머를 시작했습니다.`);
                 } else {
-                    addLog(`${logPrefix}23시간 숙성 타이머를 시작했습니다.`);
+                    const hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+                    addLog(`${logPrefix}${hoursSetting}시간 숙성 타이머를 시작했습니다.`);
                 }
             } else if (step.type === 'work') {
                 if (appData.activeStageId === 6) {
@@ -2820,7 +2900,10 @@
                 if (step <= 2) msg += "절이기 전 수량 확인 단계였습니다.";
                 else if (step <= 4) msg += "수조에 배추를 넣고 염수 및 소금 치기 작업 진행 중이었습니다.";
                 else if (step <= 6) msg += "절이기 완료 후 무게 측정 및 사진 촬영 단계였습니다.";
-                else msg += "숙성실로 이동하여 23시간 타이머 시작 대기 중이었습니다.";
+                else {
+                    const hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+                    msg += `숙성실로 이동하여 ${hoursSetting}시간 타이머 시작 대기 중이었습니다.`;
+                }
             } else if (stage === 3) {
                 if (step <= 2) msg += "세척 전 절인 배추 상태 확인(사진 촬영) 단계였습니다.";
                 else if (step === 3) msg += "배추 3단 세척 작업 진행 중이었습니다. (다음 작업자가 이어서 세척 필요)";
