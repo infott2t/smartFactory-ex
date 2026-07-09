@@ -266,6 +266,7 @@
                 <div class="job-title" id="display-job-title">
                     <i class="bi bi-box-seam"></i> 김치만들기 v2.1
                 </div>
+                <div class="job-title" id="display-work-order" style="font-size:13px; color:var(--text-secondary); margin-top:4px;"></div>
 
                 <div class="compact-toggle-inline" onclick="toggleCompactMode()">
                     <i class="bi bi-chevron-down"></i>
@@ -396,6 +397,22 @@
 
             <div class="task-grid" id="task-grid-container"
                 style="overflow-y: auto; flex-grow: 1; padding-bottom: 10px;">
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="spot-selector-modal">
+        <div class="modal-content" style="height: 500px; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <h2 class="modal-title">자리 선택 및 작업자 할당</h2>
+                <button class="btn-close-modal" onclick="closeSpotSelector()"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; flex-grow: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+                <p style="color: var(--text-secondary); font-size: 14px; margin: 0;">
+                    해당 공정의 각 자리에 일할 작업자를 지정하고 QR 스캔을 시작하세요.
+                </p>
+                <div id="spot-list-container" style="display: flex; flex-direction: column; gap: 12px;">
+                </div>
             </div>
         </div>
     </div>
@@ -643,23 +660,24 @@
             String(today.getMonth() + 1).padStart(2, '0') +
             String(today.getDate()).padStart(2, '0');
 
-        const initialQty = 15;
+        const initialQty = 0;
 
         let dailyOrderSuffix = 1;
         let isCompleted = false;
 
         const appData = {
-            currentOrder: { id: `${dateStr}-${initialQty}-${dailyOrderSuffix}`, title: "김치만들기", qty: initialQty, regCount: 0 },
+            currentOrder: { id: "", title: "", qty: 0, regCount: 0 },
             stages: [
-                { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", worker: "" },
-                { id: 2, name: "배추 절이기", icon: "bi-water", status: "available", worker: "" },
-                { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "available", worker: "" },
-                { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", worker: "" },
-                { id: "5-1", name: "양념 만들기", icon: "bi-basket", status: "available", worker: "" },
-                { id: "5-2", name: "양념 바르기", icon: "bi-brush", status: "available", worker: "" },
-                { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "available", worker: "" }
+                { id: 1, name: "배추 1/2 컷팅", icon: "bi-scissors", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } },
+                { id: 2, name: "배추 절이기", icon: "bi-water", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } },
+                { id: 3, name: "세척 및 물기 빼기", icon: "bi-droplet-half", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } },
+                { id: 4, name: "밀봉 및 보관", icon: "bi-box-seam", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } },
+                { id: "5-1", name: "양념 만들기", icon: "bi-basket", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } },
+                { id: "5-2", name: "양념 바르기", icon: "bi-brush", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } },
+                { id: 6, name: "포장 및 출하", icon: "bi-truck", status: "available", spots: { A: { worker: "", status: "empty" }, B: { worker: "", status: "empty" } } }
             ],
             activeStageId: 0,
+            activeSpotId: null,
             user: { name: "손님", id: "guest" },
             logs: []
         };
@@ -697,6 +715,85 @@
         // 👇 여기에 휴식 상태를 관리할 변수를 추가합니다.
         let isResting = false;  // 휴식 중인지 여부
         let restSeconds = 0;    // 휴식 타이머 초
+
+        function getActiveOrderForStage(stageId, targetSpotId = null) {
+            const raw = localStorage.getItem('kimp_production_orders');
+            if (!raw) return null;
+            try {
+                const parsed = JSON.parse(raw);
+                let orders = [];
+                if (Array.isArray(parsed)) {
+                    orders = parsed;
+                } else if (typeof parsed === 'object' && parsed !== null) {
+                    orders = Object.values(parsed);
+                }
+
+                // status === 'in_progress' 이고 currentTask === stageId 이며 orderId가 유효한 지시서 필터링
+                const candidateOrders = orders.filter(o => 
+                    o && 
+                    o.orderId && 
+                    o.status === 'in_progress' && 
+                    String(o.currentTask) === String(stageId)
+                );
+
+                const stage = appData.stages.find(s => String(s.id) === String(stageId));
+
+                // 💡 [1순위] 현재 이 Spot에 지정된 작업자용 지시서 찾기
+                let targetWorker = appData.user.name;
+                const spotId = targetSpotId || appData.activeSpotId;
+                if (stage && stage.spots && spotId && stage.spots[spotId]) {
+                    targetWorker = stage.spots[spotId].worker || appData.user.name;
+                }
+
+                const myOrder = candidateOrders.find(o => 
+                    o.stages && 
+                    o.stages[stageId] && 
+                    o.stages[stageId].operator === targetWorker
+                );
+                if (myOrder) return myOrder;
+
+                // 💡 [중복 방지 필터링] 다른 Spot에서 이미 진행 중(operator로 선점됨)인 지시서는 제외
+                let otherWorkers = [];
+                if (stage && stage.spots) {
+                    Object.keys(stage.spots).forEach(sid => {
+                        if (String(sid) !== String(spotId) && stage.spots[sid].worker) {
+                            otherWorkers.push(stage.spots[sid].worker);
+                        }
+                    });
+                }
+
+                const unOccupiedOrders = candidateOrders.filter(o => {
+                    const stageObj = o.stages ? o.stages[stageId] : null;
+                    const op = stageObj ? stageObj.operator : null;
+                    return !op || !otherWorkers.includes(op);
+                });
+
+                // [2순위] operator가 완전히 비어있는 지시서들
+                const queue = unOccupiedOrders.filter(o => {
+                    const stageObj = o.stages ? o.stages[stageId] : null;
+                    return !stageObj || !stageObj.operator;
+                });
+
+                if (queue.length > 0) {
+                    queue.sort((a, b) => {
+                        const timeA = new Date(a.task1StartTime || a.createdTime || 0).getTime();
+                        const timeB = new Date(b.task1StartTime || b.createdTime || 0).getTime();
+                        return timeA - timeB;
+                    });
+                    return queue[0];
+                }
+
+                // [3순위] 중복 안 된 지시서 중 아무거나
+                if (unOccupiedOrders.length > 0) {
+                    return unOccupiedOrders[0];
+                }
+
+                return null;
+            } catch (e) {
+                console.error("Failed to parse kimp_production_orders:", e);
+                return null;
+            }
+        }
 
         // ============================================================
         // 💡 누락되었던 로그 기록 및 수정 함수 추가 영역
@@ -928,7 +1025,14 @@
             const titleEl = document.getElementById('display-job-title');
             const orderEl = document.getElementById('display-work-order');
             if (titleEl) titleEl.innerHTML = `<i class="bi bi-box-seam"></i> 김치만들기 v2.1`;
-            if (orderEl) orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${appData.currentOrder.id}`;
+            if (orderEl) {
+                if (appData.activeStageId === 0 || appData.activeStageId === "0") {
+                    orderEl.style.display = 'none';
+                } else {
+                    orderEl.style.display = 'block';
+                    orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${appData.currentOrder.id}`;
+                }
+            }
         }
 
         // ============================================================
@@ -944,7 +1048,22 @@
         function loadStagesFromStorage() {
             const saved = localStorage.getItem('kimp_stages_sync');
             if (saved) {
-                appData.stages = JSON.parse(saved);
+                try {
+                    const loadedStages = JSON.parse(saved);
+                    // 💡 하위 호환성 패치: 각 스테이지에 spots 구조가 없으면 강제로 복구/주입
+                    loadedStages.forEach(ls => {
+                        // appData.stages에 정의된 초기 뼈대에서 spots를 참조
+                        if (!ls.spots) {
+                            ls.spots = {
+                                A: { worker: ls.worker || "", status: ls.status === "occupied" ? "working" : "empty" },
+                                B: { worker: "", status: "empty" }
+                            };
+                        }
+                    });
+                    appData.stages = loadedStages;
+                } catch (e) {
+                    console.error("Failed to parse kimp_stages_sync:", e);
+                }
             }
         }
 
@@ -1041,6 +1160,7 @@
             localStorage.setItem('kimp_handover_req', JSON.stringify(req));
             closeActionModal();
 
+            appData.activeSpotId = null; // 교대 후 대기장소로 가므로 Spot 점유 해제
             alert("교대가 완료되었습니다. 대기장소로 이동합니다.");
             moveToStage(0, '대기장소');
         }
@@ -1069,168 +1189,486 @@
             if (!grid) return;
             grid.innerHTML = '';
 
+            const activeOrder1 = getActiveOrderForStage(1);
             appData.stages.forEach(stage => {
-                const isCurrent = (stage.id === appData.activeStageId);
-
                 let btnClass = stage.status;
-                let statusText = "";
+                let clickStatus = stage.status;
 
-                if (stage.worker === appData.user.name && stage.worker !== "") {
-                    // 💡 나의 공정일 때
-                    if (isResting) {
-                        btnClass = 'current';
-                        statusText = `<span style="color:#fcd34d; font-weight:bold;">휴식 중</span><br><span style="font-size:12px; color:rgba(255,255,255,0.85); display:block; margin-top:4px; line-height:1.3;">본인이 참여중인 일입니다.</span>`;
-                    } else {
-                        btnClass = 'current';
-                        statusText = "내가 작업 중";
-                    }
-                } else if (stage.worker !== appData.user.name && stage.worker !== "") {
-                    // 💡 타인의 공정일 때
-                    if (stage.status === 'occupied') {
-                        statusText = `${stage.worker} 작업 중`;
-                        btnClass = 'occupied';
-                    } else if (stage.status === 'resting') {
-                        statusText = `<span style="color:var(--warning); font-weight:bold;">${stage.worker} 휴식 중</span><br><span style="font-size:12px; color:var(--text-secondary); display:block; margin-top:4px; line-height:1.3;">${stage.worker}님이 다시 참여할 예정입니다.<br>대신할까요?</span>`;
-                        btnClass = 'resting';
-                    } else {
-                        statusText = `${stage.worker} 작업 중`;
-                    }
-                } else if (stage.status === 'disabled') {
-                    statusText = "설비 점검";
-                } else {
-                    statusText = "참여 가능";
+                let spotTexts = [];
+                let isMeInStage = false;
+                let hasOccupied = false;
+                let hasResting = false;
+
+                if (stage.spots) {
+                    Object.keys(stage.spots).forEach(spotId => {
+                        const spot = stage.spots[spotId];
+                        if (spot.worker) {
+                            hasOccupied = true;
+                            let spotStatus = "작업중";
+                            if (spot.status === 'resting') {
+                                spotStatus = "휴식중";
+                                hasResting = true;
+                            }
+                            if (spot.worker === appData.user.name) {
+                                isMeInStage = true;
+                                spotTexts.push(`${spotId}: ${spot.worker}(나, ${spotStatus})`);
+                            } else {
+                                spotTexts.push(`${spotId}: ${spot.worker}(${spotStatus})`);
+                            }
+                        } else {
+                            spotTexts.push(`${spotId}: 비어있음`);
+                        }
+                    });
                 }
 
+                let statusText = spotTexts.length > 0 ? spotTexts.join(" | ") : "참여 가능";
+
+                if (stage.status === 'disabled') {
+                    btnClass = 'disabled';
+                    statusText = "설비 점검";
+                } else if (isMeInStage) {
+                    btnClass = 'current';
+                } else if (hasResting) {
+                    btnClass = 'resting';
+                } else if (hasOccupied) {
+                    btnClass = 'occupied';
+                } else {
+                    btnClass = 'available';
+                    if (stage.id === 1 && activeOrder1) {
+                        statusText = `<span style="color:var(--success); font-weight:bold;">지시서 [${activeOrder1.orderId}] (${activeOrder1.quantity}포기)<br>참여 가능</span>`;
+                    }
+                }
+
+                // Stage 1이면서 빈 자리이고 getActiveOrderForStage(1)이 null인 경우
+                // const allSpotsEmpty = stage.spots ? Object.values(stage.spots).every(s => !s.worker) : true;
+                // if (stage.id === 1 && allSpotsEmpty && activeOrder1 === null) {
+                //     statusText = `<span style="color:var(--warning); font-weight:bold;"><i class="bi bi-exclamation-triangle-fill"></i> 지시서 대기 중</span>`;
+                //     btnClass = 'disabled';
+                //     clickStatus = 'waiting_order';
+                // }
+
                 grid.innerHTML += `
-        <button class="task-btn ${btnClass}" onclick="handleStageClick('${stage.id}', '${stage.status}', '${stage.name}', '${stage.worker}')">
+        <button class="task-btn ${btnClass}" onclick="handleStageClick('${stage.id}', '${clickStatus}', '${stage.name}')">
             <i class="bi ${stage.icon}"></i>
             <span>Stage ${stage.id}. ${stage.name}</span>
-            <span class="task-status-text ${stage.status}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
+            <span class="task-status-text ${btnClass}" style="font-size:14px; font-weight:normal; margin-top:4px;">${statusText}</span>
         </button>
         `;
             });
             document.getElementById('task-modal').classList.add('open');
         }
 
-        function finalizeStageMove(finalStageId, stageName) {
-            const targetStage = appData.stages.find(s => s.id === finalStageId);
-            if (targetStage && (targetStage.status === 'occupied' || targetStage.status === 'resting')) {
-                targetStage.worker = appData.user.name;
-                targetStage.status = 'occupied';
-            }
-            if (appData.activeStageId !== 0) {
-                const prevStage = appData.stages.find(s => s.id === appData.activeStageId);
-                if (prevStage && prevStage.worker === appData.user.name) {
-                    prevStage.worker = "";
-                    prevStage.status = "available";
-                }
-            }
-            syncStagesToStorage();
-            moveToStage(finalStageId, stageName);
-        }
+        function renderSpotSelector(stage) {
+            const container = document.getElementById('spot-list-container');
+            if (!container) return;
+            container.innerHTML = '';
 
+            Object.keys(stage.spots).forEach(spotId => {
+                const spot = stage.spots[spotId];
+                let actionHtml = '';
+                let spotLabel = `자리 ${spotId}`;
 
-        function handleStageClick(stageId, status, stageName, workerName) {
-            const parsedStageId = isNaN(Number(stageId)) ? stageId : Number(stageId);
-            const finalStageId = (typeof stageId === 'string' && (stageId === "5-1" || stageId === "5-2")) ? stageId : parsedStageId;
-            const isCurrent = (finalStageId === appData.activeStageId);
+                // 💡 해당 공정에 진입 가능한 지시서가 있는지 미리 체크
+                const hasOrder = !!getActiveOrderForStage(stage.id, spotId);
 
-            // 1. 본인이 휴식 중(작업장 외부)일 때의 클릭 차단 로직
-            if (isResting) {
-                if (isCurrent) {
-                    alert("현재 휴식 중입니다.\n작업을 재개하려면 라운지에서 '작업장 입장(휴식 종료)' 처리 후 진행해주세요.");
+                if (!spot.worker || spot.status === 'empty') {
+                    if (!hasOrder) {
+                        spotLabel += ` <span style="font-weight: normal; color: #ef4444; font-size: 13px; margin-left: 8px;"><i class="bi bi-x-circle-fill"></i> 지시서 없음</span>`;
+                        actionHtml = `
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="btn-menu" style="padding: 6px 12px; font-size: 14px; background:#64748b; color:#cbd5e1; border:none; cursor:not-allowed;" disabled onclick="alert('진행 가능한 지시서가 없어 할당할 수 없습니다.')">할당 불가</button>
+                            </div>
+                        `;
+                    } else {
+                        spotLabel += ` <span style="font-weight: normal; color: var(--text-secondary); font-size: 13px; margin-left: 8px;">(자리 비움)</span>`;
+                        actionHtml = `
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button class="btn-menu" style="padding: 6px 12px; font-size: 14px; background:var(--primary); color:white; border:none;" onclick="assignWorkerAndScan('${stage.id}', '${spotId}')">할당 & 스캔</button>
+                            </div>
+                        `;
+                    }
+                } else if (spot.worker === appData.user.name) {
+                    if (!hasOrder) {
+                        spotLabel += ` <span style="font-weight: normal; color: #ef4444; font-size: 13px; margin-left: 8px;"><i class="bi bi-x-circle-fill"></i> 지시서 없음</span>`;
+                        actionHtml = `
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span style="font-weight: bold; color: var(--text-secondary); font-size:14px;">${spot.worker} (대기)</span>
+                                <button class="btn-menu" style="padding: 6px 12px; font-size: 14px; background:#64748b; color:#cbd5e1; border:none; cursor:not-allowed;" disabled onclick="alert('진행 가능한 지시서가 없습니다.')">입장 불가</button>
+                            </div>
+                        `;
+                    } else {
+                        let statusColor = spot.status === 'resting' ? 'var(--warning)' : 'var(--success)';
+                        let statusLabel = spot.status === 'resting' ? '휴식중' : '작업중';
+                        
+                        actionHtml = `
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <span style="font-weight: bold; color: ${statusColor}; font-size:14px;">${spot.worker} (${statusLabel})</span>
+                                <button class="btn-menu" style="padding: 6px 12px; font-size: 14px; background:var(--success); color:white; border:none;" onclick="reEnterMySpot('${stage.id}', '${spotId}')">입장</button>
+                            </div>
+                        `;
+                    }
                 } else {
-                    alert("작업장 밖에 있는 상태(휴식 중)이므로 다른 위치로 변경할 수 없습니다.\n먼저 작업장으로 입장해주세요.");
+                    let statusColor = spot.status === 'resting' ? 'var(--warning)' : 'var(--success)';
+                    let statusLabel = spot.status === 'resting' ? '휴식중' : '작업중';
+                    
+                    actionHtml = `
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-weight: bold; color: ${statusColor}; font-size:14px;">${spot.worker} (${statusLabel})</span>
+                            <button class="btn-menu" style="padding: 6px 12px; font-size: 12px; background:#fee2e2; color:#ef4444; border:1px solid #fca5a5;" onclick="triggerHandoverPrompt('${stage.id}', '${spotId}', '${spot.worker}')">교대</button>
+                        </div>
+                    `;
                 }
-                return;
-            }
 
-            // 2. 현재 정상 작업 중인 곳을 터치한 경우 (창만 닫음)
-            if (isCurrent && !isResting) {
-                closeTaskSelector();
-                return;
-            }
-
-            // 3. 타인의 공정 클릭 시
-            if (workerName !== "" && workerName !== appData.user.name) {
-                if (status === 'occupied') {
-                    if (!confirm(`${workerName}님이 작업 중입니다. 작업 인수하시겠습니까?\n(상대가 거절할 수도 있습니다.)`)) return;
-
-                    // 💡 상대방에게 인수 요청 보내기 (occupied일 때만)
-                    const reqId = Date.now();
-                    const reqObj = { reqId: reqId, from: appData.user.name, to: workerName, stageId: finalStageId, stageName: stageName, status: 'pending' };
-                    localStorage.setItem('kimp_handover_req', JSON.stringify(reqObj));
-
-                    // 대기 UI 표시
-                    const content = `
-                    <div style="text-align:center; padding:20px;">
-                        <div style="font-size:40px; margin-bottom:20px; color:#3b82f6;"><i class="bi bi-hourglass-split"></i></div>
-                        <p id="handover-waiting-text" style="margin-bottom:20px;"><strong>${workerName}</strong>님의 수락을 기다리고 있습니다...</p>
-                        <button class="btn btn-outline-danger w-100" onclick="cancelHandover()">요청 취소</button>
+                container.innerHTML += `
+                    <div class="spot-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); margin-bottom: 8px;">
+                        <strong style="font-size: 16px; color: var(--text-primary);"><i class="bi bi-person-workspace"></i> ${spotLabel}</strong>
+                        ${actionHtml}
                     </div>
                 `;
-                    openActionModal('작업 인수 요청', '<i class="bi bi-send"></i>', content);
+            });
 
-                    // 요청 응답 대기 리스너
-                    const responseListener = function (e) {
-                        if (e.key === 'kimp_handover_req') {
-                            const resStr = e.newValue;
-                            if (!resStr) return;
-                            const res = JSON.parse(resStr);
+            document.getElementById('spot-selector-modal').classList.add('open');
+        }
 
-                            if (res.reqId === reqId && res.from === appData.user.name) {
-                                if (res.status === 'accepted_moving') {
-                                    // 💡 1차 수락 시: 이동 안내 메시지로 대기창 내용 변경
-                                    const waitingContent = document.getElementById('handover-waiting-text');
-                                    if (waitingContent) {
-                                        waitingContent.innerHTML = `상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span>`;
-                                    } else {
-                                        // 기존 모달이 없거나 덮어씌워졌다면 다시 띄움
-                                        const content = `
-                                        <div style="text-align:center; padding:20px;">
-                                            <div style="font-size:40px; margin-bottom:20px; color:#3b82f6;"><i class="bi bi-person-walking"></i></div>
-                                            <p id="handover-waiting-text" style="margin-bottom:20px;">상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span></p>
-                                        </div>
-                                    `;
-                                        openActionModal('이동 안내', '<i class="bi bi-info-circle"></i>', content);
-                                    }
-                                } else if (res.status === 'accepted') {
-                                    // 💡 2차 최종 완료 시: 실제 교대 처리
-                                    window.removeEventListener('storage', responseListener);
-                                    closeActionModal();
-
-                                    // 실제 교대 점유 실행
-                                    finalizeStageMove(finalStageId, stageName);
-
-                                } else if (res.status === 'rejected') {
-                                    window.removeEventListener('storage', responseListener);
-                                    closeActionModal();
-                                    alert("상대방이 거절하셨습니다. 교대가 취소되었습니다.");
-                                } else if (res.status === 'cancelled') {
-                                    window.removeEventListener('storage', responseListener);
-                                }
-                            }
-                        }
-                    };
-
-                    window.addEventListener('storage', responseListener);
-                    return; // 수락될 때까지 진입 차단
-
-                } else if (status === 'resting') {
-                    // 💡 휴식 중일 때는 즉시 교대 확인창 표시
-                    if (!confirm(`[${workerName}]님이 휴식 중입니다.\n대신 작업하시겠습니까?`)) return;
-                }
-            } else if (status === 'disabled') {
-                alert("현재 작업 불가한 공정입니다."); return;
-            } else {
-                if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
+        function assignWorkerAndScan(stageId, spotId) {
+            // 💡 [지시서 체크 방어막] 현재 공정에 대기 중인 생산지시서가 없으면 할당 진행 차단
+            const activeOrder = getActiveOrderForStage(stageId, spotId);
+            if (!activeOrder) {
+                alert("현재 해당 공정에 진행 대기 중인 생산지시서가 없습니다.\n매니저에게 지시서 발행을 요청하세요.");
+                return;
             }
 
-            // 교대 수락 및 일반 이동 시 공통 액션: 
-            finalizeStageMove(finalStageId, stageName);
+            const workerName = appData.user.name;
+
+            appData.stages.forEach(s => {
+                if (s.spots) {
+                    Object.keys(s.spots).forEach(sid => {
+                        if (s.spots[sid].worker === workerName) {
+                            s.spots[sid].worker = "";
+                            s.spots[sid].status = "empty";
+                        }
+                    });
+                }
+            });
+
+            const stage = appData.stages.find(s => String(s.id) === String(stageId));
+            if (stage) {
+                stage.spots[spotId].worker = workerName;
+                stage.spots[spotId].status = "assigned";
+            }
+
+            if (workerName === appData.user.name) {
+                appData.activeSpotId = spotId;
+            }
+
+            closeSpotSelector();
+            closeTaskSelector();
+            startIndividualCheckIn(stageId, spotId, workerName);
+        }
+
+        function reEnterMySpot(stageId, spotId) {
+            // 💡 [지시서 체크 방어막] 입장 시에도 대기 중인 지시서가 없으면 차단
+            const activeOrder = getActiveOrderForStage(stageId, spotId);
+            if (!activeOrder) {
+                alert("현재 해당 공정에 진행 대기 중인 생산지시서가 없습니다.\n매니저에게 지시서 발행을 요청하세요.");
+                return;
+            }
+
+            appData.activeSpotId = spotId;
+            closeSpotSelector();
+            closeTaskSelector();
+            
+            const stage = appData.stages.find(s => String(s.id) === String(stageId));
+            const stageName = stage ? stage.name : '작업장';
+            moveToStage(stageId, stageName);
+        }
+
+        window.exitStageToWaitingArea = function(stageId, spotId) {
+            // 💡 지시서 부재로 대기실로 나갈 때 본인 Spot 점유를 완벽히 해제
+            const stage = appData.stages.find(s => String(s.id) === String(stageId));
+            if (stage && spotId && stage.spots && stage.spots[spotId]) {
+                stage.spots[spotId].worker = "";
+                stage.spots[spotId].status = "empty";
+                syncStagesToStorage();
+            }
+            appData.activeSpotId = null;
+            moveToStage(0, '대기장소');
+        };
+
+        window.cancelHandoverRequest = function(reqIdStr) {
+            const reqStr = localStorage.getItem('kimp_handover_req');
+            if (reqStr) {
+                const req = JSON.parse(reqStr);
+                if (req.reqId === Number(reqIdStr)) {
+                    req.status = 'cancelled';
+                    localStorage.setItem('kimp_handover_req', JSON.stringify(req));
+                }
+            }
+            closeActionModal();
+        };
+
+        function triggerHandoverPrompt(stageId, spotId, currentWorker) {
+            if (confirm(`[${currentWorker}]님이 이미 작업 중입니다. 교대하여 작업을 인수하시겠습니까?\n(상대방 단말기에서 승인 처리가 필요합니다)`)) {
+                
+                const reqId = Date.now();
+                const reqObj = {
+                    reqId: reqId,
+                    from: appData.user.name,
+                    to: currentWorker,
+                    stageId: stageId,
+                    spotId: spotId,
+                    status: "pending"
+                };
+                localStorage.setItem('kimp_handover_req', JSON.stringify(reqObj));
+
+                const content = `
+                    <div style="text-align:center; padding:20px;">
+                        <p style="font-size:16px; margin-bottom:20px; color:var(--text-primary);">
+                            <strong>[${currentWorker}]</strong>님에게 교대 요청을 보냈습니다.<br>상대방이 단말기에서 수락하기를 대기 중입니다...
+                        </p>
+                        <div style="margin-bottom:20px;">
+                            <i class="bi bi-hourglass-split spin-anim" style="font-size:40px; color:var(--warning); display:inline-block;"></i>
+                        </div>
+                        <button class="btn btn-secondary w-100" onclick="cancelHandoverRequest('${reqId}')">교대 요청 취소</button>
+                    </div>
+                `;
+                openActionModal('교대 승인 대기 중', '<i class="bi bi-person-fill-exclamation" style="color:var(--warning);"></i>', content);
+
+                const checkInterval = setInterval(() => {
+                    const reqStr = localStorage.getItem('kimp_handover_req');
+                    if (!reqStr) {
+                        clearInterval(checkInterval);
+                        return;
+                    }
+                    const req = JSON.parse(reqStr);
+                    if (req.reqId !== reqId) {
+                        clearInterval(checkInterval);
+                        return;
+                    }
+
+                    if (req.status === 'accepted') {
+                        clearInterval(checkInterval);
+                        closeActionModal();
+
+                        // 💡 교대 수락 성공 시 진행 상태 유지 복원 (이력을 지우지 않고 최수아 명의로 인계)
+                        const stage = appData.stages.find(s => String(s.id) === String(stageId));
+                        if (stage) {
+                            stage.spots[spotId].worker = appData.user.name;
+                            stage.spots[spotId].status = "assigned";
+                            appData.activeSpotId = spotId;
+                            syncStagesToStorage();
+                        }
+
+                        closeSpotSelector();
+                        closeTaskSelector();
+                        startIndividualCheckIn(stageId, spotId, appData.user.name);
+
+                        alert(`[${currentWorker}]님의 진행 정보를 이어서 교대 작업을 시작합니다.`);
+
+                    } else if (req.status === 'rejected') {
+                        clearInterval(checkInterval);
+                        closeActionModal();
+                        alert(`[${currentWorker}]님이 교대 요청을 거절했습니다.`);
+                    } else if (req.status === 'cancelled') {
+                        clearInterval(checkInterval);
+                    }
+                }, 1000);
+            }
+        }
+
+        function handoverSpotWorker(stageId, spotId) {
+            const stage = appData.stages.find(s => String(s.id) === String(stageId));
+            if (!stage || !stage.spots[spotId]) return;
+
+            const spot = stage.spots[spotId];
+            const oldWorker = spot.worker;
+
+            if (oldWorker) {
+                addLog(`[교대] Stage ${stageId} - 자리 ${spotId}의 작업자 ${oldWorker}님이 작업을 마치거나 교대하였습니다.`);
+            }
+
+            spot.worker = "";
+            spot.status = "empty";
+            
+            let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
+            const stateKey = `${stageId}_spot_${spotId}`;
+            if (stageStates[stateKey]) {
+                delete stageStates[stateKey];
+                localStorage.setItem('kimp_stage_states', JSON.stringify(stageStates));
+            }
+
+            syncStagesToStorage();
+
+            if (oldWorker === appData.user.name) {
+                appData.activeSpotId = null;
+            }
+        }
+
+        function startIndividualCheckIn(stageId, spotId, workerName) {
+            appData.activeStageId = stageId;
+            appData.activeSpotId = spotId;
+
+            // 💡 1. 다른 페이지들의 클래스를 초기화하고 동적 컨텐츠를 전부 비움
+            document.querySelectorAll('.stage-page').forEach(p => {
+                p.classList.remove('active');
+                p.classList.add('past');
+                const dynContent = p.querySelector('div[id$="-dynamic-content"]');
+                if (dynContent) dynContent.innerHTML = '';
+            });
+
+            // 💡 2. 대상 페이지 활성화
+            const target = document.getElementById(`stage-${stageId}`);
+            if (target) {
+                target.classList.remove('past');
+                target.classList.add('active');
+            }
+
+            // 💡 3. 그 이후에 활성화된 대상 컨테이너에 체크인 HMI 마크업을 동적으로 삽입
+            const container = document.getElementById(`stage-${stageId}-dynamic-content`);
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
+                    <i class="bi bi-geo-alt step-icon" style="font-size: 48px; color: var(--primary);"></i>
+                    <div class="step-message" style="font-size: 18px; font-weight: bold;">[자리 ${spotId}] 위치 체크인</div>
+                    <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5;">
+                        작업자: <strong>${workerName}</strong><br>
+                        해당 자리에 위치한 QR코드를 스캔해 주세요.
+                    </div>
+                    
+                    <div class="qr-scanner-box" onclick="completeSpotCheckIn('${stageId}', '${spotId}')" style="width: 200px; height: 150px; border: 2px dashed var(--primary); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; border-radius: 12px; background: rgba(59, 130, 246, 0.05);">
+                        <i class="bi bi-qr-code" style="font-size: 40px; color: var(--primary);"></i>
+                        <span style="font-size: 12px; margin-top: 8px; font-weight: bold; color: var(--primary);">터치하여 스캔 완료</span>
+                    </div>
+                </div>
+            `;
+
+            const locBadge = document.getElementById('display-location');
+            if (locBadge) locBadge.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Stage ${stageId} (자리 ${spotId})`;
+
+            const header = document.getElementById('main-header');
+            if (header) {
+                header.classList.remove('hide-toggle');
+                header.classList.add('compact');
+            }
+
+            updateHeaderInfo();
+        }
+
+        function completeSpotCheckIn(stageId, spotId) {
+            playShutterSound();
+
+            const stage = appData.stages.find(s => String(s.id) === String(stageId));
+            if (!stage || !stage.spots[spotId]) return;
+
+            const spot = stage.spots[spotId];
+            spot.status = "working";
+
+            // 💡 먼저 이 스테이지에 진행 가능한 지시서가 있는지 확인
+            const activeOrder = getActiveOrderForStage(stageId, spotId);
+            if (!activeOrder) {
+                // 대기 중인 지시서가 없는 경우 -> 지시서 정보 초기화 및 대기 단계(0)로 롤백
+                appData.currentOrder.id = "";
+                appData.currentOrder.qty = 0;
+                updateHeaderInfo();
+
+                // 화면에 "지시서 대기 중" HMI 상태 렌더링
+                const container = document.getElementById(`stage-${stageId}-dynamic-content`);
+                if (container) {
+                    container.innerHTML = `
+                        <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
+                            <i class="bi bi-exclamation-triangle step-icon" style="font-size: 48px; color: var(--warning);"></i>
+                            <div class="step-message" style="font-size: 18px; font-weight: bold;">생산지시서 대기 중</div>
+                            <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5; max-width:320px;">
+                                현재 이 공정에 배정된 유효한 생산지시서가 존재하지 않습니다.<br>
+                                매니저가 발행할 때까지 대기하시거나 다른 작업을 시작해 주세요.
+                            </div>
+                            <button class="btn btn-secondary w-50" onclick="exitStageToWaitingArea('${stageId}', '${spotId}')">대기장소로 돌아가기</button>
+                        </div>
+                    `;
+                }
+                
+                // 자리 점유도 일단 해제 처리 (작업할 게 없으므로)
+                spot.worker = "";
+                spot.status = "empty";
+                syncStagesToStorage();
+                return;
+            }
+
+            // 지시서가 존재하는 경우 정상 진행
+            appData.currentOrder.id = activeOrder.orderId;
+            appData.currentOrder.qty = activeOrder.quantity;
+            updateHeaderInfo();
+
+            // 💡 지시서 DB의 operator를 해당 작업자명으로 매핑하여 선점 처리 (다른 Spot이 중복 할당하지 못하게 함)
+            const ordersRaw = localStorage.getItem('kimp_production_orders');
+            if (ordersRaw) {
+                try {
+                    let ordersObj = JSON.parse(ordersRaw);
+                    const currentOrderId = activeOrder.orderId;
+                    let targetOrder = null;
+                    if (Array.isArray(ordersObj)) {
+                        targetOrder = ordersObj.find(o => o && o.orderId === currentOrderId);
+                    } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                        targetOrder = ordersObj[currentOrderId];
+                    }
+
+                    if (targetOrder) {
+                        if (!targetOrder.stages) targetOrder.stages = {};
+                        if (!targetOrder.stages[stageId]) targetOrder.stages[stageId] = {};
+                        targetOrder.stages[stageId].operator = spot.worker;
+                        
+                        // 💡 매니저 대시보드 상태 동기화
+                        targetOrder.status = "in_progress";
+                        targetOrder.progressStatus = `생산중(Stage${stageId})`;
+                        
+                        localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
+                    }
+                } catch(e) {
+                    console.error("Failed to update operator in completeSpotCheckIn:", e);
+                }
+            }
+
+            let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
+            const stateKey = `${stageId}_spot_${spotId}`;
+            if (stageStates[stateKey]) {
+                currentStepIndex = stageStates[stateKey].stepIndex || 0;
+                highestStepReached = stageStates[stateKey].highest || 0;
+            } else {
+                currentStepIndex = 1;
+                highestStepReached = 1;
+            }
+
+            addLog(`[Stage ${stageId} - 자리 ${spotId}] ${spot.worker} 작업자가 체크인을 완료하고 작업을 재개합니다.`);
+            syncStagesToStorage();
+
+            renderCurrentStep();
+        }
+
+        function handleStageClick(stageId, status, stageName) {
+            if (status === 'waiting_order') {
+                alert("매니저가 아직 생산지시서를 전달하지 않았습니다");
+                return;
+            }
+
+            const stage = appData.stages.find(s => String(s.id) === String(stageId));
+            if (!stage) return;
+
+            if (stage.status === 'disabled') {
+                alert("현재 작업 불가한 공정입니다."); 
+                return;
+            }
+
+            if (isResting) {
+                alert("작업장 밖에 있는 상태(휴식 중)이므로 다른 위치로 변경할 수 없습니다.\n먼저 작업장으로 입장해주세요.");
+                return;
+            }
+
+            renderSpotSelector(stage);
         }
 
         function closeTaskSelector() { document.getElementById('task-modal').classList.remove('open'); }
+        function closeSpotSelector() { document.getElementById('spot-selector-modal').classList.remove('open'); }
 
         function moveToStage(stageId, stageName) {
             if (stageId !== 0) {
@@ -1241,11 +1679,7 @@
             }
 
             if (stageId !== 0 && isCompleted) {
-                dailyOrderSuffix++;
-                appData.currentOrder.id = `${dateStr}-${appData.currentOrder.qty}-${dailyOrderSuffix}`;
-                appData.currentOrder.regCount = 0;
                 isCompleted = false;
-                updateHeaderInfo();
             }
 
             appData.activeStageId = stageId;
@@ -1279,9 +1713,10 @@
 
                 // 💡 휴식/교대 시 화면을 기억하기 위해, 저장된 상태가 있으면 복원하고 없으면 초기화
                 let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
-                if (stageStates[stageId]) {
-                    currentStepIndex = stageStates[stageId].stepIndex || 0;
-                    highestStepReached = stageStates[stageId].highest || 0;
+                const stateKey = `${stageId}_spot_${appData.activeSpotId}`;
+                if (stageStates[stateKey]) {
+                    currentStepIndex = stageStates[stateKey].stepIndex || 0;
+                    highestStepReached = stageStates[stateKey].highest || 0;
                 } else {
                     currentStepIndex = 0;
                     highestStepReached = 0; // 새 작업 시작 시 도달 인덱스 초기화
@@ -1289,12 +1724,15 @@
 
                 // 💡 만약 복원된 인덱스가 0보다 크면(즉, 이미 체크인을 통과한 이력이 있으면),
                 // 현재 공정을 내가 다시 점유해야 함 (타인이 점유 중이지 않을 때만)
-                if (currentStepIndex > 0) {
+                if (currentStepIndex > 0 && appData.activeSpotId) {
                     const targetStage = appData.stages.find(s => s.id === stageId);
-                    if (targetStage && targetStage.status === 'available') {
-                        targetStage.worker = appData.user.name;
-                        targetStage.status = 'occupied';
-                        syncStagesToStorage();
+                    if (targetStage && targetStage.spots && targetStage.spots[appData.activeSpotId]) {
+                        const spot = targetStage.spots[appData.activeSpotId];
+                        if (!spot.worker) {
+                            spot.worker = appData.user.name;
+                            spot.status = 'working';
+                            syncStagesToStorage();
+                        }
                     }
                 }
 
@@ -1323,6 +1761,7 @@
                     localStorage.removeItem(`kimp_auto_handover_msg_${stageId}`);
                 }
             }
+            updateHeaderInfo();
         }
 
         function toggleCompactMode() {
@@ -2050,25 +2489,52 @@
         }
 
         function renderCurrentStep() {
+            // 💡 [초강력 방어막] 지시서 정보가 없는데 대기실(0)이 아닌 공정 화면을 그리려고 하면, 지시서 대기 화면을 강제로 렌더링하고 중단한다!
+            if (appData.activeStageId !== 0 && appData.activeStageId !== "0" && !appData.currentOrder.id) {
+                const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
+                            <i class="bi bi-exclamation-triangle step-icon" style="font-size: 48px; color: var(--warning);"></i>
+                            <div class="step-message" style="font-size: 18px; font-weight: bold;">생산지시서 대기 중</div>
+                            <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5; max-width:320px;">
+                                현재 이 공정에 배정된 유효한 생산지시서가 존재하지 않습니다.<br>
+                                매니저가 발행할 때까지 대기하시거나 다른 작업을 시작해 주세요.
+                            </div>
+                            <button class="btn btn-secondary w-50" onclick="exitStageToWaitingArea('${appData.activeStageId}', '${appData.activeSpotId}')">대기장소로 돌아가기</button>
+                        </div>
+                    `;
+                    updateHeaderInfo();
+                }
+                return;
+            }
+
+            if (stage1Workflow && stage1Workflow[2] && stage1Workflow[3]) {
+                stage1Workflow[2].desc = `창고로 이동하여 <strong>배추 ${appData.currentOrder.qty}포기</strong>를 실어주세요.`;
+                stage1Workflow[3].defaultVal = appData.currentOrder.qty;
+            }
+
             const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
             if (!container) return;
 
             let workflow;
-            if (appData.activeStageId === 6) workflow = stage6Workflow;
-            else if (appData.activeStageId === "5-2") workflow = stage5_2Workflow;
-            else if (appData.activeStageId === "5-1") workflow = stage5_1Workflow;
-            else if (appData.activeStageId === 4) workflow = stage4Workflow;
-            else if (appData.activeStageId === 3) workflow = stage3Workflow;
-            else if (appData.activeStageId === 2) workflow = stage2Workflow;
+            const currentStageStr = String(appData.activeStageId);
+            if (currentStageStr === "6") workflow = stage6Workflow;
+            else if (currentStageStr === "5-2") workflow = stage5_2Workflow;
+            else if (currentStageStr === "5-1") workflow = stage5_1Workflow;
+            else if (currentStageStr === "4") workflow = stage4Workflow;
+            else if (currentStageStr === "3") workflow = stage3Workflow;
+            else if (currentStageStr === "2") workflow = stage2Workflow;
             else workflow = stage1Workflow;
 
             const step = workflow[currentStepIndex];
+            const stateKey = `${appData.activeStageId}_spot_${appData.activeSpotId}`;
 
             if (!step) {
                 // 공정이 완전히 종료될 때 저장된 상태 삭제
                 let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
-                if (stageStates[appData.activeStageId]) {
-                    delete stageStates[appData.activeStageId];
+                if (stageStates[stateKey]) {
+                    delete stageStates[stateKey];
                     localStorage.setItem('kimp_stage_states', JSON.stringify(stageStates));
                 }
                 finishStage();
@@ -2077,7 +2543,7 @@
 
             // 💡 현재 렌더링되는 화면의 상태(인덱스)를 로컬스토리지에 무조건 저장
             let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
-            stageStates[appData.activeStageId] = {
+            stageStates[stateKey] = {
                 stepIndex: currentStepIndex,
                 highest: highestStepReached
             };
@@ -2232,24 +2698,14 @@
         }
 
         function nextStep() {
-            // 💡 최초 QR 체크인 시도 시, 그 사이에 다른 사람이 먼저 선점했는지(동시 진입) 확인
-            if (currentStepIndex === 0 && appData.activeStageId !== 0) {
-                loadStagesFromStorage();
-                const targetStage = appData.stages.find(s => s.id === appData.activeStageId);
-                if (targetStage && targetStage.status === 'occupied' && targetStage.worker !== appData.user.name) {
-                    alert(`[${targetStage.worker}]님이 먼저 해당 공정에 진입하여 작업 중입니다.\n대기장소로 돌아갑니다.`);
-                    moveToStage(0, '대기장소');
-                    return;
-                }
-            }
-
             let workflow;
-            if (appData.activeStageId === 6) workflow = stage6Workflow;
-            else if (appData.activeStageId === "5-2") workflow = stage5_2Workflow;
-            else if (appData.activeStageId === "5-1") workflow = stage5_1Workflow;
-            else if (appData.activeStageId === 4) workflow = stage4Workflow;
-            else if (appData.activeStageId === 3) workflow = stage3Workflow;
-            else if (appData.activeStageId === 2) workflow = stage2Workflow;
+            const currentStageStr = String(appData.activeStageId);
+            if (currentStageStr === "6") workflow = stage6Workflow;
+            else if (currentStageStr === "5-2") workflow = stage5_2Workflow;
+            else if (currentStageStr === "5-1") workflow = stage5_1Workflow;
+            else if (currentStageStr === "4") workflow = stage4Workflow;
+            else if (currentStageStr === "3") workflow = stage3Workflow;
+            else if (currentStageStr === "2") workflow = stage2Workflow;
             else workflow = stage1Workflow;
             const step = workflow[currentStepIndex];
 
@@ -2334,17 +2790,6 @@
             }
 
             currentStepIndex++;
-
-            // 💡 최초 QR 체크인(Step 0 -> Step 1) 통과 시점에 현재 스테이지를 '작업 중'으로 공식 점유
-            if (currentStepIndex === 1 && appData.activeStageId !== 0) {
-                const targetStage = appData.stages.find(s => s.id === appData.activeStageId);
-                if (targetStage && targetStage.status === 'available') {
-                    targetStage.worker = appData.user.name;
-                    targetStage.status = 'occupied';
-                    syncStagesToStorage();
-                }
-            }
-
             renderCurrentStep();
         }
 
@@ -2352,7 +2797,7 @@
             const sound = document.getElementById('shutter-sound');
             if (sound) {
                 sound.currentTime = 0;
-                sound.play();
+                sound.play().catch(e => console.warn("오디오 재생 오류 방지:", e));
             }
         }
         // ============================================================
@@ -2521,10 +2966,10 @@
             // 💡 주의: restSeconds = 0; 코드를 완전히 삭제하여 누적시간을 유지합니다.
 
             // 내가 속한 스테이지 상태를 resting으로 변경
-            if (appData.activeStageId !== 0) {
+            if (appData.activeStageId !== 0 && appData.activeSpotId) {
                 const myStage = appData.stages.find(s => s.id === appData.activeStageId);
-                if (myStage && myStage.worker === appData.user.name) {
-                    myStage.status = 'resting';
+                if (myStage && myStage.spots && myStage.spots[appData.activeSpotId]) {
+                    myStage.spots[appData.activeSpotId].status = 'resting';
                     syncStagesToStorage();
                 }
             }
@@ -2557,10 +3002,10 @@
             document.body.classList.remove('resting-mode');
 
             // 내가 속한 스테이지 상태를 occupied로 복귀
-            if (appData.activeStageId !== 0) {
+            if (appData.activeStageId !== 0 && appData.activeSpotId) {
                 const myStage = appData.stages.find(s => s.id === appData.activeStageId);
-                if (myStage && myStage.worker === appData.user.name) {
-                    myStage.status = 'occupied';
+                if (myStage && myStage.spots && myStage.spots[appData.activeSpotId]) {
+                    myStage.spots[appData.activeSpotId].status = 'working';
                     syncStagesToStorage();
                 }
             }
@@ -2603,8 +3048,101 @@
             document.getElementById('mock-photo').style.display = 'block';
             document.getElementById('mock-weight').textContent = window.tempWeight || '15.0';
 
+            // 💡 1. 승인 요청 발송
+            let goodQty = 0;
+            let defectQty = 0;
+            const perfLogs = appData.logs.filter(l => l.text.includes('실적'));
+            if (perfLogs.length > 0) {
+                const latestLog = perfLogs[perfLogs.length - 1];
+                const matchGood = latestLog.text.match(/양품:\s*(\d+)/);
+                if (matchGood) goodQty = parseInt(matchGood[1], 10);
+                
+                const matchDefect = latestLog.text.match(/불량:\s*(\d+)/);
+                if (matchDefect) defectQty = parseInt(matchDefect[1], 10);
+            } else {
+                goodQty = appData.currentOrder.qty || 15;
+            }
+
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            const requestId = "COMP-" + Date.now();
+            
+            const reqObj = {
+                id: requestId,
+                type: "completion",
+                orderId: appData.currentOrder.id,
+                stageNum: appData.activeStageId,
+                userName: appData.user.name,
+                userId: appData.user.name,
+                status: "pending",
+                submittedTime: timeStr,
+                postWorkQty: goodQty,
+                weight: window.tempWeight || 15.0
+            };
+
+            let reqs = [];
+            try {
+                reqs = JSON.parse(localStorage.getItem('kimp_approval_requests') || '[]');
+            } catch(e) {}
+            reqs.push(reqObj);
+            localStorage.setItem('kimp_approval_requests', JSON.stringify(reqs));
+
+            // 버튼 UI 변경 및 스피너/키프레임 주입
             const btn = document.getElementById('btn-final');
-            if (btn) btn.disabled = false;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="bi bi-hourglass-split" style="display:inline-block; animation: spin 1s linear infinite; margin-right: 4px;"></i> 매니저 승인 대기 중...`;
+                if (!document.getElementById('spin-keyframes-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'spin-keyframes-style';
+                    style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+                    document.head.appendChild(style);
+                }
+            }
+
+            // 💡 2. 승인 대기 상태 감지 리스너 (폴링)
+            const checkInterval = setInterval(() => {
+                let requests = [];
+                try {
+                    requests = JSON.parse(localStorage.getItem('kimp_approval_requests') || '[]');
+                } catch (e) {}
+
+                const currentReq = requests.find(r => r.id === requestId);
+                if (currentReq) {
+                    if (currentReq.status === 'approved') {
+                        clearInterval(checkInterval);
+                        showHmiToast('<i class="bi bi-check-circle-fill" style="color:var(--success);"></i> 매니저 승인 완료!');
+                        nextStep();
+                    } else if (currentReq.status === 'rejected') {
+                        clearInterval(checkInterval);
+                        alert("매니저가 사진을 반려했습니다. 다시 촬영해주세요.");
+                        
+                        // 롤백 처리
+                        let workflow;
+                        const currentStageStr = String(appData.activeStageId);
+                        if (currentStageStr === "6") workflow = stage6Workflow;
+                        else if (currentStageStr === "5-2") workflow = stage5_2Workflow;
+                        else if (currentStageStr === "5-1") workflow = stage5_1Workflow;
+                        else if (currentStageStr === "4") workflow = stage4Workflow;
+                        else if (currentStageStr === "3") workflow = stage3Workflow;
+                        else if (currentStageStr === "2") workflow = stage2Workflow;
+                        else workflow = stage1Workflow;
+                        
+                        const step = workflow[currentStepIndex];
+                        const actionText = step ? step.action : '작업 완료';
+
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.innerHTML = `${actionText} <i class="bi bi-check-lg"></i>`;
+                        }
+                        
+                        document.getElementById('camera-icon').style.display = 'block';
+                        document.getElementById('camera-text').style.display = 'block';
+                        const mockPhoto = document.getElementById('mock-photo');
+                        if (mockPhoto) mockPhoto.style.display = 'none';
+                    }
+                }
+            }, 1000);
         }
 
         function renderDefectPhotoStep(defectQty) {
@@ -2678,16 +3216,101 @@
                 // 해당 스테이지 타이머 초기화 (다음 수행을 위해)
                 if (window.stageStartTimes) window.stageStartTimes[stageId] = null;
 
-                // 💡 작업 완료 후 내 점유 상태 해제
-                const myStage = appData.stages.find(s => s.id === stageId);
-                if (myStage && myStage.worker === appData.user.name) {
-                    myStage.worker = "";
-                    myStage.status = "available";
-                    syncStagesToStorage();
+                // 💡 생산지시서 DB에 실적 로그 밀어넣기
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (ordersRaw) {
+                    try {
+                        let ordersObj = JSON.parse(ordersRaw);
+                        const currentOrderId = appData.currentOrder.id;
+                        let targetOrder = null;
+                        if (Array.isArray(ordersObj)) {
+                            targetOrder = ordersObj.find(o => o && o.orderId === currentOrderId);
+                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                            targetOrder = ordersObj[currentOrderId];
+                        }
+
+                        if (targetOrder) {
+                            if (!targetOrder.stages) targetOrder.stages = {};
+                            if (!targetOrder.stages[stageId]) targetOrder.stages[stageId] = {};
+                            if (!targetOrder.stages[stageId].workLogs) {
+                                targetOrder.stages[stageId].workLogs = [];
+                            }
+                            
+                            // 실적 로그 파싱
+                            let goodQty = 0;
+                            let defectQty = 0;
+                            let weightVal = window.tempWeight || 0;
+
+                            const perfLogs = appData.logs.filter(l => l.text.includes('실적'));
+                            if (perfLogs.length > 0) {
+                                const latestLog = perfLogs[perfLogs.length - 1];
+                                const matchGood = latestLog.text.match(/양품:\s*(\d+)/);
+                                if (matchGood) goodQty = parseInt(matchGood[1], 10);
+                                
+                                const matchDefect = latestLog.text.match(/불량:\s*(\d+)/);
+                                if (matchDefect) defectQty = parseInt(matchDefect[1], 10);
+                                
+                                const matchWeight = latestLog.text.match(/무게:\s*([\d.]+)/);
+                                if (matchWeight) weightVal = parseFloat(matchWeight[1]);
+                            } else {
+                                goodQty = appData.currentOrder.qty || 15;
+                            }
+
+                            const nowTime = new Date();
+                            const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
+                            const logStr = `${currentOrderId} Stage${stageId} ${timeStrHHMMSS} ${appData.user.name}작업 실적등록 (양품:${goodQty} | 불량:${defectQty} | 무게:${weightVal}kg)`;
+                            
+                            targetOrder.stages[stageId].workLogs.push(logStr);
+
+                            // 💡 다음 스테이지 전이 로직 추가 (중복 진행 방지 및 정상 진행)
+                            let nextTask = null;
+                            if (String(stageId) === "1") nextTask = "2";
+                            else if (String(stageId) === "2") nextTask = "3";
+                            else if (String(stageId) === "3") nextTask = "4";
+                            else if (String(stageId) === "4") {
+                                const prodName = targetOrder.product || "";
+                                if (prodName.includes("5kg") || prodName.includes("10kg")) {
+                                    nextTask = "5-2";
+                                } else {
+                                    nextTask = "5-1";
+                                }
+                            } else if (String(stageId) === "5-1" || String(stageId) === "5-2") {
+                                nextTask = null;
+                            }
+
+                            if (nextTask) {
+                                targetOrder.currentTask = nextTask;
+                                if (!targetOrder.stages[nextTask]) targetOrder.stages[nextTask] = {};
+                                targetOrder.stages[nextTask].operator = ""; // 다음 스테이지 연계 대기 상태
+                                
+                                // 💡 매니저 대시보드 상태 동기화
+                                targetOrder.progressStatus = `생산중(Stage${stageId} 완료)`;
+                            } else {
+                                targetOrder.status = "completed"; // 5공정 종료 시 전체 지시 완료
+                                targetOrder.progressStatus = "생산 완료";
+                            }
+                            
+                            localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
+                        }
+                    } catch(e) {
+                        console.error("Failed to update workLogs in kimp_production_orders:", e);
+                    }
+                }
+
+                // 💡 작업 완료 후 내 점유 상태 해제 (타입 호환성 비교로 버그 수정)
+                const myStage = appData.stages.find(s => String(s.id) === String(stageId));
+                if (myStage && myStage.spots && appData.activeSpotId) {
+                    const spot = myStage.spots[appData.activeSpotId];
+                    if (spot && spot.worker === appData.user.name) {
+                        spot.worker = "";
+                        spot.status = "empty";
+                        syncStagesToStorage();
+                    }
                 }
             }
 
             currentStepIndex = 0;
+            appData.activeSpotId = null;
             isCompleted = true;
             moveToStage(0, '대기장소');
         }

@@ -49,11 +49,11 @@
 
             // 완제품 상품 카탈로그 및 재고
             const initialCatalog = {
-                p300g: { name: "300g 맛김치 팩", price: 3000, stock: 50, todayOrders: 14, yesterdayOrders: 20, img: "./images/kimchi_product_300g.png", desc: "1인 가구용 실속형 맛김치" },
-                p1kg: { name: "1kg 포기김치 팩", price: 8000, stock: 30, todayOrders: 22, yesterdayOrders: 25, img: "./images/kimchi_product_1kg.png", desc: "가정용 표준 포장 프리미엄 김치" },
-                p3kg: { name: "3kg 대용량 김치 팩", price: 20000, stock: 15, todayOrders: 8, yesterdayOrders: 12, img: "./images/kimchi_product_3kg.png", desc: "다인가구 및 김장 보관용 실용 김치" },
-                p5kg: { name: "5kg 실속 김치 팩", price: 32000, stock: 10, todayOrders: 5, yesterdayOrders: 7, img: "./images/kimchi_product_1kg.png", desc: "대가족 및 업소용 실속 포장" },
-                p10kg: { name: "10kg 업소용 김치", price: 60000, stock: 5, todayOrders: 2, yesterdayOrders: 3, img: "./images/kimchi_product_3kg.png", desc: "업소/단체급식 전용 대용량 김치" }
+                p300g: { name: "300g 맛김치 팩", price: 3000, stock: 50, todayOrders: 14, yesterdayOrders: 20, img: "./images/kimchi_300g.png", desc: "1인 가구용 실속형 맛김치" },
+                p1kg: { name: "1kg 포기김치 팩", price: 8000, stock: 30, todayOrders: 22, yesterdayOrders: 25, img: "./images/kimchi_1kg.png", desc: "가정용 표준 포장 프리미엄 김치" },
+                p3kg: { name: "3kg 대용량 김치 팩", price: 20000, stock: 15, todayOrders: 8, yesterdayOrders: 12, img: "./images/kimchi_3kg.png", desc: "다인가구 및 김장 보관용 실용 김치" },
+                p5kg: { name: "5kg 실속 김치 팩", price: 39000, stock: 10, todayOrders: 5, yesterdayOrders: 7, img: "./images/kimchi_5kg.png", desc: "대가족 및 업소용 실속 포장" },
+                p10kg: { name: "10kg 업소용 김치", price: 60000, stock: 5, todayOrders: 2, yesterdayOrders: 3, img: "./images/kimchi_10kg.png", desc: "업소/단체급식 전용 대용량 김치" }
             };
             localStorage.setItem("kimp_factory_products", JSON.stringify(initialCatalog));
 
@@ -80,7 +80,7 @@
                 p300g: { ordered: 10, shipped: 8, price: 3000 },
                 p1kg: { ordered: 20, shipped: 16, price: 8000 },
                 p3kg: { ordered: 10, shipped: 8, price: 20000 },
-                p5kg: { ordered: 10, shipped: 8, price: 32000 },
+                p5kg: { ordered: 10, shipped: 8, price: 39000 },
                 p10kg: { ordered: 1, shipped: 0, price: 60000 }
             };
             localStorage.setItem("kimp_daily_orders", JSON.stringify(initialDailyOrders));
@@ -165,6 +165,49 @@
             localStorage.setItem("kimp_manager_own_state", JSON.stringify(initialManagerOwnState));
 
             localStorage.setItem("kimp_factory_initialized", "true");
+        }
+
+        // 💡 하위 호환성 패치: 이미 초기화된 클라이언트가 있어도 이미지와 가격을 강제로 동기화
+        let products = {};
+        try {
+            products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+        } catch (e) {}
+
+        let needSync = false;
+        if (products.p300g && products.p300g.img !== "./images/kimchi_300g.png") {
+            products.p300g.img = "./images/kimchi_300g.png";
+            needSync = true;
+        }
+        if (products.p1kg && products.p1kg.img !== "./images/kimchi_1kg.png") {
+            products.p1kg.img = "./images/kimchi_1kg.png";
+            needSync = true;
+        }
+        if (products.p3kg && products.p3kg.img !== "./images/kimchi_3kg.png") {
+            products.p3kg.img = "./images/kimchi_3kg.png";
+            needSync = true;
+        }
+        if (products.p5kg && (products.p5kg.price !== 39000 || products.p5kg.img !== "./images/kimchi_5kg.png")) {
+            products.p5kg.price = 39000;
+            products.p5kg.img = "./images/kimchi_5kg.png";
+            needSync = true;
+        }
+        if (products.p10kg && products.p10kg.img !== "./images/kimchi_10kg.png") {
+            products.p10kg.img = "./images/kimchi_10kg.png";
+            needSync = true;
+        }
+
+        if (needSync) {
+            localStorage.setItem("kimp_factory_products", JSON.stringify(products));
+        }
+
+        // daily orders 가격 업데이트
+        let dailyOrders = {};
+        try {
+            dailyOrders = JSON.parse(localStorage.getItem("kimp_daily_orders") || "{}");
+        } catch (e) {}
+        if (dailyOrders.p5kg && dailyOrders.p5kg.price !== 39000) {
+            dailyOrders.p5kg.price = 39000;
+            localStorage.setItem("kimp_daily_orders", JSON.stringify(dailyOrders));
         }
     }
 

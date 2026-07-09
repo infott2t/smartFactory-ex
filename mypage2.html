@@ -62,8 +62,8 @@
                 <!-- AFood Kimchi -->
                 <div class="box-partner">
                     <div class="box-corp box-width">
-                         <img class="icon" src="./images/k-icon_150x150.png"> 
-                        <span class="brand-name">AFood</span> 
+                        <img class="icon" src="./images/k-icon_150x150.png">
+                        <span class="brand-name">AFood</span>
                         <div>김치만들기</div>
                     </div>
                     <div class="box-value" id="grade-row-kimchi">
@@ -127,9 +127,9 @@
                         <span class="res-date-time">13:00 ~ 15:00</span>
                     </div>
                     <div class="box-value res-job-box">
-                         <img class="icon" src="./images/k-icon_150x150.png"> 
-                         <span class="brand-name">AFood</span> 
-                       김치만들기 
+                        <img class="icon" src="./images/k-icon_150x150.png">
+                        <span class="brand-name">AFood</span>
+                        김치만들기
                     </div>
                     <div class="box-value res-btn-box">
                         <span class="box-time">2h</span>
@@ -146,9 +146,9 @@
                         <span class="res-date-time">10:00 ~ 12:00</span>
                     </div>
                     <div class="box-value res-job-box">
-                      <img class="icon" src="./images/k-icon_150x150.png"> 
-                         <span class="brand-name">AFood</span> 
-                         김치만들기 
+                        <img class="icon" src="./images/k-icon_150x150.png">
+                        <span class="brand-name">AFood</span>
+                        김치만들기
                     </div>
                     <div class="box-value res-btn-box">
                         <span class="box-time">2h</span>
@@ -237,9 +237,8 @@
             }
 
             // Sync with FactoryStore
-            if (FactoryStore.getState().workedHours === 0 && workerProfile.workedHours > 0) {
-                FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: workerProfile.workedHours });
-            }
+            // Sync with FactoryStore (조건문 삭제하고 무조건 세션 값으로 강제 덮어쓰기)
+            FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: Number(workerProfile.workedHours) });
 
             if (FactoryStore.getState().history.length === 0) {
                 const defaultHistory = getDefaultHistoryByName(currentUser.name);
@@ -249,11 +248,8 @@
 
 
             if (FactoryStore.getState().udonHours === 0) {
-                let defH = 0;
-                if (currentUser.name === '최현일') defH = 150;
-                else if (currentUser.name === '최수아') defH = 40;
-                else if (currentUser.name === '김수민') defH = 5;
-                else if (currentUser.name === '김영희') defH = 35;
+                let defH = 6;
+
                 FactoryStore.dispatch({ type: 'SET_UDON_HOURS', payload: defH });
             }
 
@@ -267,8 +263,8 @@
             }
 
             // Subscribe to store updates to dynamically trigger re-renders
-            FactoryStore.subscribe(function() {
-                workerProfile.workedHours = FactoryStore.getState().workedHours;
+            FactoryStore.subscribe(function () {
+                //workerProfile.workedHours = FactoryStore.getState().workedHours;
                 renderAll();
             });
 
@@ -346,7 +342,7 @@
         }
 
         function renderPartnerGrades() {
-            const kimchiHours = FactoryStore.getState().workedHours || 0;
+            const kimchiHours = workerProfile.workedHours || 0;
             const udonHours = FactoryStore.getState().udonHours || 0;
             const walletHours = FactoryStore.getState().walletHours || 0;
 
@@ -394,8 +390,8 @@
                 if (kimpDb && kimpDb.length > 0) {
                     db = db.concat(kimpDb);
                 }
-            } catch(e) {}
-            
+            } catch (e) { }
+
             // Deduplicate by id, date, slot (in case of overlap)
             let uniqueDbMap = {};
             db.forEach(r => {
@@ -530,9 +526,18 @@
         function setWorkedHours(hours) {
             FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: hours });
 
+            // 버튼을 누를 때 세션 스토리지에 직접 강제로 업데이트!
+            if (workerProfile) {
+                workerProfile.workedHours = hours;
+                sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+            }
+
             if (typeof window.addAppLog === 'function') {
                 window.addAppLog(`김치만들기 시뮬레이션 근무 시간을 ${hours}시간으로 설정했습니다.`);
             }
+
+            // 값 변경 후 즉시 화면 다시 그리기
+            renderAll();
         }
 
         function setHealthStatus(status) {

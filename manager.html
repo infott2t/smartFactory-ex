@@ -4264,7 +4264,7 @@
                 html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-primary);">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${item.img}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" alt="${item.name}">
+                        <img src="${item.img}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="${item.name}">
                         <div>
                             <div style="font-size: 13px; font-weight: 700;">${item.name}</div>
                             <div style="font-size: 11px; color: var(--text-secondary);">${item.desc}</div>
@@ -4347,7 +4347,7 @@
                         <img src="${req.imageFull || './images/hygiene_suit.png'}" style="width: calc(50% - 4px); height: 100%; object-fit: cover; border-radius: 6px;" alt="Suit">
                     </div>`;
                 } else {
-                    const src = req.imageUrl || req.photoData || "./images/media__1781091605675.jpg";
+                    const src = req.imageUrl || req.photoData || "./images/cabbage_weighed.png";
                     imgHtml = `
                     <div class="approval-img-container">
                         <img src="${src}" alt="심사 사진">
@@ -4721,6 +4721,7 @@
             refreshAllData();
         }
 
+        let lastVisualMapHtml = "";
         // ── J. 공정 비주얼 맵 & 근로자 테이블 렌더링 ──
         function renderWorkersList(workers) {
             // 1. 공정 비주얼 맵 렌더링
@@ -4794,7 +4795,12 @@
                     </div>
                     `;
                 }
-                visualMap.innerHTML = mapHtml;
+
+                // ★ 추가된 방어 로직: 이전과 생성된 HTML이 완벽히 똑같다면 화면에 다시 그리지 않음! (깜빡임 방지)
+                if (lastVisualMapHtml !== mapHtml) {
+                    visualMap.innerHTML = mapHtml;
+                    lastVisualMapHtml = mapHtml;
+                }
             }
 
             // 2. 근로자 상세 테이블 렌더링

@@ -4,56 +4,7 @@
 (function() {
     const AuthManager = {
         // 테스트용 Mock 데이터 회원 목록
-        mockUsers: [
-            {
-                id: 1,
-                name: "최현일",
-                email: "tt2t2am1118@naver.com",
-                role: "매니저",
-                workedHours: 133,
-                gender: "M",
-                address: "서울특별시 마포구 대흥동",
-                tel: "010-1111-1111",
-                certImage: "choi_cert.png",
-                certStatus: "approved"
-            },
-            {
-                id: 2,
-                name: "최수아",
-                email: "capegon21@gmail.com",
-                role: "일반",
-                workedHours: 22,
-                gender: "F",
-                address: "서울특별시 서대문구 신촌동",
-                tel: "010-2222-2222",
-                certImage: "sua_cert.png",
-                certStatus: "approved"
-            },
-            {
-                id: 3,
-                name: "김수민",
-                email: "capegon23@gmail.com",
-                role: "일반",
-                workedHours: 0,
-                gender: "F",
-                address: "서울특별시 영등포구 여의도동",
-                tel: "010-3333-3333",
-                certImage: null,
-                certStatus: null
-            },
-            {
-                id: 4,
-                name: "김영희",
-                email: "younghee@naver.com",
-                role: "헬퍼",
-                workedHours: 45,
-                gender: "F",
-                address: "서울특별시 강남구 역삼동",
-                tel: "010-4444-4444",
-                certImage: "younghee_cert.png",
-                certStatus: "approved"
-            }
-        ],
+         mockUsers: window.MockData ? window.MockData.users : [],
 
         /**
          * 현재 로그인한 세션 사용자 객체 반환
@@ -177,13 +128,13 @@
                 // 역할/등급 기반 권한 검증
                 const role = user.role;
                 if (currentPath.includes("manager.html")) {
-                    if (role !== "매니저") {
+                    if (role !== "ROLE_MANAGER") {
                         alert("매니저 권한이 필요합니다. 메인 페이지로 이동합니다.");
                         window.location.href = "main.html";
                         return false;
                     }
                 } else if (currentPath.includes("kimp_helper.html")) {
-                    if (role !== "헬퍼" && role !== "매니저") {
+                    if (role !== "ROLE_HELPER" && role !== "ROLE_MANAGER") {
                         alert("헬퍼 권한이 필요합니다. 메인 페이지로 이동합니다.");
                         window.location.href = "main.html";
                         return false;

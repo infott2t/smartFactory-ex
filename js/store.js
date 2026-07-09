@@ -1530,6 +1530,77 @@ window.MockData = {
             "isNew": true
         }
     ]`,
+    // 2. 신규 추가: 통합된 사용자(Users) 데이터
+    users: [
+        {
+            id: 1,
+            name: "최현일",
+            email: "tt2t2am1118@naver.com",
+            picture: "",
+            role: "MANAGER",          // 시스템 권한
+            roleName: "매니저",         // 화면 표시용
+            workedHours: 133,         // 통합된 근무 시간
+            gender: "M",
+            addr: "서울특별시 마포구 대흥동",
+            tel: "010-1111-1111",
+            healthCertificateImage: "choi_cert.png",
+            healthCertificateStatus: "approved",
+            isManagerQualified: true,
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString()
+        },
+        {
+            id: 2,
+            name: "최수아",
+            email: "capegon21@gmail.com",
+            picture: "",
+            role: "USER",
+            roleName: "일반",
+            workedHours: 22,
+            gender: "F",
+            addr: "서울특별시 서대문구 신촌동",
+            tel: "010-2222-2222",
+            healthCertificateImage: "sua_cert.png",
+            healthCertificateStatus: "approved",
+            isManagerQualified: false,
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString()
+        },
+        {
+            id: 3,
+            name: "김수민",
+            email: "capegon23@gmail.com",
+            picture: "",
+            role: "USER",
+            roleName: "일반",
+            workedHours: 0,
+            gender: "F",
+            addr: "서울특별시 영등포구 여의도동",
+            tel: "010-3333-3333",
+            healthCertificateImage: null,
+            healthCertificateStatus: null,
+            isManagerQualified: false,
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString()
+        },
+        {
+            id: 4,
+            name: "김영희",
+            email: "younghee@naver.com",
+            picture: "",
+            role: "HELPER",
+            roleName: "헬퍼",
+            workedHours: 45,
+            gender: "F",
+            addr: "서울특별시 강남구 역삼동",
+            tel: "010-4444-4444",
+            healthCertificateImage: "younghee_cert.png",
+            healthCertificateStatus: "approved",
+            isManagerQualified: false,
+            createdDate: new Date().toISOString(),
+            modifiedDate: new Date().toISOString()
+        }
+    ],
 
     // 2. 예약(Reservations) 목업 데이터 생성기
     getReservations: function(todayStr, tomorrowStr, nextDayStr) {

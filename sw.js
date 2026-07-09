@@ -1,12 +1,15 @@
-const CACHE_NAME = 'hmi-cache-v2';
+const CACHE_NAME = 'hmi-cache-v3';
 
 // 💡 캐시할 파일 목록 (경로에 주의하세요!)
 const URLS_TO_CACHE = [
   './kimp_ex0.html',
+  './kimp_ex1.html',
   './css/kimp_ex0.css',
   // 사용하신 폰트와 부트스트랩 아이콘, 제이쿼리 등도 추가하면 완벽한 오프라인이 됩니다.
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2',
+  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff',
   'https://actions.google.com/sounds/v1/alarms/camera_shutter.ogg'
 ];
 
@@ -48,6 +51,11 @@ self.addEventListener('activate', (event) => {
 // 3. 네트워크 요청 가로채기 (Fetch)
 // 전략: 인터넷이 연결되어 있으면 새 코드를 가져오고(Network First), 끊겨있으면 저장된 파일(Cache)을 보여줍니다.
 self.addEventListener('fetch', (event) => {
+  // http 또는 https가 아닌 요청(예: chrome-extension 등)은 가로채거나 캐싱하지 않음
+  if (!event.request.url.startsWith('http') && !event.request.url.startsWith('https')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
