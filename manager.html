@@ -4634,12 +4634,10 @@
                                 orders[orderId].stages[3].postWorkWeight = req.weight || 24.0;
                                 orders[orderId].stages[3].endTime = new Date().toLocaleTimeString();
 
-                                orders[orderId].stages[3].dryingStatus = "drying";
-                                orders[orderId].stages[3].dryingStartTime = Date.now();
-                                orders[orderId].stages[3].dryingEndTime = Date.now() + 3600000;
+                                orders[orderId].stages[3].dryingStatus = "wait_timer";
 
                                 orders[orderId].currentTask = 3;
-                                orders[orderId].progressStatus = "생산중(Stage3 탈수 중)";
+                                orders[orderId].progressStatus = "생산중(Stage3-1 세척 완료)";
                             } else if (stageNum === 32) {
                                 if (!orders[orderId].stages[3]) {
                                     orders[orderId].stages[3] = {};
@@ -5272,7 +5270,7 @@
                 }
             });
 
-            if (batches.length === 0) {
+            if (localStorage.getItem("kimp_factory_salting") === null) {
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
                 const yy = String(yesterday.getFullYear()).slice(-2);

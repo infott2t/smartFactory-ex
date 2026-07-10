@@ -299,6 +299,15 @@
         }
         cloned.stages[4] = s4;
 
+        // 💡 [수정] Stage 4(밀봉 및 보관) 실적 승인 완료 여부를 statusSubmitted 플래그로만 정밀 판별하여 상태 고정
+        if (cloned.currentTask === 4 || (s4 && s4.statusSubmitted)) {
+            if (s4 && s4.statusSubmitted) {
+                cloned.progressStatus = "생산중(Stage4 완료)";
+            } else {
+                cloned.progressStatus = "생산중(Stage4)";
+            }
+        }
+
         // Construct stage 5 frontend view from s4 packing part
         if (s4.step4_seasoning_packing) {
             const s5 = {};
@@ -924,14 +933,27 @@
                     let isLocalNewer = false;
                     if (localTask === 2) {
                         isLocalNewer = true;
-                    } else if (localStatusPriority > storageStatusPriority) {
+                    } else if (localTask > storageTask) {
                         isLocalNewer = true;
-                    } else if (localStatusPriority === storageStatusPriority) {
-                        if (localProgressPriority > storageProgressPriority) {
+                    } else if (localTask < storageTask) {
+                        isLocalNewer = false;
+                    } else {
+                        const localHasTaskNum = state.productionOrders[key].progressStatus && state.productionOrders[key].progressStatus.includes(String(localTask));
+                        const storageHasTaskNum = currentOrders[key].progressStatus && currentOrders[key].progressStatus.includes(String(localTask));
+                        
+                        if (localHasTaskNum && !storageHasTaskNum) {
                             isLocalNewer = true;
-                        } else if (localProgressPriority === storageProgressPriority) {
-                            if (localTask > storageTask) {
+                        } else if (!localHasTaskNum && storageHasTaskNum) {
+                            isLocalNewer = false;
+                        } else {
+                            if (localProgressPriority > storageProgressPriority) {
                                 isLocalNewer = true;
+                            } else if (localProgressPriority < storageProgressPriority) {
+                                isLocalNewer = false;
+                            } else {
+                                if (localStatusPriority > storageStatusPriority) {
+                                    isLocalNewer = true;
+                                }
                             }
                         }
                     }
