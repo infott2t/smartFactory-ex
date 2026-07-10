@@ -235,7 +235,7 @@
                 s2.endTime = s2.endTime || new Date(matchedBatch.maturedTime || (matchedBatch.startTime + limit)).toLocaleTimeString();
                 
                 if (cloned.currentTask === 2) {
-                    cloned.progressStatus = "생산중 (Stage 2 완료)";
+                    cloned.progressStatus = "생산중(Stage2 완료)";
                 }
             } else {
                 s2.step2Done = false;
@@ -247,7 +247,18 @@
                 s2.endTime = null;
                 
                 if (cloned.currentTask === 2) {
-                    cloned.progressStatus = "생산중 (Stage 2)";
+                    cloned.progressStatus = "생산중(Stage2 절임중)";
+                }
+            }
+
+            // 💡 [수정] Stage 2 실시간 상태의 무결성을 지키기 위해 메모리 원본 DB 객체에 강제 역방향 Write-back 적용
+            if (cloned.currentTask === 2 && cloned.progressStatus) {
+                if (window.FactoryStore && window.FactoryStore.state && window.FactoryStore.state.productionOrders) {
+                    const dbOrder = window.FactoryStore.state.productionOrders[cloned.orderId];
+                    if (dbOrder) {
+                        dbOrder.progressStatus = cloned.progressStatus;
+                        dbOrder.currentTask = cloned.currentTask;
+                    }
                 }
             }
         } else if (s2.step2_salting) {
@@ -878,14 +889,23 @@
                 if (progress === "QR코드 스캔 전") return 1;
                 if (progress === "투입 후 생산 중") return 2;
                 if (progress === "검사 대기 중") return 3;
-                if (progress.indexOf("생산중 (Stage") !== -1) {
-                    const match = progress.match(/Stage(\d+)완료/);
+                
+                const norm = progress.replace(/\s+/g, "");
+                if (norm.includes("생산중(Stage")) {
+                    const match = norm.match(/Stage(\d+)/);
+                    let base = 4;
                     if (match) {
-                        return 4 + parseInt(match[1]); // Stage1완료=5, Stage2완료=6, ...
+                        base += parseInt(match[1], 10) * 2;
                     }
-                    return 4;
+                    if (norm.includes("완료")) {
+                        base += 1;
+                    }
+                    if (norm.includes("말리기") || norm.includes("3-2") || norm.includes("물기빼는")) {
+                        base += 0.5;
+                    }
+                    return base;
                 }
-                if (progress === "생산 완료") return 15;
+                if (progress === "생산 완료") return 30;
                 return 0;
             };
 
@@ -902,7 +922,9 @@
                     let storageTask = currentOrders[key].currentTask || 0;
 
                     let isLocalNewer = false;
-                    if (localStatusPriority > storageStatusPriority) {
+                    if (localTask === 2) {
+                        isLocalNewer = true;
+                    } else if (localStatusPriority > storageStatusPriority) {
                         isLocalNewer = true;
                     } else if (localStatusPriority === storageStatusPriority) {
                         if (localProgressPriority > storageProgressPriority) {

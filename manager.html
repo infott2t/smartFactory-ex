@@ -4639,7 +4639,7 @@
                                 orders[orderId].stages[3].dryingEndTime = Date.now() + 3600000;
 
                                 orders[orderId].currentTask = 3;
-                                orders[orderId].progressStatus = "생산중 (Stage 3 말리기 진행)";
+                                orders[orderId].progressStatus = "생산중(Stage3 탈수 중)";
                             } else if (stageNum === 32) {
                                 if (!orders[orderId].stages[3]) {
                                     orders[orderId].stages[3] = {};
@@ -4738,11 +4738,9 @@
                 pkgOrders = loadPackagingOrders();
             } catch (e) { }
 
-            // 필터링: Stage 4 이상(currentTask >= 4) 또는 완료(status === 'completed')된 지시서는 오늘자 현황판에서 제외
+            // 필터링: 최종 완료(status === 'completed')된 지시서와 포장지시서만 제외 (가공 단계 지시서는 대시보드에 지속 유지 표출)
             orders = orders.filter(o => {
                 if (o.status === 'completed') return false;
-                if (o.currentTask !== undefined && o.currentTask >= 4) return false;
-                if (o.stages && o.stages[3] && o.stages[3].statusSubmitted) return false;
                 if (pkgOrders && pkgOrders[o.orderId]) return false;
                 return true;
             });
@@ -4811,7 +4809,7 @@
                     statusBadge = `<span class="badge badge-blue">투입 후 생산 중</span>`;
                 } else if (progress === "검사 대기 중") {
                     statusBadge = `<span class="badge badge-yellow">검사 대기 중</span>`;
-                } else if (progress.startsWith("생산중 (Stage")) {
+                } else if (progress.startsWith("생산중 (Stage") || progress.startsWith("생산중(Stage")) {
                     statusBadge = `<span class="badge badge-blue">${progress}</span>`;
                 } else if (progress === "생산 완료" || o.status === "completed") {
                     statusBadge = `<span class="badge badge-green">생산 완료</span>`;
@@ -5259,7 +5257,7 @@
                 }
 
                 // Force status to "salting" for batch 1 and 2 if they are currently marked matured in local storage
-                if (b.id && (b.id.endsWith("-15-1") || b.id.endsWith("-15-2"))) {
+                if (b.id && (b.id.endsWith("-15-1") || b.id.endsWith("-15-2")) && !b.cheated) {
                     if (b.status === "matured") {
                         b.status = "salting";
                         if (b.id.endsWith("-15-1")) {
@@ -5358,6 +5356,7 @@
                     </div>
                     <div class="salting-countdown">${countdownStr}</div>
                     <div style="font-size:11px; color:var(--text-secondary);">${currentSettingHours}시간 절임 카운트다운</div>
+                    <button class="top-action-btn" style="width: 100%; margin-top: 10px; padding: 6px 0; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); border-radius: 6px;" onclick="window.cheatCompleteSalting('${b.id}')">절임 즉시 완료 (치트)</button>
                     `;
                 }
 
@@ -5389,6 +5388,7 @@
                         if (remaining <= 0) {
                             s3.dryingStatus = "ready";
                             dryingStatus = "ready";
+                            o.progressStatus = "생산중(Stage3 탈수 완료)";
                             dryingUpdated = true;
                         } else {
                             let mins = Math.floor(remaining / 60000);
@@ -5450,7 +5450,7 @@
                             <div style="font-size: 12px; font-weight: bold; color: var(--accent-blue); margin: 6px 0;">
                                 <i class="bi bi-clock-history"></i> 보관 경과 시간: <span style="font-family: var(--font-outfit);">${elapsedStorageStr}</span>
                             </div>
-                            <div style="font-size: 11px; color: var(--accent-green); font-weight: bold; margin-bottom: 8px;">Stage 4(양념) 바로 작업가능 대기중</div>
+                            <div style="font-size: 11px; color: var(--accent-green); font-weight: bold; margin-bottom: 8px;">Stage 4(밀봉 및 보관) 바로 작업가능 대기중</div>
                             <button class="top-action-btn" style="width: 100%; padding: 8px 0; font-size: 12px; font-weight: bold; background: linear-gradient(135deg, var(--accent-green), #00e676); color: #000; border: none; border-radius: 6px; cursor: pointer;" onclick="window.sendOrderToStage4('${orderId}')">Stage 4로 보내기</button>
                         </div>
                         `;
@@ -5480,7 +5480,7 @@
             let ordersObj = loadProductionOrders();
             if (orderId && ordersObj[orderId]) {
                 ordersObj[orderId].currentTask = 3; // 세척/탈수 (Stage 3)
-                ordersObj[orderId].progressStatus = "생산중 (Stage 2 완료)";
+                ordersObj[orderId].progressStatus = "생산중(Stage2 완료)";
 
                 // stage 2 완료 기록 설정
                 if (!ordersObj[orderId].stages) ordersObj[orderId].stages = {};
@@ -5527,9 +5527,32 @@
             if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
                 ordersObj[orderId].stages[3].dryingStatus = "ready";
                 ordersObj[orderId].stages[3].dryingEndTime = Date.now();
-                ordersObj[orderId].progressStatus = "생산중 (Stage 3 말리기 완료)";
+                ordersObj[orderId].progressStatus = "생산중(Stage3 탈수 완료)";
                 saveProductionOrders(ordersObj);
                 addConsoleLog(`[치트] 지시서 ${orderId}의 건조망 물기 빼기가 완료 처리되었습니다.`);
+                refreshAllData();
+            }
+        };
+
+        window.cheatCompleteSalting = function (batchId) {
+            let batches = [];
+            try {
+                batches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch (e) { }
+
+            let batch = batches.find(b => b.id === batchId);
+            if (batch) {
+                batch.status = "matured";
+                batch.maturedTime = Date.now() - 1000;
+                batch.cheated = true; // 치트 완료 플래그 활성화 (강제 리셋 방지)
+                
+                let maturedCabbages = parseInt(localStorage.getItem("kimp_factory_matured_cabbages") || "0");
+                maturedCabbages += batch.cabbageHeads || 15;
+                
+                localStorage.setItem("kimp_factory_salting", JSON.stringify(batches));
+                localStorage.setItem("kimp_factory_matured_cabbages", maturedCabbages.toString());
+                
+                addConsoleLog(`[치트] 배치 ${batchId}의 절임 보관이 즉시 완료 처리되었습니다.`);
                 refreshAllData();
             }
         };
@@ -5538,6 +5561,7 @@
             let ordersObj = loadProductionOrders();
             if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
                 ordersObj[orderId].stages[3].dryingStatus = "ready_for_3_2";
+                ordersObj[orderId].progressStatus = "생산중(Stage3 탈수 완료)";
                 saveProductionOrders(ordersObj);
                 addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 3-2로 옮겼습니다. 작업자 스캔 대기 중.`);
                 refreshAllData();
@@ -5551,7 +5575,7 @@
                 ordersObj[orderId].currentTask = 4;
                 ordersObj[orderId].progressStatus = "양념 대기 중";
                 saveProductionOrders(ordersObj);
-                addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 4(양념)로 보냈습니다.`);
+                addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 4(밀봉 및 보관)로 보냈습니다.`);
                 refreshAllData();
             }
         };

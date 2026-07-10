@@ -273,7 +273,7 @@
         let saltingChanged = false;
 
         saltingBatches.forEach(batch => {
-            if (batch.id && (batch.id.endsWith("-15-1") || batch.id.endsWith("-15-2"))) {
+            if (batch.id && (batch.id.endsWith("-15-1") || batch.id.endsWith("-15-2")) && !batch.cheated) {
                 if (batch.status === "matured") {
                     batch.status = "salting";
                     if (batch.id.endsWith("-15-1")) {
