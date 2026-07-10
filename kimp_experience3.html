@@ -3167,7 +3167,7 @@
                                     productionOrders[capturedModel.order].progressStatus = "생산 완료";
                                 } else {
                                     productionOrders[capturedModel.order].progressStatus = "생산중 (Stage" + capturedStage + "완료)";
-                                    productionOrders[capturedModel.order].currentTask = capturedStage + 1;
+                                    productionOrders[capturedModel.order].currentTask = (capturedStage === 2 || capturedStage === 3) ? capturedStage : (capturedStage + 1);
                                 }
                             }
                             
@@ -3859,7 +3859,7 @@
                                 productionOrders[m.order].progressStatus = "생산 완료";
                             } else {
                                 productionOrders[m.order].progressStatus = "생산중 (Stage" + capturedStage + "완료)";
-                                productionOrders[m.order].currentTask = capturedStage + 1; // 다음 스테이지
+                                productionOrders[m.order].currentTask = (capturedStage === 2 || capturedStage === 3) ? capturedStage : (capturedStage + 1); // 다음 스테이지
                             }
                         }
                         

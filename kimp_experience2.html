@@ -2943,7 +2943,7 @@
                                         productionOrders[capturedModel.order].progressStatus = "생산 완료";
                                     } else {
                                         productionOrders[capturedModel.order].progressStatus = "생산중 (Stage " + capturedStage + " 완료)";
-                                        let nextTask = capturedStage + 1;
+                                        var nextTask = (capturedStage === 2 || capturedStage === 3) ? capturedStage : (capturedStage + 1);
                                         productionOrders[capturedModel.order].currentTask = nextTask;
                                     }
                                 }
@@ -3921,7 +3921,7 @@
                                 productionOrders[m.order].progressStatus = "생산 완료";
                             } else {
                                 productionOrders[m.order].progressStatus = "생산중 (Stage " + capturedStage + " 완료)";
-                                let nextTask = capturedStage + 1;
+                                var nextTask = (capturedStage === 2 || capturedStage === 3) ? capturedStage : (capturedStage + 1);
                                 productionOrders[m.order].currentTask = nextTask;
                             }
                         }

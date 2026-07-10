@@ -734,7 +734,7 @@
                     o.orderId && 
                     o.status === 'in_progress' && 
                     String(o.currentTask) === String(stageId)
-                );
+                 && !(o.stages && o.stages[stageId] && o.stages[stageId].statusSubmitted));
 
                 // 💡 [수정] Stage 2(절임)인 경우, 이미 절임 중이거나 절임 완료되어 kimp_factory_salting에 들어간 지시서는 제외한다!
                 if (String(stageId) === "2") {
@@ -742,9 +742,60 @@
                     try {
                         saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
                     } catch(e) {}
-                    const activeSaltingOrderIds = saltingBatches.map(b => b.orderId || b.id).filter(Boolean);
-                    candidateOrders = candidateOrders.filter(o => !activeSaltingOrderIds.includes(o.orderId));
+                    const activeSaltingOrderIds = saltingBatches.map(b => {
+                        let id = b.orderId || b.id || "";
+                        return id.replace(/^(SALT-|ORD-)/, "");
+                    }).filter(Boolean);
+                    
+                    candidateOrders = candidateOrders.filter(o => {
+                        let normOrderId = (o.orderId || "").replace(/^(SALT-|ORD-)/, "");
+                        const isSaltingInStage = o.stages && o.stages[2] && o.stages[2].step2Status === 'salting';
+                        return !activeSaltingOrderIds.includes(normOrderId) && !isSaltingInStage;
+                    });
                 }
+
+                // 💡 [수정] Stage 3(세척)인 경우, 아직 절임 완료 승인(전달)이 되지 않아 kimp_factory_salting에 남아있는 지시서는 제외한다!
+                if (String(stageId) === "3") {
+                    let saltingBatches = [];
+                    try {
+                        saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                    } catch(e) {}
+                    const activeSaltingOrderIds = saltingBatches.map(b => {
+                        let id = b.orderId || b.id || "";
+                        return id.replace(/^(SALT-|ORD-)/, "");
+                    }).filter(Boolean);
+                    
+                    candidateOrders = candidateOrders.filter(o => {
+                        let normOrderId = (o.orderId || "").replace(/^(SALT-|ORD-)/, "");
+                        
+                        // Stage 2 가 완료된(statusSubmitted가 true인) 지시서만 Stage 3에 참여 가능
+                        const isStage2Completed = o.stages && o.stages[2] && o.stages[2].statusSubmitted;
+                        
+                        return !activeSaltingOrderIds.includes(normOrderId) && isStage2Completed;
+                    });
+                }
+
+                // 💡 [수정] 각 Stage별 선행 공정 완료 검증 방어막 (임의 주입 오작동 방지)
+                candidateOrders = candidateOrders.filter(o => {
+                    if (String(stageId) === "2") {
+                        return !!(o.stages && o.stages[1] && o.stages[1].statusSubmitted);
+                    }
+                    if (String(stageId) === "3") {
+                        return !!(o.stages && o.stages[2] && o.stages[2].statusSubmitted);
+                    }
+                    if (String(stageId) === "4") {
+                        return !!(o.stages && o.stages[3] && o.stages[3].sentToStage4);
+                    }
+                    if (String(stageId) === "5-1" || String(stageId) === "5-2") {
+                        return !!(o.stages && o.stages[4] && o.stages[4].statusSubmitted);
+                    }
+                    if (String(stageId) === "6") {
+                        const s51Done = !!(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
+                        const s52Done = !!(o.stages && o.stages["5-2"] && o.stages["5-2"].statusSubmitted);
+                        return s51Done || s52Done;
+                    }
+                    return true;
+                });
 
                 const stage = appData.stages.find(s => String(s.id) === String(stageId));
 
@@ -3348,8 +3399,8 @@
                             // 💡 다음 스테이지 전이 로직 추가 (중복 진행 방지 및 정상 진행)
                             let nextTask = null;
                             if (String(stageId) === "1") nextTask = "2";
-                            else if (String(stageId) === "2") nextTask = "3";
-                            else if (String(stageId) === "3") nextTask = "4";
+                            else if (String(stageId) === "2") nextTask = "2";
+                            else if (String(stageId) === "3") nextTask = "3";
                             else if (String(stageId) === "4") {
                                 const prodName = targetOrder.product || "";
                                 if (prodName.includes("5kg") || prodName.includes("10kg")) {

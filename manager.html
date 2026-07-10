@@ -4685,7 +4685,11 @@
                                     orders[orderId].status = "completed";
                                     orders[orderId].progressStatus = "생산 완료";
                                 } else {
-                                    orders[orderId].currentTask = stageNum + 1;
+                                     if (stageNum === 2) {
+                                         orders[orderId].currentTask = 2;
+                                     } else {
+                                         orders[orderId].currentTask = stageNum + 1;
+                                     }
                                     orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`;
                                 }
 
