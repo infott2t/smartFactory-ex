@@ -156,6 +156,9 @@
         body.dark-mode .compact-toggle-inline {
             background-color: #1e293b !important;
         }
+        body.dark-mode button.btn-huge {
+            color: #f8fafc;
+        }
 
 
 
@@ -732,6 +735,13 @@
                 let candidateOrders = orders.filter(o => {
                     if (!o || !o.orderId) return false;
                     
+                    // 💡 [추가] Stage 5-1(양념 만들기)에는 오직 양념 지시서(isSeasoning: true)만 배정 가능해야 함
+                    if (String(stageId) === "5-1") {
+                        if (!o.isSeasoning) return false;
+                    } else {
+                        if (o.isSeasoning) return false;
+                    }
+                    
                     // 💡 [자가 치료 Bypass] Stage 3 ready_for_3_2 인 건은 상태값 강제 보정 후 우회
                     if (String(stageId) === "3" && o.stages && o.stages[3] && o.stages[3].dryingStatus === "ready_for_3_2") {
                         o.status = 'in_progress';
@@ -778,6 +788,22 @@
                         }
                     }
                     
+                    // 💡 [Stage 5-1 Bypass] 양념 지시서가 5-1로 전달되었으나 status가 in_progress가 아닐 수 있으므로 별도 처리
+                    if (String(stageId) === "5-1" && o.isSeasoning) {
+                        return String(o.currentTask) === "5-1" &&
+                               !(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
+                    }
+
+                    // 💡 [Stage 5-2 Bypass] Stage 4 완료되었으나 currentTask가 5-2가 아닌 경우 강제 보정 후 우회
+                    if (String(stageId) === "5-2") {
+                        const isProgressStage4Done = o.progressStatus && (o.progressStatus.includes("Stage 4 완료") || o.progressStatus.includes("Stage4 완료") || o.progressStatus.includes("Stage4완료"));
+                        if (isProgressStage4Done) {
+                            o.status = 'in_progress';
+                            o.currentTask = "5-2";
+                            return true;
+                        }
+                    }
+
                     return o.status === 'in_progress' && 
                            String(o.currentTask) === String(stageId) && 
                            !(o.stages && o.stages[stageId] && o.stages[stageId].statusSubmitted);
@@ -868,8 +894,15 @@
                         const isProgressDone = o.progressStatus && (o.progressStatus.includes("Stage3 완료") || o.progressStatus.includes("Stage3완료"));
                         return isSent || isTask4 || isProgressDone;
                     }
-                    if (String(stageId) === "5-1" || String(stageId) === "5-2") {
+                    if (String(stageId) === "5-1") {
+                        // 💡 양념 지시서는 Stage 4를 거치지 않으므로 별도 처리
+                        if (o.isSeasoning) return true;
                         return !!(o.stages && o.stages[4] && o.stages[4].statusSubmitted);
+                    }
+                    if (String(stageId) === "5-2") {
+                        const isS4Submitted = !!(o.stages && o.stages[4] && o.stages[4].statusSubmitted);
+                        const isProgressStage4Done = o.progressStatus && (o.progressStatus.includes("Stage 4 완료") || o.progressStatus.includes("Stage4 완료") || o.progressStatus.includes("Stage4완료"));
+                        return isS4Submitted || isProgressStage4Done;
                     }
                     if (String(stageId) === "6") {
                         const s51Done = !!(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
@@ -1269,9 +1302,14 @@
                 }
                 if (String(stageId) === "5-1" || String(stageId) === "5-2") return !!(o.stages && o.stages[4] && o.stages[4].statusSubmitted);
                 if (String(stageId) === "6") {
-                    const s51Done = !!(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
                     const s52Done = !!(o.stages && o.stages["5-2"] && o.stages["5-2"].statusSubmitted);
-                    return s51Done || s52Done;
+                    let pkgOrders = {};
+                    try {
+                        pkgOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                    } catch(e) {}
+                    const myPkg = pkgOrders[o.orderId];
+                    const isPkgSent = myPkg && (myPkg.status === "Task 4 전송 완료" || myPkg.status === "Stage 6 전송 완료");
+                    return s52Done && isPkgSent;
                 }
                 return true;
             });
@@ -1337,6 +1375,11 @@
             if (e.key === 'kimp_stages_sync') {
                 loadStagesFromStorage();
                 // 만약 현재 작업선택창이 열려있다면 새로고침
+                if (document.getElementById('task-modal').classList.contains('open')) {
+                    openTaskSelector();
+                }
+            } else if (e.key === 'kimp_production_orders') {
+                // 💡 생산지시서 변경 시 작업 선택 창 실시간 리프레시
                 if (document.getElementById('task-modal').classList.contains('open')) {
                     openTaskSelector();
                 }
@@ -1512,18 +1555,33 @@
                     }
                     return false;
                 }
-                if (currentStageStr === "5-1" || currentStageStr === "5-2") {
+                if (currentStageStr === "5-1") {
+                    // 양념 지시서만: currentTask가 "5-1"이고 아직 완료되지 않은 것
+                    if (!o.isSeasoning) return false;
+                    const isTask51 = String(o.currentTask) === "5-1";
+                    if (isTask51) {
+                        return !(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
+                    }
+                    return false;
+                }
+                if (currentStageStr === "5-2") {
                     const isS4Submitted = !!(o.stages && o.stages[4] && o.stages[4].statusSubmitted);
-                    const isTask5 = String(o.currentTask) === currentStageStr;
-                    if (isS4Submitted || isTask5) {
-                        return !(o.stages && o.stages[currentStageStr] && o.stages[currentStageStr].statusSubmitted);
+                    const isTask5 = String(o.currentTask) === "5-2";
+                    const isProgressStage4Done = o.progressStatus && (o.progressStatus.includes("Stage 4 완료") || o.progressStatus.includes("Stage4 완료") || o.progressStatus.includes("Stage4완료"));
+                    if (isS4Submitted || isTask5 || isProgressStage4Done) {
+                        return !(o.stages && o.stages["5-2"] && o.stages["5-2"].statusSubmitted);
                     }
                     return false;
                 }
                 if (currentStageStr === "6") {
-                    const s51Done = !!(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
                     const s52Done = !!(o.stages && o.stages["5-2"] && o.stages["5-2"].statusSubmitted);
-                    if (s51Done || s52Done) {
+                    let pkgOrders = {};
+                    try {
+                        pkgOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                    } catch(e) {}
+                    const myPkg = pkgOrders[o.orderId];
+                    const isPkgSent = myPkg && (myPkg.status === "Task 4 전송 완료" || myPkg.status === "Stage 6 전송 완료");
+                    if (s52Done && isPkgSent) {
                         return !(o.stages && o.stages[6] && o.stages[6].statusSubmitted);
                     }
                     return false;
@@ -1951,128 +2009,183 @@
         }
 
         function completeSpotCheckIn(stageId, spotId) {
-            playShutterSound();
+            try {
+                playShutterSound();
 
-            const stage = appData.stages.find(s => String(s.id) === String(stageId));
-            if (!stage || !stage.spots[spotId]) return;
+                const stage = appData.stages.find(s => String(s.id) === String(stageId));
+                if (!stage || !stage.spots[spotId]) return;
 
-            const spot = stage.spots[spotId];
-            spot.status = "working";
+                const spot = stage.spots[spotId];
+                spot.status = "working";
 
-            // 💡 먼저 이 스테이지에 진행 가능한 지시서가 있는지 확인
-            const activeOrder = getActiveOrderForStage(stageId, spotId);
-            if (!activeOrder) {
-                // 대기 중인 지시서가 없는 경우 -> 지시서 정보 초기화 및 대기 단계(0)로 롤백
-                appData.currentOrder.id = "";
-                appData.currentOrder.qty = 0;
+                // 💡 먼저 이 스테이지에 진행 가능한 지시서가 있는지 확인
+                let activeOrder = getActiveOrderForStage(stageId, spotId);
+                
+                // 💡 [자가 치료] 만약 Stage 5-1인데 지시서가 매칭되지 않았다면 강제로 로컬스토리지 뒤져서 찾아봄
+                if (!activeOrder && String(stageId) === "5-1") {
+                    const raw = localStorage.getItem('kimp_production_orders');
+                    if (raw) {
+                        try {
+                            const parsed = JSON.parse(raw);
+                            const orders = Array.isArray(parsed) ? parsed : Object.values(parsed || {});
+                            activeOrder = orders.find(o => 
+                                o && 
+                                o.isSeasoning && 
+                                String(o.currentTask) === "5-1" && 
+                                !(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted)
+                            );
+                            if (activeOrder) {
+                                console.log("[자가 치료] Stage 5-1 지시서 강제 매핑 완료:", activeOrder.orderId);
+                            }
+                        } catch(err) {
+                            console.error("Self-healing parsing failed:", err);
+                        }
+                    }
+                }
+
+                if (!activeOrder) {
+                    // 대기 중인 지시서가 없는 경우 -> 지시서 정보 초기화 및 대기 단계(0)로 롤백
+                    appData.currentOrder.id = "";
+                    appData.currentOrder.qty = 0;
+                    updateHeaderInfo();
+
+                    // 화면에 "지시서 대기 중" HMI 상태 렌더링
+                    const container = document.getElementById(`stage-${stageId}-dynamic-content`);
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
+                                <i class="bi bi-exclamation-triangle step-icon" style="font-size: 48px; color: var(--warning);"></i>
+                                <div class="step-message" style="font-size: 18px; font-weight: bold;">생산지시서 대기 중</div>
+                                <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5; max-width:320px;">
+                                    현재 이 공정에 배정된 유효한 생산지시서가 존재하지 않습니다.<br>
+                                    매니저가 발행할 때까지 대기하시거나 다른 작업을 시작해 주세요.
+                                </div>
+                                <button class="btn btn-secondary w-50" onclick="exitStageToWaitingArea('${stageId}', '${spotId}')">대기장소로 돌아가기</button>
+                            </div>
+                        `;
+                    }
+                    
+                    // 자리 점유도 일단 해제 처리 (작업할 게 없으므로)
+                    spot.worker = "";
+                    spot.status = "empty";
+                    syncStagesToStorage();
+                    return;
+                }
+
+                // 지시서가 존재하는 경우 정상 진행
+                appData.currentOrder.id = activeOrder.orderId;
+                appData.currentOrder.qty = activeOrder.quantity;
                 updateHeaderInfo();
 
-                // 화면에 "지시서 대기 중" HMI 상태 렌더링
-                const container = document.getElementById(`stage-${stageId}-dynamic-content`);
-                if (container) {
-                    container.innerHTML = `
-                        <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
-                            <i class="bi bi-exclamation-triangle step-icon" style="font-size: 48px; color: var(--warning);"></i>
-                            <div class="step-message" style="font-size: 18px; font-weight: bold;">생산지시서 대기 중</div>
-                            <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5; max-width:320px;">
-                                현재 이 공정에 배정된 유효한 생산지시서가 존재하지 않습니다.<br>
-                                매니저가 발행할 때까지 대기하시거나 다른 작업을 시작해 주세요.
-                            </div>
-                            <button class="btn btn-secondary w-50" onclick="exitStageToWaitingArea('${stageId}', '${spotId}')">대기장소로 돌아가기</button>
-                        </div>
-                    `;
-                }
-                
-                // 자리 점유도 일단 해제 처리 (작업할 게 없으므로)
-                spot.worker = "";
-                spot.status = "empty";
-                syncStagesToStorage();
-                return;
-            }
-
-            // 지시서가 존재하는 경우 정상 진행
-            appData.currentOrder.id = activeOrder.orderId;
-            appData.currentOrder.qty = activeOrder.quantity;
-            updateHeaderInfo();
-
-            // 💡 지시서 DB의 operator를 해당 작업자명으로 매핑하여 선점 처리 (다른 Spot이 중복 할당하지 못하게 함)
-            const ordersRaw = localStorage.getItem('kimp_production_orders');
-            if (ordersRaw) {
-                try {
-                    let ordersObj = JSON.parse(ordersRaw);
-                    const currentOrderId = activeOrder.orderId;
-                    const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
-                    let targetOrder = null;
-                    if (Array.isArray(ordersObj)) {
-                        targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
-                    } else if (typeof ordersObj === 'object' && ordersObj !== null) {
-                        const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
-                        if (key) targetOrder = ordersObj[key];
+                // 💡 Stage 6 진입 시, 포장지시서 목표 수량을 Workflow 설명에 동적 바인딩
+                if (String(stageId) === "6") {
+                    let pkgOrders = {};
+                    try {
+                        pkgOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                    } catch(e) {}
+                    const myPkg = pkgOrders[activeOrder.orderId];
+                    if (myPkg) {
+                        let targetsText = [];
+                        if (myPkg.targets) {
+                            Object.keys(myPkg.targets).forEach(k => {
+                                const val = myPkg.targets[k];
+                                if (val > 0) {
+                                    targetsText.push(`${k} ${val}개`);
+                                }
+                            });
+                        }
+                        const targetsStr = targetsText.join(", ") || "설정 없음";
+                        stage6Workflow[1].desc = `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--primary)">${targetsStr}</strong><br>위 수량대로 포장을 진행해주세요.<br>QR코드를 스캔해주세요.`;
+                        stage6Workflow[6].desc = `지시된 수량(${targetsStr})에 맞게 정량 계량된 김치를 꼼꼼하게 밀봉해주세요.`;
+                    } else {
+                        // 포장지시서가 없는 경우 기본값 초기화
+                        stage6Workflow[1].desc = `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--danger)">[포장 지시서 미발행]</strong><br>매니저가 포장 지시서를 발행할 때까지 작업을 진행할 수 없습니다.`;
+                        stage6Workflow[6].desc = `포장 지시서가 발행되지 않았습니다.`;
                     }
+                }
 
-                    if (targetOrder) {
-                        if (!targetOrder.stages) targetOrder.stages = {};
-                        let targetStageId = stageId;
-                        if (String(stageId) === "3" && targetOrder.stages[3] && targetOrder.stages[3].dryingStatus === "ready_for_3_2") {
-                            targetStageId = "3-2";
+                // 💡 지시서 DB의 operator를 해당 작업자명으로 매핑하여 선점 처리 (다른 Spot이 중복 할당하지 못하게 함)
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (ordersRaw) {
+                    try {
+                        let ordersObj = JSON.parse(ordersRaw);
+                        const currentOrderId = activeOrder.orderId;
+                        const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                        let targetOrder = null;
+                        if (Array.isArray(ordersObj)) {
+                            targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                            const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            if (key) targetOrder = ordersObj[key];
                         }
 
-                        if (!targetOrder.stages[targetStageId]) {
-                            targetOrder.stages[targetStageId] = {};
-                        }
-                        targetOrder.stages[targetStageId].operator = spot.worker;
-                        
-                        if (!targetOrder.stages[targetStageId].startTime) {
-                            targetOrder.stages[targetStageId].startTime = new Date().toLocaleTimeString();
-                        }
-                        if (!targetOrder.stages[targetStageId].workLogs) {
-                            targetOrder.stages[targetStageId].workLogs = [];
-                        }
-                        const nowTime = new Date();
-                        const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
-                        const logStr = `${currentOrderId} Stage${targetStageId} 시작 ${timeStrHHMMSS} 작업자:${spot.worker}`;
-                        targetOrder.stages[targetStageId].workLogs.push(logStr);
-                        
-                        // 💡 매니저 대시보드 상태 동기화
-                        targetOrder.status = "in_progress";
-                        if (String(stageId) === "3") {
-                            if (targetStageId === "3-2") {
-                                targetOrder.progressStatus = "생산중(Stage3-2 무게재기)";
-                            } else {
-                                targetOrder.progressStatus = "생산중 (Stage3-1 세척중)";
+                        if (targetOrder) {
+                            if (!targetOrder.stages) targetOrder.stages = {};
+                            let targetStageId = stageId;
+                            if (String(stageId) === "3" && targetOrder.stages[3] && targetOrder.stages[3].dryingStatus === "ready_for_3_2") {
+                                targetStageId = "3-2";
                             }
-                        } else {
-                            targetOrder.progressStatus = `생산중(Stage${stageId})`;
-                        }
-                        
-                        localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
-                    }
-                } catch(e) {
-                    console.error("Failed to update operator in completeSpotCheckIn:", e);
-                }
-            }
 
-            let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
-            const stateKey = `${stageId}_spot_${spotId}`;
-            
-            // 💡 [수정] 새로운 체크인 시 잔존 스텝 캐시로 인한 스킵 버그 방지 (Stage 3의 ready_for_3_2 재인입 분기를 제외하고는 무조건 1번 스텝으로 강제 초기화 시작)
-            if (String(stageId) === "3") {
-                if (activeOrder && activeOrder.stages && activeOrder.stages[3] && activeOrder.stages[3].dryingStatus === "ready_for_3_2") {
-                    currentStepIndex = 5;
-                    highestStepReached = 5;
+                            if (!targetOrder.stages[targetStageId]) {
+                                targetOrder.stages[targetStageId] = {};
+                            }
+                            targetOrder.stages[targetStageId].operator = spot.worker;
+                            
+                            if (!targetOrder.stages[targetStageId].startTime) {
+                                targetOrder.stages[targetStageId].startTime = new Date().toLocaleTimeString();
+                            }
+                            if (!targetOrder.stages[targetStageId].workLogs) {
+                                targetOrder.stages[targetStageId].workLogs = [];
+                            }
+                            const nowTime = new Date();
+                            const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
+                            const logStr = `${currentOrderId} Stage${targetStageId} 시작 ${timeStrHHMMSS} 작업자:${spot.worker}`;
+                            targetOrder.stages[targetStageId].workLogs.push(logStr);
+                            
+                            // 💡 매니저 대시보드 상태 동기화
+                            targetOrder.status = "in_progress";
+                            if (String(stageId) === "3") {
+                                if (targetStageId === "3-2") {
+                                    targetOrder.progressStatus = "생산중(Stage3-2 무게재기)";
+                                } else {
+                                    targetOrder.progressStatus = "생산중 (Stage3-1 세척중)";
+                                }
+                            } else {
+                                targetOrder.progressStatus = `생산중(Stage${stageId})`;
+                            }
+                            
+                            localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
+                        }
+                    } catch(e) {
+                        console.error("Failed to update operator in completeSpotCheckIn:", e);
+                    }
+                }
+
+                let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
+                const stateKey = `${stageId}_spot_${spotId}`;
+                
+                // 💡 [수정] 새로운 체크인 시 잔존 스텝 캐시로 인한 스킵 버그 방지 (Stage 3의 ready_for_3_2 재인입 분기를 제외하고는 무조건 1번 스텝으로 강제 초기화 시작)
+                if (String(stageId) === "3") {
+                    if (activeOrder && activeOrder.stages && activeOrder.stages[3] && activeOrder.stages[3].dryingStatus === "ready_for_3_2") {
+                        currentStepIndex = 5;
+                        highestStepReached = 5;
+                    } else {
+                        currentStepIndex = 1;
+                        highestStepReached = 1;
+                    }
                 } else {
                     currentStepIndex = 1;
                     highestStepReached = 1;
                 }
-            } else {
-                currentStepIndex = 1;
-                highestStepReached = 1;
+
+                addLog(`[Stage ${stageId} - 자리 ${spotId}] ${spot.worker} 작업자가 체크인을 완료하고 작업을 재개합니다.`);
+                syncStagesToStorage();
+
+                renderCurrentStep();
+            } catch(error) {
+                console.error("Check-in processing error:", error);
+                alert("체크인 처리 중 에러 발생: " + error.message);
             }
-
-            addLog(`[Stage ${stageId} - 자리 ${spotId}] ${spot.worker} 작업자가 체크인을 완료하고 작업을 재개합니다.`);
-            syncStagesToStorage();
-
-            renderCurrentStep();
         }
 
         function handleStageClick(stageId, status, stageName) {
@@ -3008,16 +3121,52 @@
                 return;
             }
 
+            const currentStageStr = String(appData.activeStageId);
+
             if (stage1Workflow && stage1Workflow[2] && stage1Workflow[3]) {
                 stage1Workflow[2].desc = `창고로 이동하여 <strong>배추 ${appData.currentOrder.qty}포기</strong>를 실어주세요.`;
                 stage1Workflow[3].defaultVal = appData.currentOrder.qty;
+            }
+
+            if (currentStageStr === "5-1" && stage5_1Workflow) {
+                if (stage5_1Workflow[1]) {
+                    stage5_1Workflow[1].desc = `오늘 작업할 양념용 생산지시서<br><strong style="color:var(--primary)">${appData.currentOrder.id}</strong><br>QR코드를 스캔해주세요.`;
+                }
+                if (stage5_1Workflow[2]) {
+                    const ordersRaw = localStorage.getItem('kimp_production_orders');
+                    let ingText = "생재료를 가지러 갑니다.";
+                    if (ordersRaw) {
+                        try {
+                            const ordersObj = JSON.parse(ordersRaw);
+                            const o = ordersObj[appData.currentOrder.id];
+                            if (o && o.ingredients) {
+                                const ing = o.ingredients;
+                                ingText = `생산지시서에 적힌 대파 ${ing.scallion || 0}g, 쪽파 ${ing.chives || 0}g, 양파 무게 ${ing.onion || 0}g, 생강 ${ing.ginger || 0}g, 고춧가루 ${ing.chili || 0}g, 액젓 ${ing.fishsauce || 0}g, 밀가루풀 ${ing.paste || 0}g을 자재창고에서 가지고 옵니다.`;
+                            }
+                        } catch(e) {}
+                    }
+                    stage5_1Workflow[2].desc = ingText;
+                }
+            }
+
+            if (currentStageStr === "6") {
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (ordersRaw) {
+                    try {
+                        const ordersObj = JSON.parse(ordersRaw);
+                        const o = ordersObj[appData.currentOrder.id];
+                        if (o && o.packaging) {
+                            stage6Workflow[1].desc = `오늘 작업할 포장용 생산지시서<br><strong style="color:var(--primary)">${o.packaging}</strong><br>위 수량대로 포장을 진행해주세요.<br>QR코드를 스캔해주세요.`;
+                            stage6Workflow[6].desc = `지시된 수량(${o.packaging})에 맞게 정량 계량된 김치를 꼼꼼하게 밀봉해주세요.`;
+                        }
+                    } catch(e) {}
+                }
             }
 
             const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
             if (!container) return;
 
             let workflow;
-            const currentStageStr = String(appData.activeStageId);
             if (currentStageStr === "6") workflow = stage6Workflow;
             else if (currentStageStr === "5-2") workflow = stage5_2Workflow;
             else if (currentStageStr === "5-1") workflow = stage5_1Workflow;
@@ -3131,14 +3280,43 @@
             `;
             }
             else if (step.type === 'input-materials') {
+                // 💡 지시서 정보 로드하여 값 바인딩 (하드코딩 제거)
+                let scallion = 100, chives = 100, onion = 200, ginger = 50, chili = 300, fishsauce = 150, paste = 1000;
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (ordersRaw && appData.currentOrder.id) {
+                    try {
+                        const ordersObj = JSON.parse(ordersRaw);
+                        const currentOrderId = appData.currentOrder.id;
+                        const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                        let targetOrder = null;
+                        if (Array.isArray(ordersObj)) {
+                            targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                            const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            if (key) targetOrder = ordersObj[key];
+                        }
+                        if (targetOrder && targetOrder.ingredients) {
+                            const ing = targetOrder.ingredients;
+                            scallion = ing.scallion !== undefined ? ing.scallion : 100;
+                            chives = ing.chives !== undefined ? ing.chives : 100;
+                            onion = ing.onion !== undefined ? ing.onion : 200;
+                            ginger = ing.ginger !== undefined ? ing.ginger : 50;
+                            chili = ing.chili !== undefined ? ing.chili : 300;
+                            fishsauce = ing.fishsauce !== undefined ? ing.fishsauce : 150;
+                            paste = ing.paste !== undefined ? ing.paste : 1000;
+                        }
+                    } catch(e) {}
+                }
+
                 visualElement = `
-                <div class="hmi-input-group" style="text-align:left; font-size:16px; margin-top: 16px;">
-                    <div class="input-row"><label>생강 (g)</label><input type="number" id="mat-1" value="100"></div>
-                    <div class="input-row"><label>대파 (단)</label><input type="number" id="mat-2" value="1"></div>
-                    <div class="input-row"><label>양파 (개)</label><input type="number" id="mat-3" value="10"></div>
-                    <div class="input-row"><label>고추가루 (kg)</label><input type="number" step="0.1" id="mat-4" value="1.0"></div>
-                    <div class="input-row"><label>멸치액젓 (g)</label><input type="number" id="mat-5" value="750"></div>
-                    <div class="input-row" style="margin-bottom:0;"><label>밀가루풀 (kg)</label><input type="number" step="0.1" id="mat-6" value="2.0"></div>
+                <div class="hmi-input-group" style="text-align:left; font-size:18px; margin-top: 16px;">
+                    <div class="input-row"><label style="font-size:18px;">생강 (g)</label><input type="number" id="mat-1" value="${ginger}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
+                    <div class="input-row"><label style="font-size:18px;">대파 (g)</label><input type="number" id="mat-2" value="${scallion}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
+                    <div class="input-row"><label style="font-size:18px;">쪽파 (g)</label><input type="number" id="mat-chives" value="${chives}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
+                    <div class="input-row"><label style="font-size:18px;">양파 무게 (g)</label><input type="number" id="mat-3" value="${onion}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
+                    <div class="input-row"><label style="font-size:18px;">고춧가루 (g)</label><input type="number" id="mat-4" value="${chili}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
+                    <div class="input-row"><label style="font-size:18px;">멸치액젓 (g)</label><input type="number" id="mat-5" value="${fishsauce}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
+                    <div class="input-row" style="margin-bottom:0;"><label style="font-size:18px;">밀가루풀 (g)</label><input type="number" id="mat-6" value="${paste}" style="font-size: 21px; padding: 8px 12px; width: 100%;"></div>
                 </div>
                 `;
             }
@@ -3197,6 +3375,15 @@
                    </button>`
                 : '';
 
+            let seasoningAddBtnHtml = '';
+            if (String(appData.activeStageId) === "5-2") {
+                seasoningAddBtnHtml = `
+                    <button class="btn-huge" style="background-color: #8b5cf6; color: white; margin-top: 8px;" onclick="requestSeasoningAdd()">
+                        <i class="bi bi-droplet-half"></i> 양념 추가 및 보충
+                    </button>
+                `;
+            }
+
             container.innerHTML = `
         <div class="step-container">
             ${iconHtml} <div class="step-message">${step.title}</div>
@@ -3204,6 +3391,7 @@
             ${visualElement}
             ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
             ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="handleFinalPhotoClick()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
+            ${seasoningAddBtnHtml}
             ${backBtnHtml}
         </div>
     `;
@@ -3212,7 +3400,117 @@
             if (idDisplay) idDisplay.textContent = `[${appData.currentOrder.id}]`;
         }
 
+        function requestSeasoningAdd() {
+            if (!confirm("양념이 떨어졌나요?")) {
+                return;
+            }
+
+            let stock = [];
+            try {
+                stock = JSON.parse(localStorage.getItem('kimp_seasoning_stock') || '[]');
+            } catch(e) {}
+
+            if (stock.length > 0) {
+                // QR코드 스캔 시뮬레이션 모달 띄우기
+                let listHtml = stock.map(s => `
+                    <div class="qr-scanner-box" 
+                         style="width: 100%; height: auto; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); transition: all 0.2s;"
+                         onclick="scanSeasoningContainer('${s.id}')"
+                         onmouseover="this.style.borderColor='var(--primary)'; this.style.background='rgba(59, 130, 246, 0.05)';"
+                         onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-primary)';">
+                        <div style="text-align: left;">
+                            <div style="font-weight: 700; color: var(--text-primary); font-size: 14px;"><i class="bi bi-box-seam" style="color: var(--primary); margin-right: 6px;"></i>용기 ID: ${s.id}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">양념 무게: ${s.quantity}g</div>
+                        </div>
+                        <div style="background: var(--primary); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold;">
+                            <i class="bi bi-camera-fill"></i> 스캔하기
+                        </div>
+                    </div>
+                `).join('');
+
+                const contentHtml = `
+                    <div style="text-align: center; padding: 10px 0;">
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.5;">
+                            냉장 절임실에서 가져온 양념 용기의 바코드/QR코드를 스캔해 주세요.<br>
+                            <strong style="color: var(--primary);">스캔할 용기를 아래 목록에서 터치하면 자동 스캔됩니다.</strong>
+                        </p>
+                        <div style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
+                            ${listHtml}
+                        </div>
+                        <button class="btn btn-outline-secondary w-100" style="margin-top: 15px; padding: 10px;" onclick="closeActionModal()">닫기</button>
+                    </div>
+                `;
+
+                openActionModal('양념 용기 QR 스캔', '<i class="bi bi-qr-code-scan" style="color: var(--primary);"></i>', contentHtml);
+            } else {
+                const requestId = "REQ-" + Date.now();
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+                const reqObj = {
+                    id: requestId,
+                    type: "seasoning_refill",
+                    orderId: appData.currentOrder.id,
+                    stageNum: "5-2",
+                    userName: appData.user.name,
+                    userId: appData.user.name,
+                    status: "pending",
+                    submittedTime: timeStr,
+                    message: "양념을 더 만들어야 합니다. 양념용 생산지시서를 발행해주세요."
+                };
+
+                let reqs = [];
+                try {
+                    reqs = JSON.parse(localStorage.getItem('kimp_approval_requests') || '[]');
+                } catch(e) {}
+                reqs.push(reqObj);
+                localStorage.setItem('kimp_approval_requests', JSON.stringify(reqs));
+
+                alert("현재 냉장 절임실에 보관 중인 양념 재고가 없습니다. 매니저에게 양념 추가 생산을 요청하였습니다. 매니저가 양념용 생산지시서를 발행할 때까지 잠시 대기해 주세요.");
+                addLog(`[양념 부족] 보관 중인 양념 재고 부족으로 매니저에게 양념 추가 생산(Refill) 승인 요청 전송.`);
+            }
+        }
+
+        function scanSeasoningContainer(containerId) {
+            let stock = [];
+            try {
+                stock = JSON.parse(localStorage.getItem('kimp_seasoning_stock') || '[]');
+            } catch(e) {}
+
+            const matchedIdx = stock.findIndex(s => s.id === containerId);
+            if (matchedIdx !== -1) {
+                const usedItem = stock[matchedIdx];
+                stock.splice(matchedIdx, 1);
+                localStorage.setItem('kimp_seasoning_stock', JSON.stringify(stock));
+
+                playShutterSound();
+                alert(`양념 용기(ID: ${usedItem.id}, ${usedItem.quantity}g) 보충 및 스캔 완료! 작업을 재개합니다.`);
+                addLog(`[양념 보충] 냉장 절임실의 양념 용기(ID: ${usedItem.id}, ${usedItem.quantity}g)를 스캔하여 보충 완료.`);
+                
+                if (typeof closeActionModal === 'function') {
+                    closeActionModal();
+                }
+            } else {
+                alert("존재하지 않거나 유효하지 않은 양념 용기 ID입니다.");
+            }
+        }
+
         function nextStep() {
+            // 💡 [추가] Stage 6 포장용 생산지시서 맵핑 단계 유효성 검사
+            if (String(appData.activeStageId) === "6" && currentStepIndex === 1) {
+                const orderId = appData.currentOrder.id;
+                let pkgOrders = {};
+                try {
+                    pkgOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                } catch(e) {}
+                
+                const myPkg = pkgOrders[orderId];
+                if (!myPkg || (myPkg.status !== "Task 4 전송 완료" && myPkg.status !== "Stage 6 전송 완료")) {
+                    alert("매니저가 아직 해당 지시서의 포장용 생산지시서를 발행 및 등록하여 Stage 6으로 전달하지 않았습니다.\n매니저 대시보드에서 [Stage 6으로 보내기] 처리를 완료해 주세요.");
+                    return;
+                }
+            }
+
             // 💡 [추가] Stage 3 수량 및 무게재기 시 제품 QR 스캔 여부 유효성 검사
             if (String(appData.activeStageId) === "3" && currentStepIndex === 5) {
                 const qrInput = document.getElementById("product-qr-input");
@@ -3254,7 +3552,47 @@
             } else if (step.type === 'info' && step.title.includes('염수 체크')) {
                 addLog(`${logPrefix}염수 체크를 완료했습니다.`);
             } else if (step.type === 'input-materials') {
-                addLog(`${logPrefix}[지시서: 260703-3-1] 재료 수량 확인 및 입력 완료`);
+                const matGinger = document.getElementById('mat-1') ? document.getElementById('mat-1').value : '';
+                const matScallion = document.getElementById('mat-2') ? document.getElementById('mat-2').value : '';
+                const matChives = document.getElementById('mat-chives') ? document.getElementById('mat-chives').value : '';
+                const matOnion = document.getElementById('mat-3') ? document.getElementById('mat-3').value : '';
+                const matChili = document.getElementById('mat-4') ? document.getElementById('mat-4').value : '';
+                const matFishsauce = document.getElementById('mat-5') ? document.getElementById('mat-5').value : '';
+                const matPaste = document.getElementById('mat-6') ? document.getElementById('mat-6').value : '';
+                addLog(`${logPrefix}[지시서: ${appData.currentOrder.id}] 재료 수량 입력 완료 (생강:${matGinger}g, 대파:${matScallion}g, 쪽파:${matChives}g, 양파:${matOnion}g, 고춧가루:${matChili}g, 액젓:${matFishsauce}g, 밀가루풀:${matPaste}g)`);
+
+                // 💡 LocalStorage에도 실제 입력된 자재값 저장
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (ordersRaw && appData.currentOrder.id) {
+                    try {
+                        let ordersObj = JSON.parse(ordersRaw);
+                        const currentOrderId = appData.currentOrder.id;
+                        const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                        let targetOrder = null;
+                        if (Array.isArray(ordersObj)) {
+                            targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                            const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            if (key) targetOrder = ordersObj[key];
+                        }
+                        if (targetOrder) {
+                            if (!targetOrder.stages) targetOrder.stages = {};
+                            if (!targetOrder.stages["5-1"]) targetOrder.stages["5-1"] = {};
+                            targetOrder.stages["5-1"].materialsInput = {
+                                ginger: parseInt(matGinger) || 0,
+                                scallion: parseInt(matScallion) || 0,
+                                chives: parseInt(matChives) || 0,
+                                onion: parseInt(matOnion) || 0,
+                                chili: parseInt(matChili) || 0,
+                                fishsauce: parseInt(matFishsauce) || 0,
+                                paste: parseInt(matPaste) || 0
+                            };
+                            localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
+                        }
+                    } catch(e) {
+                        console.error("Failed to save input materials to production order:", e);
+                    }
+                }
             } else if (step.type === 'info' && step.title.includes('숙성실 이동')) {
                 addLog(`${logPrefix}완성된 양념을 숙성실로 이동 완료했습니다.`);
             } else if (step.type === 'info' && step.title.includes('숙성실')) {
@@ -3642,26 +3980,61 @@
                                 }
                                 if (!targetOrder.stages[4]) targetOrder.stages[4] = {};
                                 targetOrder.stages[4].statusSubmitted = true;
-                            } else if (String(stageId) === "5-1" || String(stageId) === "5-2") {
-                                nextTask = null;
+                            } else if (String(stageId) === "5-1") {
+                                nextTask = "5-1-completed"; // 5-1 완료용 task
+                                let stock = [];
+                                try {
+                                    stock = JSON.parse(localStorage.getItem('kimp_seasoning_stock') || '[]');
+                                } catch(e) {}
+                                if (!stock.some(s => s.id === currentOrderId)) {
+                                    stock.push({
+                                        id: currentOrderId,
+                                        quantity: targetOrder.quantity || 1000,
+                                        entryTime: Date.now()
+                                    });
+                                    localStorage.setItem('kimp_seasoning_stock', JSON.stringify(stock));
+                                }
+                            } else if (String(stageId) === "5-2") {
+                                nextTask = "5-2-completed"; // Stage 5-2 완료 후 포장 지시서 발행 대기
+                                if (!targetOrder.stages["5-2"]) targetOrder.stages["5-2"] = {};
+                                targetOrder.stages["5-2"].statusSubmitted = true;
+                                targetOrder.stages["5-2"].endTime = new Date().toLocaleTimeString();
                             }
 
                             if (nextTask) {
-                                targetOrder.currentTask = nextTask;
-                                if (!targetOrder.stages[nextTask]) targetOrder.stages[nextTask] = {};
-                                targetOrder.stages[nextTask].operator = ""; // 다음 스테이지 연계 대기 상태
-                                
-                                // 💡 매니저 대시보드 상태 동기화
-                                if (String(stageId) === "3") {
-                                    if (targetStageId === "3-2") { targetOrder.progressStatus = "생산중 (Stage 3-2 완료)"; } else { targetOrder.progressStatus = "생산중(Stage3 완료)"; }
-                                    if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
-                                    targetOrder.stages[3].dryingStatus = "completed";
-                                    targetOrder.stages[3].sentToStage4 = true;
-                                } else { targetOrder.progressStatus = (String(stageId) === "4") ? "생산중 (Stage 4 완료, 5-2 대기)" : `생산중(Stage${stageId} 완료)`; //
-                                    targetOrder.progressStatus = `생산중(Stage${stageId} 완료)`;
+                                if (nextTask === "5-1-completed") {
+                                    targetOrder.currentTask = "5-1-completed";
+                                    targetOrder.progressStatus = "숙성실";
+                                    if (!targetOrder.stages["5-1"]) targetOrder.stages["5-1"] = {};
+                                    targetOrder.stages["5-1"].statusSubmitted = true;
+                                    targetOrder.stages["5-1"].endTime = new Date().toLocaleTimeString();
+                                } else if (nextTask === "5-2-completed") {
+                                    targetOrder.currentTask = "5-2-completed";
+                                    targetOrder.progressStatus = "생산중(Stage 5-2완료)";
+                                    if (!targetOrder.stages["5-2"]) targetOrder.stages["5-2"] = {};
+                                    targetOrder.stages["5-2"].statusSubmitted = true;
+                                    targetOrder.stages["5-2"].endTime = new Date().toLocaleTimeString();
+                                } else {
+                                    targetOrder.currentTask = nextTask;
+                                    if (!targetOrder.stages[nextTask]) targetOrder.stages[nextTask] = {};
+                                    targetOrder.stages[nextTask].operator = ""; // 다음 스테이지 연계 대기 상태
+                                    
+                                    // 💡 매니저 대시보드 상태 동기화
+                                    if (String(stageId) === "3") {
+                                        if (targetStageId === "3-2") {
+                                            targetOrder.progressStatus = "생산중 (Stage 3-2 완료)";
+                                        } else {
+                                            targetOrder.progressStatus = "생산중 (Stage 3 완료)";
+                                            if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
+                                            targetOrder.stages[3].dryingStatus = "completed";
+                                            targetOrder.stages[3].sentToStage4 = true;
+                                        }
+                                    } else {
+                                        targetOrder.progressStatus = `생산중 (Stage ${stageId} 완료)`;
+                                    }
                                 }
                             } else {
-                                targetOrder.status = "completed"; // 5공정 종료 시 전체 지시 완료
+                                targetOrder.status = "completed"; // Stage 6 등 최종 공정 종료 시 전체 지시 완료
                                 targetOrder.progressStatus = "생산 완료";
                             }
                             
@@ -4133,30 +4506,61 @@
                                 nextTask = "5-2";
                                 if (!targetOrder.stages[4]) targetOrder.stages[4] = {};
                                 targetOrder.stages[4].statusSubmitted = true;
-                            } else if (String(stageId) === "5-1" || String(stageId) === "5-2") {
-                                nextTask = null;
+                            } else if (String(stageId) === "5-1") {
+                                nextTask = "5-1-completed"; // 5-1 완료용 task
+                                let stock = [];
+                                try {
+                                    stock = JSON.parse(localStorage.getItem('kimp_seasoning_stock') || '[]');
+                                } catch(e) {}
+                                if (!stock.some(s => s.id === currentOrderId)) {
+                                    stock.push({
+                                        id: currentOrderId,
+                                        quantity: targetOrder.quantity || 1000,
+                                        entryTime: Date.now()
+                                    });
+                                    localStorage.setItem('kimp_seasoning_stock', JSON.stringify(stock));
+                                }
+                            } else if (String(stageId) === "5-2") {
+                                nextTask = "5-2-completed"; // Stage 5-2 완료 후 포장 지시서 발행 대기
+                                if (!targetOrder.stages["5-2"]) targetOrder.stages["5-2"] = {};
+                                targetOrder.stages["5-2"].statusSubmitted = true;
+                                targetOrder.stages["5-2"].endTime = new Date().toLocaleTimeString();
                             }
 
                             if (nextTask) {
-                                targetOrder.currentTask = nextTask;
-                                if (!targetOrder.stages[nextTask]) targetOrder.stages[nextTask] = {};
-                                targetOrder.stages[nextTask].operator = ""; // 다음 스테이지 연계 대기 상태
-                                
-                                // 💡 매니저 대시보드 상태 동기화
-                                if (String(stageId) === "3") {
-                                    if (targetStageId === "3-2") {
-                                        targetOrder.progressStatus = "생산중 (Stage 3-2 완료)";
-                                    } else {
-                                        targetOrder.progressStatus = "생산중(Stage3 완료)";
-                                        if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
-                                        targetOrder.stages[3].dryingStatus = "completed";
-                                        targetOrder.stages[3].sentToStage4 = true;
-                                    }
+                                if (nextTask === "5-1-completed") {
+                                    targetOrder.currentTask = "5-1-completed";
+                                    targetOrder.progressStatus = "숙성실";
+                                    if (!targetOrder.stages["5-1"]) targetOrder.stages["5-1"] = {};
+                                    targetOrder.stages["5-1"].statusSubmitted = true;
+                                    targetOrder.stages["5-1"].endTime = new Date().toLocaleTimeString();
+                                } else if (nextTask === "5-2-completed") {
+                                    targetOrder.currentTask = "5-2-completed";
+                                    targetOrder.progressStatus = "생산중(Stage 5-2완료)";
+                                    if (!targetOrder.stages["5-2"]) targetOrder.stages["5-2"] = {};
+                                    targetOrder.stages["5-2"].statusSubmitted = true;
+                                    targetOrder.stages["5-2"].endTime = new Date().toLocaleTimeString();
                                 } else {
-                                    targetOrder.progressStatus = `생산중(Stage${stageId} 완료)`;
+                                    targetOrder.currentTask = nextTask;
+                                    if (!targetOrder.stages[nextTask]) targetOrder.stages[nextTask] = {};
+                                    targetOrder.stages[nextTask].operator = ""; // 다음 스테이지 연계 대기 상태
+                                    
+                                    // 💡 매니저 대시보드 상태 동기화
+                                    if (String(stageId) === "3") {
+                                        if (targetStageId === "3-2") {
+                                            targetOrder.progressStatus = "생산중 (Stage 3-2 완료)";
+                                        } else {
+                                            targetOrder.progressStatus = "생산중 (Stage 3 완료)";
+                                            if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
+                                            targetOrder.stages[3].dryingStatus = "completed";
+                                            targetOrder.stages[3].sentToStage4 = true;
+                                        }
+                                    } else {
+                                        targetOrder.progressStatus = `생산중 (Stage ${stageId} 완료)`;
+                                    }
                                 }
                             } else {
-                                targetOrder.status = "completed"; // 5공정 종료 시 전체 지시 완료
+                                targetOrder.status = "completed"; // Stage 6 등 최종 공정 종료 시 전체 지시 완료
                                 targetOrder.progressStatus = "생산 완료";
                             }
                             
