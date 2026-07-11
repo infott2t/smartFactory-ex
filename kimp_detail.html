@@ -700,12 +700,51 @@
             let prodId = urlParams.get('productId') || urlParams.get('product');
             currentWorkId = urlParams.get('workId');
 
-            // 1. window.MockData.products에서 조회 시도
-            if (prodId && window.MockData && window.MockData.products && window.MockData.products[prodId]) {
+            // 💡 [추가] workDetailJSON 내의 products 리스트에서 해당 productId를 우선 매핑
+            let foundInDetail = null;
+            if (currentWorkId && window.MockData && window.MockData.workDetailJSON) {
+                try {
+                    const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                    const workData = detailMap[currentWorkId];
+                    if (workData && workData.products) {
+                        if (Array.isArray(workData.products)) {
+                            foundInDetail = workData.products.find(p => String(p.id) === String(prodId) || String(p.productId) === String(prodId));
+                            if (!foundInDetail) {
+                                const idxMatch = String(prodId).match(/^p(\d+)$/);
+                                if (idxMatch) {
+                                    const idx = parseInt(idxMatch[1]);
+                                    if (workData.products[idx]) {
+                                        foundInDetail = workData.products[idx];
+                                    }
+                                }
+                            }
+                        } else {
+                            foundInDetail = workData.products[prodId];
+                        }
+                    }
+                } catch(e) {
+                    console.error("Failed to parse workDetailJSON in kimp_detail:", e);
+                }
+            }
+
+            // 1. 상세정보 JSON에서 찾았을 경우
+            if (foundInDetail) {
+                currentProductId = prodId;
+                currentProductData = {
+                    ...foundInDetail,
+                    img: foundInDetail.imgUrl || foundInDetail.img || "./images/kimchi_product_300g.png",
+                    category: foundInDetail.category || "김치 (비살균제품)",
+                    ingredients: foundInDetail.ingredients || "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
+                    storage: foundInDetail.storage || "냉장보관 (0~10℃)",
+                    manufacturer: foundInDetail.manufacturer || "스마트팩토리 AFood 김치사업부"
+                };
+            }
+            // 2. window.MockData.products에서 조회 시도
+            else if (prodId && window.MockData && window.MockData.products && window.MockData.products[prodId]) {
                 currentProductId = prodId;
                 currentProductData = window.MockData.products[prodId];
             } 
-            // 2. 만약 productCatalog에만 존재하는 키인 경우 (예: 기존 김치 매핑)
+            // 3. 만약 productCatalog에만 존재하는 키인 경우 (예: 기존 김치 매핑)
             else if (prodId && productCatalog[prodId]) {
                 currentProductId = prodId;
                 currentProductData = {
@@ -716,7 +755,7 @@
                     manufacturer: "스마트팩토리 AFood 김치사업부"
                 };
             } 
-            // 3. 디폴트 처리
+            // 4. 디폴트 처리
             else {
                 currentProductId = "p300g";
                 currentProductData = (window.MockData && window.MockData.products && window.MockData.products["p300g"]) || {
@@ -750,7 +789,7 @@
             if (!product) return;
 
             // 텍스트 & 이미지 바인딩
-            document.getElementById('product-img').src = product.img;
+            document.getElementById('product-img').src = product.img || product.imgUrl || "./images/kimchi_product_300g.png";
             document.getElementById('product-name').textContent = product.name;
             document.getElementById('rating-score').textContent = product.rating;
             document.getElementById('summary-score').textContent = product.rating;

@@ -1691,17 +1691,14 @@
                         <!-- 공정 직접 참여 / 헬퍼 선택 시 배치할 Stage 선택기 -->
                         <div class="task-selector-wrapper" id="mgr-task-selector">
                             <span class="status-btn-title">투입할 세부 공정(Stage) 선택</span>
-                            <div class="task-option-btns">
-                                <button class="task-mini-btn" id="mgr-task-1" onclick="assignManagerTask(1)">Stage 1
-                                    (컷팅/적재)</button>
-                                <button class="task-mini-btn" id="mgr-task-2" onclick="assignManagerTask(2)">Stage 2
-                                    (절임)</button>
-                                <button class="task-mini-btn" id="mgr-task-3" onclick="assignManagerTask(3)">Stage 3
-                                    (세척)</button>
-                                <button class="task-mini-btn" id="mgr-task-4" onclick="assignManagerTask(4)">Stage 4
-                                    (양념)</button>
-                                <button class="task-mini-btn" id="mgr-task-5" onclick="assignManagerTask(5)">Stage 5
-                                    (포장)</button>
+                            <div class="task-option-btns" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <button class="task-mini-btn" id="mgr-task-1" onclick="assignManagerTask(1)">Stage 1 (적재)</button>
+                                <button class="task-mini-btn" id="mgr-task-2" onclick="assignManagerTask(2)">Stage 2 (절임)</button>
+                                <button class="task-mini-btn" id="mgr-task-3" onclick="assignManagerTask(3)">Stage 3 (세척/탈수)</button>
+                                <button class="task-mini-btn" id="mgr-task-4" onclick="assignManagerTask(4)">Stage 4 (밀봉)</button>
+                                <button class="task-mini-btn" id="mgr-task-5-1" onclick="assignManagerTask('5-1')">Stage 5-1 (양념조제)</button>
+                                <button class="task-mini-btn" id="mgr-task-5-2" onclick="assignManagerTask('5-2')">Stage 5-2 (양념바름)</button>
+                                <button class="task-mini-btn" id="mgr-task-6" onclick="assignManagerTask(6)">Stage 6 (포장/출하)</button>
                             </div>
                         </div>
 
@@ -1734,6 +1731,7 @@
                                 <label style="font-size: 13px; font-weight: 700;">하루 생산 목표량 (포기):</label>
                                 <input type="number" id="input-daily-target-heads" value="30" min="1" max="200"
                                     onchange="updateDailyProductionTarget(this.value)"
+                                    oninput="updateDailyProductionTarget(this.value)"
                                     style="width: 70px; padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary);  text-align: center; outline: none;" />
                             </div>
                             <div class="info-list-card"
@@ -1743,6 +1741,12 @@
                                             style="color: var(--neon-blue);">63.0 kg</strong></div>
                                     <div>• 완제품 총 예상 생산 무게 (배추+양념): <strong id="lbl-needed-total-weight"
                                             style="color: var(--neon-green);">90.0 kg</strong></div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 8px;">
+                                    <div>• 생산 중인 지시서 배추 무게 합계: <strong id="lbl-producing-cabbage-weight"
+                                            style="color: var(--accent-purple);">0.0 kg</strong></div>
+                                    <div>• 생산 중인 양념용 지시서 무게 합계: <strong id="lbl-producing-seasoning-weight"
+                                            style="color: var(--accent-yellow);">0.0 kg</strong></div>
                                 </div>
                             </div>
 
@@ -4807,15 +4811,24 @@
             if (!summaryContainer) return;
 
             let html = "";
+            const imgFallback = {
+                p300g: "./images/kimchi_product_300g.png",
+                p1kg: "./images/kimchi_product_1kg.png",
+                p3kg: "./images/kimchi_product_3kg.png",
+                p5kg: "./images/kimchi_product_1kg.png", // 5kg용 대체 이미지
+                p10kg: "./images/kimchi_product_3kg.png" // 10kg용 대체 이미지
+            };
+
             Object.keys(products).forEach(key => {
                 const item = products[key];
+                const imgSrc = item.img || item.imgUrl || imgFallback[key] || "./images/kimchi_product_300g.png";
                 html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--border-color); border-radius: 12px; background-color: var(--bg-primary);">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${item.img}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="${item.name}">
+                        <img src="${imgSrc}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="${item.name}">
                         <div>
                             <div style="font-size: 13px; font-weight: 700;">${item.name}</div>
-                            <div style="font-size: 11px; color: var(--text-secondary);">${item.desc}</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">${item.desc || ""}</div>
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -5459,11 +5472,13 @@
                 Object.keys(workers).forEach(k => {
                     const w = workers[k];
                     if (w.status !== "on_break" && w.location) {
-                        const match = w.location.match(/(?:Task|Stage)\s*([\d-]+)/i);
+                        const match = w.location.match(/(?:Task|Stage)\s*([\d-]+)(?:\s*\(자리\s*([A-Za-z0-9가-힣]+)\))?/i);
                         if (match) {
                             const taskNum = match[1];
+                            const spotName = match[2] || '';
+                            const displayName = spotName ? `${w.userName}(${spotName})` : w.userName;
                             if (taskHolders[taskNum]) {
-                                taskHolders[taskNum].push({ name: w.userName, isHelper: w.isHelper, role: 'USER' });
+                                taskHolders[taskNum].push({ name: displayName, isHelper: w.isHelper, role: 'USER' });
                             }
                         }
                     }
@@ -6934,6 +6949,18 @@
                 };
                 localStorage.setItem("kimp_packaging_inventory", JSON.stringify(initialPackaging));
             }
+
+            // 초기 완제품 재고 데이터
+            if (!localStorage.getItem("kimp_factory_products")) {
+                const initialProducts = {
+                    p300g: { name: "300g 맛김치", stock: 0, todayOrders: 15, yesterdayOrders: 8, price: 3000 },
+                    p1kg: { name: "1kg 포기김치", stock: 0, todayOrders: 8, yesterdayOrders: 5, price: 8000 },
+                    p3kg: { name: "3kg 대용량 김치", stock: 0, todayOrders: 2, yesterdayOrders: 3, price: 20000 },
+                    p5kg: { name: "5kg 실속 김치", stock: 0, todayOrders: 1, yesterdayOrders: 0, price: 32000 },
+                    p10kg: { name: "10kg 업소용 김치", stock: 0, todayOrders: 1, yesterdayOrders: 1, price: 60000 }
+                };
+                localStorage.setItem("kimp_factory_products", JSON.stringify(initialProducts));
+            }
         }
 
         // 목표 생산량 갱신
@@ -7113,8 +7140,12 @@
                 totalAddedWeight += val * getWeightByProductId(pId);
             });
 
-            const targetHeads = Math.max(1, Math.ceil(totalAddedWeight / 3.0));
-            localStorage.setItem("kimp_daily_target_heads", targetHeads.toString());
+            // 💡 [수정] 강제 덮어쓰기 대신, 사용자가 수동 설정한 값이 있으면 그것을 존중하여 유지하고 없을 때만 계산 권장값을 사용하도록 개선
+            let targetHeads = parseInt(localStorage.getItem("kimp_daily_target_heads"));
+            if (isNaN(targetHeads) || !targetHeads) {
+                targetHeads = Math.max(1, Math.ceil(totalAddedWeight / 3.0));
+                localStorage.setItem("kimp_daily_target_heads", targetHeads.toString());
+            }
 
             const neededSaltedWeight = targetHeads * 3.0 * 0.7; // 수득률 70%
             const neededTotalWeight = targetHeads * 3.0;         // 완제품 김치 기준
@@ -7126,6 +7157,42 @@
 
             const inputTarget = document.getElementById("input-daily-target-heads");
             if (inputTarget) inputTarget.value = targetHeads;
+
+            // 💡 [추가] 생산 중인 배추 및 양념 무게 합산 계산
+            let producingCabbageWeight = 0;
+            let producingSeasoningWeight = 0;
+            
+            try {
+                const prodOrders = Object.values(loadProductionOrders());
+                prodOrders.forEach(o => {
+                    if (!o || o.status === "completed" || o.status === "Stage 6 완료") return;
+                    
+                    // 1) 생산 중인 배추 (양념 지시서가 아니고, Stage 1 ~ Stage 5-2 완료 전 상태)
+                    if (!o.isSeasoning) {
+                        const taskStr = String(o.currentTask);
+                        if (taskStr !== "5-2-completed" && taskStr !== "6") {
+                            const heads = parseInt(o.quantity) || 0;
+                            producingCabbageWeight += heads * 2.1; // 1포기당 절임배추 2.1kg 기준
+                        }
+                    }
+                    
+                    // 2) 생산 중인 양념 (양념 지시서이며, 5-1 단계에서 작업이 제출되기 전 상태)
+                    if (o.isSeasoning) {
+                        const isCompleted = !!(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
+                        if (!isCompleted) {
+                            const weight = parseFloat(o.quantity) || 0;
+                            producingSeasoningWeight += weight;
+                        }
+                    }
+                });
+            } catch(e) {
+                console.error("Failed to compute producing raw weights:", e);
+            }
+
+            const lblProdCabbage = document.getElementById("lbl-producing-cabbage-weight");
+            if (lblProdCabbage) lblProdCabbage.textContent = producingCabbageWeight.toFixed(1) + " kg";
+            const lblProdSeasoning = document.getElementById("lbl-producing-seasoning-weight");
+            if (lblProdSeasoning) lblProdSeasoning.textContent = producingSeasoningWeight.toFixed(1) + " kg";
 
             let totalOrderWeight = 0;
             orders.forEach(o => {
@@ -7386,6 +7453,20 @@
             const body = document.getElementById("order-history-modal-body");
             if (!body) return;
 
+            // 💡 [추가] 배추 절임 정보 상세 카드 구성
+            let targetDuration = "-";
+            let brineSalinity = "-";
+            let brineVolume = "-";
+            let extraSalt = "-";
+            
+            if (o.stages && o.stages[2] && o.stages[2].step2_salting) {
+                const s2 = o.stages[2].step2_salting;
+                targetDuration = s2.targetDuration !== undefined ? `${s2.targetDuration}시간` : "-";
+                brineSalinity = s2.brineSalinity !== undefined ? `${s2.brineSalinity}%` : "-";
+                brineVolume = s2.brineVolumeLiters !== undefined ? `${s2.brineVolumeLiters} L` : "-";
+                extraSalt = s2.extraSaltAmountKg !== undefined ? `${s2.extraSaltAmountKg.toFixed(2)} kg` : "-";
+            }
+
             let html = `
                 <div style="padding: 14px; background: #1e1f29; border: 1px solid #3f4257; border-radius: 8px; margin-bottom: 8px;">
                     <div style="font-size: 12px; color: #a0aec0; font-weight: 600;"><i class="bi bi-tag-fill"></i> 지시서 코드</div>
@@ -7393,6 +7474,18 @@
                     <div style="margin-top: 10px; font-size: 12px; color: #a0aec0; font-weight: 600;"><i class="bi bi-cart-check-fill"></i> 제품 및 수량</div>
                     <div style="font-size: 15px; font-weight: 700; color: #c084fc; margin-top: 2px;">${o.productName || o.product || '배추김치'} / ${o.quantity || 15}포기</div>
                 </div>
+                
+                <!-- 💡 [추가] 배추 절임 정보 상세 카드 -->
+                <div style="padding: 14px; background: #181922; border: 1px solid #c084fc; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(192, 132, 252, 0.1);">
+                    <div style="font-size: 13px; color: #c084fc; font-weight: 700; margin-bottom: 8px;"><i class="bi bi-calculator-fill"></i> 배추 절임 정보 상세</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: #cbd5e1;">
+                        <div>목표 절임 시간: <strong style="color: #ffffff; font-weight:600;">${targetDuration}</strong></div>
+                        <div>목표 염도: <strong style="color: #ffffff; font-weight:600;">${brineSalinity}</strong></div>
+                        <div>투입 물의 양: <strong style="color: #ffffff; font-weight:600;">${brineVolume}</strong></div>
+                        <div>소금의 양: <strong style="color: #ffffff; font-weight:600;">${extraSalt}</strong></div>
+                    </div>
+                </div>
+                
                 <h4 style="margin: 12px 0 6px 0; font-size: 14px; color: #fff; font-weight: 700;"><i class="bi bi-diagram-3" style="color: #c084fc;"></i> Stage별 생산 이력 타임라인</h4>
                 <div style="display: flex; flex-direction: column; gap: 12px; position: relative; padding-left: 20px; border-left: 2px dashed #3f4257; margin-left: 10px; margin-top: 8px;">
             `;

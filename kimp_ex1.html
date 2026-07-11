@@ -1845,6 +1845,17 @@
                 syncStagesToStorage();
             }
             appData.activeSpotId = null;
+            
+            // 💡 매니저 서버(로컬스토리지)에 실시간 위치 대기실로 업데이트
+            try {
+                let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
+                if (myKey && workers[myKey]) {
+                    workers[myKey].location = "대기실";
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+            } catch(e) {}
+
             moveToStage(0, '대기장소');
         };
 
@@ -2017,6 +2028,17 @@
 
                 const spot = stage.spots[spotId];
                 spot.status = "working";
+
+                // 💡 매니저 서버(로컬스토리지)에 실시간 위치 정보 전송
+                try {
+                    let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                    let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
+                    if (myKey && workers[myKey]) {
+                        workers[myKey].location = `Stage ${stageId} (자리 ${spotId})`;
+                        workers[myKey].status = "active";
+                        localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                    }
+                } catch(e) {}
 
                 // 💡 먼저 이 스테이지에 진행 가능한 지시서가 있는지 확인
                 let activeOrder = getActiveOrderForStage(stageId, spotId);
@@ -3673,11 +3695,55 @@
                 const weight = document.getElementById('input-weight').value;
                 const orderId = appData.currentOrder.id;
 
+                // 💡 [추가] 실적 등록 제출 시 근로자 누적 완료 Stage 수 +1 가산
+                try {
+                    let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                    let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
+                    if (myKey && workers[myKey]) {
+                        workers[myKey].completedOrdersCount = (workers[myKey].completedOrdersCount || 0) + 1;
+                        localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                    }
+                } catch(e) {
+                    console.error("Failed to increment completedOrdersCount:", e);
+                }
+
                 if (step.type === 'report') {
                     const goodQty = document.getElementById('input-good').value;
                     const defectQty = parseInt(document.getElementById('input-defect').value) || 0;
                     addLog(`${logPrefix}[지시서: ${orderId}] 실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg)`, 6);
                     window.tempWeight = weight;
+
+                    // 💡 [추가] Stage 6 완료 실적 등록 시, 포장지시 수량만큼 완제품 재고에 합산 누적
+                    if (String(appData.activeStageId) === "6") {
+                        let pkgOrders = {};
+                        try {
+                            pkgOrders = JSON.parse(localStorage.getItem("kimp_packaging_orders") || "{}");
+                        } catch(e) {}
+                        const myPkg = pkgOrders[orderId];
+                        if (myPkg && myPkg.targets) {
+                            let products = {};
+                            try {
+                                products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+                            } catch(e) {}
+                            
+                            const mappingKeys = { "300g": "p300g", "1kg": "p1kg", "3kg": "p3kg", "5kg": "p5kg", "10kg": "p10kg" };
+                            Object.keys(myPkg.targets).forEach(k => {
+                                const prodKey = mappingKeys[k];
+                                const qty = parseInt(myPkg.targets[k]) || 0;
+                                if (prodKey && qty > 0) {
+                                    if (!products[prodKey]) {
+                                        products[prodKey] = { name: k + " 김치", desc: "", img: "", stock: 0, todayOrders: 0, yesterdayOrders: 0, price: 0 };
+                                    }
+                                    products[prodKey].stock = (products[prodKey].stock || 0) + qty;
+                                }
+                            });
+                            localStorage.setItem("kimp_factory_products", JSON.stringify(products));
+                            
+                            if (window.FactoryStore) {
+                                window.FactoryStore.dispatch({ type: 'SET_FACTORY_PRODUCTS', payload: products });
+                            }
+                        }
+                    }
 
                     if (defectQty > 0) {
                         renderDefectPhotoStep(defectQty);
