@@ -4805,6 +4805,7 @@
 
 
 
+        let lastProductSummaryHtml = "";
         // ── G. 완제품 간이 요약 리스트 렌더링 ──
         function renderProductSummary(products) {
             const summaryContainer = document.getElementById("dashboard-product-summary");
@@ -4838,7 +4839,12 @@
                 </div>
                 `;
             });
-            summaryContainer.innerHTML = html;
+            
+            // 💡 [추가] 생성된 HTML이 이전과 완벽히 동일하다면 돔 갱신을 생략하여 이미지 중복 요청 및 깜빡임 차단
+            if (lastProductSummaryHtml !== html) {
+                summaryContainer.innerHTML = html;
+                lastProductSummaryHtml = html;
+            }
         }
 
         // ── H. 위생 심사 렌더링 ──

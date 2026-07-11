@@ -1581,7 +1581,7 @@ window.MockData = {
     worksJSON: `[
         {
             "workId": 1, "workName": "김치만들기", "brandName": "AFood", "iconUrl": "./images/k-icon_150x150.png",
-            "salary": 1.3, "salaryChange": 0.01, "taskCount": 5, "participants": 123, "createdAt": "2024-08-01",
+            "salary": 1.3, "salaryChange": 0.01, "taskCount": 6, "participants": 123, "createdAt": "2024-08-01",
             "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"],
             "isNew": false
         },
@@ -1753,11 +1753,13 @@ window.MockData = {
                 { "icon": "bi-gift-fill", "iconColor": "color-lightpurple", "text": "처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉", "textColor": "color-lightpurple", "isBanner": true, "bannerClass": "banner-purple" }
             ],
             "workflows": [
-                { "step": 1, "desc": "배추 5단위 적재하기" },
-                { "step": 2, "desc": "배추 손질하기" },
-                { "step": 3, "desc": "배추를 절이는 작업" },
-                { "step": 4, "desc": "양념제조와 양념을 묻히는 작업" },
-                { "step": 5, "desc": "포장용기에 담는 작업" }
+                { "step": "1", "desc": "배추 1/2 컷팅 & 적재하기" },
+                { "step": "2", "desc": "배추 절이기" },
+                { "step": "3", "desc": "배추 세척하기 & 물기 빼기" },
+                { "step": "4", "desc": "배추 밀봉 & 냉장고 보관" },
+                { "step": "5-1", "desc": "양념 만들기" },
+                { "step": "5-2", "desc": "양념 바르기" },
+                { "step": "6", "desc": "포장하기" }
             ]
         },
         "2": {
