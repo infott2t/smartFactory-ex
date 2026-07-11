@@ -6766,6 +6766,8 @@
                 { id: "6", name: "포장 및 출하 대기" }
             ];
 
+            let hasShownActiveInProgress = false;
+
             stagesList.forEach(s => {
                 let stageData = null;
                 if (s.id === "32") {
@@ -6808,13 +6810,36 @@
                 }
                 let defectText = defectVal > 0 ? `<span style="color: #ff7675; font-weight: bold;">${defectVal}포기</span>` : "0포기";
 
-                let borderStyle = isActivated ? "border-color: #c084fc; background: #1a1b24;" : "border-color: #2d2f3f; background: #13141a; opacity: 0.65;";
-                let iconColor = isActivated ? "color: #38bdf8;" : "color: #718096;";
-                let statusText = isActivated ? (endTime !== "-" ? "<span style='color:#34d399; font-weight:700;'>완료</span>" : "<span style='color:#fbbf24; font-weight:700;'>진행 중</span>") : "<span style='color:#718096;'>대기 중</span>";
+                let borderStyle = "";
+                let iconColor = "";
+                let statusText = "";
+
+                if (isActivated) {
+                    if (endTime !== "-") {
+                        statusText = "<span style='color:#34d399; font-weight:700;'>완료</span>";
+                        borderStyle = "border-color: #c084fc; background: #1a1b24;";
+                        iconColor = "color: #38bdf8;";
+                    } else {
+                        if (!hasShownActiveInProgress) {
+                            statusText = "<span style='color:#fbbf24; font-weight:700;'>진행 중</span>";
+                            borderStyle = "border-color: #fbbf24; background: #1a1b24;";
+                            iconColor = "color: #fbbf24;";
+                            hasShownActiveInProgress = true;
+                        } else {
+                            statusText = "<span style='color:#718096;'>대기 중</span>";
+                            borderStyle = "border-color: #2d2f3f; background: #13141a; opacity: 0.65;";
+                            iconColor = "color: #718096;";
+                        }
+                    }
+                } else {
+                    statusText = "<span style='color:#718096;'>대기 중</span>";
+                    borderStyle = "border-color: #2d2f3f; background: #13141a; opacity: 0.65;";
+                    iconColor = "color: #718096;";
+                }
 
                 html += `
                     <div style="position: relative; padding: 12px; border: 1px solid #3f4257; border-radius: 8px; ${borderStyle}">
-                        <div style="position: absolute; left: -28px; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: #13141a; border: 2px solid ${isActivated ? '#c084fc' : '#3f4257'};"></div>
+                        <div style="position: absolute; left: -28px; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: #13141a; border: 2px solid ${isActivated && endTime !== '-' ? '#c084fc' : (isActivated && borderStyle.includes('fbbf24') ? '#fbbf24' : '#3f4257')};"></div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                             <strong style="${iconColor} font-size: 14px; font-weight: 700;">Stage ${s.id === '32' ? '3-2' : s.id}. ${s.name}</strong>
                             <span style="font-size: 11px; padding: 2px 6px; background: rgba(255, 255, 255, 0.05); border-radius: 4px;">${statusText}</span>
