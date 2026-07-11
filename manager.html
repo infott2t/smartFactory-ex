@@ -3285,7 +3285,7 @@
             const orders = Object.values(loadProductionOrders());
             const eligibleOrders = orders.filter(o => {
                 if (o.productId !== "raw_cabbage") return false;
-                const isStage3Done = o.currentTask >= 4 ||
+                const isStage5_2Done = String(o.currentTask) === "6" || (o.stages && o.stages["5-2"] && o.stages["5-2"].statusSubmitted) || (o.progressStatus && o.progressStatus.includes("5-2") && o.progressStatus.includes("완료")) || o.status === "completed"; return isStage5_2Done; //
                     (o.stages && o.stages[3] && o.stages[3].statusSubmitted) ||
                     (o.progressStatus && (o.progressStatus.includes("Stage3완료") || o.progressStatus.includes("Stage 3 완료"))) ||
                     o.status === "completed";
@@ -4611,6 +4611,7 @@
                     } catch (e) { }
 
                     const orderId = req.orderId;
+                    const rawStageStr = String(req.stageNum).trim();
                     const stageNum = parseInt(req.stageNum);
 
                     if (orders[orderId]) {
@@ -4618,7 +4619,39 @@
                             if (!orders[orderId].stages) {
                                 orders[orderId].stages = {};
                             }
-                            if (stageNum === 3) {
+                            if (rawStageStr === "3-2" || rawStageStr === "32") {
+                                if (!orders[orderId].stages[3]) {
+                                    orders[orderId].stages[3] = {};
+                                }
+                                if (!orders[orderId].stages["3-2"]) {
+                                    orders[orderId].stages["3-2"] = {};
+                                }
+                                if (!orders[orderId].stages[3].stage32) {
+                                    orders[orderId].stages[3].stage32 = {};
+                                }
+                                let s32 = orders[orderId].stages["3-2"];
+                                let legacyS32 = orders[orderId].stages[3].stage32;
+                                s32.statusSubmitted = true;
+                                s32.step1Done = true;
+                                s32.step2Done = true;
+                                s32.step3Done = true;
+                                s32.step4Done = true;
+                                s32.step5Done = true;
+                                s32.step2Status = "approved";
+                                s32.step3Status = "approved";
+                                s32.postWorkQty = req.postWorkQty || 15;
+                                s32.postWorkWeight = req.weight || 12.0;
+                                s32.endTime = new Date().toLocaleTimeString();
+                                if (!s32.workLogs) s32.workLogs = [];
+                                s32.workLogs.push(`${orderId} Stage3-2 무게재기승인완료 ${new Date().toLocaleTimeString()} 양품:${req.postWorkQty || 15} | 무게:${req.weight || 12.0}`);
+                                Object.assign(legacyS32, s32);
+
+                                orders[orderId].stages[3].dryingStatus = "completed";
+                                orders[orderId].stages[3].refrigeratorStoredTime = Date.now();
+
+                                orders[orderId].currentTask = 4;
+                                orders[orderId].progressStatus = "생산중 (Stage 3-2 완료)";
+                            } else if (rawStageStr === "3") {
                                 if (!orders[orderId].stages[3]) {
                                     orders[orderId].stages[3] = {};
                                 }
@@ -4640,33 +4673,6 @@
 
                                 orders[orderId].currentTask = 3;
                                 orders[orderId].progressStatus = "생산중(Stage3-1 세척 완료)";
-                            } else if (stageNum === 32) {
-                                if (!orders[orderId].stages[3]) {
-                                    orders[orderId].stages[3] = {};
-                                }
-                                if (!orders[orderId].stages[3].stage32) {
-                                    orders[orderId].stages[3].stage32 = {};
-                                }
-                                let s32 = orders[orderId].stages[3].stage32;
-                                s32.statusSubmitted = true;
-                                s32.step1Done = true;
-                                s32.step2Done = true;
-                                s32.step3Done = true;
-                                s32.step4Done = true;
-                                s32.step5Done = true;
-                                s32.step2Status = "approved";
-                                s32.step3Status = "approved";
-                                s32.postWorkQty = req.postWorkQty || 15;
-                                s32.postWorkWeight = req.weight || 12.0;
-                                s32.endTime = new Date().toLocaleTimeString();
-                                if (!s32.workLogs) s32.workLogs = [];
-                                s32.workLogs.push(`${orderId} Stage3-2 무게재기승인완료 ${new Date().toLocaleTimeString()} 양품:${req.postWorkQty || 15} | 무게:${req.weight || 12.0}`);
-
-                                orders[orderId].stages[3].dryingStatus = "completed";
-                                orders[orderId].stages[3].refrigeratorStoredTime = Date.now();
-
-                                orders[orderId].currentTask = 4;
-                                orders[orderId].progressStatus = "생산중 (Stage 3 완료)";
                             } else {
                                 if (!orders[orderId].stages[stageNum]) {
                                     orders[orderId].stages[stageNum] = {};
@@ -4688,7 +4694,7 @@
                                 if (stageNum === 5) {
                                     orders[orderId].status = "completed";
                                     orders[orderId].progressStatus = "생산 완료";
-                                } else {
+                                } else { if (stageNum === 2) { orders[orderId].currentTask = 2; } else if (stageNum === 4) { orders[orderId].currentTask = "5-2"; } else { orders[orderId].currentTask = stageNum + 1; } if (stageNum === 4) { orders[orderId].progressStatus = "생산중 (Stage 4 완료, 5-2 대기)"; } else { orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`; } //
                                      if (stageNum === 2) {
                                          orders[orderId].currentTask = 2;
                                      } else {
@@ -4895,6 +4901,7 @@
             refreshAllData();
         }
 
+        let lastSaltingRoomHtml = "";
         let lastVisualMapHtml = "";
         // ── J. 공정 비주얼 맵 & 근로자 테이블 렌더링 ──
         function renderWorkersList(workers) {
@@ -5466,7 +5473,10 @@
                 saveProductionOrders(ordersObj);
             }
 
-            container.innerHTML = html;
+            if (lastSaltingRoomHtml !== html) {
+                container.innerHTML = html;
+                lastSaltingRoomHtml = html;
+            }
         }
 
         window.sendSaltingBatchToStage3 = function (batchId, orderId) {
@@ -5482,21 +5492,25 @@
 
             // 2. 생산지시서 상태 업데이트 (Stage 2 완료 -> Stage 3 진행)
             let ordersObj = loadProductionOrders();
-            if (orderId && ordersObj[orderId]) {
-                ordersObj[orderId].currentTask = 3; // 세척/탈수 (Stage 3)
-                ordersObj[orderId].progressStatus = "생산중(Stage2 완료)";
+            const normId = (orderId || "").replace(/^(SALT-|ORD-)/, "");
+            let key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normId);
+            let targetOrder = key ? ordersObj[key] : null;
+
+            if (targetOrder) {
+                targetOrder.currentTask = 3; // 세척/탈수 (Stage 3)
+                targetOrder.progressStatus = "생산중(Stage2 완료)";
 
                 // stage 2 완료 기록 설정
-                if (!ordersObj[orderId].stages) ordersObj[orderId].stages = {};
-                if (!ordersObj[orderId].stages[2]) {
-                    ordersObj[orderId].stages[2] = {
+                if (!targetOrder.stages) targetOrder.stages = {};
+                if (!targetOrder.stages[2]) {
+                    targetOrder.stages[2] = {
                         operator: "자동설비",
                         startTime: new Date().toLocaleTimeString(),
                         endTime: new Date().toLocaleTimeString(),
-                        postWorkQty: ordersObj[orderId].quantity || 15,
-                        postWorkWeight: (ordersObj[orderId].quantity || 15) * 2.5,
+                        postWorkQty: targetOrder.quantity || 15,
+                        postWorkWeight: (targetOrder.quantity || 15) * 2.5,
                         defectCount: 0,
-                        weight: (ordersObj[orderId].quantity || 15) * 2.5,
+                        weight: (targetOrder.quantity || 15) * 2.5,
                         step1Done: true,
                         step2Done: true,
                         step2Status: "approved",
@@ -5506,13 +5520,13 @@
                         statusSubmitted: true
                     };
                 } else {
-                    ordersObj[orderId].stages[2].step2Done = true;
-                    ordersObj[orderId].stages[2].step2Status = "approved";
-                    ordersObj[orderId].stages[2].step3Done = true;
-                    ordersObj[orderId].stages[2].step3Status = "approved";
-                    ordersObj[orderId].stages[2].step4Done = true;
-                    ordersObj[orderId].stages[2].statusSubmitted = true;
-                    ordersObj[orderId].stages[2].endTime = new Date().toLocaleTimeString();
+                    targetOrder.stages[2].step2Done = true;
+                    targetOrder.stages[2].step2Status = "approved";
+                    targetOrder.stages[2].step3Done = true;
+                    targetOrder.stages[2].step3Status = "approved";
+                    targetOrder.stages[2].step4Done = true;
+                    targetOrder.stages[2].statusSubmitted = true;
+                    targetOrder.stages[2].endTime = new Date().toLocaleTimeString();
                 }
                 saveProductionOrders(ordersObj);
 
@@ -5563,9 +5577,13 @@
 
         window.sendOrderToStage32 = function (orderId) {
             let ordersObj = loadProductionOrders();
-            if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
-                ordersObj[orderId].stages[3].dryingStatus = "ready_for_3_2";
-                ordersObj[orderId].progressStatus = "생산중(Stage3 탈수 완료)";
+            const normId = orderId.replace(/^(SALT-|ORD-)/, "");
+            let key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normId);
+            let targetOrder = key ? ordersObj[key] : null;
+
+            if (targetOrder && targetOrder.stages && targetOrder.stages[3]) {
+                targetOrder.stages[3].dryingStatus = "ready_for_3_2";
+                targetOrder.progressStatus = "생산중(Stage 3-2 대기)";
                 saveProductionOrders(ordersObj);
                 addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 3-2로 옮겼습니다. 작업자 스캔 대기 중.`);
                 refreshAllData();
@@ -5574,10 +5592,14 @@
 
         window.sendOrderToStage4 = function (orderId) {
             let ordersObj = loadProductionOrders();
-            if (ordersObj[orderId] && ordersObj[orderId].stages && ordersObj[orderId].stages[3]) {
-                ordersObj[orderId].stages[3].sentToStage4 = true;
-                ordersObj[orderId].currentTask = 4;
-                ordersObj[orderId].progressStatus = "양념 대기 중";
+            const normId = orderId.replace(/^(SALT-|ORD-)/, "");
+            let key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normId);
+            let targetOrder = key ? ordersObj[key] : null;
+
+            if (targetOrder && targetOrder.stages && targetOrder.stages[3]) {
+                targetOrder.stages[3].sentToStage4 = true;
+                targetOrder.currentTask = 4;
+                targetOrder.progressStatus = "양념 대기 중";
                 saveProductionOrders(ordersObj);
                 addConsoleLog(`[공정 이동] 지시서 ${orderId}를 Stage 4(밀봉 및 보관)로 보냈습니다.`);
                 refreshAllData();
@@ -6759,10 +6781,10 @@
                 { id: "1", name: "공급 및 적재" },
                 { id: "2", name: "배추 절임" },
                 { id: "3", name: "세척 및 탈수 (3-1 세척)" },
-                { id: "32", name: "무게 및 수량재기 (3-2)" },
+                { id: "3-2", name: "무게 및 수량재기 (3-2)" },
                 { id: "4", name: "밀봉 및 보관" },
-                { id: "5-1", name: "양념 버무림 (소포장)" },
-                { id: "5-2", name: "양념 버무림 (대포장)" },
+                { id: "5-1", name: "양념만들기" },
+                { id: "5-2", name: "양념바르기" },
                 { id: "6", name: "포장 및 출하 대기" }
             ];
 
@@ -6770,13 +6792,14 @@
 
             stagesList.forEach(s => {
                 let stageData = null;
-                if (s.id === "32") {
-                    stageData = o.stages && o.stages[3] && o.stages[3].stage32;
+                if (s.id === "3-2" || s.id === "32") {
+                    stageData = o.stages && (o.stages["3-2"] || o.stages["32"] || (o.stages[3] && o.stages[3].stage32));
                 } else {
                     stageData = o.stages && o.stages[s.id];
                 }
 
-                let isActivated = !!stageData;
+                // 💡 [수정] 단순 객체 생성이 아니라, 실제 HMI 스캔/시작 정보가 입력되었을 때만 활성화로 판별 (Stage 2 완료 후 전달 시 오작동 노출 원천 차단)
+                let isActivated = stageData && (!!stageData.startTime || !!stageData.endTime || (stageData.workLogs && stageData.workLogs.length > 0));
                 let startTime = (stageData && stageData.startTime) || "-";
                 let endTime = (stageData && stageData.endTime) || "-";
                 let qty = (stageData && stageData.postWorkQty) || "-";

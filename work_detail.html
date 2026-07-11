@@ -39,6 +39,9 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
+        .badge-name {
+            padding: 3px 8px;
+        }
         /* 토스트 알림창 스타일 */
         .toast-message {
             position: fixed;
@@ -78,6 +81,7 @@
                     <i class="bi bi-chevron-left back"></i><img src="./images/k-icon_150x150.png" /><span
                         class="cursor-pointer" onclick="openStatusPage()">김치만들기</span><i id="work-stars"
                         class="bi bi-star"></i>
+                    <button type="button" class="h-open-btn" style="margin-left: auto; background: none; border: none; padding: 0; outline: none; cursor: pointer; display: flex; align-items: center;"><i class="bi bi-person-circle" style="font-size: 24px; color: #fff;"></i></button>
                 </div>
                 <div class="text0">
                     <i class="bi bi-caret-up-fill"></i><span>1.3</span><span class="ratio">+0.03%</span>
@@ -1171,6 +1175,26 @@
         }
 
         $(document).ready(function () {
+            // 💡 [수정] My Page(mypage2.html) 이동을 지원하는 badge-name 뱃지 렌더링 및 클릭 이벤트 바인딩
+            const user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (user) {
+                if (user.picture) {
+                    $(".h-open-btn").html('<img src="' + user.picture + '" style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ffffff; object-fit: cover; vertical-align: middle;" alt="' + user.name + '" />');
+                } else {
+                    $(".h-open-btn").html('<span class="badge-name">' + user.name + '</span>');
+                }
+            }
+            
+            $(".h-open-btn").click(function(e) {
+                e.stopPropagation();
+                const isLoggedIn = window.AuthManager ? !!window.AuthManager.getCurrentUser() : !!sessionStorage.getItem("user");
+                if (isLoggedIn) {
+                    location.href = "./mypage2.html";
+                } else {
+                    location.href = "./login.html";
+                }
+            });
+
             var urlParams = new URLSearchParams(window.location.search);
             var workId = urlParams.get('id') || '1';
             

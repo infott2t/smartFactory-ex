@@ -838,9 +838,19 @@
                         return !!(o.stages && o.stages[1] && o.stages[1].statusSubmitted);
                     }
                     if (String(stageId) === "3") {
-                        const isS3Submitted = !!(o.stages && o.stages[3] && o.stages[3].statusSubmitted);
+                        const isS31Submitted = !!(o.stages && o.stages[3] && o.stages[3].statusSubmitted);
+                        const isS32Submitted = !!(o.stages && o.stages["3-2"] && o.stages["3-2"].statusSubmitted);
+                        const isReadyFor32 = o.stages && o.stages[3] && o.stages[3].dryingStatus === "ready_for_3_2";
+
+                        if (isS31Submitted) {
+                            if (isReadyFor32 && !isS32Submitted) {
+                                return true;
+                            }
+                            return false;
+                        }
+
                         const isTaskS3Finished = o.currentTask && (String(o.currentTask) === "4" || String(o.currentTask).startsWith("5") || String(o.currentTask) === "6");
-                        if (isS3Submitted || isTaskS3Finished) {
+                        if (isTaskS3Finished) {
                             return false;
                         }
                         const isS2Submitted = !!(o.stages && o.stages[2] && o.stages[2].statusSubmitted);
@@ -2002,26 +2012,35 @@
 
                     if (targetOrder) {
                         if (!targetOrder.stages) targetOrder.stages = {};
-                        if (!targetOrder.stages[stageId]) {
-                            targetOrder.stages[stageId] = {};
+                        let targetStageId = stageId;
+                        if (String(stageId) === "3" && targetOrder.stages[3] && targetOrder.stages[3].dryingStatus === "ready_for_3_2") {
+                            targetStageId = "3-2";
                         }
-                        targetOrder.stages[stageId].operator = spot.worker;
+
+                        if (!targetOrder.stages[targetStageId]) {
+                            targetOrder.stages[targetStageId] = {};
+                        }
+                        targetOrder.stages[targetStageId].operator = spot.worker;
                         
-                        if (!targetOrder.stages[stageId].startTime) {
-                            targetOrder.stages[stageId].startTime = new Date().toLocaleTimeString();
+                        if (!targetOrder.stages[targetStageId].startTime) {
+                            targetOrder.stages[targetStageId].startTime = new Date().toLocaleTimeString();
                         }
-                        if (!targetOrder.stages[stageId].workLogs) {
-                            targetOrder.stages[stageId].workLogs = [];
+                        if (!targetOrder.stages[targetStageId].workLogs) {
+                            targetOrder.stages[targetStageId].workLogs = [];
                         }
                         const nowTime = new Date();
                         const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
-                        const logStr = `${currentOrderId} Stage${stageId} 시작 ${timeStrHHMMSS} 작업자:${spot.worker}`;
-                        targetOrder.stages[stageId].workLogs.push(logStr);
+                        const logStr = `${currentOrderId} Stage${targetStageId} 시작 ${timeStrHHMMSS} 작업자:${spot.worker}`;
+                        targetOrder.stages[targetStageId].workLogs.push(logStr);
                         
                         // 💡 매니저 대시보드 상태 동기화
                         targetOrder.status = "in_progress";
                         if (String(stageId) === "3") {
-                            targetOrder.progressStatus = "생산중 (Stage3-1 세척중)";
+                            if (targetStageId === "3-2") {
+                                targetOrder.progressStatus = "생산중(Stage3-2 무게재기)";
+                            } else {
+                                targetOrder.progressStatus = "생산중 (Stage3-1 세척중)";
+                            }
                         } else {
                             targetOrder.progressStatus = `생산중(Stage${stageId})`;
                         }
@@ -3437,11 +3456,16 @@
             const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             const requestId = "COMP-" + Date.now();
             
+            let reqStageNum = appData.activeStageId;
+            if (String(appData.activeStageId) === "3" && currentStepIndex >= 5) {
+                reqStageNum = "3-2";
+            }
+
             const reqObj = {
                 id: requestId,
                 type: "completion",
                 orderId: appData.currentOrder.id,
-                stageNum: appData.activeStageId,
+                stageNum: reqStageNum,
                 userName: appData.user.name,
                 userId: appData.user.name,
                 status: "pending",
@@ -3565,45 +3589,51 @@
                             if (key) targetOrder = ordersObj[key];
                         }
 
-                        if (targetOrder) {
-                            if (!targetOrder.stages) targetOrder.stages = {};
-                            if (!targetOrder.stages[stageId]) targetOrder.stages[stageId] = {};
-                            if (!targetOrder.stages[stageId].workLogs) {
-                                targetOrder.stages[stageId].workLogs = [];
-                            }
-                            
-                            // 실적 로그 파싱
-                            let goodQty = 0;
-                            let defectQty = 0;
-                            let weightVal = window.tempWeight || 0;
-
-                            const perfLogs = appData.logs.filter(l => l.text.includes('실적'));
-                            if (perfLogs.length > 0) {
-                                const latestLog = perfLogs[perfLogs.length - 1];
-                                const matchGood = latestLog.text.match(/양품:\s*(\d+)/);
-                                if (matchGood) goodQty = parseInt(matchGood[1], 10);
-                                
-                                const matchDefect = latestLog.text.match(/불량:\s*(\d+)/);
-                                if (matchDefect) defectQty = parseInt(matchDefect[1], 10);
-                                
-                                const matchWeight = latestLog.text.match(/무게:\s*([\d.]+)/);
-                                if (matchWeight) weightVal = parseFloat(matchWeight[1]);
-                            } else {
-                                goodQty = appData.currentOrder.qty || 15;
-                            }
-
-                            const nowTime = new Date();
-                            const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
-                            const logStr = `${currentOrderId} Stage${stageId} ${timeStrHHMMSS} ${appData.user.name}작업 실적등록 (양품:${goodQty} | 불량:${defectQty} | 무게:${weightVal}kg)`;
-                            
-                            targetOrder.stages[stageId].workLogs.push(logStr);
+                             if (targetOrder) {
+                                 if (!targetOrder.stages) targetOrder.stages = {};
+ 
+                                 let targetStageId = stageId;
+                                 if (String(stageId) === "3" && (currentStepIndex >= 5 || (targetOrder.stages[3] && targetOrder.stages[3].dryingStatus === "ready_for_3_2"))) {
+                                     targetStageId = "3-2";
+                                 }
+ 
+                                 if (!targetOrder.stages[targetStageId]) targetOrder.stages[targetStageId] = {};
+                                 if (!targetOrder.stages[targetStageId].workLogs) {
+                                     targetOrder.stages[targetStageId].workLogs = [];
+                                 }
+                                 
+                                 // 실적 로그 파싱
+                                 let goodQty = 0;
+                                 let defectQty = 0;
+                                 let weightVal = window.tempWeight || 0;
+ 
+                                 const perfLogs = appData.logs.filter(l => l.text.includes('실적'));
+                                 if (perfLogs.length > 0) {
+                                     const latestLog = perfLogs[perfLogs.length - 1];
+                                     const matchGood = latestLog.text.match(/양품:\s*(\d+)/);
+                                     if (matchGood) goodQty = parseInt(matchGood[1], 10);
+                                     
+                                     const matchDefect = latestLog.text.match(/불량:\s*(\d+)/);
+                                     if (matchDefect) defectQty = parseInt(matchDefect[1], 10);
+                                     
+                                     const matchWeight = latestLog.text.match(/무게:\s*([\d.]+)/);
+                                     if (matchWeight) weightVal = parseFloat(matchWeight[1]);
+                                 } else {
+                                     goodQty = appData.currentOrder.qty || 15;
+                                 }
+ 
+                                 const nowTime = new Date();
+                                 const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
+                                 const logStr = `${currentOrderId} Stage${targetStageId} ${timeStrHHMMSS} ${appData.user.name}작업 실적등록 (양품:${goodQty} | 불량:${defectQty} | 무게:${weightVal}kg)`;
+                                 
+                                 targetOrder.stages[targetStageId].workLogs.push(logStr);
 
                             // 💡 다음 스테이지 전이 로직 추가 (중복 진행 방지 및 정상 진행)
                             let nextTask = null;
                             if (String(stageId) === "1") nextTask = "2";
                             else if (String(stageId) === "2") nextTask = "2";
                             else if (String(stageId) === "3") nextTask = "4";
-                            else if (String(stageId) === "4") {
+                            else if (String(stageId) === "4") { nextTask = "5-2"; if (!targetOrder.stages[4]) targetOrder.stages[4] = {}; targetOrder.stages[4].statusSubmitted = true; } else if (false) {
                                 const prodName = targetOrder.product || "";
                                 if (prodName.includes("5kg") || prodName.includes("10kg")) {
                                     nextTask = "5-2";
@@ -3623,11 +3653,11 @@
                                 
                                 // 💡 매니저 대시보드 상태 동기화
                                 if (String(stageId) === "3") {
-                                    targetOrder.progressStatus = "생산중(Stage3 완료)";
+                                    if (targetStageId === "3-2") { targetOrder.progressStatus = "생산중 (Stage 3-2 완료)"; } else { targetOrder.progressStatus = "생산중(Stage3 완료)"; }
                                     if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
                                     targetOrder.stages[3].dryingStatus = "completed";
                                     targetOrder.stages[3].sentToStage4 = true;
-                                } else {
+                                } else { targetOrder.progressStatus = (String(stageId) === "4") ? "생산중 (Stage 4 완료, 5-2 대기)" : `생산중(Stage${stageId} 완료)`; //
                                     targetOrder.progressStatus = `생산중(Stage${stageId} 완료)`;
                                 }
                             } else {
@@ -3888,11 +3918,16 @@
             const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
             const requestId = "COMP-" + Date.now();
             
+            let reqStageNum = appData.activeStageId;
+            if (String(appData.activeStageId) === "3" && currentStepIndex >= 5) {
+                reqStageNum = "3-2";
+            }
+
             const reqObj = {
                 id: requestId,
                 type: "completion",
                 orderId: appData.currentOrder.id,
-                stageNum: appData.activeStageId,
+                stageNum: reqStageNum,
                 userName: appData.user.name,
                 userId: appData.user.name,
                 status: "pending",
@@ -4054,9 +4089,13 @@
 
                         if (targetOrder) {
                             if (!targetOrder.stages) targetOrder.stages = {};
-                            if (!targetOrder.stages[stageId]) targetOrder.stages[stageId] = {};
-                            if (!targetOrder.stages[stageId].workLogs) {
-                                targetOrder.stages[stageId].workLogs = [];
+                            let targetStageId = stageId;
+                            if (String(stageId) === "3" && (currentStepIndex >= 5 || (targetOrder.stages[3] && targetOrder.stages[3].dryingStatus === "ready_for_3_2"))) {
+                                targetStageId = "3-2";
+                            }
+                            if (!targetOrder.stages[targetStageId]) targetOrder.stages[targetStageId] = {};
+                            if (!targetOrder.stages[targetStageId].workLogs) {
+                                targetOrder.stages[targetStageId].workLogs = [];
                             }
                             
                             // 실적 로그 파싱
@@ -4081,9 +4120,9 @@
 
                             const nowTime = new Date();
                             const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
-                            const logStr = `${currentOrderId} Stage${stageId} ${timeStrHHMMSS} ${appData.user.name}작업 실적등록 (양품:${goodQty} | 불량:${defectQty} | 무게:${weightVal}kg)`;
+                            const logStr = `${currentOrderId} Stage${targetStageId} ${timeStrHHMMSS} ${appData.user.name}작업 실적등록 (양품:${goodQty} | 불량:${defectQty} | 무게:${weightVal}kg)`;
                             
-                            targetOrder.stages[stageId].workLogs.push(logStr);
+                            targetOrder.stages[targetStageId].workLogs.push(logStr);
 
                             // 💡 다음 스테이지 전이 로직 추가 (중복 진행 방지 및 정상 진행)
                             let nextTask = null;
@@ -4091,12 +4130,7 @@
                             else if (String(stageId) === "2") nextTask = "2";
                             else if (String(stageId) === "3") nextTask = "4";
                             else if (String(stageId) === "4") {
-                                const prodName = targetOrder.product || "";
-                                if (prodName.includes("5kg") || prodName.includes("10kg")) {
-                                    nextTask = "5-2";
-                                } else {
-                                    nextTask = "5-1";
-                                }
+                                nextTask = "5-2";
                                 if (!targetOrder.stages[4]) targetOrder.stages[4] = {};
                                 targetOrder.stages[4].statusSubmitted = true;
                             } else if (String(stageId) === "5-1" || String(stageId) === "5-2") {
@@ -4110,10 +4144,14 @@
                                 
                                 // 💡 매니저 대시보드 상태 동기화
                                 if (String(stageId) === "3") {
-                                    targetOrder.progressStatus = "생산중(Stage3 완료)";
-                                    if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
-                                    targetOrder.stages[3].dryingStatus = "completed";
-                                    targetOrder.stages[3].sentToStage4 = true;
+                                    if (targetStageId === "3-2") {
+                                        targetOrder.progressStatus = "생산중 (Stage 3-2 완료)";
+                                    } else {
+                                        targetOrder.progressStatus = "생산중(Stage3 완료)";
+                                        if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
+                                        targetOrder.stages[3].dryingStatus = "completed";
+                                        targetOrder.stages[3].sentToStage4 = true;
+                                    }
                                 } else {
                                     targetOrder.progressStatus = `생산중(Stage${stageId} 완료)`;
                                 }

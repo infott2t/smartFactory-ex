@@ -36,8 +36,9 @@ body {
     justify-content: center;
     align-items: center;
     background-color: var(--var-bg-color);
-
     color: white;
+    height: 42px;
+    box-sizing: border-box;
 }
 .header.mypage-header {
     display:flex;
@@ -51,10 +52,11 @@ body {
 }
 .header > .h-logo > h3 {
     margin: 0;
-    padding: 10px;
+    padding: 0 10px;
     color: white;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 300;
+    line-height: 42px;
 }
 
 .header > .h-bar {

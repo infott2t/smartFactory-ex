@@ -498,6 +498,13 @@
             }
         };
 
+        // 💡 [수정] 3-2, 5-1, 5-2, 6 등 표준(1~4) 외 서브 공정 키들이 직렬화 저장 시 삭제되지 않도록 보존 
+        for (let key in cloned.stages) {
+            if (key !== "1" && key !== "2" && key !== "3" && key !== "4" && key !== 1 && key !== 2 && key !== 3 && key !== 4) {
+                dbStages[key] = cloned.stages[key];
+            }
+        }
+
         cloned.stages = dbStages;
         return cloned;
     }
@@ -938,21 +945,32 @@
                     } else if (localTask < storageTask) {
                         isLocalNewer = false;
                     } else {
-                        const localHasTaskNum = state.productionOrders[key].progressStatus && state.productionOrders[key].progressStatus.includes(String(localTask));
-                        const storageHasTaskNum = currentOrders[key].progressStatus && currentOrders[key].progressStatus.includes(String(localTask));
-                        
-                        if (localHasTaskNum && !storageHasTaskNum) {
+                        const localProgress = state.productionOrders[key].progressStatus || "";
+                        const storageProgress = currentOrders[key].progressStatus || "";
+                        const localIs32 = localProgress.includes("3-2") || localProgress.includes("무게재기");
+                        const storageIs32 = storageProgress.includes("3-2") || storageProgress.includes("무게재기");
+
+                        if (localIs32 && !storageIs32) {
                             isLocalNewer = true;
-                        } else if (!localHasTaskNum && storageHasTaskNum) {
+                        } else if (!localIs32 && storageIs32) {
                             isLocalNewer = false;
                         } else {
-                            if (localProgressPriority > storageProgressPriority) {
+                            const localHasTaskNum = state.productionOrders[key].progressStatus && state.productionOrders[key].progressStatus.includes(String(localTask));
+                            const storageHasTaskNum = currentOrders[key].progressStatus && currentOrders[key].progressStatus.includes(String(localTask));
+                            
+                            if (localHasTaskNum && !storageHasTaskNum) {
                                 isLocalNewer = true;
-                            } else if (localProgressPriority < storageProgressPriority) {
+                            } else if (!localHasTaskNum && storageHasTaskNum) {
                                 isLocalNewer = false;
                             } else {
-                                if (localStatusPriority > storageStatusPriority) {
+                                if (localProgressPriority > storageProgressPriority) {
                                     isLocalNewer = true;
+                                } else if (localProgressPriority < storageProgressPriority) {
+                                    isLocalNewer = false;
+                                } else {
+                                    if (localStatusPriority > storageStatusPriority) {
+                                        isLocalNewer = true;
+                                    }
                                 }
                             }
                         }
@@ -974,6 +992,17 @@
                         }
                         if (currentOrders[key].progressStatus) {
                             state.productionOrders[key].progressStatus = currentOrders[key].progressStatus;
+                        }
+
+                        // 💡 [수정] 스토리지가 더 신규 상태일 때, 최신 stages 실적 데이터도 로컬 메모리로 완벽 동기화 역수입!
+                        if (currentOrders[key].stages) {
+                            if (!state.productionOrders[key].stages) state.productionOrders[key].stages = {};
+                            for (let stageNum in currentOrders[key].stages) {
+                                state.productionOrders[key].stages[stageNum] = {
+                                    ...(state.productionOrders[key].stages[stageNum] || {}),
+                                    ...(currentOrders[key].stages[stageNum] || {})
+                                };
+                            }
                         }
                     }
                     

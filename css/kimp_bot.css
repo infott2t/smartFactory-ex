@@ -1,11 +1,13 @@
 .menu-bar {
-    padding-top: 8px;
+    height: 42px;
+    box-sizing: border-box;
+    padding-top: 0;
+    padding-bottom: 0;
     padding-left: 9px;
     display: flex;
     justify-content: flex-start;
     column-gap: 5px;
     align-items: center;
-    padding-bottom: 8px;
     color: white;
     background-color: var(--var-bg-color);
 }
