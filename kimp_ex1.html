@@ -838,11 +838,21 @@
                         return !!(o.stages && o.stages[1] && o.stages[1].statusSubmitted);
                     }
                     if (String(stageId) === "3") {
+                        const isS3Submitted = !!(o.stages && o.stages[3] && o.stages[3].statusSubmitted);
+                        const isTaskS3Finished = o.currentTask && (String(o.currentTask) === "4" || String(o.currentTask).startsWith("5") || String(o.currentTask) === "6");
+                        if (isS3Submitted || isTaskS3Finished) {
+                            return false;
+                        }
                         const isS2Submitted = !!(o.stages && o.stages[2] && o.stages[2].statusSubmitted);
                         const isProgressDone = o.progressStatus && (o.progressStatus.includes("Stage2 완료") || o.progressStatus.includes("Stage2완료"));
                         return isS2Submitted || isProgressDone;
                     }
                     if (String(stageId) === "4") {
+                        const isS4Submitted = !!(o.stages && o.stages[4] && o.stages[4].statusSubmitted);
+                        const isTaskS4Finished = o.currentTask && (String(o.currentTask).startsWith("5") || String(o.currentTask) === "6");
+                        if (isS4Submitted || isTaskS4Finished) {
+                            return false;
+                        }
                         const isSent = !!(o.stages && o.stages[3] && o.stages[3].sentToStage4);
                         const isTask4 = String(o.currentTask) === "4";
                         const isProgressDone = o.progressStatus && (o.progressStatus.includes("Stage3 완료") || o.progressStatus.includes("Stage3완료"));
@@ -1992,8 +2002,21 @@
 
                     if (targetOrder) {
                         if (!targetOrder.stages) targetOrder.stages = {};
-                        if (!targetOrder.stages[stageId]) targetOrder.stages[stageId] = {};
+                        if (!targetOrder.stages[stageId]) {
+                            targetOrder.stages[stageId] = {};
+                        }
                         targetOrder.stages[stageId].operator = spot.worker;
+                        
+                        if (!targetOrder.stages[stageId].startTime) {
+                            targetOrder.stages[stageId].startTime = new Date().toLocaleTimeString();
+                        }
+                        if (!targetOrder.stages[stageId].workLogs) {
+                            targetOrder.stages[stageId].workLogs = [];
+                        }
+                        const nowTime = new Date();
+                        const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
+                        const logStr = `${currentOrderId} Stage${stageId} 시작 ${timeStrHHMMSS} 작업자:${spot.worker}`;
+                        targetOrder.stages[stageId].workLogs.push(logStr);
                         
                         // 💡 매니저 대시보드 상태 동기화
                         targetOrder.status = "in_progress";
