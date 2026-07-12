@@ -1933,9 +1933,15 @@
 
                 <!-- Feature 3: 포장 규격 확장 및 당일 출하/배송 대시보드 -->
                 <div class="section-card">
-                    <div class="card-header">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h3><i class="bi bi-truck"></i> 당일 출하 / 배송 현황 (포장 규격별)</h3>
-                        <span class="badge badge-green" id="shipping-overall-badge">출하율 80%</span>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button onclick="printAllDeliveryLabels()" class="top-action-btn" 
+                                style="background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); padding: 4px 10px; font-weight: bold; border-radius: 6px; font-size: 11px; cursor: pointer;">
+                                <i class="bi bi-printer-fill"></i> 배송 라벨 일괄 인쇄
+                            </button>
+                            <span class="badge badge-green" id="shipping-overall-badge">출하율 80%</span>
+                        </div>
                     </div>
                     <div class="shipping-dashboard-grid" id="shipping-dashboard-grid">
                         <!-- JS 바인딩 -->
@@ -2150,7 +2156,7 @@
 
                         <!-- 실시간 무게 합계 -->
                         <div id="seasoning-weight-calc-result" style="padding: 12px; background-color: var(--accent-purple-bg); border: 1px solid var(--accent-purple); border-radius: 8px; font-size: 12px; color: var(--accent-purple); font-weight: 600; margin-bottom: 14px;">
-                            예정된 총 양념 생산 무게: 1000 g
+                            예정된 총 양념 생산 무게: 1900 g
                         </div>
 
                         <button id="seasoning-issue-btn" class="top-action-btn" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 700; background-color: var(--accent-purple); color: #fff; border: none; border-radius: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;" onclick="issueSeasoningOrder()">
@@ -2374,7 +2380,7 @@
                     <div class="stats-card">
                         <div class="stats-info">
                             <span class="stats-title">배추 1포기당 단가</span>
-                            <span class="stats-value">2,500원</span>
+                            <span class="stats-value" id="stats-cabbage-unit-price">2,500원</span>
                             <div class="stats-trend neutral">
                                 총 배추 보유량 가치: <span id="stats-cabbage-value">0원</span>
                             </div>
@@ -2442,6 +2448,50 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 16px;" id="product-catalog-list">
                             <!-- JS 바인딩 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 배추 가격 설정 및 설비/비품 재고 관리 -->
+                <div class="dashboard-grid" style="margin-top: 20px;">
+                    <!-- 배추 단가 설정 카드 -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-currency-exchange" style="color: var(--accent-green);"></i> 배추 단가 실시간 설정</h3>
+                        </div>
+                        <div class="form-wrapper" style="padding: 10px 0;">
+                            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px;">배추 1포기당 단가 (원):</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="input-cabbage-unit-price" value="2500" min="500" max="10000"
+                                    style="flex-grow: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; font-size: 14px;" />
+                                <button class="action-btn-primary" onclick="saveCabbageUnitPrice()"
+                                    style="padding: 8px 16px; background-color: var(--accent-green); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                                    설정 저장
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 설비 / 위생 비품 재고 및 구매 (홈쇼핑 기준) -->
+                    <div class="section-card" style="grid-column: span 2;">
+                        <div class="card-header">
+                            <h3><i class="bi bi-cart-plus-fill" style="color: var(--accent-purple);"></i> 설비 및 위생 비품 재고/구매 관리 (홈쇼핑 가격 기준)</h3>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="console-table" style="font-size: 12.5px;">
+                                <thead>
+                                    <tr>
+                                        <th>비품명</th>
+                                        <th>단가 (원)</th>
+                                        <th>현재 보유 수량</th>
+                                        <th>구매 수량</th>
+                                        <th>구매 액션</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="equipment-inventory-table-body">
+                                    <!-- JS 동적 바인딩 -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -3431,6 +3481,7 @@
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             const dateStr = `${yy}${mm}${dd}`;
+            const createdTimeStr = `${now.getHours() >= 12 ? '오후' : '오전'} ${now.getHours() % 12 || 12}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
             const ordersObj = loadProductionOrders();
             let seq = 1;
@@ -3457,7 +3508,7 @@
                 status: "in_progress",
                 currentTask: "5-1-pending",
                 progressStatus: "생산 대기 (5-1 전달 대기)",
-                createdTime: new Date().toLocaleTimeString(),
+                createdTime: createdTimeStr,
                 isSeasoning: true,
                 ingredients: {
                     scallion,
@@ -3549,6 +3600,9 @@
                 }
             }
 
+            const nowD = new Date();
+            const createdTimeStr = `${nowD.getHours() >= 12 ? '오후' : '오전'} ${nowD.getHours() % 12 || 12}:${String(nowD.getMinutes()).padStart(2, '0')}:${String(nowD.getSeconds()).padStart(2, '0')}`;
+
             const newPkgOrder = {
                 orderId: orderId,
                 targets: {
@@ -3560,7 +3614,7 @@
                 },
                 totalWeight: totalPkgWeight,
                 status: '대기 중',
-                createdTime: new Date().toLocaleTimeString()
+                createdTime: createdTimeStr
             };
 
             if (window.FactoryStore) {
@@ -4174,6 +4228,9 @@
                 p10kg: "10kg 업소용 김치"
             };
 
+            const nowD = new Date();
+            const createdTimeStr = `${nowD.getHours() >= 12 ? '오후' : '오전'} ${nowD.getHours() % 12 || 12}:${String(nowD.getMinutes()).padStart(2, '0')}:${String(nowD.getSeconds()).padStart(2, '0')}`;
+
             const newOrder = {
                 orderId: newId,
                 productId: productVal,
@@ -4184,7 +4241,7 @@
                 cabbageOrigin: origin,
                 supplier: supplier,
                 deliveryRoute: route,
-                createdTime: new Date().toLocaleTimeString(),
+                createdTime: createdTimeStr,
                 rawMaterial: {
                     cabbageQty: quantity,
                     cabbageWeightPerPiece: spec,
@@ -4654,6 +4711,11 @@
             document.getElementById("stats-finance-ratio").textContent = `${finance.revenue.toLocaleString()}원 / ${finance.cost.toLocaleString()}원`;
             document.getElementById("stats-expected-balance").textContent = `${balance.toLocaleString()}원`;
 
+            const inputPrice = document.getElementById("input-cabbage-unit-price");
+            if (inputPrice && document.activeElement !== inputPrice) {
+                inputPrice.value = getCabbageUnitPrice();
+            }
+
             // 3. 주문 실적 업데이트
             let products = {};
             let todayTotal = 0, yesterdayTotal = 0;
@@ -5097,10 +5159,36 @@
                                 orders[orderId].stages[stageKey].defectQty = req.defectQty !== undefined ? req.defectQty : 0;
                                 orders[orderId].stages[stageKey].postWorkWeight = req.weight || 4.0;
                                 orders[orderId].stages[stageKey].endTime = new Date().toLocaleTimeString();
+                                orders[orderId].stages[stageKey].operator = req.userName;
                                 if (!orders[orderId].stages[stageKey].workLogs) orders[orderId].stages[stageKey].workLogs = [];
                                 orders[orderId].stages[stageKey].workLogs.push(`${orderId} Stage${stageKey} 승인완료 ${new Date().toLocaleTimeString()} 양품:${orders[orderId].stages[stageKey].postWorkQty} | 불량:${orders[orderId].stages[stageKey].defectQty} | 무게:${req.weight || 4.0}`);
 
-                                if (stageKey === "5" || stageKey === "5-1") {
+                                if (stageKey === "6") {
+                                    orders[orderId].status = "completed";
+                                    orders[orderId].progressStatus = "생산 완료";
+                                    
+                                    // 💡 완제품 재고 가산
+                                    let products = {};
+                                    try {
+                                        products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
+                                    } catch(e) {}
+                                    const prodId = orders[orderId].productId || "p1kg";
+                                    if (products[prodId]) {
+                                        products[prodId].stock = (products[prodId].stock || 0) + (orders[orderId].quantity || 15);
+                                        localStorage.setItem("kimp_factory_products", JSON.stringify(products));
+                                    }
+
+                                    // 💡 완제 양념 차감 (김치 총중량의 30% 차감)
+                                    let inventory = {};
+                                    try {
+                                        inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
+                                    } catch(e) {}
+                                    if (inventory.seasoning) {
+                                        const neededSauceKg = (orders[orderId].quantity || 15) * 2.5 * 0.3;
+                                        inventory.seasoning.weight = Math.max(0, (inventory.seasoning.weight || 0) - neededSauceKg);
+                                        localStorage.setItem("kimp_factory_inventory", JSON.stringify(inventory));
+                                    }
+                                } else if (stageKey === "5" || stageKey === "5-1") {
                                     orders[orderId].status = "completed";
                                     orders[orderId].progressStatus = "생산 완료";
                                 } else { 
@@ -5277,7 +5365,29 @@
                 if (!orders[orderId].stages["5-1"]) {
                     orders[orderId].stages["5-1"] = { operator: "", startTime: null, endTime: null, workLogs: [], statusSubmitted: false };
                 }
-                orders[orderId].stages["5-1"].startTime = new Date().toLocaleTimeString();
+                const nowD = new Date();
+                const startTimeStr = `${nowD.getHours() >= 12 ? '오후' : '오전'} ${nowD.getHours() % 12 || 12}:${String(nowD.getMinutes()).padStart(2, '0')}:${String(nowD.getSeconds()).padStart(2, '0')}`;
+                orders[orderId].stages["5-1"].startTime = startTimeStr;
+
+                // 💡 양념용 재료 차감 (고춧가루, 밀가루풀, 액젓)
+                let inventory = {};
+                try {
+                    inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
+                } catch(e) {}
+                const ing = orders[orderId].ingredients || {};
+                if (inventory.redPepperPowder) {
+                    const chiliKg = (ing.chili || 0) / 1000.0;
+                    inventory.redPepperPowder.weight = Math.max(0, inventory.redPepperPowder.weight - chiliKg);
+                }
+                if (inventory.flour) {
+                    const pasteKg = (ing.paste || 0) / 1000.0;
+                    inventory.flour.weight = Math.max(0, inventory.flour.weight - pasteKg);
+                }
+                if (inventory.anchovySauce) {
+                    const fishSauceL = (ing.fishsauce || 0) / 1000.0;
+                    inventory.anchovySauce.volume = Math.max(0, inventory.anchovySauce.volume - fishSauceL);
+                }
+                localStorage.setItem("kimp_factory_inventory", JSON.stringify(inventory));
 
                 // 실제 window.localStorage에 직접 저장 (HMI 탭에서 읽을 수 있도록)
                 const serialized = JSON.stringify(orders);
@@ -5710,7 +5820,10 @@
             } catch (e) { }
 
             // 자산 가치
-            const cabPrice = inventory.cabbage ? inventory.cabbage.unitPrice : 2500;
+            const cabPrice = getCabbageUnitPrice();
+            const unitPriceEl = document.getElementById("stats-cabbage-unit-price");
+            if (unitPriceEl) unitPriceEl.textContent = `${cabPrice.toLocaleString()}원`;
+
             const cabHeads = inventory.cabbage ? inventory.cabbage.heads : 0;
             const cabbageValue = cabHeads * cabPrice;
             document.getElementById("stats-cabbage-value").textContent = `${cabbageValue.toLocaleString()}원`;
@@ -5834,6 +5947,346 @@
                 });
                 catalogContainer.innerHTML = catHtml;
             }
+            renderEquipmentTable();
+        }
+
+        function getCabbageUnitPrice() {
+            const price = parseInt(localStorage.getItem("kimp_cabbage_unit_price"));
+            return isNaN(price) || !price ? 2500 : price;
+        }
+
+        function loadEquipmentInventory() {
+            let eq = localStorage.getItem("kimp_equipment_inventory");
+            if (!eq) {
+                const defaultEq = [
+                    { id: "basket", name: "플라스틱 채반/바구니", price: 15000, stock: 12 },
+                    { id: "worktable", name: "주방 작업대/싱크대", price: 450000, stock: 4 },
+                    { id: "fridge", name: "상업용 4도어 냉장고", price: 1850000, stock: 2 },
+                    { id: "agingroom", name: "숙성실 (저온저장고 설비)", price: 3200000, stock: 1 },
+                    { id: "trolley", name: "대차 (스텐 트롤리)", price: 120000, stock: 6 },
+                    { id: "blender", name: "조리기기 (믹서기/배합기)", price: 850000, stock: 2 },
+                    { id: "utensils", name: "조리기구 세트 (칼, 도마 등)", price: 65000, stock: 5 },
+                    { id: "apron", name: "위생 앞치마", price: 8000, stock: 20 },
+                    { id: "boots", name: "위생 장화", price: 18000, stock: 15 }
+                ];
+                localStorage.setItem("kimp_equipment_inventory", JSON.stringify(defaultEq));
+                return defaultEq;
+            }
+            try { return JSON.parse(eq); } catch (e) { return []; }
+        }
+
+        function saveEquipmentInventory(eq) {
+            localStorage.setItem("kimp_equipment_inventory", JSON.stringify(eq));
+        }
+
+        function renderEquipmentTable() {
+            const eqList = loadEquipmentInventory();
+            const tbody = document.getElementById("equipment-inventory-table-body");
+            if (!tbody) return;
+
+            let html = "";
+            eqList.forEach(item => {
+                html += `
+                <tr>
+                    <td style="font-weight: 700;">${item.name}</td>
+                    <td style="font-weight: 600; color: var(--accent-purple);">${item.price.toLocaleString()}원</td>
+                    <td style="font-weight: 700; text-align: center;">${item.stock}개</td>
+                    <td>
+                        <input type="number" id="buy-qty-${item.id}" value="1" min="1" max="100"
+                            style="width: 60px; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center; outline: none; background: var(--bg-primary); color: var(--text-primary);" />
+                    </td>
+                    <td>
+                        <button onclick="buyEquipment('${item.id}')" class="action-btn-primary"
+                            style="padding: 4px 10px; font-size: 11px; background-color: var(--accent-purple); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                            <i class="bi bi-cart-plus"></i> 구매하기
+                        </button>
+                    </td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function buyEquipment(id) {
+            const qtyInput = document.getElementById(`buy-qty-${id}`);
+            if (!qtyInput) return;
+            const qty = parseInt(qtyInput.value) || 0;
+            if (qty <= 0) {
+                alert("구매 수량은 1개 이상이어야 합니다.");
+                return;
+            }
+
+            const eqList = loadEquipmentInventory();
+            const item = eqList.find(x => x.id === id);
+            if (!item) return;
+
+            const costAmount = item.price * qty;
+
+            if (!confirm(`${item.name} ${qty}개를 총 ${costAmount.toLocaleString()}원에 구매하시겠습니까?\n(구매 비용은 당일 비용 지출로 즉시 정산됩니다)`)) {
+                return;
+            }
+
+            item.stock += qty;
+            saveEquipmentInventory(eqList);
+
+            // 재정 지출 업데이트
+            let equipCost = parseInt(localStorage.getItem("kimp_equipment_purchases_cost") || "0");
+            equipCost += costAmount;
+            localStorage.setItem("kimp_equipment_purchases_cost", equipCost.toString());
+
+            let finance = { revenue: 194500, cost: 87600 };
+            try {
+                const stored = localStorage.getItem("kimp_factory_finance");
+                if (stored) finance = JSON.parse(stored);
+            } catch(e) {}
+
+            finance.cost += costAmount;
+            localStorage.setItem("kimp_factory_finance", JSON.stringify(finance));
+
+            addConsoleLog(`[자재 구매] 비품 ${item.name} ${qty}개를 구매하여 지출 비용 ${costAmount.toLocaleString()}원이 가산되었습니다.`);
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog(`설비/비품 ${item.name} ${qty}개 구매 (비용 ${costAmount.toLocaleString()}원 지출)`);
+            }
+
+            // 화면 갱신
+            renderEquipmentTable();
+            setTimeout(() => { refreshAllData(); }, 50);
+        }
+
+        function saveCabbageUnitPrice() {
+            const priceInput = document.getElementById("input-cabbage-unit-price");
+            if (!priceInput) return;
+            const price = parseInt(priceInput.value) || 0;
+            if (price < 500 || price > 10000) {
+                alert("배추 가격은 500원 ~ 10,000원 사이로 설정할 수 있습니다.");
+                return;
+            }
+
+            localStorage.setItem("kimp_cabbage_unit_price", price.toString());
+            
+            // 배추 재고 가격 정보 업데이트를 위해 inventory 단가 갱신
+            let inventory = {};
+            try {
+                inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
+            } catch(e) {}
+            if (inventory && inventory.cabbage) {
+                inventory.cabbage.unitPrice = price;
+                localStorage.setItem("kimp_factory_inventory", JSON.stringify(inventory));
+            }
+
+            alert(`배추 1포기당 단가가 ${price.toLocaleString()}원으로 변경되었습니다.`);
+            
+            // 화면 갱신
+            setTimeout(() => { refreshAllData(); }, 50);
+        }
+
+        function printAllDeliveryLabels() {
+            let orders = [];
+            try {
+                orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            if (orders.length === 0) {
+                alert("출하/배송 대상 주문이 존재하지 않습니다.");
+                return;
+            }
+
+            // 가상 배송 메모 리스트 (문의사항이 지정되지 않았을 때 다채로움을 위해 매칭)
+            const fallbackMemos = [
+                "문 앞에 놔주시고 벨은 누르지 말아주세요.",
+                "배송 전 미리 문자 하나 부탁드립니다.",
+                "경비실에 맡겨주시면 감사하겠습니다.",
+                "택배함에 보관 부탁드립니다.",
+                "파손 위험이 있으니 던지지 말아주세요."
+            ];
+
+            const productsMock = {
+                p300g: "300g 맛김치",
+                p1kg: "1kg 포기김치",
+                p3kg: "3kg 포기김치",
+                p5kg: "5kg 포기김치",
+                p10kg: "10kg 포기김치"
+            };
+
+            let labelHtml = "";
+            orders.forEach((o, index) => {
+                const phone = o.phone || "010-****-****";
+                const memo = o.memo || o.message || fallbackMemos[index % fallbackMemos.length];
+                const prodName = productsMock[o.productId] || o.productId;
+
+                labelHtml += `
+                <div class="label-card">
+                    <div class="label-header">
+                        <span class="label-logo">📦 AFOOD KIMCHI FACTORY</span>
+                        <span class="label-badge">[우체국택배]</span>
+                    </div>
+                    <div class="label-body">
+                        <div class="info-row">
+                            <span class="info-label">받는사람:</span>
+                            <span class="info-val font-bold">${o.customerName} (${phone})</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">배송주소:</span>
+                            <span class="info-val font-bold">${o.address}</span>
+                        </div>
+                        <div class="info-row" style="margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">
+                            <span class="info-label">상품내역:</span>
+                            <span class="info-val font-bold" style="color: #6b21a8;">${prodName} / ${o.quantity}개</span>
+                        </div>
+                    </div>
+                    <div class="label-footer-memo">
+                        <span class="memo-title">💬 고객 요청사항 (문의사항)</span>
+                        <p class="memo-content">${memo}</p>
+                    </div>
+                </div>
+                `;
+            });
+
+            // 새 창 띄우기
+            const printWindow = window.open("", "_blank", "width=800,height=600");
+            printWindow.document.write(\`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>배송 라벨 일괄 출력 - AFOOD</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+                        body {
+                            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+                            background-color: #f3f4f6;
+                            margin: 0;
+                            padding: 20px;
+                            color: #1f2937;
+                        }
+                        .label-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 16px;
+                        }
+                        .label-card {
+                            background-color: #ffffff;
+                            border: 2px dashed #8b5cf6;
+                            border-radius: 12px;
+                            padding: 18px;
+                            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            page-break-inside: avoid;
+                        }
+                        .label-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 2px solid #8b5cf6;
+                            padding-bottom: 8px;
+                            margin-bottom: 12px;
+                        }
+                        .label-logo {
+                            font-size: 13px;
+                            font-weight: 900;
+                            color: #8b5cf6;
+                            letter-spacing: -0.5px;
+                        }
+                        .label-badge {
+                            font-size: 11px;
+                            font-weight: bold;
+                            background-color: #f3e8ff;
+                            color: #6b21a8;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                        }
+                        .label-body {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        }
+                        .info-row {
+                            display: flex;
+                            font-size: 12px;
+                        }
+                        .info-label {
+                            width: 65px;
+                            color: #6b7280;
+                            font-weight: bold;
+                        }
+                        .info-val {
+                            flex-grow: 1;
+                            color: #111827;
+                        }
+                        .font-bold {
+                            font-weight: 700;
+                        }
+                        .label-footer-memo {
+                            margin-top: 12px;
+                            background-color: #f9fafb;
+                            border-top: 1px solid #e5e7eb;
+                            padding: 8px 10px;
+                            border-radius: 6px;
+                        }
+                        .memo-title {
+                            font-size: 10px;
+                            color: #ef4444;
+                            font-weight: bold;
+                            display: block;
+                            margin-bottom: 2px;
+                        }
+                        .memo-content {
+                            font-size: 11px;
+                            color: #374151;
+                            margin: 0;
+                            font-weight: 500;
+                        }
+                        @media print {
+                            body {
+                                background-color: #ffffff;
+                                padding: 0;
+                                margin: 0;
+                            }
+                            .label-grid {
+                                gap: 10px;
+                            }
+                            .label-card {
+                                border: 2px dashed #000000;
+                                box-shadow: none;
+                            }
+                            .label-header {
+                                border-bottom: 2px solid #000000;
+                            }
+                            .label-logo {
+                                color: #000000;
+                            }
+                            .label-badge {
+                                border: 1px solid #000000;
+                                background: none;
+                                color: #000000;
+                            }
+                            /* 인쇄용 여백 및 페이지 조절 */
+                            @page {
+                                size: A4;
+                                margin: 10mm;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="text-align: center; margin-bottom: 20px; font-weight: bold; font-size: 18px;" class="no-print">
+                        🏷️ AFOOD 배송 라벨 출력 미리보기 (인쇄 대화상자가 자동으로 열립니다)
+                    </div>
+                    <div class="label-grid">
+                        \${labelHtml}
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+                </html>
+            \`);
+            printWindow.document.close();
         }
 
         function renderSeasoningStockCards() {
@@ -7189,15 +7642,18 @@
             let todayVariableCost = 0;
             orders.forEach(o => {
                 const weight = getWeightByProductId(o.productId) * o.quantity;
-                const cabbageCost = (weight / 3.0) * 2500; // 배추 원가
+                const cabbageCost = (weight / 3.0) * getCabbageUnitPrice(); // 배추 변동 가격 적용
                 const sauceCost = weight * 0.3 * 8000;    // 양념 원가
                 const pkgCost = getPackagingUnitCost(o.productId) * o.quantity; // 포장재 원가
                 todayVariableCost += cabbageCost + sauceCost + pkgCost;
             });
 
+            // 누적 비품 구매비 로드
+            const equipCost = parseInt(localStorage.getItem("kimp_equipment_purchases_cost") || "0");
+
             // 임시 당일 정산 (localStorage에 업데이트)
             finance.revenue = 194500 + todayRevenue;
-            finance.cost = 87600 + dailyFixedCost + todayVariableCost;
+            finance.cost = 87600 + dailyFixedCost + todayVariableCost + equipCost;
             localStorage.setItem("kimp_factory_finance", JSON.stringify(finance));
 
             renderKimpDeliveryDashboard();

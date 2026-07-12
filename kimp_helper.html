@@ -385,7 +385,7 @@
 
         <!-- ── 하단 내비게이션 바 ── -->
         <nav class="bottom-nav-bar">
-            <a href="kimp.html" class="nav-item">
+            <a href="kimp_ex1.html" class="nav-item">
                 <i class="bi bi-layout-text-window-reverse"></i>
                 <span>Floor</span>
             </a>
@@ -413,6 +413,42 @@
         }
         var currentUserName = _helperSessionUser ? (_helperSessionUser.name || '헬퍼') : '헬퍼';
         var currentUserId = _helperSessionUser ? (_helperSessionUser.id || _helperSessionUser.email || 'guest') : 'guest';
+
+        var alertedRequests = new Set();
+
+        function playHelperAlertSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 1차 Beep
+                let osc1 = audioCtx.createOscillator();
+                let gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+                gain1.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start();
+                osc1.stop(audioCtx.currentTime + 0.3);
+
+                // 2차 Beep
+                setTimeout(() => {
+                    let osc2 = audioCtx.createOscillator();
+                    let gain2 = audioCtx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(1046.5, audioCtx.currentTime); // C6
+                    gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.4);
+                }, 200);
+            } catch(e) {
+                console.error("Helper alert sound play failed:", e);
+            }
+        }
 
         // 전역 시계 관리 (localStorage로부터 싱크)
         var clockHour = 15;
@@ -564,6 +600,13 @@
             var req = JSON.parse(reqStr);
 
             if (req.status === "requested") {
+                // 💡 중복 소리 알림 방지 및 효과음 재생
+                var reqKey = req.requester + "_" + req.time;
+                if (!alertedRequests.has(reqKey)) {
+                    alertedRequests.add(reqKey);
+                    playHelperAlertSound(); // 🔊 헬퍼 대시보드 경고음 발생!
+                }
+
                 // 요청 들어옴 - 이력에 추가 (중복 방지)
                 var alreadyLogged = requestHistory.some(function(h) {
                     return h.time === req.time && h.requester === req.requester;
