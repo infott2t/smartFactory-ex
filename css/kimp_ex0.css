@@ -757,11 +757,12 @@ body {
 /* 작은 스마트폰에서 글자가 안 깨지게 조절 */
 @media screen and (max-width: 425px) {
     .global-header.compact {
-        padding: 12px;
+        padding: 9px;
     }
 
     .global-header.compact .compact-toggle-inline {
         margin: 0 8px;
+        flex:0;
     }
 
     .job-title {
@@ -1232,50 +1233,59 @@ screen and (max-height: 650px) {
 }
 
 /* 모바일 화면 (가로 425px 이하) 반응형 레이아웃 처리 */
-/* 모바일 화면 (가로 425px 이하) 반응형 레이아웃 처리 */
 @media screen and (max-width: 425px) {
-    /* 1. 헤더 상단 영역을 무조건 '한 줄'로 강제 (줄바꿈 방지) */
+    /* 1. 최상단 헤더 내부 요소들이 한 줄로 나란히 배치되도록 강제 */
     .header-top {
         display: flex !important;
-        flex-wrap: nowrap !important; 
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+        align-items: center !important;
         gap: 10px !important;
-        align-items: center;
+        width: 100% !important;
     }
 
-    /* 2. 왼쪽 작업 정보 영역 (전체 공간의 약 3/4 차지) */
-    .global-header.compact .job-info-group,
+    /* 2. 왼쪽 텍스트 정보 영역 (flex 비율을 높여 대부분의 공간 차지) */
     .job-info-group {
-        width: auto !important;     /* 기존에 잡혀있던 width: 100% 무효화 */
-        flex: 3 !important;         /* flex 비율 3 할당 */
-        min-width: 0 !important;    /* 💡 핵심: 이게 있어야 글자가 삐져나가지 않고 말줄임(...) 처리됩니다 */
+        flex: 3 !important;        /* 전체 가로 폭의 약 75% 차지 */
+        min-width: 0 !important;   /* 💡 핵심: 하위 요소의 말줄임표(...) 작동을 위한 필수 속성 */
+        display: flex !important;
+        align-items: center !important;
+         
     }
 
-    /* 3. 오른쪽 액션 버튼 영역 (전체 공간의 약 1/4 차지) */
+    /* 3. 오른쪽 버튼 영역 (flex 비율을 낮춰 1/4 공간만 깔끔하게 차지) */
     .header-actions {
-        flex: 1 !important;         /* flex 비율 1 할당 */
+        flex: 1 !important;        /* 전체 가로 폭의 약 25% 차지 */
         display: flex !important;
         flex-wrap: nowrap !important;
-        justify-content: flex-end;
+        justify-content: flex-end !important;
         gap: 4px !important;
+        min-width: fit-content !important; /* 버튼 텍스트가 찌그러지지 않는 최소 크기 유지 */
     }
 
-    /* 4. 버튼 내부 여백과 글자 크기 축소 (한 줄에 쏙 들어가게) */
+    /* 4. 버튼 내부 여백과 폰트 크기 최적화 */
     .global-header .btn-menu,
     .global-header .btn-select-task,
     #login-btn {
-        
-      
+        padding: 8px 6px !important;
+        font-size: 15px !important;
         letter-spacing: -0.5px !important;
-        white-space: nowrap !important; /* 글자 줄바꿈 억제 */
-        flex-shrink: 1; /* 화면이 아주 작을 땐 버튼도 살짝 압축 허용 */
+        white-space: nowrap !important;
         width: 100%;
     }
 
-    /* 모바일용 압축 텍스트 말줄임표 처리 */
+    /* 5. working-mode일 때 mobile-info가 한 줄을 넘어가면 자동으로 '...' 처리 */
     .job-info-group.working-mode .mobile-info {
         display: block !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 13px !important; /* 글자 크기를 살짝 조절 */
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important; /* 💡 정보가 너무 길면 자동으로 '...'으로 잘라줌 */
+        flex: 1 !important;
+    }
+
+    /* 6. 데스크탑 정보는 모바일에서 완전히 숨김 */
+    .job-info-group.working-mode .desktop-info {
+        display: none !important;
     }
 }
