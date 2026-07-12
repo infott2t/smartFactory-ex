@@ -59,7 +59,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .job-info-group {
@@ -436,7 +436,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 0px;
 }
 
 /* 메뉴 리스트 모달용 버튼 디자인 */
@@ -769,7 +769,7 @@ body {
     }
 
     .location-badge {
-        font-size: 13px;
+        font-size: 12spx;
         padding: 6px 10px;
     }
 }
@@ -1142,11 +1142,14 @@ screen and (max-height: 650px) {
         grid-template-columns: repeat(2, 1fr) !important;
     }
 }
+
 /* =======================================================
    도움받기 대기 스피너 애니메이션
    ======================================================= */
 @keyframes spin {
-    100% { transform: rotate(360deg); }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .spin-anim {
@@ -1226,4 +1229,53 @@ screen and (max-height: 650px) {
     color: var(--text-secondary);
     font-size: 12px;
     margin-left: 4px;
+}
+
+/* 모바일 화면 (가로 425px 이하) 반응형 레이아웃 처리 */
+/* 모바일 화면 (가로 425px 이하) 반응형 레이아웃 처리 */
+@media screen and (max-width: 425px) {
+    /* 1. 헤더 상단 영역을 무조건 '한 줄'로 강제 (줄바꿈 방지) */
+    .header-top {
+        display: flex !important;
+        flex-wrap: nowrap !important; 
+        gap: 10px !important;
+        align-items: center;
+    }
+
+    /* 2. 왼쪽 작업 정보 영역 (전체 공간의 약 3/4 차지) */
+    .global-header.compact .job-info-group,
+    .job-info-group {
+        width: auto !important;     /* 기존에 잡혀있던 width: 100% 무효화 */
+        flex: 3 !important;         /* flex 비율 3 할당 */
+        min-width: 0 !important;    /* 💡 핵심: 이게 있어야 글자가 삐져나가지 않고 말줄임(...) 처리됩니다 */
+    }
+
+    /* 3. 오른쪽 액션 버튼 영역 (전체 공간의 약 1/4 차지) */
+    .header-actions {
+        flex: 1 !important;         /* flex 비율 1 할당 */
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-end;
+        gap: 4px !important;
+    }
+
+    /* 4. 버튼 내부 여백과 글자 크기 축소 (한 줄에 쏙 들어가게) */
+    .global-header .btn-menu,
+    .global-header .btn-select-task,
+    #login-btn {
+        
+      
+        letter-spacing: -0.5px !important;
+        white-space: nowrap !important; /* 글자 줄바꿈 억제 */
+        flex-shrink: 1; /* 화면이 아주 작을 땐 버튼도 살짝 압축 허용 */
+        width: 100%;
+    }
+
+    /* 모바일용 압축 텍스트 말줄임표 처리 */
+    .job-info-group.working-mode .mobile-info {
+        display: block !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }
