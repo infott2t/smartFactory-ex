@@ -755,7 +755,7 @@ body {
 }
 
 /* 작은 스마트폰에서 글자가 안 깨지게 조절 */
-@media screen and (max-width: 425px) {
+@media screen and (max-width: 426px) {
     .global-header.compact {
         padding: 9px;
     }
@@ -872,7 +872,7 @@ body {
    💡 3. 모바일 초소형 화면(425px 이하) 완벽 대응
    ======================================================= */
 
-@media screen and (max-width: 425px) {
+@media screen and (max-width: 426px) {
     .card {
         padding: 16px 12px;
         /* 좌우 여백을 줄여 컨텐츠 공간 최대 확보 */
@@ -1057,7 +1057,7 @@ body {
 /* =======================================================
    💡 모바일 초소형 화면(425px 이하) 텍스트/UI 최적화
    ======================================================= */
-@media screen and (max-width: 425px) {
+@media screen and (max-width: 426px) {
     .card {
         padding: 20px 12px;
         /* 좌우 여백을 한 번 더 줄여서 공간 확보 */
@@ -1233,7 +1233,7 @@ screen and (max-height: 650px) {
 }
 
 /* 모바일 화면 (가로 425px 이하) 반응형 레이아웃 처리 */
-@media screen and (max-width: 425px) {
+@media screen and (max-width: 426px) {
     /* 1. 최상단 헤더 내부 요소들이 한 줄로 나란히 배치되도록 강제 */
     .header-top {
         display: flex !important;
