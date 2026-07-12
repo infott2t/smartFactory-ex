@@ -6144,7 +6144,7 @@
 
             // 새 창 띄우기
             const printWindow = window.open("", "_blank", "width=800,height=600");
-            printWindow.document.write(\`
+            printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -6282,10 +6282,10 @@
                                 window.print();
                             }, 500);
                         };
-                    </script>
+                    <\/script>
                 </body>
                 </html>
-            \`);
+            `);
             printWindow.document.close();
         }
 
