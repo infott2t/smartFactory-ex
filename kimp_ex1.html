@@ -309,8 +309,8 @@
             <div class="job-info-group">
                 <div class="desktop-info" style="display: flex; align-items: center; gap: 12px;">
                     <div class="job-title" id="display-job-title">
-                        <i class="bi bi-box-seam"></i> Stage 1 | <span
-                            style="color:var(--accent-green); font-weight:bold;">현재 Lot 1개</span>
+                        <i class="bi bi-box-seam"></i> <span class="dis">Stage 1 | </span>
+                        style="color:var(--accent-green); font-weight:bold;">현재 Lot 1개</span>
                     </div>
                     <div class="job-title" id="display-work-order"
                         style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; display: block;">
@@ -1395,7 +1395,7 @@
         }
 
         function updateHeaderInfo() {
-            // 💡 최상단 그룹 요소를 가져옵니다 (상태 클래스 추가 용도)
+            // 최상단 그룹 요소를 가져옵니다 (상태 클래스 추가 용도)
             const groupEl = document.querySelector('.job-info-group');
             const titleEl = document.getElementById('display-job-title');
             const orderEl = document.getElementById('display-work-order');
@@ -1422,7 +1422,7 @@
                 const lotCount = getStageActiveOrdersCount(appData.activeStageId);
                 const orderIdText = appData.currentOrder.id || '선택 대기 중';
 
-                // PC 화면용 데스크탑 텍스트
+                // 1. PC 화면용 데스크탑 텍스트 (기존 유지)
                 if (titleEl) {
                     titleEl.innerHTML = `<i class="bi bi-box-seam"></i> Stage ${appData.activeStageId} | <span style="color:var(--accent-green); font-weight:bold;">현재 Lot ${lotCount}개</span>`;
                 }
@@ -1431,10 +1431,20 @@
                     orderEl.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> 지시서: ${orderIdText}`;
                 }
 
-                // 💡 모바일 화면용 한 줄 압축 텍스트 
-                // 렌더링 결과: 📦 Stage 2 | Lot 1 | 260723-5-1
+                // 💡 2. 모바일 화면용 한 줄 압축 텍스트 (자리 정보 결합 로직)
                 if (mobileEl) {
-                    mobileEl.innerHTML = `<i class="bi bi-box-seam"></i> Stage ${appData.activeStageId} <span style="color:var(--text-secondary); font-weight:normal; margin: 0 4px;">|</span> Lot ${lotCount} <span style="color:var(--text-secondary); font-weight:normal; margin: 0 4px;">|</span> <span style="color:var(--primary);">${orderIdText}</span>`;
+                    // 현재 사용자의 자리 ID(A 또는 B 등)가 있으면 가져오고 없으면 공백 처리합니다.
+                    const spotText = appData.activeSpotId ? appData.activeSpotId : '';
+
+                    // 결과 예시: 📦 Stage 2A | Lot 5 | 선택 대기 중
+                    mobileEl.innerHTML = `
+                <i class="bi bi-box-seam"></i> 
+                Stage ${appData.activeStageId}${spotText} 
+                <span style="color:var(--text-secondary); font-weight:normal; margin: 0 4px;">|</span> 
+                Lot ${lotCount} 
+                <span style="color:var(--text-secondary); font-weight:normal; margin: 0 4px;">|</span> 
+                <span style="color:var(--primary);">${orderIdText}</span>
+            `;
                 }
             }
         }
