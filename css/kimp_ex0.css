@@ -1273,6 +1273,12 @@ screen and (max-height: 650px) {
         white-space: nowrap !important;
         width: 100%;
     }
+    .job-title i {
+        color: var(--primary);
+    }
+    .bi.bi-box-seam {
+        color: var(--primary);
+    }
 
     /* 5. working-mode일 때 mobile-info가 한 줄을 넘어가면 자동으로 '...' 처리 */
     .job-info-group.working-mode .mobile-info {
@@ -1282,6 +1288,10 @@ screen and (max-height: 650px) {
         overflow: hidden !important;
         text-overflow: ellipsis !important; /* 💡 정보가 너무 길면 자동으로 '...'으로 잘라줌 */
         flex: 1 !important;
+        border: 1px solid var(--border-color) !important;
+        padding: 8px 6px !important;
+        border-radius: 8px !important;
+        background-color: var(--bg-main) !important;
     }
 
     /* 6. 데스크탑 정보는 모바일에서 완전히 숨김 */
