@@ -1277,7 +1277,7 @@ screen and (max-height: 650px) {
     /* 5. working-mode일 때 mobile-info가 한 줄을 넘어가면 자동으로 '...' 처리 */
     .job-info-group.working-mode .mobile-info {
         display: block !important;
-        font-size: 13px !important; /* 글자 크기를 살짝 조절 */
+        font-size: 17px !important; /* 글자 크기를 살짝 조절 */
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important; /* 💡 정보가 너무 길면 자동으로 '...'으로 잘라줌 */
