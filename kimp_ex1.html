@@ -997,6 +997,28 @@
             });
         }
 
+        // 💡 [추가] 작업자 실적 +1 가산 및 세부 사유 로깅 헬퍼 함수
+        function incrementWorkerPerformance(reason) {
+            try {
+                let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
+                if (myKey && workers[myKey]) {
+                    workers[myKey].completedOrdersCount = (workers[myKey].completedOrdersCount || 0) + 1;
+                    
+                    if (!workers[myKey].workDetailLogs) {
+                        workers[myKey].workDetailLogs = [];
+                    }
+                    const now = new Date();
+                    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                    workers[myKey].workDetailLogs.push(`${timeStr} - ${reason} (+1)`);
+                    
+                    localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                }
+            } catch(e) {
+                console.error("Failed to update worker performance details:", e);
+            }
+        }
+
         function editLog(index) {
             const log = appData.logs[index];
             if (!log) return;
@@ -1662,7 +1684,27 @@
 
                 let badgeHtml = '';
                 let styleMargin = '';
-                if (String(stage.id) === "3") {
+                if (String(stage.id) === "2") {
+                    let saltingBatches = [];
+                    try {
+                        saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                    } catch (e) {}
+                    const pendingFlipCount = saltingBatches.filter(b => b.isFlipPending === true).length;
+                    
+                    const lotCount = getWaitOrderCountForStage(stage.id);
+                    let badgeParts = [];
+                    if (lotCount > 0) {
+                        badgeParts.push(`대기 Lot ${lotCount}개`);
+                    }
+                    if (pendingFlipCount > 0) {
+                        badgeParts.push(`<span style="color:#ef4444; font-weight:900;"><i class="bi bi-arrow-repeat spin-anim"></i> 뒤집기 ${pendingFlipCount} LOT</span>`);
+                    }
+                    if (badgeParts.length > 0) {
+                        const badgeText = badgeParts.join(', ');
+                        badgeHtml = `<span class="badge" style="position: absolute; top: 8px; left: 8px; font-size: 11px; color: var(--primary); font-weight: bold; font-family: var(--font-outfit); display: flex; align-items: center; gap: 4px;">${badgeText}</span>`;
+                        styleMargin = 'style="margin-top: 12px;"';
+                    }
+                } else if (String(stage.id) === "3") {
                     const res3 = getWaitOrderCountForStage(3);
                     let badgeParts = [];
                     if (res3.wait3_1 > 0) {
@@ -2200,6 +2242,24 @@
                     highestStepReached = 1;
                 }
 
+                if (String(stageId) === "2") {
+                    let saltingBatches = [];
+                    try {
+                        saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                    } catch(e) {}
+                    const pendingFlipBatches = saltingBatches.filter(b => b.isFlipPending === true);
+                    
+                    if (pendingFlipBatches.length > 0) {
+                        if (confirm(`현재 뒤집기 작업이 필요한 배치가 ${pendingFlipBatches.length}건 존재합니다.\n뒤집기 작업을 진행할까요?`)) {
+                            localStorage.setItem(`flipping_mode_active_${spotId}`, "true");
+                        } else {
+                            localStorage.removeItem(`flipping_mode_active_${spotId}`);
+                        }
+                    } else {
+                        localStorage.removeItem(`flipping_mode_active_${spotId}`);
+                    }
+                }
+
                 addLog(`[Stage ${stageId} - 자리 ${spotId}] ${spot.worker} 작업자가 체크인을 완료하고 작업을 재개합니다.`);
                 syncStagesToStorage();
 
@@ -2585,7 +2645,34 @@
                 }).join('');
             }
 
-            container.innerHTML = badgesHtml + listHtml;
+            // 💡 [추가] 작업자 세부 실적 가산 내역 (workDetailLogs) 목록 렌더링
+            let detailLogsHtml = "";
+            try {
+                let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
+                if (myKey && workers[myKey] && workers[myKey].workDetailLogs && workers[myKey].workDetailLogs.length > 0) {
+                    const logRows = workers[myKey].workDetailLogs.slice().reverse().map(log => {
+                        return `<div style="padding: 6px 0; border-bottom: 1px dashed var(--border-color); font-size: 13px; color: var(--text-primary); text-align: left;">
+                            <i class="bi bi-patch-check-fill" style="color:var(--success);"></i> ${log}
+                        </div>`;
+                    }).join('');
+
+                    detailLogsHtml = `
+                        <div style="margin-top: 20px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(16, 185, 129, 0.02);">
+                            <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: var(--primary); text-align: left;">
+                                <i class="bi bi-clock-history"></i> 작업별 누적 실적 세부 기록
+                            </h4>
+                            <div style="max-height: 180px; overflow-y: auto; padding-right: 4px;">
+                                ${logRows}
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch(e) {
+                console.error("Failed to render workDetailLogs:", e);
+            }
+
+            container.innerHTML = badgesHtml + listHtml + detailLogsHtml;
         }
 
         function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
@@ -3014,8 +3101,27 @@
             if (!input) return;
 
             let val = parseFloat(input.value) || 0;
-            val += delta;
-            if (val < 0) val = 0;
+
+            if (inputId === 'input-defect') {
+                const goodInput = document.getElementById('input-good');
+                if (goodInput) {
+                    let goodVal = parseFloat(goodInput.value) || 0;
+                    if (delta > 0) {
+                        if (goodVal > 0) {
+                            goodInput.value = goodVal - 1;
+                            val += delta;
+                        }
+                    } else if (delta < 0) {
+                        if (val > 0) {
+                            val += delta;
+                            goodInput.value = goodVal + 1;
+                        }
+                    }
+                }
+            } else {
+                val += delta;
+                if (val < 0) val = 0;
+            }
 
             if (inputId === 'input-weight') {
                 input.value = val.toFixed(1);
@@ -3050,10 +3156,34 @@
 
         // 💡 [추가] 절임시간 셋팅에 연계하여 타이머 설명 동적 갱신
         function updateStage2WorkflowText() {
-            const hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
-            if (stage2Workflow && stage2Workflow[8]) {
-                stage2Workflow[8].title = `${hoursSetting}시간 타이머 시작`;
-                stage2Workflow[8].desc = `숙성을 위해 ${hoursSetting}시간 타이머를 시작합니다.`;
+            let hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+            const ordersRaw = localStorage.getItem('kimp_production_orders');
+            if (ordersRaw && appData.currentOrder && appData.currentOrder.id) {
+                try {
+                    const ordersObj = JSON.parse(ordersRaw);
+                    const currentOrderId = appData.currentOrder.id;
+                    const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                    let targetOrder = null;
+                    if (Array.isArray(ordersObj)) {
+                        targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                    } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                        const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                        if (key) targetOrder = ordersObj[key];
+                    }
+                    if (targetOrder && targetOrder.stages && targetOrder.stages[2]) {
+                        const s2 = targetOrder.stages[2];
+                        const specSalting = s2.step2_salting || {};
+                        const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
+                        if (durationVal !== undefined && durationVal !== null) {
+                            hoursSetting = parseInt(durationVal);
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            if (stage2Workflow && stage2Workflow[7]) {
+                stage2Workflow[7].title = `${hoursSetting}시간 타이머 시작`;
+                stage2Workflow[7].desc = `숙성을 위해 ${hoursSetting}시간 타이머를 시작합니다.`;
             }
         }
         updateStage2WorkflowText();
@@ -3123,6 +3253,16 @@
         }
 
         function renderCurrentStep() {
+            // 💡 [추가] Stage 2 뒤집기 모드가 활성화되어 있다면 전용 화면을 그리고 종료
+            if (String(appData.activeStageId) === "2" && localStorage.getItem(`flipping_mode_active_${appData.activeSpotId}`) === "true") {
+                const container = document.getElementById('stage-2-dynamic-content');
+                if (container) {
+                    renderFlippingWorkflow(container, appData.activeSpotId);
+                    updateHeaderInfo();
+                }
+                return;
+            }
+
             // 💡 [초강력 방어막] 지시서 정보가 없는데 대기실(0)이 아닌 공정 화면을 그리려고 하면, 지시서 대기 화면을 강제로 렌더링하고 중단한다!
             if (appData.activeStageId !== 0 && appData.activeStageId !== "0" && !appData.currentOrder.id) {
                 const container = document.getElementById('stage-' + appData.activeStageId + '-dynamic-content');
@@ -3144,6 +3284,10 @@
             }
 
             const currentStageStr = String(appData.activeStageId);
+
+            if (currentStageStr === "2") {
+                updateStage2WorkflowText();
+            }
 
             if (stage1Workflow && stage1Workflow[2] && stage1Workflow[3]) {
                 stage1Workflow[2].desc = `창고로 이동하여 <strong>배추 ${appData.currentOrder.qty}포기</strong>를 실어주세요.`;
@@ -3229,12 +3373,37 @@
             `;
             }
             else if (step.type === 'input') {
+                let finalDefaultVal = step.defaultVal;
+                if (String(appData.activeStageId) === "2" && step.title.includes("수량확인")) {
+                    const ordersRaw = localStorage.getItem('kimp_production_orders');
+                    if (ordersRaw && appData.currentOrder && appData.currentOrder.id) {
+                        try {
+                            const ordersObj = JSON.parse(ordersRaw);
+                            const currentOrderId = appData.currentOrder.id;
+                            const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                            let targetOrder = null;
+                            if (Array.isArray(ordersObj)) {
+                                targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                                const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                                if (key) targetOrder = ordersObj[key];
+                            }
+                            if (targetOrder && targetOrder.stages && targetOrder.stages["1"]) {
+                                const s1Qty = targetOrder.stages["1"].postWorkQty;
+                                if (s1Qty !== undefined && s1Qty !== null) {
+                                    finalDefaultVal = s1Qty;
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                }
+
                 visualElement = `
                 <div class="hmi-input-group">
                     <label>${step.label}</label>
                     <div class="number-stepper">
                         <button onclick="changeValue('input-single', -1)"><i class="bi bi-dash"></i></button>
-                        <input type="number" id="input-single" value="${step.defaultVal}" readonly />
+                        <input type="number" id="input-single" value="${finalDefaultVal}" readonly />
                         <button onclick="changeValue('input-single', 1)"><i class="bi bi-plus"></i></button>
                     </div>
                 </div>
@@ -3256,13 +3425,53 @@
                     `;
                 }
 
+                let initialGoodQty = 0;
+                const orderId = appData.currentOrder ? appData.currentOrder.id : "";
+                if (orderId) {
+                    const parts = orderId.split('-');
+                    if (parts.length === 3) {
+                        initialGoodQty = parseInt(parts[1]) || 0;
+                    }
+                }
+
+                if (String(appData.activeStageId) === "2") {
+                    let s1Good = initialGoodQty;
+                    let s2Confirmed = initialGoodQty;
+                    const ordersRaw = localStorage.getItem('kimp_production_orders');
+                    if (ordersRaw && appData.currentOrder && appData.currentOrder.id) {
+                        try {
+                            const ordersObj = JSON.parse(ordersRaw);
+                            const currentOrderId = appData.currentOrder.id;
+                            const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                            let targetOrder = null;
+                            if (Array.isArray(ordersObj)) {
+                                targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                                const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                                if (key) targetOrder = ordersObj[key];
+                            }
+                            if (targetOrder && targetOrder.stages) {
+                                if (targetOrder.stages["1"] && targetOrder.stages["1"].postWorkQty !== undefined) {
+                                    s1Good = targetOrder.stages["1"].postWorkQty;
+                                }
+                                if (targetOrder.stages["2"] && targetOrder.stages["2"].confirmedQty !== undefined) {
+                                    s2Confirmed = targetOrder.stages["2"].confirmedQty;
+                                } else {
+                                    s2Confirmed = s1Good;
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                    initialGoodQty = Math.min(s1Good, s2Confirmed);
+                }
+
                 visualElement = `
                 <div class="hmi-input-group">
                     <div class="input-row">
                         <label>양품 (정상)</label>
                         <div class="number-stepper">
                             <button onclick="changeValue('input-good', -1)"><i class="bi bi-dash"></i></button>
-                            <input type="number" id="input-good" value="0" readonly />
+                            <input type="number" id="input-good" value="${initialGoodQty}" readonly />
                             <button onclick="changeValue('input-good', 1)"><i class="bi bi-plus"></i></button>
                         </div>
                     </div>
@@ -3406,10 +3615,54 @@
                 `;
             }
 
+            let stepDesc = step.desc;
+            if (String(appData.activeStageId) === "2" && step.title === "염수 체크") {
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (ordersRaw && appData.currentOrder && appData.currentOrder.id) {
+                    try {
+                        const ordersObj = JSON.parse(ordersRaw);
+                        const currentOrderId = appData.currentOrder.id;
+                        const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                        let targetOrder = null;
+                        if (Array.isArray(ordersObj)) {
+                            targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                            const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            if (key) targetOrder = ordersObj[key];
+                        }
+                        
+                        if (targetOrder && targetOrder.stages && targetOrder.stages[2]) {
+                            const s2 = targetOrder.stages[2];
+                            const specSalting = s2.step2_salting || {};
+                            const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
+                            const salinityVal = s2.brineSalinity !== undefined && s2.brineSalinity !== null ? s2.brineSalinity : specSalting.brineSalinity;
+                            const volumeVal = s2.brineVolumeLiters !== undefined && s2.brineVolumeLiters !== null ? s2.brineVolumeLiters : specSalting.brineVolumeLiters;
+                            const saltVal = s2.extraSaltAmountKg !== undefined && s2.extraSaltAmountKg !== null ? s2.extraSaltAmountKg : specSalting.extraSaltAmountKg;
+                            
+                            const durationText = durationVal !== undefined ? `${durationVal}시간` : "-";
+                            const salinityText = salinityVal !== undefined ? `${salinityVal}%` : "-";
+                            const volumeText = volumeVal !== undefined ? `${volumeVal} L` : "-";
+                            const saltText = saltVal !== undefined ? `${(parseFloat(saltVal) * 1000).toFixed(0)}g` : "-";
+
+                            stepDesc = `
+                            <div style="text-align: left; padding: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 8px;">
+                                <strong>[생산지시서 절임 기준 정보]</strong><br>
+                                • 목표 절임시간: <span style="color:var(--primary); font-weight:700;">${durationText}</span><br>
+                                • 목표 염도: <span style="color:var(--primary); font-weight:700;">${salinityText}</span><br>
+                                • 물의 양: <span style="color:var(--primary); font-weight:700;">${volumeText}</span><br>
+                                • 소금의 양: <span style="color:var(--primary); font-weight:700;">${saltVal ? saltVal + "kg" : "-"}</span>
+                            </div>
+                            <strong style="color: var(--primary); font-size: 15px;">소금 ${saltText}과 물 ${volumeText}을 계량하여, 염수를 만들어주세요.</strong>
+                            `;
+                        }
+                    } catch(e) {}
+                }
+            }
+
             container.innerHTML = `
         <div class="step-container">
             ${iconHtml} <div class="step-message">${step.title}</div>
-            <div class="step-sub-message">${step.desc}</div>
+            <div class="step-sub-message">${stepDesc}</div>
             ${visualElement}
             ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
             ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="handleFinalPhotoClick()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
@@ -3563,9 +3816,36 @@
             } else if (step.type === 'info' && step.title.includes('자재 창고')) {
                 addLog(`${logPrefix}자재 상차(싣기)를 완료했습니다.`);
             } else if (step.type === 'input') {
-                const qty = document.getElementById('input-single').value;
+                const qty = parseInt(document.getElementById('input-single').value) || 0;
                 if (step.title.includes('수량확인')) {
                     addLog(`${logPrefix}수량 ${qty}포기 확인 완료.`);
+                    if (appData.currentOrder) {
+                        if (!appData.currentOrder.stages) appData.currentOrder.stages = {};
+                        if (!appData.currentOrder.stages["2"]) appData.currentOrder.stages["2"] = {};
+                        appData.currentOrder.stages["2"].confirmedQty = qty;
+                        
+                        const ordersRaw = localStorage.getItem('kimp_production_orders');
+                        if (ordersRaw) {
+                            try {
+                                let ordersObj = JSON.parse(ordersRaw);
+                                const currentOrderId = appData.currentOrder.id;
+                                const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                                let targetOrder = null;
+                                if (Array.isArray(ordersObj)) {
+                                    targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                                } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                                    const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                                    if (key) targetOrder = ordersObj[key];
+                                }
+                                if (targetOrder) {
+                                    if (!targetOrder.stages) targetOrder.stages = {};
+                                    if (!targetOrder.stages["2"]) targetOrder.stages["2"] = {};
+                                    targetOrder.stages["2"].confirmedQty = qty;
+                                    localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
+                                }
+                            } catch(e) {}
+                        }
+                    }
                 } else {
                     addLog(`${logPrefix}상차 수량 ${qty}포기 입력 완료.`);
                 }
@@ -3672,7 +3952,30 @@
                     exitStageToWaitingArea(3, appData.activeSpotId);
                     return;
                 } else {
-                    const hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+                    let hoursSetting = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
+                    const ordersRaw = localStorage.getItem('kimp_production_orders');
+                    if (ordersRaw && appData.currentOrder && appData.currentOrder.id) {
+                        try {
+                            const ordersObj = JSON.parse(ordersRaw);
+                            const currentOrderId = appData.currentOrder.id;
+                            const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
+                            let targetOrder = null;
+                            if (Array.isArray(ordersObj)) {
+                                targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                                const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                                if (key) targetOrder = ordersObj[key];
+                            }
+                            if (targetOrder && targetOrder.stages && targetOrder.stages[2]) {
+                                const s2 = targetOrder.stages[2];
+                                const specSalting = s2.step2_salting || {};
+                                const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
+                                if (durationVal !== undefined && durationVal !== null) {
+                                    hoursSetting = parseInt(durationVal);
+                                }
+                            }
+                        } catch(e) {}
+                    }
                     addLog(`${logPrefix}${hoursSetting}시간 숙성 타이머를 시작했습니다.`);
                 }
             } else if (step.type === 'work') {
@@ -3695,17 +3998,8 @@
                 const weight = document.getElementById('input-weight').value;
                 const orderId = appData.currentOrder.id;
 
-                // 💡 [추가] 실적 등록 제출 시 근로자 누적 완료 Stage 수 +1 가산
-                try {
-                    let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
-                    let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
-                    if (myKey && workers[myKey]) {
-                        workers[myKey].completedOrdersCount = (workers[myKey].completedOrdersCount || 0) + 1;
-                        localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
-                    }
-                } catch(e) {
-                    console.error("Failed to increment completedOrdersCount:", e);
-                }
+                // 💡 [추가] 실적 등록 제출 시 근로자 누적 완료 Stage 수 +1 가산 및 상세 기록
+                incrementWorkerPerformance(`Stage ${appData.activeStageId} 실적 등록`);
 
                 if (step.type === 'report') {
                     const goodQty = document.getElementById('input-good').value;
@@ -3865,6 +4159,11 @@
                 reqStageNum = "3-2";
             }
 
+            let customImgUrl = "./images/cabbage_weighed_on_scale.png";
+            if (String(appData.activeStageId) === "2") {
+                customImgUrl = "./images/salting_cabbage_pressed.png";
+            }
+
             const reqObj = {
                 id: requestId,
                 type: "completion",
@@ -3875,6 +4174,8 @@
                 status: "pending",
                 submittedTime: timeStr,
                 postWorkQty: goodQty,
+                defectQty: defectQty,
+                imageUrl: customImgUrl,
                 weight: window.tempWeight || 15.0
             };
 
@@ -4362,6 +4663,11 @@
                 reqStageNum = "3-2";
             }
 
+            let customImgUrl = "./images/cabbage_weighed_on_scale.png";
+            if (String(appData.activeStageId) === "2") {
+                customImgUrl = "./images/salting_cabbage_pressed.png";
+            }
+
             const reqObj = {
                 id: requestId,
                 type: "completion",
@@ -4372,6 +4678,8 @@
                 status: "pending",
                 submittedTime: timeStr,
                 postWorkQty: goodQty,
+                defectQty: defectQty,
+                imageUrl: customImgUrl,
                 weight: window.tempWeight || 15.0
             };
 
@@ -5036,6 +5344,152 @@
                         console.error('❌ Service Worker 등록 실패:', error);
                     });
             });
+        }
+
+        // 💡 [추가] 배추 뒤집기 공정용 헬퍼 함수들 정의
+        function renderFlippingWorkflow(container, spotId) {
+            let saltingBatches = [];
+            try {
+                saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch(e) {}
+            const pendingFlipBatches = saltingBatches.filter(b => b.isFlipPending === true);
+
+            if (pendingFlipBatches.length === 0) {
+                alert("모든 뒤집기 작업이 완료되었습니다. 대기소로 복귀합니다.");
+                localStorage.removeItem(`flipping_mode_active_${spotId}`);
+                exitStageToWaitingArea("2", spotId);
+                return;
+            }
+
+            const pendingIdsStr = pendingFlipBatches.map(b => `<strong style="color:var(--accent-red); font-size:15px;">[${b.id}]</strong>`).join(", ");
+
+            container.innerHTML = `
+                <div class="step-container" style="padding: 24px; text-align: center;">
+                    <i class="bi bi-arrow-repeat spin-anim step-icon" style="font-size: 48px; color: var(--primary);"></i>
+                    <div class="step-message" style="font-size: 20px; font-weight: bold; color: var(--primary); margin-top: 8px;">배추 뒤집기 공정 진행 중</div>
+                    <div class="step-sub-message" style="margin-top: 8px; color: var(--text-secondary); line-height: 1.6;">
+                        <strong style="color: var(--primary); font-size: 16px;">숙성실로 가서 해당 생산지시서를 찾아서 뒤집어 주세요.</strong><br>
+                        <div style="margin: 12px 0; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(139, 92, 246, 0.05); text-align: left;">
+                            <b>뒤집기 대상 생산지시서 목록:</b><br>
+                            ${pendingIdsStr}
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 20px 0; text-align: left;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 6px;">생산지시서 QR코드 스캔/입력</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="flip-qr-input" placeholder="생산지시서 ID를 입력하거나 스캔하세요" style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; font-weight: bold;" />
+                            <button class="btn btn-primary" onclick="simulateFlipQRScan('${spotId}')" style="padding: 0 16px; border-radius: 8px;"><i class="bi bi-qr-code-scan"></i></button>
+                        </div>
+                        <div id="flip-scan-success" style="display: none; margin-top: 8px; padding: 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.1); color: var(--success); font-weight: bold; font-size: 13px; text-align: center;">
+                            <i class="bi bi-check-circle-fill"></i> 지시서 매칭 완료: <span id="flip-scanned-id"></span>
+                        </div>
+                    </div>
+
+                    <button id="btn-flip-submit" class="btn-huge success" disabled onclick="submitFlipWork('${spotId}')" style="width: 100%; height: 50px; font-size: 16px;">
+                        뒤집기 완료 및 전송 <i class="bi bi-send-fill"></i>
+                    </button>
+                    
+                    <button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin-top: 12px; width: 100%;" onclick="cancelFlipWork('${spotId}')">
+                        뒤집기 작업 취소하고 나가기
+                    </button>
+                </div>
+            `;
+        }
+
+        window.simulateFlipQRScan = function(spotId) {
+            const inputEl = document.getElementById("flip-qr-input");
+            if (!inputEl) return;
+            let val = inputEl.value.trim().toUpperCase();
+            if (!val) {
+                let saltingBatches = [];
+                try {
+                    saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                } catch(e) {}
+                const pending = saltingBatches.filter(b => b.isFlipPending === true);
+                if (pending.length > 0) {
+                    val = pending[0].id;
+                    inputEl.value = val;
+                } else {
+                    alert("입력할 뒤집기 대기 지시서가 없습니다.");
+                    return;
+                }
+            }
+
+            let saltingBatches = [];
+            try {
+                saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch(e) {}
+            
+            const match = saltingBatches.find(b => b.isFlipPending && b.id.toUpperCase() === val);
+            if (match) {
+                document.getElementById("flip-scan-success").style.display = "block";
+                document.getElementById("flip-scanned-id").textContent = match.id;
+                document.getElementById("btn-flip-submit").removeAttribute("disabled");
+                window.scannedFlipId = match.id;
+                playShutterSound();
+            } else {
+                alert("뒤집기 대기 목록에 존재하지 않거나 매치되지 않는 생산지시서 ID입니다.");
+                document.getElementById("flip-scan-success").style.display = "none";
+                document.getElementById("btn-flip-submit").setAttribute("disabled", "true");
+                window.scannedFlipId = null;
+            }
+        }
+
+        window.submitFlipWork = function(spotId) {
+            const flipId = window.scannedFlipId;
+            if (!flipId) return;
+
+            let saltingBatches = [];
+            try {
+                saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch(e) {}
+            
+            const batch = saltingBatches.find(b => b.id === flipId);
+            if (batch) {
+                batch.flipCount = (batch.flipCount || 0) + 1;
+                batch.isFlipPending = false;
+                localStorage.setItem("kimp_factory_salting", JSON.stringify(saltingBatches));
+                
+                const ordersRaw = localStorage.getItem("kimp_production_orders");
+                if (ordersRaw) {
+                    try {
+                        let ordersObj = JSON.parse(ordersRaw);
+                        const normCurrentId = flipId.replace(/^(SALT-|ORD-)/, "");
+                        let targetOrder = null;
+                        if (Array.isArray(ordersObj)) {
+                            targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
+                            const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
+                            if (key) targetOrder = ordersObj[key];
+                        }
+                        if (targetOrder) {
+                            if (!targetOrder.stages) targetOrder.stages = {};
+                            if (!targetOrder.stages[2]) targetOrder.stages[2] = {};
+                            targetOrder.stages[2].flipCount = (targetOrder.stages[2].flipCount || 0) + 1;
+                            
+                            if (!targetOrder.stages[2].workLogs) targetOrder.stages[2].workLogs = [];
+                            const nowTime = new Date();
+                            const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
+                            targetOrder.stages[2].workLogs.push(`[배추 뒤집기] ${targetOrder.stages[2].flipCount}회 뒤집기 작업 완료 (${timeStrHHMMSS})`);
+                            localStorage.setItem("kimp_production_orders", JSON.stringify(ordersObj));
+                        }
+                    } catch(err) {}
+                }
+                
+                // 💡 [추가] 뒤집기 작업 완료 시 작업자 통계 실적 +1 가산 및 상세 기록
+                incrementWorkerPerformance(`배추 뒤집기 완료 (${batch.flipCount}회차)`);
+
+                alert(`생산지시서 [${flipId}] 배추 뒤집기(${batch.flipCount}회차)가 전송 및 완료되었습니다.`);
+            }
+            
+            localStorage.removeItem(`flipping_mode_active_${spotId}`);
+            exitStageToWaitingArea("2", spotId);
+        }
+        
+        window.cancelFlipWork = function(spotId) {
+            localStorage.removeItem(`flipping_mode_active_${spotId}`);
+            exitStageToWaitingArea("2", spotId);
         }
 
         // document.addEventListener('DOMContentLoaded', () => {

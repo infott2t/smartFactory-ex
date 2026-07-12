@@ -2028,7 +2028,7 @@
                                     절임 시간 (시간)</label>
                                 <input type="number" id="order-form-salting-duration" class="sim-input"
                                     style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;"
-                                    min="1" value="17" oninput="onSaltingDurationChange()">
+                                    min="1" value="20" oninput="onSaltingDurationChange()">
                             </div>
                             <div>
                                 <label
@@ -2036,7 +2036,7 @@
                                     염도 (%)</label>
                                 <input type="number" id="order-form-salting-salinity" class="sim-input"
                                     style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;"
-                                    min="1" max="99" value="12" oninput="calculateFormWeights()">
+                                    min="1" max="99" value="8" oninput="calculateFormWeights()">
                             </div>
                             <div>
                                 <label
@@ -2058,55 +2058,6 @@
                                 kg</span>
                             <span style="font-size: 11px; color: var(--text-secondary); margin-left: 6px;">(공식: (염도 * 물의
                                 양) / (100 - 염도))</span>
-                        </div>
-
-                        <!-- 4단계 포장 수량 세팅 -->
-                        <div
-                            style="margin-top: 18px; margin-bottom: 8px; font-size: 12px; font-weight: bold; color: var(--accent-purple); border-bottom: 1px dashed var(--border-color); padding-bottom: 4px;">
-                            <i class="bi bi-box-seam-fill"></i> 4단계 포장 규격 및 목표 수량 지시
-                        </div>
-                        <div
-                            style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px;">
-                            <div>
-                                <label
-                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">300g
-                                    수량</label>
-                                <input type="number" id="order-form-pkg-300g" class="sim-input"
-                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
-                                    min="0" value="0" oninput="this.dataset.userEdited='true';">
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">1kg
-                                    수량</label>
-                                <input type="number" id="order-form-pkg-1kg" class="sim-input"
-                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
-                                    min="0" value="0" oninput="this.dataset.userEdited='true';">
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">3kg
-                                    수량</label>
-                                <input type="number" id="order-form-pkg-3kg" class="sim-input"
-                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
-                                    min="0" value="0" oninput="this.dataset.userEdited='true';">
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">5kg
-                                    수량</label>
-                                <input type="number" id="order-form-pkg-5kg" class="sim-input"
-                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
-                                    min="0" value="0" oninput="this.dataset.userEdited='true';">
-                            </div>
-                            <div>
-                                <label
-                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">10kg
-                                    수량</label>
-                                <input type="number" id="order-form-pkg-10kg" class="sim-input"
-                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
-                                    min="0" value="0" oninput="this.dataset.userEdited='true';">
-                            </div>
                         </div>
                         <div style="padding: 12px; background-color: var(--accent-blue-bg); border: 1px solid var(--accent-blue); border-radius: 8px; font-size: 12px; color: var(--accent-blue); font-weight: 600; margin-bottom: 14px;"
                             id="order-form-calc-result">
@@ -2508,17 +2459,8 @@
                             <span class="badge badge-blue" id="salting-batch-total-lbl">진행 중 0개</span>
                         </div>
                         
-                        <!-- 💡 [추가] 기본 절임 시간 설정 컨트롤러 상자 -->
-                        <div class="salting-setting-box" style="margin-top: 10px; margin-bottom: 15px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background-color: rgba(156, 39, 176, 0.05); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                            <span style="font-size: 13px; font-weight: 600; color: var(--accent-purple);"><i class="bi bi-clock-fill"></i> 기본 절임 시간 설정:</span>
-                            <input type="number" id="input-salting-hours" min="1" max="99" value="17" style="width: 70px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-family: var(--font-outfit); font-weight: bold; text-align: center;">
-                            <span style="font-size: 13px; font-weight: 500;">시간 (1~99시간)</span>
-                            <button class="top-action-btn" onclick="saveSaltingTimeSetting()" style="padding: 4px 12px; font-size: 12px; background-color: var(--accent-purple); color: #fff; border: none; border-radius: 4px; cursor: pointer;">설정 저장</button>
-                        </div>
-
-                        <p style="font-size: 13px; color: var(--text-secondary);" id="salting-guide-text">
-                            배추를 소금물에 절여 17시간 동안 숙성시키는 저온 절임 냉장고 보관 상태를 모니터링합니다. 17시간이 초과되어 절임 완료(Stage2 완료)가 되면, 'Stage 3으로
-                            전달' 버튼을 통해 다음 공정(세척/탈수)으로 전달할 수 있습니다.
+                        <p style="font-size: 14px; font-weight: bold; color: var(--accent-purple); padding: 8px 12px; border-radius: 6px; background-color: rgba(139, 92, 246, 0.08); margin: 10px 0;" id="salting-guide-text">
+                            <i class="bi bi-info-circle-fill"></i> 배추를 소금물에 절이는 작업입니다. 5시간마다 뒤집어 주세요.
                         </p>
                         <div class="salting-grid" id="salting-room-container">
                             <!-- JS 바인딩 -->
@@ -2756,6 +2698,9 @@
         // Shadow localStorage to route state changes through FactoryStore
         const localStorage = {
             getItem: function (key) {
+                if (!window.FactoryStore) {
+                    return window.localStorage.getItem(key);
+                }
                 const state = window.FactoryStore.getState();
                 if (key === 'app_reservations_db') {
                     return JSON.stringify(state.reservations);
@@ -2820,6 +2765,10 @@
                 window.localStorage.setItem(key, value);
             },
             removeItem: function (key) {
+                if (!window.FactoryStore) {
+                    window.localStorage.removeItem(key);
+                    return;
+                }
                 if (key === 'kimp_check_in_time') {
                     window.FactoryStore.dispatch({ type: 'SET_CHECK_IN_TIME', payload: null });
                     return;
@@ -4001,7 +3950,7 @@
             const salinityInput = document.getElementById("order-form-salting-salinity");
             if (durationInput && salinityInput) {
                 const duration = parseFloat(durationInput.value) || 0;
-                if (duration >= 24) {
+                if (duration >= 20) {
                     salinityInput.value = 8;
                 } else {
                     salinityInput.value = 12;
@@ -4163,8 +4112,8 @@
             const supplier = supplierSelect.value;
             const route = routeSelect.value;
 
-            const duration = parseFloat(durationInput ? durationInput.value : 17) || 17;
-            const salinity = parseFloat(salinityInput ? salinityInput.value : 12) || 12;
+            const duration = parseFloat(durationInput ? durationInput.value : 20) || 20;
+            const salinity = parseFloat(salinityInput ? salinityInput.value : 8) || 8;
             const water = parseFloat(waterInput ? waterInput.value : (quantity * spec * 1.2)) || (quantity * spec * 1.2);
             const salt = parseFloat(saltCalcSpan ? saltCalcSpan.textContent : 0) || 0;
 
@@ -4186,12 +4135,18 @@
             const dateStr = `${yy}${mm}${dd}`; // "260612"
 
             let ordersObj = loadProductionOrders();
+            let deletedIds = [];
+            try {
+                deletedIds = JSON.parse(localStorage.getItem("kimp_deleted_order_ids") || "[]");
+            } catch (e) {}
 
             // Generate the next sequence number based ONLY on quantity, ignoring date prefix
             let maxSeq = 0;
             const targetQtyStr = `-${quantity}-`;
-            Object.keys(ordersObj).forEach(key => {
-                if (key.includes(targetQtyStr)) {
+            
+            const allKeys = new Set([...Object.keys(ordersObj), ...deletedIds]);
+            allKeys.forEach(key => {
+                if (key && typeof key === 'string' && key.includes(targetQtyStr)) {
                     const parts = key.split('-');
                     if (parts.length === 3 && parseInt(parts[1]) === quantity) {
                         const seq = parseInt(parts[2]);
@@ -4204,6 +4159,11 @@
 
             const nextSeq = maxSeq + 1;
             const newId = `${dateStr}-${quantity}-${nextSeq}`; // e.g. "260622-15-3"
+
+            if (deletedIds.includes(newId)) {
+                deletedIds = deletedIds.filter(id => id !== newId);
+                localStorage.setItem("kimp_deleted_order_ids", JSON.stringify(deletedIds));
+            }
 
             const names = {
                 raw_cabbage: "절임용 원배추",
@@ -4224,7 +4184,7 @@
                 cabbageOrigin: origin,
                 supplier: supplier,
                 deliveryRoute: route,
-                createdTime: new Date().toLocaleTimeString().slice(0, 8),
+                createdTime: new Date().toLocaleTimeString(),
                 rawMaterial: {
                     cabbageQty: quantity,
                     cabbageWeightPerPiece: spec,
@@ -4595,10 +4555,10 @@
                     const w = workers[k];
                     
                     // 💡 [실시간 강제 0초 리셋 및 고정] 준비 중(currentStep < 7)인 경우 근로시간을 무조건 0으로 정지 및 초기화한다!
+                    // 단, completedOrdersCount(작업 완료 횟수)는 누적값이므로 절대 초기화하지 않는다!
                     if (!w.currentStep || w.currentStep < 7) {
                         w.accumWorkSeconds = 0;
                         w.accumBreakSeconds = 0;
-                        w.completedOrdersCount = 0;
                         isChanged = true;
                     }
                     
@@ -4956,6 +4916,29 @@
                     rejectText = "닫기";
                 }
 
+                let qtyInfoHtml = "";
+                if (req.type === "completion" || req.type === "defect") {
+                    const good = req.postWorkQty !== undefined ? req.postWorkQty : 0;
+                    const defect = req.defectQty !== undefined ? req.defectQty : 0;
+                    qtyInfoHtml = `
+                    <div style="margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--text-primary);">
+                        실적 수량: 양품 <span style="color: var(--accent-blue);">${good}</span> / 
+                        불량 <span style="color: var(--accent-red);">${defect}</span>
+                    </div>
+                    `;
+                }
+
+                let orderDetailBtnHtml = "";
+                if (req.orderId) {
+                    orderDetailBtnHtml = `
+                    <button class="top-action-btn" 
+                        style="width: 100%; padding: 6px 10px; font-size: 11px; font-weight: 700; background-color: var(--accent-purple-bg); color: var(--accent-purple); border-radius: 6px; border: 1px solid rgba(192, 132, 252, 0.2); margin-top: 8px; cursor: pointer;"
+                        onclick="openOrderHistoryModal('${req.orderId}')">
+                        <i class="bi bi-file-earmark-text-fill"></i> 생산지시서 상세보기
+                    </button>
+                    `;
+                }
+
                 html += `
                 <div class="approval-card" id="req-card-${req.id}">
                     ${imgHtml}
@@ -4966,7 +4949,9 @@
                         </div>
                         <div class="approval-title">${title}</div>
                         ${msgHtml}
-                        <div style="font-size:11px; color: var(--text-secondary);">ID: ${req.userId}</div>
+                        ${qtyInfoHtml}
+                        <div style="font-size:11px; color: var(--text-secondary); margin-top: 4px;">ID: ${req.userId}</div>
+                        ${orderDetailBtnHtml}
                         <div class="approval-footer-btns">
                             <button class="approval-btn approve" onclick="approveHygiene('${req.id}', true)">${approveText}</button>
                             <button class="approval-btn reject" onclick="approveHygiene('${req.id}', false)">${rejectText}</button>
@@ -5059,11 +5044,12 @@
                                 s32.step5Done = true;
                                 s32.step2Status = "approved";
                                 s32.step3Status = "approved";
-                                s32.postWorkQty = req.postWorkQty || 15;
+                                s32.postWorkQty = req.postWorkQty !== undefined ? req.postWorkQty : 15;
+                                s32.defectQty = req.defectQty !== undefined ? req.defectQty : 0;
                                 s32.postWorkWeight = req.weight || 12.0;
                                 s32.endTime = new Date().toLocaleTimeString();
                                 if (!s32.workLogs) s32.workLogs = [];
-                                s32.workLogs.push(`${orderId} Stage3-2 무게재기승인완료 ${new Date().toLocaleTimeString()} 양품:${req.postWorkQty || 15} | 무게:${req.weight || 12.0}`);
+                                s32.workLogs.push(`${orderId} Stage3-2 무게재기승인완료 ${new Date().toLocaleTimeString()} 양품:${s32.postWorkQty} | 불량:${s32.defectQty} | 무게:${req.weight || 12.0}`);
                                 Object.assign(legacyS32, s32);
 
                                 orders[orderId].stages[3].dryingStatus = "completed";
@@ -5083,11 +5069,12 @@
                                 orders[orderId].stages[3].step5Done = true;
                                 orders[orderId].stages[3].step2Status = "approved";
                                 orders[orderId].stages[3].step3Status = "approved";
-                                orders[orderId].stages[3].postWorkQty = req.postWorkQty || 30;
+                                orders[orderId].stages[3].postWorkQty = req.postWorkQty !== undefined ? req.postWorkQty : 30;
+                                orders[orderId].stages[3].defectQty = req.defectQty !== undefined ? req.defectQty : 0;
                                 orders[orderId].stages[3].postWorkWeight = req.weight || 24.0;
                                 orders[orderId].stages[3].endTime = new Date().toLocaleTimeString();
                                 if (!orders[orderId].stages[3].workLogs) orders[orderId].stages[3].workLogs = [];
-                                orders[orderId].stages[3].workLogs.push(`${orderId} Stage3 세척승인완료 ${new Date().toLocaleTimeString()} 양품:${req.postWorkQty || 30} | 무게:${req.weight || 24.0}`);
+                                orders[orderId].stages[3].workLogs.push(`${orderId} Stage3 세척승인완료 ${new Date().toLocaleTimeString()} 양품:${orders[orderId].stages[3].postWorkQty} | 불량:${orders[orderId].stages[3].defectQty} | 무게:${req.weight || 24.0}`);
 
                                 orders[orderId].stages[3].dryingStatus = "wait_timer";
 
@@ -5106,11 +5093,12 @@
                                 orders[orderId].stages[stageKey].step5Done = true;
                                 orders[orderId].stages[stageKey].step2Status = "approved";
                                 orders[orderId].stages[stageKey].step3Status = "approved";
-                                orders[orderId].stages[stageKey].postWorkQty = req.postWorkQty || 5;
+                                orders[orderId].stages[stageKey].postWorkQty = req.postWorkQty !== undefined ? req.postWorkQty : 5;
+                                orders[orderId].stages[stageKey].defectQty = req.defectQty !== undefined ? req.defectQty : 0;
                                 orders[orderId].stages[stageKey].postWorkWeight = req.weight || 4.0;
                                 orders[orderId].stages[stageKey].endTime = new Date().toLocaleTimeString();
                                 if (!orders[orderId].stages[stageKey].workLogs) orders[orderId].stages[stageKey].workLogs = [];
-                                orders[orderId].stages[stageKey].workLogs.push(`${orderId} Stage${stageKey} 승인완료 ${new Date().toLocaleTimeString()} 양품:${req.postWorkQty || 5} | 무게:${req.weight || 4.0}`);
+                                orders[orderId].stages[stageKey].workLogs.push(`${orderId} Stage${stageKey} 승인완료 ${new Date().toLocaleTimeString()} 양품:${orders[orderId].stages[stageKey].postWorkQty} | 불량:${orders[orderId].stages[stageKey].defectQty} | 무게:${req.weight || 4.0}`);
 
                                 if (stageKey === "5" || stageKey === "5-1") {
                                     orders[orderId].status = "completed";
@@ -5143,7 +5131,16 @@
 
                                     const existingBatch = saltingBatches.find(b => b.orderId === orderId);
                                     if (!existingBatch) {
-                                        const currentSettingHours = getSaltingTimeSetting();
+                                        let currentSettingHours = getSaltingTimeSetting();
+                                        if (orders[orderId] && orders[orderId].stages && orders[orderId].stages[2]) {
+                                            const s2 = orders[orderId].stages[2];
+                                            const specSalting = s2.step2_salting || {};
+                                            const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
+                                            if (durationVal !== undefined && durationVal !== null) {
+                                                currentSettingHours = parseInt(durationVal);
+                                            }
+                                        }
+
                                         saltingBatches.push({
                                             id: orderId,
                                             orderId: orderId,
@@ -5403,7 +5400,7 @@
                 }
 
                 if (o.status === "pending") {
-                    actionBtn = `<button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple);" onclick="sendOrderToStage1('${o.orderId}')">Stage 1로 전달</button><span class="info-tooltip-wrap"><i class="bi bi-info-circle" style="color: var(--accent-blue); font-size: 14px;"></i><span class="info-tooltip-text">Stage 1에 작업지시서를 전달해주세요.</span></span> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 4px;" onclick="printOrderSheet('${o.orderId}')">[인쇄하기]</button> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 4px; background-color: var(--accent-blue-bg); color: var(--accent-blue);" onclick="openOrderHistoryModal('${o.orderId}')">상세 이력</button>`;
+                    actionBtn = `<button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple);" onclick="sendOrderToStage1('${o.orderId}')">Stage 1로 전달</button><span class="info-tooltip-wrap"><i class="bi bi-info-circle" style="color: var(--accent-blue); font-size: 14px;"></i><span class="info-tooltip-text">Stage 1에 작업지시서를 전달해주세요.</span></span> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 4px;" onclick="printOrderSheet('${o.orderId}')">[인쇄하기]</button> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 4px; background-color: var(--accent-blue-bg); color: var(--accent-blue);" onclick="openOrderHistoryModal('${o.orderId}')">상세 이력</button> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 4px; background-color: var(--accent-red-bg); color: var(--accent-red);" onclick="deleteOrder('${o.orderId}')">삭제</button>`;
                 } else if (o.status === "in_progress") {
                     actionBtn = `<div style="display: flex; align-items: center; gap: 6px;"><span style="font-size:11px; color: var(--text-secondary);">작업 중</span> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; display: inline-flex;" onclick="printOrderSheet('${o.orderId}')">[인쇄하기]</button> <button class="top-action-btn" style="padding: 4px 8px; font-size: 11px; display: inline-flex; background-color: var(--accent-blue-bg); color: var(--accent-blue);" onclick="openOrderHistoryModal('${o.orderId}')">상세 이력</button></div>`;
                 } else if (o.status === "completed") {
@@ -5463,6 +5460,32 @@
                 console.error("[Manager Error] Failed to send order to Stage 1:", err);
             }
             refreshAllData();
+        }
+
+        function deleteOrder(orderId) {
+            if (confirm(`생산지시서 ${orderId}를 삭제하시겠습니까?`)) {
+                try {
+                    let deletedIds = [];
+                    try {
+                        deletedIds = JSON.parse(localStorage.getItem("kimp_deleted_order_ids") || "[]");
+                    } catch (e) {}
+                    if (!deletedIds.includes(orderId)) {
+                        deletedIds.push(orderId);
+                        localStorage.setItem("kimp_deleted_order_ids", JSON.stringify(deletedIds));
+                    }
+
+                    let ordersObj = JSON.parse(JSON.stringify(loadProductionOrders()));
+                    if (ordersObj[orderId]) {
+                        delete ordersObj[orderId];
+                        saveProductionOrders(ordersObj);
+                        addConsoleLog(`[생산지시서 삭제] 생산지시서 ${orderId}가 삭제되었습니다.`);
+                        window.addAppLog(`생산지시서 ${orderId}를 삭제했습니다.`);
+                    }
+                } catch (err) {
+                    console.error("[Manager Error] Failed to delete order:", err);
+                }
+                refreshAllData();
+            }
         }
 
         let lastSaltingRoomHtml = "";
@@ -5657,6 +5680,11 @@
                     attendanceBadge = `<span class="badge badge-green">출석 완료</span>`;
                 }
 
+                const detailLogs = w.workDetailLogs || [];
+                const logsTooltip = detailLogs.length > 0 
+                    ? `[실적 누적 상세 내역]\n` + detailLogs.map(l => `• ${l}`).join('\n')
+                    : '누적된 작업 실적 기록이 없습니다.';
+
                 html += `
                 <tr ${isBreak ? 'style="background-color: rgba(225, 177, 44, 0.05);"' : ''}>
                     <td style="font-weight: 700;">${w.userName}</td>
@@ -5667,7 +5695,7 @@
                     <td style="font-family: var(--font-outfit); font-weight: 600;">${displayCheckInTime || '-'}</td>
                     <td style="font-family: var(--font-outfit); font-weight: 600; color: ${isBreak ? 'var(--text-secondary)' : 'var(--accent-blue)'};">${workTimeStr}</td>
                     <td style="font-family: var(--font-outfit); font-weight: ${isBreak ? '700' : '500'}; color: ${isBreak ? 'var(--accent-yellow)' : 'var(--text-primary)'};">${breakTimeStr}</td>
-                    <td>${speedHtml}</td>
+                    <td title="${logsTooltip}" style="cursor: help; text-decoration: underline dashed var(--accent-purple);">${speedHtml} <i class="bi bi-info-circle" style="font-size: 11px; color: var(--accent-purple);"></i></td>
                     <td style="font-family: var(--font-outfit); font-weight: 700; color: ${isBreak ? 'var(--text-secondary)' : 'var(--accent-purple)'};">${accumulatedSalary.toLocaleString()}원</td>
                 </tr>
                 `;
@@ -5782,9 +5810,17 @@
                 let catHtml = "";
                 Object.keys(products).forEach(key => {
                     const item = products[key];
+                    const imgFallback = {
+                        p300g: "./images/kimchi_product_300g.png",
+                        p1kg: "./images/kimchi_product_1kg.png",
+                        p3kg: "./images/kimchi_product_3kg.png",
+                        p5kg: "./images/kimchi_product_1kg.png",
+                        p10kg: "./images/kimchi_product_3kg.png"
+                    };
+                    const imgSrc = item.img || imgFallback[key] || "./images/kimchi_product_300g.png";
                     catHtml += `
                     <div style="display: flex; gap: 14px; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; background-color: #ffffff;">
-                        <img src="${item.img}" style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover;" alt="${item.name}">
+                        <img src="${imgSrc}" style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover;" alt="${item.name}">
                         <div style="flex-grow: 1;">
                             <div style="font-size:14px; font-weight:700;">${item.name}</div>
                             <div style="font-size:11px; color:var(--text-secondary); margin-bottom: 4px;">${item.desc}</div>
@@ -5924,7 +5960,7 @@
                 updated = false; // already saved
             }
 
-            // Dynamic maturation check
+            // Dynamic maturation & flipping check
             let maturedCabbages = parseInt(localStorage.getItem("kimp_factory_matured_cabbages") || "0");
             batches.forEach(b => {
                 if (b.status === 'salting') {
@@ -5934,13 +5970,39 @@
                         b.status = 'matured';
                         b.maturedTime = b.startTime + limit;
                         maturedCabbages += b.cabbageHeads;
+                        b.isFlipPending = false;
                         updated = true;
+                    } else {
+                        b.flipCount = b.flipCount || 0;
+                        const nextFlipTriggerMs = (b.flipCount + 1) * 5 * 3600 * 1000;
+                        
+                        const oldFlipPending = b.isFlipPending;
+                        b.isFlipPending = false;
+                        b.nextFlipTimeStr = "";
+
+                        if (limit - elapsed >= 5 * 3600 * 1000 && nextFlipTriggerMs < limit) {
+                            const remainingToFlip = nextFlipTriggerMs - elapsed;
+                            if (remainingToFlip <= 0) {
+                                b.isFlipPending = true;
+                            } else {
+                                const fHrs = Math.floor(remainingToFlip / 3600000);
+                                const fMins = Math.floor((remainingToFlip % 3600000) / 60000);
+                                const fSecs = Math.floor((remainingToFlip % 60000) / 1000);
+                                b.nextFlipTimeStr = `${String(fHrs).padStart(2, '0')}:${String(fMins).padStart(2, '0')}:${String(fSecs).padStart(2, '0')}`;
+                            }
+                        }
+
+                        if (oldFlipPending !== b.isFlipPending) {
+                            updated = true;
+                        }
                     }
+                } else {
+                    b.isFlipPending = false;
                 }
             });
 
+            localStorage.setItem("kimp_factory_salting", JSON.stringify(batches));
             if (updated) {
-                localStorage.setItem("kimp_factory_salting", JSON.stringify(batches));
                 localStorage.setItem("kimp_factory_matured_cabbages", maturedCabbages.toString());
             }
 
@@ -5974,13 +6036,25 @@
                     `;
                 } else {
                     const elapsed = now - b.startTime;
-                    const remaining = Math.max(0, (b.saltingTimeLimit || currentSettingMs) - elapsed);
+                    const limit = b.saltingTimeLimit || currentSettingMs;
+                    const remaining = Math.max(0, limit - elapsed);
 
                     const hrs = Math.floor(remaining / 3600000);
                     const mins = Math.floor((remaining % 3600000) / 60000);
                     const secs = Math.floor((remaining % 60000) / 1000);
 
                     const countdownStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+                    let flipHtml = "";
+                    if (b.isFlipPending) {
+                        flipHtml = `<div style="font-size:12px; color:var(--accent-red); font-weight:700; margin-top:6px; animation: pulse-anim 1.5s infinite;"><i class="bi bi-arrow-repeat spin-anim"></i> 배추 뒤집기 대기 중!</div>`;
+                    } else if (b.nextFlipTimeStr) {
+                        flipHtml = `<div style="font-size:11px; color:var(--accent-blue); font-weight:600; margin-top:6px;"><i class="bi bi-arrow-clockwise"></i> 다음 뒤집기: ${b.nextFlipTimeStr}</div>`;
+                    } else {
+                        flipHtml = `<div style="font-size:11px; color:var(--text-secondary); margin-top:6px;"><i class="bi bi-dash-circle"></i> 다음 뒤집기 계획 없음</div>`;
+                    }
+
+                    const flipCount = b.flipCount || 0;
 
                     cardBody = `
                     <div class="salting-timer-circle"></div>
@@ -5989,7 +6063,9 @@
                         투입: 배추 <b>${b.cabbageHeads}포기</b> (${b.orderId || '지시서연동'})
                     </div>
                     <div class="salting-countdown">${countdownStr}</div>
-                    <div style="font-size:11px; color:var(--text-secondary);">${currentSettingHours}시간 절임 카운트다운</div>
+                    <div style="font-size:11px; color:var(--text-secondary);">${(limit/3600000).toFixed(0)}시간 절임 카운트다운</div>
+                    <div style="font-size:11px; font-weight:600; color:var(--accent-purple); margin-top:4px;">누적 뒤집기: ${flipCount}회</div>
+                    ${flipHtml}
                     <button class="top-action-btn" style="width: 100%; margin-top: 10px; padding: 6px 0; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); border-radius: 6px;" onclick="window.cheatCompleteSalting('${b.id}')">절임 즉시 완료 (치트)</button>
                     `;
                 }
@@ -6833,16 +6909,49 @@
                 chartFinance.update('none'); // 애니메이션 없이 신속 갱신
             }
 
-            // 2. 바 차트 업데이트
-            const workerNames = [];
-            const workerCounts = [];
+            // 2. 바 차트 업데이트 - 이름 기준 중복 제거 후 집계
+            const workerNameMap = {};
             Object.keys(workers).forEach(k => {
-                workerNames.push(workers[k].userName);
-                workerCounts.push(workers[k].completedOrdersCount || 0);
+                const w = workers[k];
+                if (!w || !w.userName) return;
+                const name = w.userName;
+                if (!workerNameMap[name]) {
+                    workerNameMap[name] = 0;
+                }
+                // 가장 높은 completedOrdersCount 값으로 유지
+                workerNameMap[name] = Math.max(workerNameMap[name], w.completedOrdersCount || 0);
             });
+
+            // production_orders에서 실제 작업자별 완료 지시서 수를 직접 집계 (더 신뢰성 높음)
+            try {
+                const allOrders = loadProductionOrders();
+                const workerOrderCount = {};
+                Object.values(allOrders).forEach(o => {
+                    if (!o || !o.stages) return;
+                    Object.values(o.stages).forEach(s => {
+                        const operator = s.operator || (s.operators && s.operators[0]);
+                        if (operator && s.statusSubmitted) {
+                            workerOrderCount[operator] = (workerOrderCount[operator] || 0) + 1;
+                        }
+                    });
+                });
+                // production_orders 집계값이 더 높으면 그것 사용
+                Object.keys(workerOrderCount).forEach(name => {
+                    if (!workerNameMap[name]) workerNameMap[name] = 0;
+                    workerNameMap[name] = Math.max(workerNameMap[name], workerOrderCount[name]);
+                });
+            } catch(e) {}
+
+            const workerNames = Object.keys(workerNameMap);
+            const workerCounts = workerNames.map(n => workerNameMap[n]);
+            const maxCount = Math.max(...workerCounts, 1);
 
             chartSpeed.data.labels = workerNames;
             chartSpeed.data.datasets[0].data = workerCounts;
+            // y축 max를 동적으로 조정
+            if (chartSpeed.options.scales && chartSpeed.options.scales.y) {
+                chartSpeed.options.scales.y.max = Math.ceil(maxCount * 1.3) || 5;
+            }
             chartSpeed.update('none');
 
             // 3. 도넛 차트 업데이트
@@ -7465,12 +7574,19 @@
             let brineVolume = "-";
             let extraSalt = "-";
             
-            if (o.stages && o.stages[2] && o.stages[2].step2_salting) {
-                const s2 = o.stages[2].step2_salting;
-                targetDuration = s2.targetDuration !== undefined ? `${s2.targetDuration}시간` : "-";
-                brineSalinity = s2.brineSalinity !== undefined ? `${s2.brineSalinity}%` : "-";
-                brineVolume = s2.brineVolumeLiters !== undefined ? `${s2.brineVolumeLiters} L` : "-";
-                extraSalt = s2.extraSaltAmountKg !== undefined ? `${s2.extraSaltAmountKg.toFixed(2)} kg` : "-";
+            if (o.stages && o.stages[2]) {
+                const s2 = o.stages[2];
+                const specSalting = s2.step2_salting || {};
+                
+                const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
+                const salinityVal = s2.brineSalinity !== undefined && s2.brineSalinity !== null ? s2.brineSalinity : specSalting.brineSalinity;
+                const volumeVal = s2.brineVolumeLiters !== undefined && s2.brineVolumeLiters !== null ? s2.brineVolumeLiters : specSalting.brineVolumeLiters;
+                const saltVal = s2.extraSaltAmountKg !== undefined && s2.extraSaltAmountKg !== null ? s2.extraSaltAmountKg : specSalting.extraSaltAmountKg;
+
+                targetDuration = (durationVal !== undefined && durationVal !== null) ? `${durationVal}시간` : "-";
+                brineSalinity = (salinityVal !== undefined && salinityVal !== null) ? `${salinityVal}%` : "-";
+                brineVolume = (volumeVal !== undefined && volumeVal !== null) ? `${volumeVal} L` : "-";
+                extraSalt = (saltVal !== undefined && saltVal !== null) ? `${parseFloat(saltVal).toFixed(2)} kg` : "-";
             }
 
             let html = `
@@ -7507,6 +7623,11 @@
                 { id: "6", name: "포장 및 출하 대기" }
             ];
 
+            let approvalRequests = [];
+            try {
+                approvalRequests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
+            } catch(e) {}
+
             let hasShownActiveInProgress = false;
 
             stagesList.forEach(s => {
@@ -7517,17 +7638,41 @@
                     stageData = o.stages && o.stages[s.id];
                 }
 
-                // 💡 [수정] 단순 객체 생성이 아니라, 실제 HMI 스캔/시작 정보가 입력되었을 때만 활성화로 판별 (Stage 2 완료 후 전달 시 오작동 노출 원천 차단)
+                const pendingComp = approvalRequests.find(r => 
+                    r.orderId === o.orderId && 
+                    String(r.stageNum) === String(s.id) && 
+                    r.status === "pending" && 
+                    r.type === "completion"
+                );
+
                 let isActivated = stageData && (!!stageData.startTime || !!stageData.endTime || (stageData.workLogs && stageData.workLogs.length > 0));
+                if (pendingComp) {
+                    isActivated = true;
+                }
+
                 let startTime = (stageData && stageData.startTime) || "-";
                 let endTime = (stageData && stageData.endTime) || "-";
-                let qty = (stageData && stageData.postWorkQty) || "-";
-                let weight = (stageData && stageData.postWorkWeight) ? `${stageData.postWorkWeight}kg` : "-";
                 
-                // 작업자 이름 추출 (교대 명단)
+                let qty = "-";
+                if (pendingComp && pendingComp.postWorkQty !== undefined) {
+                    qty = pendingComp.postWorkQty;
+                } else if (stageData && stageData.postWorkQty !== undefined && stageData.postWorkQty !== null) {
+                    qty = stageData.postWorkQty;
+                }
+
+                let weight = "-";
+                if (pendingComp && pendingComp.weight !== undefined) {
+                    weight = `${pendingComp.weight}kg`;
+                } else if (stageData && stageData.postWorkWeight) {
+                    weight = `${stageData.postWorkWeight}kg`;
+                }
+                
                 let operators = [];
                 if (stageData && stageData.operator) {
                     operators.push(stageData.operator);
+                }
+                if (pendingComp && pendingComp.userName && !operators.includes(pendingComp.userName)) {
+                    operators.push(pendingComp.userName);
                 }
                 
                 if (stageData && stageData.workLogs) {
@@ -7540,15 +7685,20 @@
                 }
                 let opText = operators.length > 0 ? operators.join(", ") : "-";
 
-                // 불량 개수 집계
                 let defectVal = 0;
-                if (stageData && stageData.workLogs) {
-                    stageData.workLogs.forEach(log => {
+                if (pendingComp && pendingComp.defectQty !== undefined) {
+                    defectVal = pendingComp.defectQty;
+                } else if (stageData && stageData.defectQty !== undefined && stageData.defectQty !== null) {
+                    defectVal = stageData.defectQty;
+                } else if (stageData && stageData.workLogs && stageData.workLogs.length > 0) {
+                    for (let i = stageData.workLogs.length - 1; i >= 0; i--) {
+                        const log = stageData.workLogs[i];
                         const matchDef = log.match(/불량:\s*(\d+)/) || log.match(/불량:(\d+)/);
                         if (matchDef) {
-                            defectVal += parseInt(matchDef[1], 10);
+                            defectVal = parseInt(matchDef[1], 10);
+                            break;
                         }
-                    });
+                    }
                 }
                 let defectText = defectVal > 0 ? `<span style="color: #ff7675; font-weight: bold;">${defectVal}포기</span>` : "0포기";
 
@@ -7561,6 +7711,10 @@
                         statusText = "<span style='color:#34d399; font-weight:700;'>완료</span>";
                         borderStyle = "border-color: #c084fc; background: #1a1b24;";
                         iconColor = "color: #38bdf8;";
+                    } else if (pendingComp) {
+                        statusText = "<span style='color:#fbbf24; font-weight:700;'>승인 대기</span>";
+                        borderStyle = "border-color: #fbbf24; background: #1a1b24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.15);";
+                        iconColor = "color: #fbbf24;";
                     } else {
                         if (!hasShownActiveInProgress) {
                             statusText = "<span style='color:#fbbf24; font-weight:700;'>진행 중</span>";
@@ -7579,22 +7733,29 @@
                     iconColor = "color: #718096;";
                 }
 
-                html += `
-                    <div style="position: relative; padding: 12px; border: 1px solid #3f4257; border-radius: 8px; ${borderStyle}">
-                        <div style="position: absolute; left: -28px; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: #13141a; border: 2px solid ${isActivated && endTime !== '-' ? '#c084fc' : (isActivated && borderStyle.includes('fbbf24') ? '#fbbf24' : '#3f4257')};"></div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <strong style="${iconColor} font-size: 14px; font-weight: 700;">Stage ${s.id === '32' ? '3-2' : s.id}. ${s.name}</strong>
-                            <span style="font-size: 11px; padding: 2px 6px; background: rgba(255, 255, 255, 0.05); border-radius: 4px;">${statusText}</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; color: #cbd5e1;">
-                            <div>시작 시각: <span style="color:#ffffff; font-weight:600;">${startTime}</span></div>
-                            <div>종료 시각: <span style="color:#ffffff; font-weight:600;">${endTime}</span></div>
-                            <div>작업자(교대): <span style="color:#ffffff; font-weight:600;">${opText}</span></div>
-                            <div>실적(무게): <span style="color:#ffffff; font-weight:600;">${qty !== "-" ? qty + "포기" : "-"} (${weight})</span></div>
-                            <div style="grid-column: span 2;">누적 불량 수량: ${defectText}</div>
-                        </div>
-                    </div>
-                `;
+                        let flipInfoHtml = "";
+                        if (s.id === "2") {
+                            const fc = (stageData && stageData.flipCount) || 0;
+                            flipInfoHtml = `<div style="grid-column: span 2; font-weight:600; color:#c084fc;">배추 뒤집기 완료 횟수: ${fc}회</div>`;
+                        }
+
+                        html += `
+                            <div style="position: relative; padding: 12px; border: 1px solid #3f4257; border-radius: 8px; ${borderStyle}">
+                                <div style="position: absolute; left: -28px; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: #13141a; border: 2px solid ${isActivated && endTime !== '-' ? '#c084fc' : (isActivated && borderStyle.includes('fbbf24') ? '#fbbf24' : '#3f4257')};"></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <strong style="${iconColor} font-size: 14px; font-weight: 700;">Stage ${s.id === '32' ? '3-2' : s.id}. ${s.name}</strong>
+                                    <span style="font-size: 11px; padding: 2px 6px; background: rgba(255, 255, 255, 0.05); border-radius: 4px;">${statusText}</span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; color: #cbd5e1;">
+                                    <div>시작 시각: <span style="color:#ffffff; font-weight:600;">${startTime}</span></div>
+                                    <div>종료 시각: <span style="color:#ffffff; font-weight:600;">${endTime}</span></div>
+                                    <div>작업자(교대): <span style="color:#ffffff; font-weight:600;">${opText}</span></div>
+                                    <div>실적(무게): <span style="color:#ffffff; font-weight:600;">${qty !== "-" ? qty + "포기" : "-"} (${weight})</span></div>
+                                    <div>누적 불량 수량: ${defectText}</div>
+                                    ${flipInfoHtml}
+                                </div>
+                            </div>
+                        `;
             });
 
             html += `</div>`;

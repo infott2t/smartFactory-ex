@@ -223,6 +223,19 @@
             s2.saltingStartTime = new Date(matchedBatch.startTime).toLocaleTimeString();
             s2.targetDuration = limit / 3600000; // e.g. 17 or dynamically changed
             s2.isTurnedOver = matchedBatch.status === "matured" || elapsed >= limit;
+
+            // 💡 [수정] matchedBatch 분기에서도 원래 지시서 발행 시의 절임 세팅 파라미터 값들을 보존하여 매핑함
+            if (cloned.stages[2] && cloned.stages[2].step2_salting) {
+                const specSalting = cloned.stages[2].step2_salting;
+                s2.brineSalinity = s2.brineSalinity !== undefined ? s2.brineSalinity : specSalting.brineSalinity;
+                s2.brineVolumeLiters = s2.brineVolumeLiters !== undefined ? s2.brineVolumeLiters : specSalting.brineVolumeLiters;
+                s2.extraSaltAmountKg = s2.extraSaltAmountKg !== undefined ? s2.extraSaltAmountKg : specSalting.extraSaltAmountKg;
+                s2.targetDuration = s2.targetDuration !== undefined ? s2.targetDuration : (specSalting.targetDuration || (limit / 3600000));
+            } else {
+                s2.brineSalinity = s2.brineSalinity !== undefined ? s2.brineSalinity : 8;
+                s2.brineVolumeLiters = s2.brineVolumeLiters !== undefined ? s2.brineVolumeLiters : 0;
+                s2.extraSaltAmountKg = s2.extraSaltAmountKg !== undefined ? s2.extraSaltAmountKg : 0;
+            }
             
             // Map status properties
             if (matchedBatch.status === "matured" || elapsed >= limit || s2.step5Status === "approved" || s2.statusSubmitted) {
@@ -268,9 +281,10 @@
             s2.isTurnedOver = s2.isTurnedOver !== undefined ? s2.isTurnedOver : s2.step2_salting.isTurnedOver;
             s2.saltingStartTime = s2.saltingStartTime !== undefined ? s2.saltingStartTime : s2.step2_salting.saltingStartTime;
             s2.targetDuration = s2.targetDuration !== undefined ? s2.targetDuration : s2.step2_salting.targetDuration;
+            s2.flipCount = s2.flipCount !== undefined ? parseInt(s2.flipCount) || 0 : (order.stages && order.stages[2] && order.stages[2].flipCount !== undefined ? parseInt(order.stages[2].flipCount) || 0 : 0);
+            s2.statusSubmitted = s2.statusSubmitted !== undefined ? !!s2.statusSubmitted : false;
+            cloned.stages[2] = s2;
         }
-        s2.statusSubmitted = s2.statusSubmitted !== undefined ? !!s2.statusSubmitted : false;
-        cloned.stages[2] = s2;
 
         // Construct stage 3 frontend view
         const s3 = cloned.stages[3] || {};
@@ -372,8 +386,15 @@
         // Stage 2
         if (cloned.stages[2]) {
             const s2 = cloned.stages[2];
-            const saltingStartTime = s2.saltingStartTime || s2.startTime || null;
-            const isTurnedOver = s2.isTurnedOver !== undefined ? s2.isTurnedOver : (s2.endTime ? true : false);
+            const specSalting = s2.step2_salting || {};
+            const saltingStartTime = s2.saltingStartTime || s2.startTime || specSalting.saltingStartTime || null;
+            const isTurnedOver = s2.isTurnedOver !== undefined ? s2.isTurnedOver : (s2.endTime ? true : (specSalting.isTurnedOver || false));
+            
+            const salinityVal = s2.brineSalinity !== undefined && s2.brineSalinity !== null ? s2.brineSalinity : specSalting.brineSalinity;
+            const volumeVal = s2.brineVolumeLiters !== undefined && s2.brineVolumeLiters !== null ? s2.brineVolumeLiters : specSalting.brineVolumeLiters;
+            const saltVal = s2.extraSaltAmountKg !== undefined && s2.extraSaltAmountKg !== null ? s2.extraSaltAmountKg : specSalting.extraSaltAmountKg;
+            const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
+
             dbStages[2] = {
                 ...s2,
                 operators: s2.operators || (s2.operator ? [s2.operator] : []),
@@ -383,12 +404,12 @@
                 step5Status: s2.step5Status || "none",
                 statusSubmitted: !!s2.statusSubmitted,
                 step2_salting: {
-                    brineSalinity: parseFloat(s2.brineSalinity) || 0,
-                    brineVolumeLiters: parseFloat(s2.brineVolumeLiters) || 0,
-                    extraSaltAmountKg: parseFloat(s2.extraSaltAmountKg) || 0,
+                    brineSalinity: parseFloat(salinityVal) || 0,
+                    brineVolumeLiters: parseFloat(volumeVal) || 0,
+                    extraSaltAmountKg: parseFloat(saltVal) || 0,
                     isTurnedOver: !!isTurnedOver,
                     saltingStartTime: saltingStartTime,
-                    targetDuration: parseFloat(s2.targetDuration) || 0
+                    targetDuration: parseFloat(durationVal) || 0
                 }
             };
         }
@@ -649,6 +670,11 @@
         // 6. Production orders
         try {
             const rawOrders = localStorage.getItem('kimp_production_orders');
+            let deletedIds = [];
+            try {
+                deletedIds = JSON.parse(localStorage.getItem("kimp_deleted_order_ids") || "[]");
+            } catch(e) {}
+
             let parsed = null;
             if (rawOrders && rawOrders !== 'null' && rawOrders !== 'undefined') {
                 try {
@@ -673,16 +699,20 @@
             if (!isEmpty) {
                 if (Array.isArray(parsed)) {
                     parsed.forEach(o => {
-                        const sanitized = mapOrderToFrontend(o);
-                        if (sanitized && sanitized.orderId) {
-                            obj[sanitized.orderId] = sanitized;
+                        if (o && o.orderId && !deletedIds.includes(o.orderId)) {
+                            const sanitized = mapOrderToFrontend(o);
+                            if (sanitized && sanitized.orderId) {
+                                obj[sanitized.orderId] = sanitized;
+                            }
                         }
                     });
                 } else if (typeof parsed === 'object') {
                     for (let k in parsed) {
-                        const sanitized = mapOrderToFrontend(parsed[k]);
-                        if (sanitized && sanitized.orderId) {
-                            obj[sanitized.orderId] = sanitized;
+                        if (!deletedIds.includes(k)) {
+                            const sanitized = mapOrderToFrontend(parsed[k]);
+                            if (sanitized && sanitized.orderId) {
+                                obj[sanitized.orderId] = sanitized;
+                            }
                         }
                     }
                 }
@@ -694,43 +724,47 @@
                 const order2Id = `${yesterdayDateStr}-15-2`;
                 const order3Id = `${yesterdayDateStr}-15-3`;
 
-                obj = {
-                    [order1Id]: mapOrderToFrontend(window.defaultProductionOrders[order1Id]),
-                    [order2Id]: mapOrderToFrontend(window.defaultProductionOrders[order2Id]),
-                    [order3Id]: mapOrderToFrontend(window.defaultProductionOrders[order3Id])
-                };
+                obj = {};
+                if (!deletedIds.includes(order1Id)) obj[order1Id] = mapOrderToFrontend(window.defaultProductionOrders[order1Id]);
+                if (!deletedIds.includes(order2Id)) obj[order2Id] = mapOrderToFrontend(window.defaultProductionOrders[order2Id]);
+                if (!deletedIds.includes(order3Id)) obj[order3Id] = mapOrderToFrontend(window.defaultProductionOrders[order3Id]);
 
                 // Also initialize refrigerator salting batches
                 const now = Date.now();
                 const currentSettingHours = parseInt(localStorage.getItem("kimp_salting_time_setting") || "17");
                 const currentSettingMs = currentSettingHours * 3600 * 1000;
                 
-                const initialSalting = [
-                    {
+                const initialSalting = [];
+                if (!deletedIds.includes(order1Id)) {
+                    initialSalting.push({
                         id: order1Id,
                         orderId: order1Id,
                         cabbageHeads: 15,
                         status: "salting",
                         startTime: now - 4 * 3600 * 1000,
                         saltingTimeLimit: currentSettingMs
-                    },
-                    {
+                    });
+                }
+                if (!deletedIds.includes(order2Id)) {
+                    initialSalting.push({
                         id: order2Id,
                         orderId: order2Id,
                         cabbageHeads: 15,
                         status: "salting",
                         startTime: now - 3 * 3600 * 1000,
                         saltingTimeLimit: currentSettingMs
-                    },
-                    {
+                    });
+                }
+                if (!deletedIds.includes(order3Id)) {
+                    initialSalting.push({
                         id: order3Id,
                         orderId: order3Id,
                         cabbageHeads: 15,
                         status: "salting",
                         startTime: now - (currentSettingMs - 60 * 1000),
                         saltingTimeLimit: currentSettingMs
-                    }
-                ];
+                    });
+                }
                 localStorage.setItem("kimp_factory_salting", JSON.stringify(initialSalting));
                 localStorage.setItem("kimp_factory_matured_cabbages", "0");
                 dbChanged = true;
@@ -738,7 +772,7 @@
 
             // Centralized cleanup of legacy keys
             for (let k in obj) {
-                if (k.startsWith("260530-") || k.startsWith("260612-")) {
+                if (k.startsWith("260530-") || k.startsWith("260612-") || deletedIds.includes(k)) {
                     delete obj[k];
                     dbChanged = true;
                 }
@@ -751,7 +785,7 @@
                 `${yesterdayDateStr}-15-3`
             ];
             newKeys.forEach(k => {
-                if (!obj[k] && window.defaultProductionOrders[k]) {
+                if (!deletedIds.includes(k) && !obj[k] && window.defaultProductionOrders[k]) {
                     obj[k] = mapOrderToFrontend(window.defaultProductionOrders[k]);
                     dbChanged = true;
                 }
@@ -878,16 +912,25 @@
         // 6. Production orders
         if (shouldSave('production_orders')) {
             let currentOrders = {};
+            let deletedIds = [];
+            try {
+                deletedIds = JSON.parse(localStorage.getItem("kimp_deleted_order_ids") || "[]");
+            } catch(e) {}
+
             try {
                 let storedOrders = localStorage.getItem('kimp_production_orders');
                 let parsed = storedOrders ? JSON.parse(storedOrders) : {};
                 if (parsed && Array.isArray(parsed)) {
                     parsed.forEach(o => {
-                        if (o && o.orderId) currentOrders[o.orderId] = mapOrderToFrontend(o);
+                        if (o && o.orderId && !deletedIds.includes(o.orderId)) {
+                            currentOrders[o.orderId] = mapOrderToFrontend(o);
+                        }
                     });
                 } else {
                     for (let k in parsed) {
-                        currentOrders[k] = mapOrderToFrontend(parsed[k]);
+                        if (!deletedIds.includes(k)) {
+                            currentOrders[k] = mapOrderToFrontend(parsed[k]);
+                        }
                     }
                 }
             } catch(e) {
@@ -927,6 +970,10 @@
 
             // Merge local state.productionOrders into currentOrders safely
             for (let key in state.productionOrders) {
+                if (deletedIds.includes(key)) {
+                    delete state.productionOrders[key];
+                    continue;
+                }
                 if (currentOrders[key]) {
                     let localStatusPriority = getStatusPriority(state.productionOrders[key].status);
                     let storageStatusPriority = getStatusPriority(currentOrders[key].status);
