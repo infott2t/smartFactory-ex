@@ -1814,13 +1814,20 @@
                         <div class="card-header"
                             style="display: flex; justify-content: space-between; align-items: center;">
                             <h3><i class="bi bi-receipt"></i> 주문 출하 현황판 (어제 17:00 ~ 오늘 10:00 접수분)</h3>
-                            <span style="font-size: 11px; color: var(--text-secondary);" id="lbl-orders-date-range">조회
-                                기준일: 2026-06-15</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button id="btn-bulk-print-delivery" onclick="window.printSelectedDeliveryLabels()" class="top-action-btn" 
+                                    style="background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); padding: 4px 10px; font-weight: bold; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    <i class="bi bi-printer-fill"></i> 배송 라벨 일괄 인쇄
+                                </button>
+                                <span style="font-size: 11px; color: var(--text-secondary);" id="lbl-orders-date-range">조회
+                                    기준일: 2026-06-15</span>
+                            </div>
                         </div>
                         <div class="table-wrapper">
                             <table class="console-table" style="font-size: 12px;">
                                 <thead>
                                     <tr>
+                                        <th style="width: 30px;"><input type="checkbox" id="check-all-orders" onclick="window.toggleSelectAllOrders(this)" style="cursor: pointer;"></th>
                                         <th>주문시각</th>
                                         <th>주문자</th>
                                         <th>배송 주소</th>
@@ -1828,6 +1835,7 @@
                                         <th>수량</th>
                                         <th>주문 금액</th>
                                         <th>진행 상태</th>
+                                        <th>주소라벨인쇄</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tbl-body-delivery-orders">
@@ -1936,10 +1944,6 @@
                     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h3><i class="bi bi-truck"></i> 당일 출하 / 배송 현황 (포장 규격별)</h3>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <button onclick="printAllDeliveryLabels()" class="top-action-btn" 
-                                style="background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); padding: 4px 10px; font-weight: bold; border-radius: 6px; font-size: 11px; cursor: pointer;">
-                                <i class="bi bi-printer-fill"></i> 배송 라벨 일괄 인쇄
-                            </button>
                             <span class="badge badge-green" id="shipping-overall-badge">출하율 80%</span>
                         </div>
                     </div>
@@ -6289,6 +6293,338 @@
             printWindow.document.close();
         }
 
+        window.renderDeliveryLabels = function(selectedOrders) {
+            // 가상 배송 메모 리스트 (문의사항이 지정되지 않았을 때 다채로움을 위해 매칭)
+            const fallbackMemos = [
+                "문 앞에 놔주시고 벨은 누르지 말아주세요.",
+                "배송 전 미리 문자 하나 부탁드립니다.",
+                "경비실에 맡겨주시면 감사하겠습니다.",
+                "택배함에 보관 부탁드립니다.",
+                "파손 위험이 있으니 던지지 말아주세요."
+            ];
+
+            const productsMock = {
+                p300g: "300g 맛김치",
+                p1kg: "1kg 포기김치",
+                p3kg: "3kg 포기김치",
+                p5kg: "5kg 포기김치",
+                p10kg: "10kg 포기김치"
+            };
+
+            let labelHtml = "";
+            selectedOrders.forEach((o, index) => {
+                const phone = o.phone || "010-****-****";
+                const memo = o.memo || o.message || fallbackMemos[index % fallbackMemos.length];
+                const prodName = productsMock[o.productId] || o.productId;
+
+                labelHtml += `
+                <div class="label-card">
+                    <div class="label-header">
+                        <span class="label-logo">📦 AFOOD KIMCHI FACTORY</span>
+                        <span class="label-badge">[우체국택배]</span>
+                    </div>
+                    <div class="label-body">
+                        <div class="info-row">
+                            <span class="info-label">받는사람:</span>
+                            <span class="info-val font-bold">${o.customerName} (${phone})</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">배송주소:</span>
+                            <span class="info-val font-bold">${o.address}</span>
+                        </div>
+                        <div class="info-row" style="margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">
+                            <span class="info-label">상품내역:</span>
+                            <span class="info-val font-bold" style="color: #6b21a8;">${prodName} / ${o.quantity}개</span>
+                        </div>
+                    </div>
+                    <div class="label-footer-memo">
+                        <span class="memo-title">💬 고객 요청사항 (문의사항)</span>
+                        <p class="memo-content">${memo}</p>
+                    </div>
+                </div>
+                `;
+            });
+
+            // 새 창 띄우기
+            const printWindow = window.open("", "_blank", "width=800,height=600");
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>배송 라벨 출력 - AFOOD</title>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+                        body {
+                            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+                            background-color: #f3f4f6;
+                            margin: 0;
+                            padding: 20px;
+                            color: #1f2937;
+                        }
+                        .label-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 16px;
+                        }
+                        .label-card {
+                            background-color: #ffffff;
+                            border: 2px dashed #8b5cf6;
+                            border-radius: 12px;
+                            padding: 18px;
+                            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            page-break-inside: avoid;
+                        }
+                        .label-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 2px solid #8b5cf6;
+                            padding-bottom: 8px;
+                            margin-bottom: 12px;
+                        }
+                        .label-logo {
+                            font-size: 13px;
+                            font-weight: 900;
+                            color: #8b5cf6;
+                            letter-spacing: -0.5px;
+                        }
+                        .label-badge {
+                            font-size: 11px;
+                            font-weight: bold;
+                            background-color: #f3e8ff;
+                            color: #6b21a8;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                        }
+                        .label-body {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 6px;
+                        }
+                        .info-row {
+                            display: flex;
+                            font-size: 12px;
+                        }
+                        .info-label {
+                            width: 65px;
+                            color: #6b7280;
+                            font-weight: bold;
+                        }
+                        .info-val {
+                            flex-grow: 1;
+                            color: #111827;
+                        }
+                        .font-bold {
+                            font-weight: 700;
+                        }
+                        .label-footer-memo {
+                            margin-top: 12px;
+                            background-color: #f9fafb;
+                            border-top: 1px solid #e5e7eb;
+                            padding: 8px 10px;
+                            border-radius: 6px;
+                        }
+                        .memo-title {
+                            font-size: 10px;
+                            color: #ef4444;
+                            font-weight: bold;
+                            display: block;
+                            margin-bottom: 2px;
+                        }
+                        .memo-content {
+                            font-size: 11px;
+                            color: #374151;
+                            margin: 0;
+                            font-weight: 500;
+                        }
+                        @media print {
+                            body {
+                                background-color: #ffffff;
+                                padding: 0;
+                                margin: 0;
+                            }
+                            .no-print {
+                                display: none !important;
+                            }
+                            .label-grid {
+                                gap: 10px;
+                            }
+                            .label-card {
+                                border: 2px dashed #000000;
+                                box-shadow: none;
+                            }
+                            .label-header {
+                                border-bottom: 2px solid #000000;
+                            }
+                            .label-logo {
+                                color: #000000;
+                            }
+                            .label-badge {
+                                border: 1px solid #000000;
+                                background: none;
+                                color: #000000;
+                            }
+                            @page {
+                                size: A4;
+                                margin: 10mm;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="text-align: center; margin-bottom: 20px; font-weight: bold; font-size: 18px;" class="no-print">
+                        🏷️ AFOOD 배송 라벨 출력 미리보기 (인쇄 대화상자가 자동으로 열립니다)
+                    </div>
+                    <div class="label-grid">
+                        ${labelHtml}
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        window.isPrintModeActive = false;
+        window.selectedDeliveryOrderIds = {};
+
+        window.handleOrderCheckboxChange = function(orderId, isChecked) {
+            if (isChecked) {
+                window.selectedDeliveryOrderIds[orderId] = true;
+            } else {
+                delete window.selectedDeliveryOrderIds[orderId];
+            }
+        }
+
+        window.toggleSelectAllOrders = function(master) {
+            const checkboxes = document.querySelectorAll(".order-select-checkbox");
+            checkboxes.forEach(cb => {
+                cb.checked = master.checked;
+                const orderId = cb.getAttribute("data-order-id");
+                if (master.checked) {
+                    window.selectedDeliveryOrderIds[orderId] = true;
+                } else {
+                    delete window.selectedDeliveryOrderIds[orderId];
+                }
+            });
+        }
+
+        window.printSelectedDeliveryLabels = function() {
+            // 1. 인쇄 모드가 비활성화되어 있는 경우 -> 활성화로 전환
+            if (!window.isPrintModeActive) {
+                window.isPrintModeActive = true;
+                window.selectedDeliveryOrderIds = {}; // 선택 상태 초기화
+                
+                // 버튼 스타일 및 텍스트 강제 변경
+                const btn = document.getElementById("btn-bulk-print-delivery");
+                if (btn) {
+                    btn.innerHTML = `<i class="bi bi-check-circle-fill"></i> 선택 항목 라벨 인쇄`;
+                    btn.style.backgroundColor = "var(--neon-green)";
+                    btn.style.color = "black";
+                    btn.style.border = "1px solid var(--neon-green)";
+                }
+
+                // 화면 즉시 리렌더링
+                refreshAllData();
+                return;
+            }
+
+            // 2. 인쇄 모드가 이미 활성화되어 있는 경우 -> 체크된 대상 인쇄 실행
+            const selectedIds = Object.keys(window.selectedDeliveryOrderIds);
+            if (selectedIds.length === 0) {
+                // 선택된 건이 없을 경우 친절한 안내 메시지 후 모드 닫기
+                alert("인쇄할 주문이 선택되지 않았습니다. 인쇄 모드를 종료합니다.");
+                window.isPrintModeActive = false;
+                window.selectedDeliveryOrderIds = {};
+
+                const btn = document.getElementById("btn-bulk-print-delivery");
+                if (btn) {
+                    btn.innerHTML = `<i class="bi bi-printer-fill"></i> 배송 라벨 일괄 인쇄`;
+                    btn.style.backgroundColor = "var(--accent-purple-bg)";
+                    btn.style.color = "var(--accent-purple)";
+                    btn.style.border = "1px solid var(--accent-purple)";
+                }
+
+                refreshAllData();
+                return;
+            }
+
+            let allOrders = [];
+            try {
+                allOrders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            const selectedOrders = allOrders.filter(o => selectedIds.includes(o.orderId));
+            if (selectedOrders.length === 0) {
+                alert("선택한 주문 정보를 찾을 수 없습니다.");
+                return;
+            }
+
+            // 인쇄 실행
+            window.renderDeliveryLabels(selectedOrders);
+
+            // 데이터 상태 업데이트: printed = true
+            allOrders.forEach(o => {
+                if (selectedIds.includes(o.orderId)) {
+                    o.printed = true;
+                }
+            });
+
+            localStorage.setItem("kimp_delivery_orders", JSON.stringify(allOrders));
+            
+            // 인쇄 완료 후 자동 모드 리셋
+            window.isPrintModeActive = false;
+            window.selectedDeliveryOrderIds = {};
+
+            const btn = document.getElementById("btn-bulk-print-delivery");
+            if (btn) {
+                btn.innerHTML = `<i class="bi bi-printer-fill"></i> 배송 라벨 일괄 인쇄`;
+                btn.style.backgroundColor = "var(--accent-purple-bg)";
+                btn.style.color = "var(--accent-purple)";
+                btn.style.border = "1px solid var(--accent-purple)";
+            }
+
+            // 화면 갱신
+            setTimeout(() => { refreshAllData(); }, 100);
+        }
+
+        window.printSingleDeliveryLabel = function(orderId) {
+            let allOrders = [];
+            try {
+                allOrders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
+            } catch(e) {}
+
+            const targetOrder = allOrders.find(o => o.orderId === orderId);
+            if (!targetOrder) {
+                alert("해당 주문 정보를 찾을 수 없습니다.");
+                return;
+            }
+
+            // 단일 인쇄 호출
+            window.renderDeliveryLabels([targetOrder]);
+
+            // printed = true 업데이트
+            allOrders.forEach(o => {
+                if (o.orderId === orderId) {
+                    o.printed = true;
+                }
+            });
+
+            localStorage.setItem("kimp_delivery_orders", JSON.stringify(allOrders));
+            
+            // 화면 갱신
+            setTimeout(() => { refreshAllData(); }, 100);
+        }
+
         function renderSeasoningStockCards() {
             const container = document.getElementById("seasoning-stock-container");
             if (!container) return;
@@ -7934,6 +8270,39 @@
                 const isInteracting = activeEl && activeEl.tagName === "SELECT" && tblOrders.contains(activeEl);
 
                 if (!isInteracting) {
+                    // 헤더 thead 동적 제어 (컬럼 정렬 불일치 및 밀림 해결)
+                    const tblHeader = tblOrders.closest("table").querySelector("thead");
+                    if (tblHeader) {
+                        if (window.isPrintModeActive) {
+                            tblHeader.innerHTML = `
+                                <tr>
+                                    <th style="width: 30px;"><input type="checkbox" id="check-all-orders" onclick="window.toggleSelectAllOrders(this)" style="cursor: pointer;"></th>
+                                    <th>주문시각</th>
+                                    <th>주문자</th>
+                                    <th>배송 주소</th>
+                                    <th>주문 상품</th>
+                                    <th>수량</th>
+                                    <th>주문 금액</th>
+                                    <th>진행 상태</th>
+                                    <th>주소라벨인쇄</th>
+                                </tr>
+                            `;
+                        } else {
+                            tblHeader.innerHTML = `
+                                <tr>
+                                    <th>주문시각</th>
+                                    <th>주문자</th>
+                                    <th>배송 주소</th>
+                                    <th>주문 상품</th>
+                                    <th>수량</th>
+                                    <th>주문 금액</th>
+                                    <th>진행 상태</th>
+                                    <th>주소라벨인쇄</th>
+                                </tr>
+                            `;
+                        }
+                    }
+
                     let html = "";
                     orders.forEach(o => {
                         const prodName = products[o.productId] ? products[o.productId].name : o.productId;
@@ -7945,8 +8314,15 @@
                             options += `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`;
                         });
 
+                        // 체크박스 1열 동적 렌더링 (isPrintModeActive 기준)
+                        const isChecked = !!window.selectedDeliveryOrderIds[o.orderId];
+                        const checkboxTd = window.isPrintModeActive
+                            ? `<td><input type="checkbox" class="order-select-checkbox" data-order-id="${o.orderId}" ${isChecked ? 'checked' : ''} onchange="window.handleOrderCheckboxChange('${o.orderId}', this.checked)" style="cursor: pointer;"></td>`
+                            : ``;
+
                         html += `
                         <tr>
+                            ${checkboxTd}
                             <td>${o.orderTime.substring(11)}</td>
                             <td style="font-weight: 700;">${o.customerName}</td>
                             <td>${o.address}</td>
@@ -7957,6 +8333,12 @@
                                 <select onchange="updateOrderStatus('${o.orderId}', this.value); this.blur();" style="background: #1c1c38; border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 4px; font-size: 11px; outline: none; cursor: pointer;">
                                     ${options}
                                 </select>
+                            </td>
+                            <td style="white-space: nowrap;">
+                                ${o.printed ? `<span style="color: var(--accent-green); font-weight: bold;"><i class="bi bi-check-circle-fill"></i> 인쇄완료</span>` : `<span style="color: var(--text-secondary);">미인쇄</span>`}
+                                <button class="top-action-btn" style="padding: 2px 6px; font-size: 11px; margin-left: 6px; background-color: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue); display: inline-flex; align-items: center; gap: 3px;" onclick="window.printSingleDeliveryLabel('${o.orderId}')">
+                                    <i class="bi bi-printer-fill"></i> 인쇄
+                                </button>
                             </td>
                         </tr>
                         `;

@@ -493,7 +493,7 @@
                 }
 
                 let row = `
-                <div class="box-partner history-item" style="margin-bottom: 12px;">
+                <div class="box-partner history-item" style="margin-bottom: 12px; cursor: pointer;" onclick="showHistoryDetail(${item.id})">
                     <div class="hist-date">${item.date}</div>
                     <div class="box-corp">
                         <img class="icon2" src="${brandLogo}">
@@ -570,7 +570,168 @@
         function toggleSettings() {
             window.location.href = "settings.html";
         }
+
+        // 💡 [핵심 추가] 했던 일 상세 내역 모달 열기
+        function showHistoryDetail(id) {
+            const history = FactoryStore.getState().history;
+            const item = history.find(h => h.id === id);
+            if (!item) return;
+
+            $('#modal-hist-date').text(item.date || '-');
+            $('#modal-hist-job').text(`${item.job || '-'} (${item.role || '일반'})`);
+            $('#modal-hist-locker').text(item.locker || '미지정');
+            $('#modal-hist-pay').text(`${(item.pay || 0).toLocaleString()} 원`);
+
+            // 동료 렌더링
+            const coworkersContainer = $('#modal-hist-coworkers');
+            coworkersContainer.empty();
+            if (Array.isArray(item.coworkers) && item.coworkers.length > 0) {
+                item.coworkers.forEach(name => {
+                    coworkersContainer.append(`<span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 4px 10px; font-size: 12px; color: #f8fafc;">${name}</span>`);
+                });
+            } else {
+                coworkersContainer.append('<span style="color: #94a3b8; font-size: 12px;">동료 정보가 없습니다.</span>');
+            }
+
+            // 로그 렌더링
+            const logsContainer = $('#modal-hist-logs');
+            logsContainer.empty();
+            if (Array.isArray(item.logs) && item.logs.length > 0) {
+                item.logs.forEach(log => {
+                    let formattedLog = '';
+                    let timePrefix = '';
+                    let photoHtml = '';
+                    
+                    if (typeof log === 'object' && log !== null) {
+                        timePrefix = log.time ? `<span style="color:#60a5fa; margin-right:8px;">${log.time}</span>` : '';
+                        if (log.photo) {
+                            formattedLog = log.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                            const timeText = log.time ? `[${log.time}] ` : '';
+                            const safeText = (timeText + formattedLog).replace(/'/g, "\\'");
+                            photoHtml = `<br><img class="log-thumbnail" onclick="window.viewLogImageDetail('${log.photo}', '${safeText}')" style="cursor: pointer; max-width: 80px; max-height: 60px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); margin-top: 6px; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" src="${log.photo}" />`;
+                        } else {
+                            formattedLog = formatLogItem(log.text, log.time);
+                        }
+                    } else {
+                        formattedLog = formatLogItem(log);
+                    }
+                    
+                    logsContainer.append(`<div style="color: #a7f3d0; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 6px; padding-top: 4px; text-align: left; display: flex; flex-direction: column; align-items: flex-start;">
+                        <div>${timePrefix}${formattedLog}</div>
+                        ${photoHtml}
+                    </div>`);
+                });
+            } else {
+                logsContainer.append('<div style="color: #94a3b8; text-align: center;">기록된 상세 작업 로그가 없습니다.</div>');
+            }
+
+            $('#history-detail-modal').css('display', 'flex');
+        }
+
+        function closeHistoryDetailModal() {
+            $('#history-detail-modal').hide();
+        }
+
+        // 💡 [핵심 추가] 로그 내 이미지 파일 파싱 및 클릭 바인딩
+        function formatLogItem(log, logTime = null) {
+            if (log.includes('<img')) {
+                const srcMatch = log.match(/src=['"]([^'"]+)['"]/);
+                const imgSrc = srcMatch ? srcMatch[1] : '';
+                
+                let textOnly = log.replace(/<img[^>]*>/g, '').replace(/<br\s*\/?>/g, ' ').trim();
+                const timeText = logTime ? `[${logTime}] ` : '';
+                const safeText = (timeText + textOnly).replace(/'/g, "\\'");
+
+                let newImgTag = `<img class="log-thumbnail" onclick="window.viewLogImageDetail('${imgSrc}', '${safeText}')" style="cursor: pointer; max-width: 80px; max-height: 60px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); margin-top: 6px; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" src="${imgSrc}" />`;
+                let formatted = log.replace(/<img[^>]*>/g, newImgTag);
+                return formatted;
+            } else {
+                return log.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+        }
+
+        window.viewLogImageDetail = function(imgSrc, text) {
+            $('#log-detail-expanded-img').attr('src', imgSrc);
+            $('#log-detail-expanded-text').text(text);
+            $('#log-image-detail-modal').css('display', 'flex');
+        }
+
+        window.closeLogImageDetailModal = function() {
+            $('#log-image-detail-modal').hide();
+        }
     </script>
+
+    <!-- 💡 [핵심 추가] 내가 했던 일 상세 정보 모달 -->
+    <div id="history-detail-modal" class="modal-overlay-custom" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 99999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+        <div class="modal-content-custom" style="background: #1e293b; color: #f8fafc; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: modalOpen 0.3s ease;">
+            <!-- 모달 헤더 -->
+            <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                <h5 style="margin: 0; font-size: 18px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-clock-history" style="color: #7b5cf5;"></i> 했던 일 상세 내역
+                </h5>
+                <button type="button" onclick="closeHistoryDetailModal()" style="background: none; border: none; color: inherit; font-size: 20px; cursor: pointer; padding: 0 4px;"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <!-- 모달 바디 (스크롤 영역) -->
+            <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px;">
+                <!-- 기본 정보 카드 -->
+                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #94a3b8;">일한 날짜: <strong id="modal-hist-date" style="color: #f8fafc; float: right;">-</strong></p>
+                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #94a3b8;">체험 공정: <strong id="modal-hist-job" style="color: #f8fafc; float: right;">-</strong></p>
+                    <p style="margin: 0; font-size: 14px; color: #94a3b8;">사용 사물함: <strong id="modal-hist-locker" style="color: #3b82f6; float: right; font-weight: bold;">-</strong></p>
+                </div>
+                
+                <!-- 급여 성과 카드 -->
+                <div style="background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.1) 100%); border-radius: 12px; padding: 16px; border: 1px solid rgba(16,185,129,0.2); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 16px; font-weight: bold; color: #10b981;"><i class="bi bi-currency-dollar"></i> 나의 성과 (발생 급여액)</span>
+                    <strong id="modal-hist-pay" style="font-size: 20px; color: #10b981;">0 원</strong>
+                </div>
+                
+                <!-- 함께 일한 사람 -->
+                <div>
+                    <h6 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #94a3b8;"><i class="bi bi-people-fill"></i> 함께 일한 사람들</h6>
+                    <div id="modal-hist-coworkers" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <!-- 동적 주입 -->
+                    </div>
+                </div>
+                
+                <!-- 상세 작업 로그 -->
+                <div>
+                    <h6 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #94a3b8;"><i class="bi bi-journal-text"></i> 상세 작업 로그 기록</h6>
+                    <div id="modal-hist-logs" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; font-family: monospace; font-size: 12px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05); max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                        <!-- 동적 주입 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 💡 [핵심 추가] 작업 로그 이미지 확대 뷰어 모달 (전체화면 오버레이) -->
+    <div id="log-image-detail-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.98); backdrop-filter: blur(12px); z-index: 100000; flex-direction: column; overflow: hidden; padding: 0; box-sizing: border-box; justify-content: space-between; opacity: 1 !important; visibility: visible !important;">
+        <!-- 상단 헤더 영역 -->
+        <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <h5 style="margin: 0; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+                <i class="bi bi-journal-text" style="color: #3b82f6; font-size: 20px;"></i> 나의 작업로그
+            </h5>
+            <button type="button" onclick="window.closeLogImageDetailModal()" style="background: none; border: none; color: #94a3b8; font-size: 32px; cursor: pointer; padding: 0 8px; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <!-- 중앙 이미지 상세 영역 (화면 가득 채우기) -->
+        <div style="flex: 1; display: flex; justify-content: center; align-items: center; background: #090d16; padding: 24px; box-sizing: border-box; overflow: hidden;">
+            <img id="log-detail-expanded-img" src="" style="max-width: 95%; max-height: 75vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
+        </div>
+        <!-- 하단 텍스트 설명 영역 -->
+        <div style="padding: 24px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <div id="log-detail-expanded-text" style="font-size: 16px; font-weight: 500; color: #a7f3d0; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                -
+            </div>
+        </div>
+    </div>
+    <style>
+        @keyframes modalOpen {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
 </body>
 
 </html>

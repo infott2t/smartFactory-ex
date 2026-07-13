@@ -1471,6 +1471,11 @@
             } else if (stepNum === 4) {
                 summaryText = `${selectedGender} ${selectedLocker}번 사물함 (${selectedSize}) / 위생모, 위생복, 위생장갑`;
                 stepText = "Step 4. 위생복 착용 완료";
+                
+                // 💡 [핵심 추가] 퇴근 시 환복/사물함 열기 검증을 위해 사물함 정보 저장
+                localStorage.setItem('kimp_locker_gender', selectedGender);
+                localStorage.setItem('kimp_locker_number', selectedLocker);
+                localStorage.setItem('kimp_locker_size', selectedSize);
             } else if (stepNum === 5) {
                 summaryText = '손씻기 및 위생구 착용 완료';
                 stepText = "Step 5. 손씻기 완료";

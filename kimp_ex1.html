@@ -16,6 +16,35 @@
     <link rel="stylesheet" href="./css/kimp_ex0.css">
 
     <style>
+        /* 💡 새로고침 시 데스크탑/모바일 UI 깜빡임 방지 및 idle-mode/working-mode 모바일 대응 */
+        @media (max-width: 768px) {
+            .desktop-info {
+                display: none !important;
+            }
+            .mobile-info {
+                display: block !important;
+            }
+            .job-info-group.idle-mode .desktop-info {
+                display: none !important;
+            }
+            .job-info-group.idle-mode .mobile-info {
+                display: block !important;
+                font-size: 17px !important;
+                border: 1px solid var(--border-color) !important;
+                padding: 8px 6px !important;
+                border-radius: 8px !important;
+               
+            }
+        }
+        @media (min-width: 769px) {
+            .desktop-info {
+                display: flex !important;
+            }
+            .mobile-info {
+                display: none !important;
+            }
+        }
+
         /* HMI 다크모드 컬러 변수 정의 (고대비, 눈 피로 저감, 식별성 강화) */
         body.dark-mode {
             --bg-global: #121824;
@@ -310,7 +339,7 @@
                 <div class="desktop-info" style="display: flex; align-items: center; gap: 12px;">
                     <div class="job-title" id="display-job-title">
                         <i class="bi bi-box-seam"></i> <span class="dis">Stage 1 | </span>
-                        style="color:var(--accent-green); font-weight:bold;">현재 Lot 1개</span>
+                        <span style="color:var(--accent-green); font-weight:bold;">현재 Lot 1개</span>
                     </div>
                     <div class="job-title" id="display-work-order"
                         style="font-size: 13px; color: var(--text-secondary); margin-top: 4px; display: block;">
@@ -769,6 +798,7 @@
         const SALARY_PER_SEC = 13416 / 3600;
         let currentStepIndex = 0;
         let highestStepReached = 0;
+        let brinePhotosCaptured = { salt: false, water: false };
 
         // 👇 여기에 휴식 상태를 관리할 변수를 추가합니다.
         let isResting = false;  // 휴식 중인지 여부
@@ -1039,7 +1069,7 @@
         // ============================================================
         // 💡 누락되었던 로그 기록 및 수정 함수 추가 영역
         // ============================================================
-        function addLog(text, editableIndex = null) {
+        function addLog(text, editableIndex = null, photo = null) {
             const now = new Date();
             const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
@@ -1048,7 +1078,8 @@
                 text: text,
                 editableIndex: editableIndex,
                 stageId: appData.activeStageId,
-                timestamp: now.getTime()
+                timestamp: now.getTime(),
+                photo: photo
             });
         }
 
@@ -1412,6 +1443,9 @@
                 }
                 if (orderEl) {
                     orderEl.style.display = 'none';
+                }
+                if (mobileEl) {
+                    mobileEl.innerHTML = `<i class="bi bi-box-seam"></i> 김치만들기 v2.1`;
                 }
             } else {
                 // ========== [작업장 (Stage 1~6) 상태] ==========
@@ -2436,6 +2470,11 @@
                     highestStepReached = 0; // 새 작업 시작 시 도달 인덱스 초기화
                 }
 
+                // 💡 [핵심 추가] Stage 2에 처음 체크인하는 상황이라면 염수 사진 촬영 여부도 리셋
+                if (String(stageId) === "2" && currentStepIndex === 0) {
+                    brinePhotosCaptured = { salt: false, water: false };
+                }
+
                 // 💡 만약 복원된 인덱스가 0보다 크면(즉, 이미 체크인을 통과한 이력이 있으면),
                 // 현재 공정을 내가 다시 점유해야 함 (타인이 점유 중이지 않을 때만)
                 if (currentStepIndex > 0 && appData.activeSpotId) {
@@ -2638,11 +2677,27 @@
                     if (log.editableIndex !== null && log.editableIndex !== undefined) {
                         editBtn = `<button class="btn-menu" style="padding: 4px 8px; font-size: 12px; margin-top: 8px; background: #e0e7ff; color: var(--primary); border:none;" onclick="editLog(${actualIndex})"><i class="bi bi-pencil-square"></i> 수량 재입력하기</button>`;
                     }
+                    
+                    let formattedText = '';
+                    let photoHtml = '';
+                    
+                    if (log.photo) {
+                        formattedText = log.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        const timeText = log.time ? `[${log.time}] ` : '';
+                        const safeText = (timeText + formattedText).replace(/'/g, "\\'");
+                        photoHtml = `<img class="log-thumbnail" onclick="window.viewLogImageDetail('${log.photo}', '${safeText}')" style="cursor: pointer; max-width: 80px; max-height: 60px; border-radius: 4px; border: 1px solid var(--border-color); margin-top: 6px; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" src="${log.photo}" />`;
+                    } else {
+                        formattedText = formatLogItem(log.text, log.time);
+                    }
+
                     return `
             <div class="log-item" style="flex-direction: column;">
                 <div style="display:flex; gap:12px;">
                     <span class="log-time">${log.time}</span>
-                    <span class="log-text">${log.text}</span>
+                    <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                        <span class="log-text">${formattedText}</span>
+                        ${photoHtml}
+                    </div>
                 </div>
                 ${editBtn}
             </div>`;
@@ -2659,6 +2714,34 @@
             setTimeout(() => {
                 document.getElementById('log-modal').classList.add('open');
             }, 350);
+        }
+
+        // 💡 [핵심 추가] 로그 내 이미지 파일 파싱 및 클릭 바인딩
+        function formatLogItem(log, logTime = null) {
+            if (log.includes('<img')) {
+                const srcMatch = log.match(/src=['"]([^'"]+)['"]/);
+                const imgSrc = srcMatch ? srcMatch[1] : '';
+                
+                let textOnly = log.replace(/<img[^>]*>/g, '').replace(/<br\s*\/?>/g, ' ').trim();
+                const timeText = logTime ? `[${logTime}] ` : '';
+                const safeText = (timeText + textOnly).replace(/'/g, "\\'");
+
+                let newImgTag = `<img class="log-thumbnail" onclick="window.viewLogImageDetail('${imgSrc}', '${safeText}')" style="cursor: pointer; max-width: 80px; max-height: 60px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); margin-top: 6px; display: block; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" src="${imgSrc}" />`;
+                let formatted = log.replace(/<img[^>]*>/g, newImgTag);
+                return formatted;
+            } else {
+                return log.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+        }
+
+        window.viewLogImageDetail = function(imgSrc, text) {
+            document.getElementById('log-detail-expanded-img').src = imgSrc;
+            document.getElementById('log-detail-expanded-text').textContent = text;
+            document.getElementById('log-image-detail-modal').style.display = 'flex';
+        }
+
+        window.closeLogImageDetailModal = function() {
+            document.getElementById('log-image-detail-modal').style.display = 'none';
         }
 
         function toggleLogView() {
@@ -3135,7 +3218,7 @@
         <i class="bi bi-journal-text"></i> 나의 로그기록 보기
     </button>
     
-    <button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%; max-width: none; box-sizing: border-box;" onclick="alert('퇴근 체험하기 기능은 추후 연동될 예정입니다.')">
+    <button class="btn-huge" style="background-color: #3b82f6; color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%; max-width: none; box-sizing: border-box;" onclick="exitWorkExperience()">
         <i class="bi bi-box-arrow-right"></i> 퇴근 체험하기
     </button>
 </div>
@@ -3158,6 +3241,225 @@
             setTimeout(() => {
                 showWorkLogs();
             }, 350);
+        }
+
+        // 💡 [핵심 추가] 퇴근 체험하기 실제 동작 기능 (사물함 및 열쇠 반납 인터랙티브 추가)
+        function exitWorkExperience() {
+            if (confirm("오늘의 생산 공정 체험을 모두 마치고 퇴근하시겠습니까?")) {
+                const lockerGender = localStorage.getItem('kimp_locker_gender') || '남성';
+                const lockerNumber = parseInt(localStorage.getItem('kimp_locker_number') || '2');
+                const lockerSize = localStorage.getItem('kimp_locker_size') || 'XXL';
+
+                const content = `
+                    <div style="text-align: center; padding: 10px 0;">
+                        <p style="font-size: 18px; font-weight: bold; color: var(--text-primary); margin-bottom: 16px;">
+                            퇴근 환복 및 사물함 열기
+                        </p>
+                        <div style="background: var(--bg-main); border-radius: 8px; padding: 12px; margin-bottom: 16px; border: 1px solid var(--border-color); text-align: left;">
+                            <span style="font-size: 14px; color: var(--text-secondary);">
+                                🔑 사용 중인 사물함 정보:
+                            </span>
+                            <strong style="color: var(--primary); font-size: 16px; float: right;">
+                                ${lockerGender} 사물함 ${lockerNumber}번 (${lockerSize})
+                            </strong>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                            출근 시 기억한 사물함 번호를 터치하여 열어주세요.
+                        </p>
+                        
+                        <!-- 1~5번 사물함 버튼 -->
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;">
+                            ${[1,2,3,4,5].map(n => `
+                                <button type="button" class="locker-btn-exit" id="locker-exit-${n}" onclick="checkExitLocker(${n})" style="padding: 12px 0; font-size: 16px; font-weight: bold; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); cursor: pointer; transition: all 0.2s;">
+                                    ${n}
+                                </button>
+                            `).join('')}
+                        </div>
+                        
+                        <div id="locker-exit-message" style="font-size: 14px; font-weight: bold; margin-bottom: 16px; min-height: 20px; color: var(--text-secondary);">
+                            사물함 번호를 선택해 주세요.
+                        </div>
+
+                        <!-- 2단계: 사물함 열쇠 반납 섹션 (처음에는 숨김) -->
+                        <div id="locker-key-return-section" style="display: none; background: var(--bg-main); border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); text-align: center;">
+                            <p style="font-size: 14px; color: var(--text-primary); margin-bottom: 10px; font-weight: bold;">
+                                <i class="bi bi-key-fill" style="color: #eab308;"></i> 2단계: 사물함 열쇠 반납
+                            </p>
+                            <button type="button" class="btn-huge" style="background-color: #eab308; color: white; padding: 10px; font-size: 14px; width: 100%; border: none; border-radius: 6px; cursor: pointer;" onclick="returnLockerKey()">
+                                사물함 열쇠 사무실에 반납하기
+                            </button>
+                        </div>
+                        
+                        <button id="btn-final-checkout" class="btn-huge" style="background-color: var(--text-secondary); color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%; max-width: none; box-sizing: border-box; border: none; border-radius: 8px;" onclick="finalCheckoutWork()" disabled>
+                            <i class="bi bi-box-arrow-right"></i> 최종 퇴근 완료
+                        </button>
+                    </div>
+                `;
+                document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-door-open" style="color: var(--primary);"></i> 퇴근 환복 및 열쇠 반납`;
+                document.getElementById('action-modal-body').innerHTML = content;
+
+                // 조퇴/퇴근 정산 화면에서는 우측 상단의 'X' 버튼을 숨김
+                const closeBtn = document.querySelector('#action-modal .btn-close-modal');
+                if (closeBtn) closeBtn.style.display = 'none';
+
+                document.getElementById('action-modal').classList.add('open');
+            }
+        }
+
+        // 사물함 번호 선택 검증
+        function checkExitLocker(num) {
+            const correctNum = parseInt(localStorage.getItem('kimp_locker_number') || '2');
+            const msgEl = document.getElementById('locker-exit-message');
+            
+            // 모든 사물함 버튼 상태 초기화
+            for (let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`locker-exit-${i}`);
+                if (btn) {
+                    btn.style.background = 'var(--bg-card)';
+                    btn.style.color = 'var(--text-primary)';
+                    btn.style.borderColor = 'var(--border-color)';
+                }
+            }
+
+            const activeBtn = document.getElementById(`locker-exit-${num}`);
+            
+            if (num === correctNum) {
+                // 성공
+                if (activeBtn) {
+                    activeBtn.style.background = '#10b981';
+                    activeBtn.style.color = 'white';
+                    activeBtn.style.borderColor = '#10b981';
+                }
+                msgEl.style.color = '#10b981';
+                msgEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 사물함이 정상적으로 열렸습니다. 소지품을 꺼낸 후 열쇠를 반납해 주세요.';
+                
+                // 열쇠 반납 섹션 슬라이드 다운
+                $('#locker-key-return-section').slideDown(250);
+            } else {
+                // 실패
+                if (activeBtn) {
+                    activeBtn.style.background = '#ef4444';
+                    activeBtn.style.color = 'white';
+                    activeBtn.style.borderColor = '#ef4444';
+                }
+                msgEl.style.color = '#ef4444';
+                msgEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> 사물함 번호가 다릅니다. 올바른 번호를 선택해 주세요.';
+                
+                // 열쇠 반납 섹션 숨김
+                $('#locker-key-return-section').slideUp(250);
+            }
+        }
+
+        // 사물함 열쇠 반납 처리
+        function returnLockerKey() {
+            const msgEl = document.getElementById('locker-exit-message');
+            msgEl.style.color = '#10b981';
+            msgEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 열쇠 반납 확인 완료! 최종 퇴근을 완료할 수 있습니다.';
+
+            // 로그 기록
+            addLog("[퇴근] 사용했던 탈의실 사물함을 비우고 사물함 열쇠를 사무실에 정상 반납하였습니다.");
+
+            // 최종 퇴근 버튼 활성화 및 하이라이트
+            const checkoutBtn = document.getElementById('btn-final-checkout');
+            if (checkoutBtn) {
+                checkoutBtn.disabled = false;
+                checkoutBtn.style.backgroundColor = '#3b82f6';
+                checkoutBtn.style.cursor = 'pointer';
+            }
+
+            // 열쇠 반납 버튼 비활성화 처리
+            const keyReturnBtn = document.querySelector('#locker-key-return-section button');
+            if (keyReturnBtn) {
+                keyReturnBtn.disabled = true;
+                keyReturnBtn.style.backgroundColor = 'var(--text-secondary)';
+                keyReturnBtn.innerHTML = '<i class="bi bi-check2"></i> 사물함 열쇠 반납 완료';
+            }
+        }
+
+        // 최종 퇴근 및 이력 저장 마이그레이션
+        function finalCheckoutWork() {
+            // 1. 퇴근 로그 최종 기록
+            addLog("[퇴근] 오늘 생산 공정 체험을 모두 마치고 안전하게 퇴근하였습니다. 수고하셨습니다!");
+
+            // 2. 예약 데이터 및 마이페이지 이력 데이터 처리
+            try {
+                const userId = sessionStorage.getItem("user-id") || "guest";
+                const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
+                const userName = userObj.name || "손님";
+                
+                // 2-1. 오늘 날짜 예약 건 지우기
+                const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+                let reservations = [];
+                try {
+                    reservations = JSON.parse(localStorage.getItem("mypage_reservations_" + userId) || "[]");
+                } catch(e) {}
+                if (!Array.isArray(reservations)) reservations = [];
+                
+                const filteredReservations = reservations.filter(r => r.date !== todayStr);
+                localStorage.setItem("mypage_reservations_" + userId, JSON.stringify(filteredReservations));
+
+                // 2-2. 마이페이지 히스토리에 완료 기록 추가
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem("mypage_history_" + userId) || "[]");
+                } catch(e) {}
+                if (!Array.isArray(history)) history = [];
+
+                // 동료 목록 수집
+                let coworkers = ["김수민", "최수아", "김영희"];
+                try {
+                    const workersProg = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                    const names = Object.values(workersProg)
+                        .map(w => w.userName)
+                        .filter(name => name && name !== userName);
+                    if (names.length > 0) coworkers = names;
+                } catch(e) {}
+
+                // 사용한 사물함 정보 가져오기
+                const lockerGender = localStorage.getItem('kimp_locker_gender') || '남성';
+                const lockerNumber = localStorage.getItem('kimp_locker_number') || '2';
+                const lockerSize = localStorage.getItem('kimp_locker_size') || 'XXL';
+
+                // 누적된 로그 정보 포맷팅
+                const formattedLogs = (appData.logs || []).map(l => `[${l.time}] ${l.text}`);
+
+                const historyItem = {
+                    id: Date.now(),
+                    date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                    job: "김치만들기",
+                    role: "일반",
+                    pay: Math.floor(accumSalary) || 0,
+                    locker: `${lockerGender} 사물함 ${lockerNumber}번 (${lockerSize})`,
+                    logs: formattedLogs,
+                    coworkers: coworkers
+                };
+
+                history.push(historyItem);
+                localStorage.setItem("mypage_history_" + userId, JSON.stringify(history));
+                
+                // 스토어 싱크를 위해 FactoryStore 디스패치 (로드되어 있다면)
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: filteredReservations });
+                    window.FactoryStore.dispatch({ type: 'SET_HISTORY', payload: history });
+                }
+            } catch(e) {
+                console.error("Failed to migrate work history to mypage:", e);
+            }
+
+            // 3. 출근 세션 데이터 및 임시 데이터 삭제
+            if (typeof removePartitionedItem === 'function') {
+                removePartitionedItem('kimp_check_in_time');
+                removePartitionedItem('kimp_handover_req');
+            } else {
+                localStorage.removeItem('kimp_check_in_time');
+                localStorage.removeItem('kimp_handover_req');
+            }
+
+            document.body.classList.remove('work-finished');
+            closeActionModal();
+
+            alert("퇴근 처리가 정상 완료되었습니다. 마이페이지로 이동하여 오늘 일한 이력을 확인해보세요!");
+            window.location.href = "mypage2.html";
         }
 
         function showChatBox() {
@@ -3230,7 +3532,7 @@
             { type: 'qr', icon: 'bi-geo-alt', title: '공정 위치 체크인', desc: '해당 공정에 도착하셨나요?<br>작업대 앞의 QR코드를 스캔해주세요.', action: '스캔 완료' },
             { type: 'qr', icon: 'bi-upc-scan', title: '생산지시서 맵핑', desc: `전 공정에서 생산지시서<br><strong style="color:var(--primary)" id="display-workflow-id"></strong><br>를 가져와서 <br> QR코드를 스캔해주세요.`, action: '지시서 확인' },
             { type: 'input', icon: 'bi-cart-check', title: '수량확인', desc: '배추의 수량을 확인해주세요.', label: '수량 (포기)', defaultVal: appData.currentOrder.qty, action: '입력 완료' },
-            { type: 'info', icon: 'bi-droplet', title: '염수 체크', desc: '염수가 수조에 담아져 있는지 체크해주세요.', action: '확인 완료' },
+            { type: 'brine-photos', icon: 'bi-droplet', title: '염수 체크 및 계량 승인', desc: '염수가 수조에 담아져 있는지 체크해주세요.', action: '승인 완료' },
             { type: 'work', icon: 'bi-water', title: '배추 절이기 작업', desc: '배추를 염수에 담그면서 소금을 밑둥부분에 뿌려주세요.', action: '작업 완료' },
             { type: 'report', icon: 'bi-clipboard-check', title: '수량 무게재기', desc: '작업 완료 후 수량과 무게를 재주세요.', action: '실적 저장' },
             { type: 'final-photo', icon: 'bi-camera', title: '사진찍어서 전송하기', desc: '저울 위의 <strong style="color:var(--primary)">배추</strong>와 <strong style="color:var(--primary)">지시서</strong>가<br>모두 보이도록 촬영해주세요.', action: '사진 전송' },
@@ -3694,6 +3996,32 @@
                 </div>
             `;
             }
+            else if (step.type === 'brine-photos') {
+                const saltPhotoHtml = brinePhotosCaptured.salt 
+                    ? `<img src="./images/salt_cup.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />` 
+                    : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary);"><i class="bi bi-camera-fill" style="font-size:32px; margin-bottom:6px; color:var(--text-secondary);"></i><span style="font-size:12px; font-weight:bold;">소금 계량 컵 촬영</span></div>`;
+                
+                const waterPhotoHtml = brinePhotosCaptured.water 
+                    ? `<img src="./images/brine_water.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />` 
+                    : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary);"><i class="bi bi-camera-fill" style="font-size:32px; margin-bottom:6px; color:var(--text-secondary);"></i><span style="font-size:12px; font-weight:bold;">물 수량 촬영</span></div>`;
+
+                visualElement = `
+                <div style="display:flex; flex-direction:column; gap:16px; width:100%; max-width:400px; margin: 16px auto;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <!-- 소금 컵 슬롯 -->
+                        <div id="brine-slot-salt" onclick="simulateBrineCamera('salt')" style="height:150px; border:2px dashed ${brinePhotosCaptured.salt ? '#10b981' : 'var(--border-color)'}; border-radius:12px; cursor:pointer; background:var(--bg-card); overflow:hidden; transition:all 0.2s; position:relative; display:flex; align-items:center; justify-content:center;">
+                            ${saltPhotoHtml}
+                            ${brinePhotosCaptured.salt ? `<div style="position:absolute; bottom:6px; right:6px; background:#10b981; color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:12px;"><i class="bi bi-check"></i></div>` : ''}
+                        </div>
+                        <!-- 물 양 슬롯 -->
+                        <div id="brine-slot-water" onclick="simulateBrineCamera('water')" style="height:150px; border:2px dashed ${brinePhotosCaptured.water ? '#10b981' : 'var(--border-color)'}; border-radius:12px; cursor:pointer; background:var(--bg-card); overflow:hidden; transition:all 0.2s; position:relative; display:flex; align-items:center; justify-content:center;">
+                            ${waterPhotoHtml}
+                            ${brinePhotosCaptured.water ? `<div style="position:absolute; bottom:6px; right:6px; background:#10b981; color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:12px;"><i class="bi bi-check"></i></div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
 
             const showIcon = step.type !== 'report' && step.type !== 'report-weight-only';
             const iconHtml = showIcon ? `<i class="bi ${step.icon} step-icon"></i>` : '';
@@ -3763,7 +4091,8 @@
             ${iconHtml} <div class="step-message">${step.title}</div>
             <div class="step-sub-message">${stepDesc}</div>
             ${visualElement}
-            ${step.type !== 'qr' && step.type !== 'final-photo' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
+            ${step.type !== 'qr' && step.type !== 'final-photo' && step.type !== 'brine-photos' ? `<button class="btn-huge primary" onclick="nextStep()">${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
+            ${step.type === 'brine-photos' ? `<button class="btn-huge primary" onclick="nextStep()" ${brinePhotosCaptured.salt && brinePhotosCaptured.water ? '' : 'disabled'}>${step.action} <i class="bi bi-chevron-right"></i></button>` : ''}
             ${step.type === 'final-photo' ? `<button id="btn-final" class="btn-huge success" disabled onclick="handleFinalPhotoClick()">${step.action} <i class="bi bi-check-lg"></i></button>` : ''}
             ${seasoningAddBtnHtml}
             ${backBtnHtml}
@@ -3772,6 +4101,24 @@
 
             const idDisplay = document.getElementById('display-workflow-id');
             if (idDisplay) idDisplay.textContent = `[${appData.currentOrder.id}]`;
+        }
+
+        // 💡 [핵심 추가] 염수 체크용 소금/물 계량 사진 촬영 시뮬레이션
+        function simulateBrineCamera(target) {
+            playShutterSound();
+            
+            if (target === 'salt') {
+                brinePhotosCaptured.salt = true;
+                showHmiToast('<i class="bi bi-camera-fill" style="color: #10b981;"></i> 소금 계량 컵 촬영 완료!');
+                addLog("[염수] 소금 계량 컵 사진 촬영 완료", null, "./images/salt_cup.png");
+            } else {
+                brinePhotosCaptured.water = true;
+                showHmiToast('<i class="bi bi-camera-fill" style="color: #10b981;"></i> 물의 양 수량 촬영 완료!');
+                addLog("[염수] 물의 양 수량 사진 촬영 완료", null, "./images/brine_water.png");
+            }
+            
+            // 화면 즉시 갱신
+            renderCurrentStep();
         }
 
         function requestSeasoningAdd() {
@@ -4767,11 +5114,38 @@
             const count = appData.currentOrder.regCount;
             const orderId = appData.currentOrder.id;
 
-            let logMsg = `[지시서: ${orderId}] 최종 작업 증빙 촬영 완료.`;
-            if (count > 1) {
-                logMsg = `[지시서: ${orderId}] 재등록 ${count}번째 - 최종 작업 증빙 촬영 완료.`;
+            let photoPath = './images/cabbage_weighed.png';
+            let photoText = "배추 촬영 증빙";
+            const currentStageStr = String(appData.activeStageId);
+            
+            if (currentStageStr === "1") {
+                photoPath = './images/cabbage_zone_a.png';
+                photoText = "1/2 컷팅 배추";
+            } else if (currentStageStr === "2") {
+                photoPath = './images/salting_cabbage_pressed.png';
+                photoText = "절인 배추";
+            } else if (currentStageStr === "3") {
+                photoPath = './images/cabbage_weighed_on_scale.png';
+                photoText = "세척된 배추";
+            } else if (currentStageStr === "4") {
+                photoPath = './images/cabbage_weighed.png';
+                photoText = "밀봉 완료 배추";
+            } else if (currentStageStr === "5-1") {
+                photoPath = './images/beef_dosirak.png';
+                photoText = "완성된 양념";
+            } else if (currentStageStr === "5-2") {
+                photoPath = './images/kimchi_hero.png';
+                photoText = "완성된 포기김치";
+            } else if (currentStageStr === "6") {
+                photoPath = './images/kimchi_10kg.png';
+                photoText = "최종 포장 완료 제품";
             }
-            addLog(logMsg);
+
+            let logMsg = `[지시서: ${orderId}] 최종 작업 증빙 촬영 완료 (${photoText}).`;
+            if (count > 1) {
+                logMsg = `[지시서: ${orderId}] 재등록 ${count}번째 - 최종 작업 증빙 촬영 완료 (${photoText}).`;
+            }
+            addLog(logMsg, null, photoPath);
 
             document.getElementById('camera-icon').style.display = 'none';
             document.getElementById('camera-text').style.display = 'none';
@@ -5681,6 +6055,28 @@
             <div id="active-help-btn-container">
                 <button class="btn-huge primary" style="padding: 12px; font-size: 15px; width: 100%;"
                     onclick="helperArrived()">도착알림</button>
+            </div>
+        </div>
+    </div>
+    <!-- 💡 [핵심 추가] 작업 로그 이미지 확대 뷰어 모달 (전체화면 오버레이) -->
+    <div id="log-image-detail-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.98); backdrop-filter: blur(12px); z-index: 100000; flex-direction: column; overflow: hidden; padding: 0; box-sizing: border-box; justify-content: space-between; opacity: 1 !important; visibility: visible !important;">
+        <!-- 상단 헤더 영역 -->
+        <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <h5 style="margin: 0; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+                <i class="bi bi-journal-text" style="color: #3b82f6; font-size: 20px;"></i> 나의 작업로그
+            </h5>
+            <button type="button" onclick="window.closeLogImageDetailModal()" style="background: none; border: none; color: #94a3b8; font-size: 32px; cursor: pointer; padding: 0 8px; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <!-- 중앙 이미지 상세 영역 (화면 가득 채우기) -->
+        <div style="flex: 1; display: flex; justify-content: center; align-items: center; background: #090d16; padding: 24px; box-sizing: border-box; overflow: hidden;">
+            <img id="log-detail-expanded-img" src="" style="max-width: 95%; max-height: 75vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
+        </div>
+        <!-- 하단 텍스트 설명 영역 -->
+        <div style="padding: 24px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <div id="log-detail-expanded-text" style="font-size: 16px; font-weight: 500; color: #a7f3d0; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                -
             </div>
         </div>
     </div>
