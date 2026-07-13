@@ -2764,7 +2764,16 @@
             container.innerHTML = badgesHtml + listHtml + detailLogsHtml;
         }
 
-        function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
+        function closeLogModal() {
+            document.getElementById('log-modal').classList.remove('open');
+            // 💡 [핵심 추가] 조퇴/퇴근 처리가 완료된 상태라면, 로그 모달을 닫을 때 무조건 정산 화면으로 강제 복귀시킵니다.
+            if (isWorkFinished) {
+                setTimeout(() => {
+                    showFinalLeaveSummary();
+                }, 350); // 모달이 닫히는 애니메이션 시간을 고려하여 약간 뒤에 띄움
+            }
+
+        }
 
         // ============================================================
         // 💡 통합 액션 모달 제어 (안내도, 조퇴 등)
@@ -2782,7 +2791,11 @@
         }
 
         function closeActionModal() {
+
             document.getElementById('action-modal').classList.remove('open');
+            // 💡 [핵심 추가] 액션 모달이 닫힐 때는 숨겨두었던 X 버튼을 다시 보이게 원상 복구합니다.
+            const closeBtn = document.querySelector('#action-modal .btn-close-modal');
+            if (closeBtn) closeBtn.style.display = '';
 
             // 💡 작업 인수 요청 모달을 X로 닫은 경우 자동 취소(거절) 처리
             const reqStr = localStorage.getItem('kimp_handover_req');
@@ -3082,13 +3095,16 @@
             playShutterSound();
             addLog("[조퇴] 작업장 퇴실 완료. 업무가 종료되었습니다.");
             isWorkFinished = true; // 배경의 급여 타이머 등을 멈추기 위한 플래그
+
+            // 💡 [핵심 추가] body에 클래스를 추가하여 뒷배경 클릭을 원천 차단
+            document.body.classList.add('work-finished');
             showFinalLeaveSummary();
         }
 
         // 7. 최종 정산 요약 화면
         function showFinalLeaveSummary() {
             // 일한 시간 계산 (7200초에서 남은 시간을 뺌)
-            const workedSeconds = 7200 - remainingSeconds;
+            const workedSeconds = getElapsedSecondsFromCheckIn();
             const workMinutes = Math.floor(workedSeconds / 60);
             const workSecs = workedSeconds % 60;
 
@@ -3114,19 +3130,25 @@
                 </p>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                <button class="btn-huge" style="background-color: #10b981; color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%;" onclick="openLogFromSummary()">
-                    <i class="bi bi-journal-text"></i> 나의 로그기록 보기
-                </button>
-                
-                <button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%;" onclick="alert('퇴근 체험하기 기능은 추후 연동될 예정입니다.')">
-                    <i class="bi bi-box-arrow-right"></i> 퇴근 체험하기
-                </button>
-            </div>
+             <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; align-items: stretch;">
+    <button class="btn-huge" style="background-color: #10b981; color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%; max-width: none; box-sizing: border-box;" onclick="openLogFromSummary()">
+        <i class="bi bi-journal-text"></i> 나의 로그기록 보기
+    </button>
+    
+    <button class="btn-huge" style="background-color: var(--text-secondary); color: white; margin: 0; padding: 16px; font-size: 18px; width: 100%; max-width: none; box-sizing: border-box;" onclick="alert('퇴근 체험하기 기능은 추후 연동될 예정입니다.')">
+        <i class="bi bi-box-arrow-right"></i> 퇴근 체험하기
+    </button>
+</div>
         </div>
     `;
             document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-receipt" style="color: var(--text-primary);"></i> 조퇴 정산 내역`;
             document.getElementById('action-modal-body').innerHTML = content;
+
+            // 💡 [핵심 추가] 조퇴 정산 화면에서는 우측 상단의 'X' 버튼을 숨겨서 완전히 화면에 갇히게 만듭니다.
+            const closeBtn = document.querySelector('#action-modal .btn-close-modal');
+            if (closeBtn) closeBtn.style.display = 'none';
+
+            document.getElementById('action-modal').classList.add('open');
         }
 
         // 8. 정산 화면에서 로그 기록 모달 열기
