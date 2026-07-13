@@ -566,8 +566,21 @@ html, body {
         align-items: center;
     }
 
-
-
+.ratio-x {
+    font-size: 14px;
+    color: #ff7eee;
+    font-weight: bold;
+}
+.ratio-num {
+    font-size: 14px;
+    color: #ff7eee;
+    font-weight: bold;
+}
+.ratio-letter {
+    font-size: 14px;
+    color: #ff7eee;
+    font-weight: bold;
+}
 @media (max-width: 672px) {
     .box-partner.reservation-item {
         flex-direction: column;

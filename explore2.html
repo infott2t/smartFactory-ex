@@ -55,7 +55,7 @@
                 </section>
 
                 <section class="tab-content" id="tab-reservation">
-                    <div id="reservation-container" style="margin-top: 20px;">
+                    <div id="reservation-container" style="margin-top: 63px;">
                     </div>
                 </section>
 
@@ -213,12 +213,14 @@
                             const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
 
                             let minimumWage = 10320;
-                            let expectedPay = Math.floor(minimumWage * 2.6); // 2시간 * 1.3배
+                            let ratioVal = r.ratio ? Number(r.ratio) : 1.2;
+                            let expectedPay = Math.floor(minimumWage * 2 * ratioVal); 
+                            const displayRatio = ratioVal.toFixed(1);
 
                             html += `
                                 <div class="task-item" style="margin-bottom: 12px; display: block;">
                                     <div class="task-items0" style="align-items: center;">
-                                        <div class="task-items" style="flex: 1;">
+                                        <div class="task-items" style="flex: 1.2;">
                                             <img class="icon" src="./images/k-icon_150x150.png" alt="icon"> 
                                             <div class="texts">
                                                 <span>김치만들기</span>
@@ -232,9 +234,14 @@
                                             </div>
                                             <span style="font-size: 11px; color: #a29bfe;">${slotLabels[r.slot]}</span>
                                         </div>
-                                        <div class="task-info-col" style="flex: 1; text-align: right; align-items: flex-end;">
-                                            <span class="date-text">${parts[0]}.${parts[1]}.${parts[2]}</span>
-                                            <span class="pay-text" style="color: #ccc; font-size:12px;">예정 +₩ ${expectedPay.toLocaleString()}</span>  
+                                        <div class="task-info-col" style="flex: 1.5; display: flex; flex-direction: row; align-items: center; justify-content: flex-end; gap: 18px;">
+                                            <span class="task-info-ratio" style="color: #a29bfe; font-weight: bold; font-size: 14px; white-space: nowrap;">
+                                                ${displayRatio}x
+                                            </span>
+                                            <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center;">
+                                                <span class="date-text" style="margin-bottom: 4px; font-size: 12px; color: #979797;">${parts[0]}.${parts[1]}.${parts[2]}</span>
+                                                <span class="pay-text" style="color: #ccc; font-size:12px; white-space: nowrap;">예정 +₩ ${expectedPay.toLocaleString()}</span>  
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -299,7 +306,7 @@
                         html += `
                         <div class="task-item" style="margin-bottom: 12px;">
                             <div class="task-items0" style="align-items: center;">
-                                <div class="task-items" style="flex: 1;">
+                                <div class="task-items" style="flex: 1.2;">
                                     <img class="icon" src="${iconSrc}" alt="icon"> 
                                     <div class="texts">
                                         <span>${h.job}</span>
@@ -313,7 +320,7 @@
                                     </div>
                                     <span style="font-size: 11px; color: #a29bfe;">${h.slot || '10:00 ~ 12:00'}</span>
                                 </div>
-                                <div class="task-info-col" style="flex: 1; text-align: right; align-items: flex-end;">
+                                <div class="task-info-col" style="flex: 1.5; text-align: right; align-items: flex-end;">
                                     <span class="date-text">${h.date}</span>
                                     <span class="pay-text">+₩ ${h.pay.toLocaleString()}</span>  
                                 </div>

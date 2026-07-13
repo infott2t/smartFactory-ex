@@ -42,6 +42,7 @@
         .badge-name {
             padding: 2px 8px;
         }
+
         /* 토스트 알림창 스타일 */
         .toast-message {
             position: fixed;
@@ -81,7 +82,9 @@
                     <i class="bi bi-chevron-left back"></i><img src="./images/k-icon_150x150.png" /><span
                         class="cursor-pointer" onclick="openStatusPage()">김치만들기</span><i id="work-stars"
                         class="bi bi-star"></i>
-                    <button type="button" class="h-open-btn" style="margin-left: auto; background: none; border: none; padding: 0; outline: none; cursor: pointer; display: flex; align-items: center;"><i class="bi bi-person-circle" style="font-size: 24px; color: #fff;"></i></button>
+                    <button type="button" class="h-open-btn"
+                        style="margin-left: auto; background: none; border: none; padding: 0; outline: none; cursor: pointer; display: flex; align-items: center;"><i
+                            class="bi bi-person-circle" style="font-size: 24px; color: #fff;"></i></button>
                 </div>
                 <div class="text0">
                     <i class="bi bi-caret-up-fill"></i><span>1.3</span><span class="ratio">+0.03%</span>
@@ -674,8 +677,8 @@
             var isToday = false;
             if (selectedDateString) {
                 var parts = selectedDateString.split('-');
-                if (parseInt(parts[0]) === now.getFullYear() && 
-                    parseInt(parts[1]) === (now.getMonth() + 1) && 
+                if (parseInt(parts[0]) === now.getFullYear() &&
+                    parseInt(parts[1]) === (now.getMonth() + 1) &&
                     parseInt(parts[2]) === now.getDate()) {
                     isToday = true;
                 }
@@ -855,7 +858,7 @@
                 html += '<button type="button" onclick="document.getElementById(\'health-cert-upload\').click()" style="flex: 1; padding: 10px; border-radius: 8px; background: #7b5cf5; border: none; color: #fff; font-weight: bold; font-size: 12px; cursor: pointer;">보건증 업로드</button>';
                 html += '</div>';
             }
-            
+
             html += '</div>';
 
             area.innerHTML = html;
@@ -1184,8 +1187,8 @@
                     $(".h-open-btn").html('<span class="badge-name">' + user.name + '</span>');
                 }
             }
-            
-            $(".h-open-btn").click(function(e) {
+
+            $(".h-open-btn").click(function (e) {
                 e.stopPropagation();
                 const isLoggedIn = window.AuthManager ? !!window.AuthManager.getCurrentUser() : !!sessionStorage.getItem("user");
                 if (isLoggedIn) {
@@ -1197,40 +1200,40 @@
 
             var urlParams = new URLSearchParams(window.location.search);
             var workId = urlParams.get('id') || '1';
-            
+
             if (workId !== '1') {
                 var workTitle = "기타만들기";
                 if (workId === '2') workTitle = "우동만들기";
                 else if (workId === '3') workTitle = "지갑만들기";
                 else if (workId === '6') workTitle = "불고기구이";
                 else if (workId === '7') workTitle = "버거만들기";
-                
+
                 var titleEls = document.querySelectorAll('span.experience-modal-title');
-                titleEls.forEach(function(el) {
+                titleEls.forEach(function (el) {
                     el.textContent = workTitle + " (가상체험관)";
                 });
-                
+
                 var headerTitle = document.querySelector('.menu-bar span.cursor-pointer');
                 if (headerTitle) {
                     headerTitle.textContent = workTitle;
                 }
-                
+
                 // .btn-modal-action.primary 버튼(실제 일 체험하기 등) 비활성화 및 색상 변경
                 var btnPrimaries = document.querySelectorAll('.btn-modal-action.primary');
-                btnPrimaries.forEach(function(btn) {
+                btnPrimaries.forEach(function (btn) {
                     if (btn.textContent.includes("실제 일 체험하기") || btn.textContent.includes("출근 체험하기")) {
                         btn.style.backgroundColor = '#6c757d'; // inactive
                         btn.style.borderColor = '#6c757d';
                         btn.style.cursor = 'not-allowed';
                         btn.disabled = true; // HTML disabled 속성 추가
-                        btn.onclick = function(e) {
+                        btn.onclick = function (e) {
                             e.preventDefault();
                             e.stopPropagation();
                             alert(workTitle + " 체험은 아직 준비 중입니다.");
                         };
                     }
                 });
-                
+
                 // 메인 페이지의 "체험하기" 버튼 비활성화
                 var mainExpBtn = document.getElementById('btn-experience');
                 if (mainExpBtn) {
@@ -1238,7 +1241,7 @@
                     mainExpBtn.style.borderColor = '#6c757d';
                     mainExpBtn.style.cursor = 'not-allowed';
                     mainExpBtn.disabled = true;
-                    mainExpBtn.onclick = function(e) {
+                    mainExpBtn.onclick = function (e) {
                         e.preventDefault();
                         e.stopPropagation();
                         alert(workTitle + " 체험은 아직 준비 중입니다.");
@@ -1265,11 +1268,11 @@
                     try {
                         var userObj = JSON.parse(userStr);
                         userId = userObj.id || userObj.name;
-                    } catch(e) {}
+                    } catch (e) { }
                 }
             }
             userId = userId || 'guest';
-            
+
             var status = getPartitionedItem('experienceCompleted_' + userId);
             if (!status) {
                 status = localStorage.getItem('experienceCompleted_' + userId);
@@ -1428,6 +1431,12 @@
                 return;
             }
 
+            // 💡 [추가할 코드 1] 화면에서 실시간 가중치 값 읽어오기 및 시급 계산
+            var ratioText = document.querySelector('.text0 > span:not(.ratio)').textContent;
+            var currentRatio = parseFloat(ratioText) || 1.3; // 화면에 값이 없으면 기본값 1.3
+            var MINIMUM_WAGE = 10030; // 2026년 기준 최저시급 (원하시는 금액으로 수정 가능)
+            var hourlyWage = Math.floor(MINIMUM_WAGE * currentRatio); // 최종 1시간 임금 계산
+
             // 3. 예약 추가 실행 (SQL 호환이 쉬운 평탄화 데이터 구조)
             var newId = db.length > 0 ? Math.max.apply(null, db.map(function (r) { return r.id; })) + 1 : 1;
             var newReservation = {
@@ -1436,10 +1445,22 @@
                 userName: profile.userName,
                 date: selectedDateString,
                 slot: selectedSlot,
-                role: selectedRole
+                role: selectedRole,
+                ratio: currentRatio
             };
             db.push(newReservation);
             setPartitionedItem('app_reservations_db', JSON.stringify(db));
+
+            if (window.FactoryStore) {
+                window.FactoryStore.dispatch({
+                    type: 'ADD_RESERVATION',
+                    payload: newReservation
+                });
+            }
+
+            // 💡 [추가할 코드 3] 마이페이지나 임금 정산 시 쉽게 쓰기 위해 LocalStorage 단독 저장
+            localStorage.setItem('bookedRatio', currentRatio);
+            localStorage.setItem('bookedHourlyWage', hourlyWage);
 
             if (typeof window.addAppLog === 'function') {
                 var roleLabel = '일반';
@@ -1462,9 +1483,20 @@
                 '<strong>' + parts[1] + '월 ' + parts[2] + '일 ' + dayName + '</strong><br>' +
                 '<strong>' + slotLabels[selectedSlot] + '</strong> 타임 (' + (selectedRole === 'helper' ? '헬퍼' : '일반 참가자') + ')으로<br>' +
                 '<strong>김치만들기</strong> 작업이 예약되었습니다.<br>' +
-                '<span style="font-size: 12px; color: #aaa; display: inline-block; margin-top: 8px;">' +
+
+                // --- 새로 추가되는 강조 알림 박스 ---
+                '<div style="margin-top: 15px; padding: 12px; background: rgba(123, 92, 245, 0.15); border: 1px solid #7b5cf5; border-radius: 8px; color: #55efc4; line-height: 1.5;">' +
+                '   현재 실시간 시세인 <strong>' + currentRatio + '배</strong>의 가중치로 계산되었어요! <picture>' +
+                '<source srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp" type="image/webp">' +
+                '<img src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.gif" alt="🎉" width="32" height="32">' +
+                '</picture><br>' +
+                '   <span style="color:#fff;">(1시간 적용 임금: <strong>' + hourlyWage.toLocaleString() + '원</strong>)</span>' +
+                '</div>' +
+                // ------------------------------------
+
+                '<span style="font-size: 12px; color: #aaa; display: inline-block; margin-top: 12px;">' +
                 '<i class="bi bi-geo-alt-fill" style="color: #ff8c42;"></i> 위치: AFood 1층 KimchiA<br>' +
-                '주소: 서울시 중구 123-456 AFood 1층 KimchiA</span>';
+                '주소: 서울시 성동구 성수동 AFood 1층 KimchiA</span>';
 
             form.style.display = 'none';
             success.style.display = 'block';
@@ -1854,32 +1886,32 @@
     </div>
     <script>
         // --- 새로고침 없이 강제로 체험 완료 처리하는 함수 추가 ---
-function completeExperienceNow() {
-    var userId = sessionStorage.getItem('user-id');
-    if (!userId) {
-        var userStr = sessionStorage.getItem('user');
-        if (userStr) {
-            try {
-                var userObj = JSON.parse(userStr);
-                userId = userObj.id || userObj.name;
-            } catch(e) {}
+        function completeExperienceNow() {
+            var userId = sessionStorage.getItem('user-id');
+            if (!userId) {
+                var userStr = sessionStorage.getItem('user');
+                if (userStr) {
+                    try {
+                        var userObj = JSON.parse(userStr);
+                        userId = userObj.id || userObj.name;
+                    } catch (e) { }
+                }
+            }
+            userId = userId || 'guest';
+
+            // 1. localStorage에 체험 완료 상태 저장
+            localStorage.setItem('experienceCompleted_' + userId, 'true');
+
+            // 2. 화면 강제 새로고침 없이 뱃지 상태 업데이트 함수 바로 호출
+            checkExperienceStatus();
+
+            // 3. 모달이 켜져있다면, 예약하기 모달 다시 열어서 버튼 활성화 상태 확인
+            if (document.getElementById('reservation-overlay').classList.contains('show')) {
+                openModal('reserve');
+            } else {
+                alert("가상 체험이 완료 처리되었습니다. 이제 예약이 가능합니다!");
+            }
         }
-    }
-    userId = userId || 'guest';
-
-    // 1. localStorage에 체험 완료 상태 저장
-    localStorage.setItem('experienceCompleted_' + userId, 'true');
-    
-    // 2. 화면 강제 새로고침 없이 뱃지 상태 업데이트 함수 바로 호출
-    checkExperienceStatus(); 
-
-    // 3. 모달이 켜져있다면, 예약하기 모달 다시 열어서 버튼 활성화 상태 확인
-    if (document.getElementById('reservation-overlay').classList.contains('show')) {
-        openModal('reserve');
-    } else {
-        alert("가상 체험이 완료 처리되었습니다. 이제 예약이 가능합니다!");
-    }
-}
     </script>
     <script src="./js/work_detail.js"></script>
 </body>

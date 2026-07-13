@@ -1688,8 +1688,9 @@
                     } catch (e) { }
                     let normOrderId = o.orderId.replace(/^(SALT-|ORD-)/, "");
                     const isAlreadySalting = saltingBatches.some(b => (b.orderId || b.id || "").replace(/^(SALT-|ORD-)/, "") === normOrderId);
+                    const isSaltingInStage = o.stages && o.stages[2] && o.stages[2].step2Status === 'salting';
                     const isS1Done = o.stages && o.stages[1] && o.stages[1].statusSubmitted;
-                    return String(o.currentTask) === "2" && isS1Done && !isAlreadySalting && !(o.stages && o.stages[2] && o.stages[2].statusSubmitted);
+                    return String(o.currentTask) === "2" && isS1Done && !isAlreadySalting && !isSaltingInStage && !(o.stages && o.stages[2] && o.stages[2].statusSubmitted);
                 }
                 if (currentStageStr === "4") {
                     const isSent = !!(o.stages && o.stages[3] && o.stages[3].sentToStage4);
@@ -1871,7 +1872,15 @@
                 let spotLabel = `자리 ${spotId}`;
 
                 // 💡 해당 공정에 진입 가능한 지시서가 있는지 미리 체크
-                const hasOrder = !!getActiveOrderForStage(stage.id, spotId);
+                let hasOrder = !!getActiveOrderForStage(stage.id, spotId);
+                let saltingBatches = [];
+                try {
+                    saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                } catch (e) { }
+                const pendingFlipBatches = saltingBatches.filter(b => b.isFlipPending === true);
+                if (String(stage.id) === "2" && pendingFlipBatches.length > 0) {
+                    hasOrder = true;
+                }
 
                 if (!spot.worker || spot.status === 'empty') {
                     if (!hasOrder) {
@@ -1935,7 +1944,14 @@
         function assignWorkerAndScan(stageId, spotId) {
             // 💡 [지시서 체크 방어막] 현재 공정에 대기 중인 생산지시서가 없으면 할당 진행 차단
             const activeOrder = getActiveOrderForStage(stageId, spotId);
-            if (!activeOrder) {
+            let saltingBatches = [];
+            try {
+                saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch (e) { }
+            const pendingFlipBatches = saltingBatches.filter(b => b.isFlipPending === true);
+            const isStage2FlipAvailable = (String(stageId) === "2" && pendingFlipBatches.length > 0);
+
+            if (!activeOrder && !isStage2FlipAvailable) {
                 alert("현재 해당 공정에 진행 대기 중인 생산지시서가 없습니다.\n매니저에게 지시서 발행을 요청하세요.");
                 return;
             }
@@ -1979,7 +1995,14 @@
         function reEnterMySpot(stageId, spotId) {
             // 💡 [지시서 체크 방어막] 입장 시에도 대기 중인 지시서가 없으면 차단
             const activeOrder = getActiveOrderForStage(stageId, spotId);
-            if (!activeOrder) {
+            let saltingBatches = [];
+            try {
+                saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+            } catch (e) { }
+            const pendingFlipBatches = saltingBatches.filter(b => b.isFlipPending === true);
+            const isStage2FlipAvailable = (String(stageId) === "2" && pendingFlipBatches.length > 0);
+
+            if (!activeOrder && !isStage2FlipAvailable) {
                 alert("현재 해당 공정에 진행 대기 중인 생산지시서가 없습니다.\n매니저에게 지시서 발행을 요청하세요.");
                 return;
             }
@@ -2230,39 +2253,53 @@
                     }
                 }
 
+                let saltingBatches = [];
+                try {
+                    saltingBatches = JSON.parse(localStorage.getItem("kimp_factory_salting") || "[]");
+                } catch (e) { }
+                const pendingFlipBatches = saltingBatches.filter(b => b.isFlipPending === true);
+                const isStage2FlipAvailable = (String(stageId) === "2" && pendingFlipBatches.length > 0);
+
                 if (!activeOrder) {
-                    // 대기 중인 지시서가 없는 경우 -> 지시서 정보 초기화 및 대기 단계(0)로 롤백
-                    appData.currentOrder.id = "";
-                    appData.currentOrder.qty = 0;
-                    updateHeaderInfo();
+                    if (!isStage2FlipAvailable) {
+                        // 대기 중인 지시서가 없는 경우 -> 지시서 정보 초기화 및 대기 단계(0)로 롤백
+                        appData.currentOrder.id = "";
+                        appData.currentOrder.qty = 0;
+                        updateHeaderInfo();
 
-                    // 화면에 "지시서 대기 중" HMI 상태 렌더링
-                    const container = document.getElementById(`stage-${stageId}-dynamic-content`);
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
-                                <i class="bi bi-exclamation-triangle step-icon" style="font-size: 48px; color: var(--warning);"></i>
-                                <div class="step-message" style="font-size: 18px; font-weight: bold;">생산지시서 대기 중</div>
-                                <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5; max-width:320px;">
-                                    현재 이 공정에 배정된 유효한 생산지시서가 존재하지 않습니다.<br>
-                                    매니저가 발행할 때까지 대기하시거나 다른 작업을 시작해 주세요.
+                        // 화면에 "지시서 대기 중" HMI 상태 렌더링
+                        const container = document.getElementById(`stage-${stageId}-dynamic-content`);
+                        if (container) {
+                            container.innerHTML = `
+                                <div class="step-container" style="height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;">
+                                    <i class="bi bi-exclamation-triangle step-icon" style="font-size: 48px; color: var(--warning);"></i>
+                                    <div class="step-message" style="font-size: 18px; font-weight: bold;">생산지시서 대기 중</div>
+                                    <div class="step-sub-message" style="text-align: center; color: var(--text-secondary); line-height: 1.5; max-width:320px;">
+                                        현재 이 공정에 배정된 유효한 생산지시서가 존재하지 않습니다.<br>
+                                        매니저가 발행할 때까지 대기하시거나 다른 작업을 시작해 주세요.
+                                    </div>
+                                    <button class="btn btn-secondary w-50" onclick="exitStageToWaitingArea('${stageId}', '${spotId}')">대기장소로 돌아가기</button>
                                 </div>
-                                <button class="btn btn-secondary w-50" onclick="exitStageToWaitingArea('${stageId}', '${spotId}')">대기장소로 돌아가기</button>
-                            </div>
-                        `;
+                            `;
+                        }
+
+                        // 자리 점유도 일단 해제 처리 (작업할 게 없으므로)
+                        spot.worker = "";
+                        spot.status = "empty";
+                        syncStagesToStorage();
+                        return;
+                    } else {
+                        // 뒤집기 배치만 있는 경우에도 체크인은 수행
+                        appData.currentOrder.id = "";
+                        appData.currentOrder.qty = 0;
+                        updateHeaderInfo();
                     }
-
-                    // 자리 점유도 일단 해제 처리 (작업할 게 없으므로)
-                    spot.worker = "";
-                    spot.status = "empty";
-                    syncStagesToStorage();
-                    return;
+                } else {
+                    // 지시서가 존재하는 경우 정상 진행
+                    appData.currentOrder.id = activeOrder.orderId;
+                    appData.currentOrder.qty = activeOrder.quantity;
+                    updateHeaderInfo();
                 }
-
-                // 지시서가 존재하는 경우 정상 진행
-                appData.currentOrder.id = activeOrder.orderId;
-                appData.currentOrder.qty = activeOrder.quantity;
-                updateHeaderInfo();
 
                 // 💡 Stage 6 진입 시, 포장지시서 목표 수량을 Workflow 설명에 동적 바인딩
                 if (String(stageId) === "6") {
@@ -2293,7 +2330,7 @@
 
                 // 💡 지시서 DB의 operator를 해당 작업자명으로 매핑하여 선점 처리 (다른 Spot이 중복 할당하지 못하게 함)
                 const ordersRaw = localStorage.getItem('kimp_production_orders');
-                if (ordersRaw) {
+                if (ordersRaw && activeOrder) {
                     try {
                         let ordersObj = JSON.parse(ordersRaw);
                         const currentOrderId = activeOrder.orderId;
