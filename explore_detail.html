@@ -745,13 +745,18 @@
 
             // 유저 정보 로드
             function getCurrentUser() {
+                let userId = sessionStorage.getItem("user-id") || "guest";
                 let userJson = sessionStorage.getItem("user");
-                if (userJson) return JSON.parse(userJson);
-                return { id: '2', name: '최수아', email: 'sua.choi@example.com' };
+                if (userJson) {
+                    let parsed = JSON.parse(userJson);
+                    parsed.id = parsed.id || userId;
+                    return parsed;
+                }
+                return { id: userId, name: '손님', email: '' };
             }
             const user = getCurrentUser();
 
-            // 이력 정보 로드
+            // 이력 정보 로드 (가짜 MOCK 데이터 전부 삭제하고 100% 로컬스토리지 연동)
             function getHistoryData(userId, name) {
                 try {
                     const localHistory = localStorage.getItem("mypage_history_" + userId);
@@ -762,40 +767,7 @@
                         }
                     }
                 } catch (e) { }
-
-                // Mock fallback
-                const today = new Date();
-                const formatDate = (daysAgo) => {
-                    const d = new Date();
-                    d.setDate(today.getDate() - daysAgo);
-                    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-                };
-                if (name === '최현일') {
-                    return [
-                        { id: 101, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "매니저", pay: 220000, status: "완료", logs: ["[13:02] Persa 지갑공장 출근 등록완료", "[13:45] 가죽 자재 재단 완료", "[14:20] 지갑 외피 본딩 처리 완료", "[14:50] 지갑 최종 조립 및 검수 완료", "[15:03] 최종 정산 및 퇴근 완료"] },
-                        { id: 102, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "매니저", pay: 190000, status: "완료", logs: ["[10:01] Uton 면 가공공정 시작", "[10:40] 수타 면발 압착 완료", "[11:20] 육수 배합 및 가마 가열 완료", "[11:58] 우동 밀키트 포장 완료 및 퇴근"] },
-                        { id: 103, date: formatDate(5), time: "15:00 ~ 17:00", job: "김치만들기", role: "매니저", pay: 180000, status: "완료", logs: ["[15:00] AFood 김치공장 도착", "[15:20] 배추 세척 완료", "[15:55] 소금 절임 상태 점검", "[16:40] 김치 양념 소 버무림 완료", "[17:02] 박스 포장 및 입고 검수 완료"] }
-                    ];
-                } else if (name === '최수아') {
-                    return [
-                        { id: 201, date: formatDate(2), time: "13:00 ~ 15:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", logs: ["[13:01] 헬퍼 등록 완료", "[13:30] 우동 가마 세척 보조", "[14:15] 식자재 운반 지원", "[15:02] 정리정돈 지원 후 퇴근"] },
-                        { id: 202, date: formatDate(6), time: "10:00 ~ 12:00", job: "지갑만들기", role: "일반", pay: 50000, status: "완료", logs: ["[09:56] Persa 공장 입장", "[10:20] 가죽 부품 매칭 검수", "[11:10] 가죽 연마 가공 작업", "[12:01] 정산 확인 후 정상 퇴근"] },
-                        { id: 203, date: formatDate(10), time: "15:00 ~ 17:00", job: "김치만들기", role: "일반", pay: 45000, status: "완료", logs: ["[15:03] 위생 장비 착용 검사 승인", "[15:30] Stage 1 배추 속넣기 진행", "[16:15] Stage 2 뒤집기 공정 진행", "[17:04] 퇴근 스캔 및 정산 승인"] }
-                    ];
-                } else if (name === '김수민') {
-                    return [
-                        { id: 301, date: formatDate(4), time: "10:00 ~ 12:00", job: "우동만들기", role: "일반", pay: 45000, status: "완료", logs: ["[10:02] 출근 QR 스캔", "[10:45] 우동 육수 재료 계량 완료", "[11:30] 우동 용기 살균 소독 진행", "[12:01] 근무 정산 및 퇴근 완료"] }
-                    ];
-                } else if (name === '김영희') {
-                    return [
-                        { id: 401, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료", logs: ["[13:00] 헬퍼 출근 접수", "[13:40] 자재 운반 대기 수송 지원", "[14:45] 포장 라인 부자재 피딩 완료", "[15:03] 최종 조퇴 정산 승인"] },
-                        { id: 402, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", logs: ["[09:58] 헬퍼 안전 교육 수강", "[10:30] 용기 적재 지원 작업 완료", "[11:45] 공장 청결 청소 대행", "[12:02] 정산 후 퇴근"] },
-                        { id: 403, date: formatDate(8), time: "15:00 ~ 17:00", job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료", logs: ["[15:01] 위생복 소독실 통과 완료", "[15:40] 양념 대야 물류 수송 보조", "[16:30] 포장박스 밴딩 기기 세팅 지원", "[17:03] 헬퍼 정산 퇴근 확인"] }
-                    ];
-                }
-                return [
-                    { id: 999, date: formatDate(2), time: "10:00 ~ 12:00", job: "김치만들기", role: "일반", pay: 40000, status: "완료", logs: ["[09:55] 출근 등록 완료", "[10:35] Stage 1 양념 혼합 시작", "[11:15] Stage 2 배추 절임 스택 관리", "[12:03] 작업 최종 승인 및 정상 퇴근"] }
-                ];
+                return []; // 가짜 데이터 대신 빈 배열 반환
             }
 
             const historyList = getHistoryData(user.id, user.name);
@@ -868,7 +840,7 @@
                     try {
                         const firstLog = currentItem.logs[0];
                         const lastLog = currentItem.logs[currentItem.logs.length - 1];
-                        const timePattern = /\[(\d{2}:\d{2})\]/;
+                        const timePattern = /\[(\d{2}:\d{2}(?::\d{2})?)\]/;
                         const matchIn = firstLog.match(timePattern);
                         const matchOut = lastLog.match(timePattern);
                         if (matchIn) checkInTime = matchIn[1] + ":12";
@@ -951,43 +923,48 @@
             $('#val-cumulative').html(`${prevHours}h<span class="added">+${workHoursFloat}h</span>=${userBaseHours}h`);
             $('#val-grade').text(currentItem.role);
 
-            let stage1Count = currentItem.role === '매니저' ? 12 : (currentItem.role === '헬퍼' ? 2 : 4);
-            let stage2Count = currentItem.role === '매니저' ? 18 : (currentItem.role === '헬퍼' ? 3 : 5);
-            let flipCount = currentItem.role === '매니저' ? 10 : (currentItem.role === '헬퍼' ? 1 : 3);
 
+            // ✅ 지운 자리에 이 코드를 붙여넣어 주세요.
+            const counts = currentItem.stageCounts || { "1": 0, "2": 0, "3": 0, "4": 0, "5-1": 0, "5-2": 0, "6": 0 };
+            let flipCount = currentItem.flipCount !== undefined ? currentItem.flipCount : 0;
+            let totalAchievementCount = 0;
             let achievementHtml = '';
-            if (currentItem.job.includes('김치')) {
-                achievementHtml = `
-                    <div class="achievement-row"><span class="achievement-label">Stage 1</span><span class="achievement-value">${stage1Count}회</span></div>
-                    <div class="achievement-row"><span class="achievement-label">Stage 2</span><span class="achievement-value">${stage2Count}회</span></div>
-                    <div class="achievement-row"><span class="achievement-label">뒤집기</span><span class="achievement-value">${flipCount}회</span></div>
-                `;
-            } else if (currentItem.job.includes('우동')) {
-                achievementHtml = `
-                    <div class="achievement-row"><span class="achievement-label">면 가공</span><span class="achievement-value">${stage1Count}회</span></div>
-                    <div class="achievement-row"><span class="achievement-label">육수 정수</span><span class="achievement-value">${stage2Count}회</span></div>
-                    <div class="achievement-row"><span class="achievement-label">포장 완성</span><span class="achievement-value">${flipCount}회</span></div>
-                `;
-            } else {
-                achievementHtml = `
-                    <div class="achievement-row"><span class="achievement-label">가죽 제단</span><span class="achievement-value">${stage1Count}회</span></div>
-                    <div class="achievement-row"><span class="achievement-label">본딩 가공</span><span class="achievement-value">${stage2Count}회</span></div>
-                    <div class="achievement-row"><span class="achievement-label">외피 장식</span><span class="achievement-value">${flipCount}회</span></div>
-                `;
-            }
-            $('#achievement-container').html(achievementHtml);
 
-            // 성과 총 횟수 바인딩
-            const totalAchievementCount = stage1Count + stage2Count + flipCount;
+            const stageKeys = ["1", "2", "3", "4", "5-1", "5-2", "6"];
+            stageKeys.forEach(key => {
+                let count = counts[key];
+                if (count > 0) {
+                    achievementHtml += `
+            <div class="achievement-row">
+                <span class="achievement-label">Stage ${key}</span>
+                <span class="achievement-value">${count}회</span>
+            </div>
+        `;
+                    totalAchievementCount += count;
+                }
+            });
+
+            if (flipCount > 0) {
+                achievementHtml += `
+        <div class="achievement-row">
+            <span class="achievement-label">뒤집기</span>
+            <span class="achievement-value">${flipCount}회</span>
+        </div>
+    `;
+                totalAchievementCount += flipCount;
+            }
+
+            if (achievementHtml === '') {
+                achievementHtml = '<div style="color: var(--text-sub); text-align: center; padding: 10px 0;">기록된 성과가 없습니다.</div>';
+            }
+
+            $('#achievement-container').html(achievementHtml);
             $('#val-achievement-total').text(totalAchievementCount + '회');
 
             // 함께 일한 사람들 렌더링
             let coworkerHtml = '';
-            const defaultCoworkers = [
-                { name: '이민수', role: '일반' },
-                { name: '박지영', role: '헬퍼' }
-            ];
-            const coworkerList = currentItem.coworkers || defaultCoworkers;
+            // 실제 터미널에서 넘어온 coworkers 데이터만 사용하고, 없으면 빈 배열 처리
+            const coworkerList = currentItem.coworkers || [];
 
             // 중복 제거
             const uniqueCoworkers = [];

@@ -21,25 +21,30 @@
             .desktop-info {
                 display: none !important;
             }
+
             .mobile-info {
                 display: block !important;
             }
+
             .job-info-group.idle-mode .desktop-info {
                 display: none !important;
             }
+
             .job-info-group.idle-mode .mobile-info {
                 display: block !important;
                 font-size: 17px !important;
                 border: 1px solid var(--border-color) !important;
                 padding: 8px 6px !important;
                 border-radius: 8px !important;
-               
+
             }
         }
+
         @media (min-width: 769px) {
             .desktop-info {
                 display: flex !important;
             }
+
             .mobile-info {
                 display: none !important;
             }
@@ -672,10 +677,10 @@
             const content = `
         <p style="margin-bottom:16px;">가짜로 로그인을 생성하여 세션스토리지로 작동상황을 잘 볼 수 있어요. 디버깅하고 있습니다.</p>
         <div class="menu-list">
-            <button class="menu-btn" onclick="performLogin('최현일', '관리자')">최현일 (관리자)</button>
-            <button class="menu-btn" onclick="performLogin('최수아', '일반')">최수아 (일반)</button>
-            <button class="menu-btn" onclick="performLogin('김수민', '일반')">김수민 (일반)</button>
-            <button class="menu-btn" onclick="performLogin('김영희', '헬퍼')">김영희 (헬퍼)</button>
+            <button class="menu-btn" onclick="performLogin(1)">최현일 (관리자)</button>
+            <button class="menu-btn" onclick="performLogin(2)">최수아 (일반)</button>
+            <button class="menu-btn" onclick="performLogin(3)">김수민 (일반)</button>
+            <button class="menu-btn" onclick="performLogin(4)">김영희 (헬퍼)</button>
             <div style="border-top:1px solid #e5e7eb; margin: 12px 0;"></div>
             <button class="menu-btn" onclick="clearAllSessions()" style="background-color: #fee2e2; color: #b91c1c; border: 1px solid #f87171;"><i class="bi bi-trash"></i> 전체 세션/데이터 초기화</button>
         </div>
@@ -692,15 +697,87 @@
             location.reload();
         }
 
-        function performLogin(name, role) {
-            const loginTime = new Date().toLocaleTimeString();
-            const userData = { name, role, loginTime };
+        function performLogin(userId) {
+            let email = "";
+            let name = "";
+            let role = "";
+            let certImage = null;
+            let certStatus = null;
+            let workedHours = 0;
 
+            if (userId === 1) {
+                email = "tt2t2am1118@naver.com"; name = "최현일"; role = "ROLE_MANAGER";
+                certImage = "choi_cert.png"; certStatus = "approved"; workedHours = 133;
+            } else if (userId === 2) {
+                email = "capegon21@gmail.com"; name = "최수아"; role = "ROLE_USER";
+                certImage = "sua_cert.png"; certStatus = "approved"; workedHours = 22;
+            } else if (userId === 3) {
+                email = "capegon23@gmail.com"; name = "김수민"; role = "ROLE_USER";
+                certImage = null; certStatus = null; workedHours = 0;
+            } else if (userId === 4) {
+                email = "younghee@naver.com"; name = "김영희"; role = "ROLE_HELPER";
+                certImage = "younghee_cert.png"; certStatus = "approved"; workedHours = 45;
+            }
+
+            const loginTime = new Date().toLocaleTimeString();
+            const userData = { id: email, email: email, name: name, role: role, loginTime: loginTime };
+
+            // login.html과 동일하게 세션스토리지에 저장
+            sessionStorage.setItem("user-id", email);
             sessionStorage.setItem("user", JSON.stringify(userData));
+
+            // 보건증 및 근무시간(worker_profile) 세션 강제 세팅 (login.html 방식 통합)
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify({
+                profileId: userId,
+                userId: email,
+                userName: name,
+                workedHours: workedHours,
+                healthCertificateImage: certImage,
+                healthCertificateStatus: certStatus,
+                isManagerQualified: workedHours >= 30 && certStatus === "approved"
+            }));
+
+            // 💡 [핵심 보완] 백그라운드 타이머의 강제 0초 리셋 방어막(Step < 7 block)을 우회하도록 
+            // kimp_workers_progress에 즉시 currentStep = 7로 입장 완료 상태를 주입합니다.
+            try {
+                let progressMap = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+
+                // 김영희의 경우 시스템 기본 키("local-helper-kim")와 이메일 키 통합 매칭 보정
+                let progressKey = email;
+                if (userId === 4 && !progressMap[email] && progressMap["local-helper-kim"]) {
+                    progressKey = "local-helper-kim";
+                }
+
+                if (!progressMap[progressKey]) {
+                    progressMap[progressKey] = { userId: progressKey, userName: name };
+                }
+
+                const now = new Date();
+                const autoTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+                progressMap[progressKey].currentStep = 7;
+                progressMap[progressKey].stepName = "Stage0 대기장소";
+                progressMap[progressKey].location = "Stage0 대기장소";
+                progressMap[progressKey].status = "active";
+                progressMap[progressKey].checkInTime = progressMap[progressKey].checkInTime || autoTime;
+                progressMap[progressKey].lastActiveTime = new Date().toISOString();
+
+                localStorage.setItem("kimp_workers_progress", JSON.stringify(progressMap));
+
+                // 해당 유저의 개인 출근 시간 키가 없으면 함께 생성해 줍니다.
+                if (!localStorage.getItem("kimp_check_in_time_" + email)) {
+                    localStorage.setItem("kimp_check_in_time_" + email, progressMap[progressKey].checkInTime);
+                }
+            } catch (e) {
+                console.error("실시간 단계 동기화 실패:", e);
+            }
+
             closeActionModal();
             applyLoginState(userData);
             appData.user = userData;
-            showHmiToast(`${name}(${role})님 환영합니다! (로그인: ${loginTime})`);
+
+            let displayRole = role === 'ROLE_MANAGER' ? '관리자' : (role === 'ROLE_HELPER' ? '헬퍼' : '일반');
+            showHmiToast(`${name}(${displayRole})님 환영합니다! (로그인: ${loginTime})`);
 
             if (document.getElementById('task-modal').classList.contains('open')) {
                 openTaskSelector();
@@ -711,9 +788,12 @@
         function applyLoginState(user) {
             const btn = document.getElementById('login-btn');
             if (btn) {
-                // 이름이 없으면 이메일 아이디 부분 추출, 역할이 없으면 '일반'으로 대체 (안전 장치)
                 const displayName = user.name || (user.email ? user.email.split('@')[0] : "사용자");
-                const displayRole = user.role || "일반";
+                let displayRole = user.role || "일반";
+                if (displayRole === 'ROLE_USER') displayRole = '일반';
+                if (displayRole === 'ROLE_MANAGER') displayRole = '관리자';
+                if (displayRole === 'ROLE_HELPER') displayRole = '헬퍼';
+
                 btn.innerHTML = `<i class="bi bi-person-check-fill"></i> ${displayName} (${displayRole})`;
             }
         }
@@ -2621,8 +2701,19 @@
                 checkInTimeStr = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
             }
 
+            // 💡 [핵심 수정] 로그인 후 아이디가 바뀌었을 때 출근 기록이 없다면 현재 시간으로 자동 생성!
             if (!checkInTimeStr || checkInTimeStr === '-' || checkInTimeStr === 'null') {
-                return 0;
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                checkInTimeStr = `${hours}:${minutes}:${seconds}`;
+
+                if (typeof window.setPartitionedItem === 'function') {
+                    window.setPartitionedItem("kimp_check_in_time", checkInTimeStr);
+                } else {
+                    localStorage.setItem("kimp_check_in_time_" + userId, checkInTimeStr);
+                }
             }
 
             const parts = checkInTimeStr.split(':');
@@ -2668,10 +2759,29 @@
                 console.error("데이터 동기화 에러:", e);
             }
 
+
             // 💡 예상 급여액 실시간 초당 누적 계산 (2026년 최저임금 10,320원의 1.2배인 12,384원 기준)
             const elapsedSecs = getElapsedSecondsFromCheckIn();
-            const wageRatePerSecond = 12384 / 3600; // 초당 3.44원
-            accumSalary = elapsedSecs * wageRatePerSecond;
+
+            // 👉 총 경과 시간(elapsedSecs)에서 누적 휴식 시간(restSeconds)을 뺀 '실제 작업 시간' 산출
+            const actualWorkSecs = Math.max(0, elapsedSecs - restSeconds);
+
+            // 💡 세션스토리지에 저장된 선택한 예약 정보(selected_reservation)에서 배율(ratio) 값을 가져옵니다.
+            let ratio = 1.2; // 기본값 1.2
+            try {
+                const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                if (selRes && selRes.ratio !== undefined) {
+                    ratio = Number(selRes.ratio);
+                }
+            } catch (e) { }
+
+            // 2026년 최저임금 10,320원에 예약 배율(ratio)을 곱한 뒤 초당 시급으로 나눕니다.
+            const hourlyWage = 10320 * ratio;
+            const wageRatePerSecond = hourlyWage / 3600;
+
+            // 👉 실제 작업 시간에 초당 시급을 곱하여 누적 급여를 산출합니다.
+            accumSalary = actualWorkSecs * wageRatePerSecond;
+
 
             // 💡 화면 렌더링 (가져온 데이터 렌더링)
             if (restEl || modalRestEl) {
@@ -2718,10 +2828,10 @@
                     if (log.editableIndex !== null && log.editableIndex !== undefined) {
                         editBtn = `<button class="btn-menu" style="padding: 4px 8px; font-size: 12px; margin-top: 8px; background: #e0e7ff; color: var(--primary); border:none;" onclick="editLog(${actualIndex})"><i class="bi bi-pencil-square"></i> 수량 재입력하기</button>`;
                     }
-                    
+
                     let formattedText = '';
                     let photoHtml = '';
-                    
+
                     if (log.photo) {
                         formattedText = log.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                         const timeText = log.time ? `[${log.time}] ` : '';
@@ -2762,7 +2872,7 @@
             if (log.includes('<img')) {
                 const srcMatch = log.match(/src=['"]([^'"]+)['"]/);
                 const imgSrc = srcMatch ? srcMatch[1] : '';
-                
+
                 let textOnly = log.replace(/<img[^>]*>/g, '').replace(/<br\s*\/?>/g, ' ').trim();
                 const timeText = logTime ? `[${logTime}] ` : '';
                 const safeText = (timeText + textOnly).replace(/'/g, "\\'");
@@ -2775,13 +2885,13 @@
             }
         }
 
-        window.viewLogImageDetail = function(imgSrc, text) {
+        window.viewLogImageDetail = function (imgSrc, text) {
             document.getElementById('log-detail-expanded-img').src = imgSrc;
             document.getElementById('log-detail-expanded-text').textContent = text;
             document.getElementById('log-image-detail-modal').style.display = 'flex';
         }
 
-        window.closeLogImageDetailModal = function() {
+        window.closeLogImageDetailModal = function () {
             document.getElementById('log-image-detail-modal').style.display = 'none';
         }
 
@@ -3310,7 +3420,7 @@
                         
                         <!-- 1~5번 사물함 버튼 -->
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;">
-                            ${[1,2,3,4,5].map(n => `
+                            ${[1, 2, 3, 4, 5].map(n => `
                                 <button type="button" class="locker-btn-exit" id="locker-exit-${n}" onclick="checkExitLocker(${n})" style="padding: 12px 0; font-size: 16px; font-weight: bold; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); cursor: pointer; transition: all 0.2s;">
                                     ${n}
                                 </button>
@@ -3351,7 +3461,7 @@
         function checkExitLocker(num) {
             const correctNum = parseInt(localStorage.getItem('kimp_locker_number') || '2');
             const msgEl = document.getElementById('locker-exit-message');
-            
+
             // 모든 사물함 버튼 상태 초기화
             for (let i = 1; i <= 5; i++) {
                 const btn = document.getElementById(`locker-exit-${i}`);
@@ -3363,7 +3473,7 @@
             }
 
             const activeBtn = document.getElementById(`locker-exit-${num}`);
-            
+
             if (num === correctNum) {
                 // 성공
                 if (activeBtn) {
@@ -3373,7 +3483,7 @@
                 }
                 msgEl.style.color = '#10b981';
                 msgEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 열쇠를 이용해 사물함을 열어주세요. 감사합니다.';
-                
+
                 // 열쇠 반납 섹션 슬라이드 다운
                 $('#locker-key-return-section').slideDown(250);
             } else {
@@ -3385,7 +3495,7 @@
                 }
                 msgEl.style.color = '#ef4444';
                 msgEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> 사물함 번호가 다릅니다. 올바른 번호를 선택해 주세요.';
-                
+
                 // 열쇠 반납 섹션 숨김
                 $('#locker-key-return-section').slideUp(250);
             }
@@ -3427,15 +3537,15 @@
                 const userId = sessionStorage.getItem("user-id") || "guest";
                 const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
                 const userName = userObj.name || "손님";
-                
+
                 // 2-1. 오늘 날짜 예약 건 지우기
                 const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
                 let reservations = [];
                 try {
                     reservations = JSON.parse(localStorage.getItem("mypage_reservations_" + userId) || "[]");
-                } catch(e) {}
+                } catch (e) { }
                 if (!Array.isArray(reservations)) reservations = [];
-                
+
                 const filteredReservations = reservations.filter(r => r.date !== todayStr);
                 localStorage.setItem("mypage_reservations_" + userId, JSON.stringify(filteredReservations));
 
@@ -3443,7 +3553,7 @@
                 let history = [];
                 try {
                     history = JSON.parse(localStorage.getItem("mypage_history_" + userId) || "[]");
-                } catch(e) {}
+                } catch (e) { }
                 if (!Array.isArray(history)) history = [];
 
                 // 동료 목록 수집
@@ -3454,7 +3564,7 @@
                         .map(w => w.userName)
                         .filter(name => name && name !== userName);
                     if (names.length > 0) coworkers = names;
-                } catch(e) {}
+                } catch (e) { }
 
                 // 사용한 사물함 정보 가져오기
                 const lockerGender = localStorage.getItem('kimp_locker_gender') || '남성';
@@ -3484,7 +3594,7 @@
                         const checkOutTime = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
                         workTimeStr = `${checkInTime} ~ ${checkOutTime}`;
                     }
-                } catch(e) {}
+                } catch (e) { }
 
                 // 예약 비율 가져오기
                 let ratio = 1.2;
@@ -3493,14 +3603,14 @@
                     if (selRes && selRes.ratio !== undefined) {
                         ratio = Number(selRes.ratio);
                     }
-                } catch(e) {}
+                } catch (e) { }
 
                 // 실제 근무시간 분 단위 구하기
                 let actualWorkMin = 120; // 기본 2시간
                 try {
                     const workedSeconds = getElapsedSecondsFromCheckIn();
                     actualWorkMin = Math.floor(workedSeconds / 60);
-                } catch(e) {}
+                } catch (e) { }
 
                 // 실제 출퇴근 시각 구하기
                 let checkInTimeStr = null;
@@ -3530,7 +3640,30 @@
                 try {
                     const role = appData.user.role;
                     if (role === "헬퍼" || role === "매니저") userRole = role;
-                } catch(e) {}
+                } catch (e) { }
+                // --- [추가/수정할 코드] 모든 Stage 성과 횟수 통합 계산 ---
+                let stageCounts = { "1": 0, "2": 0, "3": 0, "4": 0, "5-1": 0, "5-2": 0, "6": 0 };
+                let realFlipCount = 0;
+
+                try {
+                    // 1. 모든 공정(Stage 1 ~ 6) 완료 횟수 합산
+                    let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
+                    perfs.forEach(p => {
+                        let stageKey = String(p.stage);
+                        if (stageCounts[stageKey] !== undefined) {
+                            stageCounts[stageKey]++;
+                        }
+                    });
+
+                    // 2. 뒤집기 완료 횟수 추출
+                    let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+                    let myKey = Object.keys(workers).find(k => workers[k].userName === userName);
+                    if (myKey && workers[myKey] && workers[myKey].workDetailLogs) {
+                        realFlipCount = workers[myKey].workDetailLogs.filter(log => log.includes("배추 뒤집기 완료")).length;
+                    }
+                } catch (e) {
+                    console.error("성과 횟수 계산 중 오류:", e);
+                }
 
                 const historyItem = {
                     id: Date.now(),
@@ -3542,7 +3675,7 @@
                     locker: `${lockerGender} Safe 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
                     coworkers: coworkers,
-                    
+
                     // 수집된 세부 변수 저장 추가
                     helpGiven: detailHelpGiven,
                     helpReceived: detailHelpReceived,
@@ -3553,7 +3686,10 @@
                     actualWorkMin: actualWorkMin,
                     isEarlyLeave: isEarlyLeave,
                     checkoutType: isEarlyLeave ? "조퇴" : "퇴근",
-                    
+                    // --- [수정] 전체 횟수가 담긴 객체 전달 ---
+                    stageCounts: stageCounts,
+                    flipCount: realFlipCount,
+
                     // 실제 출근 및 퇴근 시각 명시적 추가
                     checkInTime: checkInTimeStr,
                     checkOutTime: checkOutTimeStr
@@ -3561,13 +3697,13 @@
 
                 history.push(historyItem);
                 localStorage.setItem("mypage_history_" + userId, JSON.stringify(history));
-                
+
                 // 스토어 싱크를 위해 FactoryStore 디스패치 (로드되어 있다면)
                 if (window.FactoryStore) {
                     window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: filteredReservations });
                     window.FactoryStore.dispatch({ type: 'SET_HISTORY', payload: history });
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error("Failed to migrate work history to mypage:", e);
             }
 
@@ -4122,12 +4258,12 @@
             `;
             }
             else if (step.type === 'brine-photos') {
-                const saltPhotoHtml = brinePhotosCaptured.salt 
-                    ? `<img src="./images/salt_cup.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />` 
+                const saltPhotoHtml = brinePhotosCaptured.salt
+                    ? `<img src="./images/salt_cup.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />`
                     : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary);"><i class="bi bi-camera-fill" style="font-size:32px; margin-bottom:6px; color:var(--text-secondary);"></i><span style="font-size:12px; font-weight:bold;">소금 계량 컵 촬영</span></div>`;
-                
-                const waterPhotoHtml = brinePhotosCaptured.water 
-                    ? `<img src="./images/brine_water.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />` 
+
+                const waterPhotoHtml = brinePhotosCaptured.water
+                    ? `<img src="./images/brine_water.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />`
                     : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary);"><i class="bi bi-camera-fill" style="font-size:32px; margin-bottom:6px; color:var(--text-secondary);"></i><span style="font-size:12px; font-weight:bold;">물 수량 촬영</span></div>`;
 
                 visualElement = `
@@ -4231,7 +4367,7 @@
         // 💡 [핵심 추가] 염수 체크용 소금/물 계량 사진 촬영 시뮬레이션
         function simulateBrineCamera(target) {
             playShutterSound();
-            
+
             if (target === 'salt') {
                 brinePhotosCaptured.salt = true;
                 showHmiToast('<i class="bi bi-camera-fill" style="color: #10b981;"></i> 소금 계량 컵 촬영 완료!');
@@ -4241,7 +4377,7 @@
                 showHmiToast('<i class="bi bi-camera-fill" style="color: #10b981;"></i> 물의 양 수량 촬영 완료!');
                 addLog("[염수] 물의 양 수량 사진 촬영 완료", null, "./images/brine_water.png");
             }
-            
+
             // 화면 즉시 갱신
             renderCurrentStep();
         }
@@ -5293,22 +5429,22 @@
                 `;
             } else if (req.status === 'completed') {
                 clearInterval(requesterPollInterval);
-                
+
                 if (req.isHandoverCall) {
                     // 교대 호출 정산 처리
                     accumSalary -= 2000;
                     const salEl = document.getElementById('accum-salary');
                     if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
-                    
+
                     detailHelpReceived++;
                     addLog(`[라운지] 헬퍼가 매칭 및 교대 완료되어 2,000원이 차감되었습니다.`);
-                    
+
                     // 헬퍼 요청 최종 소거
                     saveHelperRequest(null);
-                    
+
                     // 모달 닫기
                     closeActionModal();
-                    
+
                     // 인수인계 제출 및 퇴실
                     submitHandover(true);
                 } else {
@@ -5355,7 +5491,7 @@
             let photoPath = './images/cabbage_weighed.png';
             let photoText = "배추 촬영 증빙";
             const currentStageStr = String(appData.activeStageId);
-            
+
             if (currentStageStr === "1") {
                 photoPath = './images/cabbage_zone_a.png';
                 photoText = "1/2 컷팅 배추";
@@ -6224,23 +6360,32 @@
         </div>
     </div>
     <!-- 💡 [핵심 추가] 작업 로그 이미지 확대 뷰어 모달 (전체화면 오버레이) -->
-    <div id="log-image-detail-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.98); backdrop-filter: blur(12px); z-index: 100000; flex-direction: column; overflow: hidden; padding: 0; box-sizing: border-box; justify-content: space-between; opacity: 1 !important; visibility: visible !important;">
+    <div id="log-image-detail-modal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.98); backdrop-filter: blur(12px); z-index: 100000; flex-direction: column; overflow: hidden; padding: 0; box-sizing: border-box; justify-content: space-between; opacity: 1 !important; visibility: visible !important;">
         <!-- 상단 헤더 영역 -->
-        <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
-            <h5 style="margin: 0; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+        <div
+            style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <h5
+                style="margin: 0; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
                 <i class="bi bi-journal-text" style="color: #3b82f6; font-size: 20px;"></i> 나의 작업로그
             </h5>
-            <button type="button" onclick="window.closeLogImageDetailModal()" style="background: none; border: none; color: #94a3b8; font-size: 32px; cursor: pointer; padding: 0 8px; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">
+            <button type="button" onclick="window.closeLogImageDetailModal()"
+                style="background: none; border: none; color: #94a3b8; font-size: 32px; cursor: pointer; padding: 0 8px; display: flex; align-items: center; transition: color 0.2s;"
+                onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
         <!-- 중앙 이미지 상세 영역 (화면 가득 채우기) -->
-        <div style="flex: 1; display: flex; justify-content: center; align-items: center; background: #090d16; padding: 24px; box-sizing: border-box; overflow: hidden;">
-            <img id="log-detail-expanded-img" src="" style="max-width: 95%; max-height: 75vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
+        <div
+            style="flex: 1; display: flex; justify-content: center; align-items: center; background: #090d16; padding: 24px; box-sizing: border-box; overflow: hidden;">
+            <img id="log-detail-expanded-img" src=""
+                style="max-width: 95%; max-height: 75vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
         </div>
         <!-- 하단 텍스트 설명 영역 -->
-        <div style="padding: 24px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
-            <div id="log-detail-expanded-text" style="font-size: 16px; font-weight: 500; color: #a7f3d0; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+        <div
+            style="padding: 24px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <div id="log-detail-expanded-text"
+                style="font-size: 16px; font-weight: 500; color: #a7f3d0; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
                 -
             </div>
         </div>
