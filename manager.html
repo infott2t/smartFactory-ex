@@ -2831,7 +2831,25 @@
             },
             get length() { return window.localStorage.length; },
             key: function (i) { return window.localStorage.key(i); },
-            clear: function () { window.localStorage.clear(); }
+            clear: function () {
+                const backup = {};
+                for (let i = 0; i < window.localStorage.length; i++) {
+                    const key = window.localStorage.key(i);
+                    if (key && (
+                        key.startsWith("mypage_history_") ||
+                        key === "kimp_helper_bonus" ||
+                        key === "kimp_helper_free_counts" ||
+                        key.includes("salary") ||
+                        key.includes("history")
+                    )) {
+                        backup[key] = window.localStorage.getItem(key);
+                    }
+                }
+                window.localStorage.clear();
+                for (const key in backup) {
+                    window.localStorage.setItem(key, backup[key]);
+                }
+            }
         };
 
         // 💡 [절임 시간 설정 헬퍼 함수군]
@@ -2947,8 +2965,24 @@
                 return;
             }
 
-            // 1. localStorage 데이터 지우기
+            // 1. localStorage 데이터 지우기 (급여/이력 정보는 보존)
+            const backup = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (
+                    key.startsWith("mypage_history_") ||
+                    key === "kimp_helper_bonus" ||
+                    key === "kimp_helper_free_counts" ||
+                    key.includes("salary") ||
+                    key.includes("history")
+                )) {
+                    backup[key] = localStorage.getItem(key);
+                }
+            }
             localStorage.clear();
+            for (const key in backup) {
+                localStorage.setItem(key, backup[key]);
+            }
 
             // 2. 초기 근로자 상태 설정 (최초 대기 상태 3인 설정)
             const initialWorkersProgress = {

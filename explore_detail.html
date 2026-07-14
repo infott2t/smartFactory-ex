@@ -640,6 +640,10 @@
                     <td class="label">교대 차감</td>
                     <td id="val-deduct" class="value">0</td>
                 </tr>
+                <tr>
+                    <td class="label">교대 보너스</td>
+                    <td id="val-shift-bonus" class="value">0</td>
+                </tr>
                 <tr class="pay-row">
                     <td class="label">급여</td>
                     <td id="val-pay" class="value">+₩ 24,000</td>
@@ -797,6 +801,19 @@
             const historyList = getHistoryData(user.id, user.name);
             let currentItem = historyList.find(h => h.id === historyId);
 
+            if (!currentItem) {
+                // 방금 정산하여 로컬 스토리지에 수집된 가장 최근의 근로 상세 내역을 1순위로 로드합니다.
+                try {
+                    const localHistory = localStorage.getItem("mypage_history_" + user.id);
+                    if (localHistory) {
+                        const parsed = JSON.parse(localHistory);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            currentItem = parsed[parsed.length - 1]; // 가장 마지막(최신) 근로 건
+                        }
+                    }
+                } catch (e) { }
+            }
+
             if (!currentItem && historyList.length > 0) {
                 currentItem = historyList[0];
             }
@@ -841,36 +858,47 @@
             $('#detail-date').text(formatDisplayDateWithDay(currentItem.date));
             $('#detail-time').text(currentItem.time || '10:00 ~ 12:00');
 
-            let checkInTime = "09:55:12";
-            let checkOutTime = "12:03:32";
-            let actualWorkMin = 128;
+            let checkInTime = currentItem.checkInTime || "09:55:12";
+            let checkOutTime = currentItem.checkOutTime || "12:03:32";
+            let actualWorkMin = currentItem.actualWorkMin !== undefined ? currentItem.actualWorkMin : 128;
+            let breakTimeMin = currentItem.breakTimeMin !== undefined ? currentItem.breakTimeMin : 0;
 
-            if (currentItem.logs && currentItem.logs.length > 0) {
-                try {
-                    const firstLog = currentItem.logs[0];
-                    const lastLog = currentItem.logs[currentItem.logs.length - 1];
-                    const timePattern = /\[(\d{2}:\d{2})\]/;
-                    const matchIn = firstLog.match(timePattern);
-                    const matchOut = lastLog.match(timePattern);
-                    if (matchIn) checkInTime = matchIn[1] + ":12";
-                    if (matchOut) checkOutTime = matchOut[1] + ":32";
+            if (!currentItem.checkInTime || !currentItem.checkOutTime) {
+                if (currentItem.logs && currentItem.logs.length > 0) {
+                    try {
+                        const firstLog = currentItem.logs[0];
+                        const lastLog = currentItem.logs[currentItem.logs.length - 1];
+                        const timePattern = /\[(\d{2}:\d{2})\]/;
+                        const matchIn = firstLog.match(timePattern);
+                        const matchOut = lastLog.match(timePattern);
+                        if (matchIn) checkInTime = matchIn[1] + ":12";
+                        if (matchOut) checkOutTime = matchOut[1] + ":32";
 
-                    const inParts = checkInTime.split(':');
-                    const outParts = checkOutTime.split(':');
-                    const minDiff = (parseInt(outParts[0]) * 60 + parseInt(outParts[1])) - (parseInt(inParts[0]) * 60 + parseInt(inParts[1]));
-                    if (minDiff > 0) actualWorkMin = minDiff;
-                } catch (e) { }
-            } else {
-                try {
-                    const timeRange = currentItem.time.split('~');
-                    if (timeRange.length === 2) {
-                        const start = timeRange[0].trim();
-                        const end = timeRange[1].trim();
-                        checkInTime = start + ":12";
-                        checkOutTime = end + ":32";
-                        actualWorkMin = 120;
-                    }
-                } catch (e) { }
+                        if (currentItem.actualWorkMin === undefined) {
+                            const inParts = checkInTime.split(':');
+                            const outParts = checkOutTime.split(':');
+                            const minDiff = (parseInt(outParts[0]) * 60 + parseInt(outParts[1])) - (parseInt(inParts[0]) * 60 + parseInt(inParts[1]));
+                            if (minDiff > 0) actualWorkMin = minDiff;
+                        }
+                    } catch (e) { }
+                } else {
+                    try {
+                        const timeRange = currentItem.time.split('~');
+                        if (timeRange.length === 2) {
+                            const start = timeRange[0].trim();
+                            const end = timeRange[1].trim();
+                            checkInTime = start + ":12";
+                            checkOutTime = end + ":32";
+                            if (currentItem.actualWorkMin === undefined) {
+                                actualWorkMin = 120;
+                            }
+                        }
+                    } catch (e) { }
+                }
+
+                if (currentItem.breakTimeMin === undefined) {
+                    breakTimeMin = 20; // 구버전 Mock 데이터의 고정 하위 호환성 유지
+                }
             }
 
             const workHours = Math.floor(actualWorkMin / 60);
@@ -880,29 +908,38 @@
             $('#val-checkin').text(checkInTime);
             $('#val-checkout').text(checkOutTime);
             $('#val-worktime').text(workTimeStr);
+            $('#val-breaktime').text(breakTimeMin + '분');
+
+            // 조퇴인 경우 화면 배지 추가
+            if (currentItem.isEarlyLeave || currentItem.checkoutType === "조퇴") {
+                $('.detail-time-row').append('<span class="detail-duration-badge" style="background-color: #ff5e5e; margin-left: 8px;">조퇴</span>');
+            }
 
             // 사물함 정보 세팅
             $('#val-locker').text(currentItem.locker || '남성 사물함 2번 (XXL)');
 
-            let ratio = 1.2;
-            try {
-                const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
-                if (selRes && selRes.ratio !== undefined) {
-                    ratio = Number(selRes.ratio);
-                }
-            } catch (e) { }
+            let ratio = currentItem.ratio !== undefined ? currentItem.ratio : 1.2;
             $('#val-ratio').text(ratio.toFixed(1) + 'x').addClass('ratio-val-text');
 
             $('#val-pay').text('+₩ ' + currentItem.pay.toLocaleString());
 
-            let helpCount = 2;
-            if (currentItem.role === '헬퍼') {
+            // 도움 제공/수령 횟수 렌더링
+            const isMockData = (currentItem.checkInTime === undefined);
+            if (currentItem.role === '헬퍼' || currentItem.role === '매니저') {
+                let helpGiven = currentItem.helpGiven !== undefined ? currentItem.helpGiven : (isMockData ? 2 : 0);
                 $('#label-help').text('도움을 준 횟수');
-                $('#val-help').text(`${helpCount}회 (+${(helpCount * 500).toLocaleString()})`);
+                $('#val-help').text(`${helpGiven}회 (+${(helpGiven * 500).toLocaleString()})`);
             } else {
+                let helpReceived = currentItem.helpReceived !== undefined ? currentItem.helpReceived : (isMockData ? 2 : 0);
                 $('#label-help').text('도움을 받은 횟수');
-                $('#val-help').text(`${helpCount}회 (-${(helpCount * 500).toLocaleString()})`);
+                $('#val-help').text(`${helpReceived}회 (-${(helpReceived * 500).toLocaleString()})`);
             }
+
+            // 교대 차감 / 보너스 렌더링
+            let shiftDeduct = currentItem.shiftDeduct !== undefined ? currentItem.shiftDeduct : 0;
+            let shiftBonus = currentItem.shiftBonus !== undefined ? currentItem.shiftBonus : 0;
+            $('#val-deduct').text('-₩ ' + shiftDeduct.toLocaleString());
+            $('#val-shift-bonus').text('+₩ ' + shiftBonus.toLocaleString());
 
             const workHoursFloat = (actualWorkMin / 60).toFixed(1);
             let userBaseHours = 22;

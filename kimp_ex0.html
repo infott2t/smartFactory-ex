@@ -658,6 +658,14 @@
         let highestStepReached = 0;
         let brinePhotosCaptured = { salt: false, water: false };
 
+        // [추가] 상세 정산 데이터 수집용 글로벌 변수들
+        let detailHelpGiven = 0;      // 도움을 준 횟수 (헬퍼)
+        let detailHelpReceived = 0;   // 도움을 받은 횟수 (모두)
+        let detailShiftDeduct = 0;    // 교대 차감 누적액
+        let detailShiftBonus = 0;     // 교대 보너스 누적액
+        let detailBreakTime = 20;     // 휴식시간 (분 단위)
+        let isEarlyLeave = false;      // 조퇴 여부
+
         // 👇 여기에 휴식 상태를 관리할 변수를 추가합니다.
         let isResting = false;  // 휴식 중인지 여부
         let restSeconds = 0;    // 휴식 타이머 초
@@ -2187,16 +2195,77 @@
                     }
                 } catch(e) {}
 
+                // 예약 비율 가져오기
+                let ratio = 1.2;
+                try {
+                    const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                    if (selRes && selRes.ratio !== undefined) {
+                        ratio = Number(selRes.ratio);
+                    }
+                } catch(e) {}
+
+                // 실제 근무시간 분 단위 구하기
+                let actualWorkMin = 120; // 기본 2시간
+                try {
+                    const workedSeconds = getElapsedSecondsFromCheckIn();
+                    actualWorkMin = Math.floor(workedSeconds / 60);
+                } catch(e) {}
+
+                // 유저 역할 가져오기
+                let userRole = "일반";
+                try {
+                    const role = appData.user.role;
+                    if (role === "헬퍼" || role === "매니저") userRole = role;
+                } catch(e) {}
+
+                // 실제 출퇴근 시각 구하기
+                let checkInTimeStr = null;
+                if (typeof window.getPartitionedItem === 'function') {
+                    try { checkInTimeStr = window.getPartitionedItem("kimp_check_in_time"); } catch (e) { }
+                }
+                if (!checkInTimeStr) {
+                    checkInTimeStr = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
+                }
+                if (!checkInTimeStr) {
+                    checkInTimeStr = "10:00:00";
+                } else if (checkInTimeStr.split(':').length === 2) {
+                    checkInTimeStr = checkInTimeStr + ":00";
+                }
+
+                const now = new Date();
+                const checkOutTimeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
+
+                // 실제 휴식시간 분 단위 구하기
+                let detailBreakTime = 0;
+                if (typeof restSeconds !== 'undefined') {
+                    detailBreakTime = Math.floor(restSeconds / 60);
+                }
+
                 const historyItem = {
                     id: Date.now(),
                     date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
                     time: workTimeStr,
                     job: "김치만들기",
-                    role: "일반",
+                    role: userRole,
                     pay: Math.floor(accumSalary) || 0,
                     locker: `${lockerGender} 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
-                    coworkers: coworkers
+                    coworkers: coworkers,
+                    
+                    // 수집된 세부 변수 저장 추가
+                    helpGiven: detailHelpGiven,
+                    helpReceived: detailHelpReceived,
+                    shiftDeduct: detailShiftDeduct,
+                    shiftBonus: detailShiftBonus,
+                    breakTimeMin: detailBreakTime, // 실제 쉰 시간 대입
+                    ratio: ratio,
+                    actualWorkMin: actualWorkMin,
+                    isEarlyLeave: isEarlyLeave,
+                    checkoutType: isEarlyLeave ? "조퇴" : "퇴근",
+                    
+                    // 실제 출근 및 퇴근 시각 명시적 추가
+                    checkInTime: checkInTimeStr,
+                    checkOutTime: checkOutTimeStr
                 };
 
                 history.push(historyItem);
@@ -2766,17 +2835,35 @@
         }
 
         function callHelper() {
-            const isSuccess = Math.random() < 0.7; // 70% 성공 확률
-            if (isSuccess) {
-                alert("헬퍼가 매칭되었습니다! 인수인계가 완료되었습니다.");
-                accumSalary -= 2000; // 마이너스 급여 허용 (즉시 차감)
-                const salEl = document.getElementById('accum-salary');
-                if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
-                
-                submitHandover(true);
-            } else {
-                alert("현재 대기 중인 헬퍼가 없습니다.\n직접 인수인계 사항을 남겨주세요.");
-            }
+            let req = {
+                requester: appData.user.name,
+                stage: appData.activeStageId,
+                stageName: appData.stages.find(s => s.id === appData.activeStageId)?.name || '공정',
+                order: (appData.activeOrder ? appData.activeOrder.orderId : "ORD-TEST"),
+                status: "requested",
+                time: new Date().toLocaleTimeString(),
+                timestamp: Date.now(),
+                isHandoverCall: true,
+                message: `Stage ${appData.activeStageId}으로 이동해주세요. 교대합니다.`
+            };
+            saveHelperRequest(req);
+
+            const content = `
+                <div style="text-align: center; padding: 20px 0;">
+                    <i class="bi bi-arrow-repeat spin-anim" style="font-size: 56px; color: var(--warning); display: inline-block;"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 매칭 대기 중</p>
+                    <p id="help-pending-dynamic-text" style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        헬퍼가 가고 있습니다. 기다려주세요.
+                    </p>
+                    <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
+                        <i class="bi bi-x-circle"></i> 호출 취소
+                    </button>
+                </div>
+            `;
+            openActionModal('헬퍼 매칭 대기', '<i class="bi bi-person-fill-exclamation" style="color:var(--warning);"></i>', content);
+
+            if (requesterPollInterval) clearInterval(requesterPollInterval);
+            requesterPollInterval = setInterval(checkMyRequestStatus, 1500);
         }
 
         // 1. 라운지에서 [에너지 재충전 휴식] 클릭 시

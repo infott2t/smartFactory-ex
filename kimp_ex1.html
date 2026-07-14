@@ -795,6 +795,10 @@
         }
         let remainingSeconds = getRemainingSeconds();
         let accumSalary = 0;
+        let detailHelpGiven = 0;
+        let detailHelpReceived = 0;
+        let detailShiftDeduct = 0;
+        let detailShiftBonus = 0;
         const SALARY_PER_SEC = 13416 / 3600;
         let currentStepIndex = 0;
         let highestStepReached = 0;
@@ -3482,16 +3486,77 @@
                     }
                 } catch(e) {}
 
+                // 예약 비율 가져오기
+                let ratio = 1.2;
+                try {
+                    const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                    if (selRes && selRes.ratio !== undefined) {
+                        ratio = Number(selRes.ratio);
+                    }
+                } catch(e) {}
+
+                // 실제 근무시간 분 단위 구하기
+                let actualWorkMin = 120; // 기본 2시간
+                try {
+                    const workedSeconds = getElapsedSecondsFromCheckIn();
+                    actualWorkMin = Math.floor(workedSeconds / 60);
+                } catch(e) {}
+
+                // 실제 출퇴근 시각 구하기
+                let checkInTimeStr = null;
+                if (typeof window.getPartitionedItem === 'function') {
+                    try { checkInTimeStr = window.getPartitionedItem("kimp_check_in_time"); } catch (e) { }
+                }
+                if (!checkInTimeStr) {
+                    checkInTimeStr = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
+                }
+                if (!checkInTimeStr) {
+                    checkInTimeStr = "10:00:00";
+                } else if (checkInTimeStr.split(':').length === 2) {
+                    checkInTimeStr = checkInTimeStr + ":00";
+                }
+
+                const now = new Date();
+                const checkOutTimeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
+
+                // 실제 휴식시간 분 단위 구하기
+                let detailBreakTime = 0;
+                if (typeof restSeconds !== 'undefined') {
+                    detailBreakTime = Math.floor(restSeconds / 60);
+                }
+
+                // 유저 역할 가져오기
+                let userRole = "일반";
+                try {
+                    const role = appData.user.role;
+                    if (role === "헬퍼" || role === "매니저") userRole = role;
+                } catch(e) {}
+
                 const historyItem = {
                     id: Date.now(),
                     date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
                     time: workTimeStr,
                     job: "김치만들기",
-                    role: "일반",
+                    role: userRole,
                     pay: Math.floor(accumSalary) || 0,
                     locker: `${lockerGender} Safe 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
-                    coworkers: coworkers
+                    coworkers: coworkers,
+                    
+                    // 수집된 세부 변수 저장 추가
+                    helpGiven: detailHelpGiven,
+                    helpReceived: detailHelpReceived,
+                    shiftDeduct: detailShiftDeduct,
+                    shiftBonus: detailShiftBonus,
+                    breakTimeMin: detailBreakTime, // 실제 쉰 시간 대입
+                    ratio: ratio,
+                    actualWorkMin: actualWorkMin,
+                    isEarlyLeave: isEarlyLeave,
+                    checkoutType: isEarlyLeave ? "조퇴" : "퇴근",
+                    
+                    // 실제 출근 및 퇴근 시각 명시적 추가
+                    checkInTime: checkInTimeStr,
+                    checkOutTime: checkOutTimeStr
                 };
 
                 history.push(historyItem);
@@ -4991,17 +5056,35 @@
         }
 
         function callHelper() {
-            const isSuccess = Math.random() < 0.7; // 70% 성공 확률
-            if (isSuccess) {
-                alert("헬퍼가 매칭되었습니다! 인수인계가 완료되었습니다.");
-                accumSalary -= 2000; // 마이너스 급여 허용 (즉시 차감)
-                const salEl = document.getElementById('accum-salary');
-                if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
+            let req = {
+                requester: appData.user.name,
+                stage: appData.activeStageId,
+                stageName: appData.stages.find(s => s.id === appData.activeStageId)?.name || '공정',
+                order: (appData.activeOrder ? appData.activeOrder.orderId : "ORD-TEST"),
+                status: "requested",
+                time: new Date().toLocaleTimeString(),
+                timestamp: Date.now(),
+                isHandoverCall: true,
+                message: `Stage ${appData.activeStageId}으로 이동해주세요. 교대합니다.`
+            };
+            saveHelperRequest(req);
 
-                submitHandover(true);
-            } else {
-                alert("현재 대기 중인 헬퍼가 없습니다.\n직접 인수인계 사항을 남겨주세요.");
-            }
+            const content = `
+                <div style="text-align: center; padding: 20px 0;">
+                    <i class="bi bi-arrow-repeat spin-anim" style="font-size: 56px; color: var(--warning); display: inline-block;"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 매칭 대기 중</p>
+                    <p id="help-pending-dynamic-text" style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        헬퍼가 가고 있습니다. 기다려주세요.
+                    </p>
+                    <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
+                        <i class="bi bi-x-circle"></i> 호출 취소
+                    </button>
+                </div>
+            `;
+            openActionModal('헬퍼 매칭 대기', '<i class="bi bi-person-fill-exclamation" style="color:var(--warning);"></i>', content);
+
+            if (requesterPollInterval) clearInterval(requesterPollInterval);
+            requesterPollInterval = setInterval(checkMyRequestStatus, 1500);
         }
 
         // 1. 라운지에서 [에너지 재충전 휴식] 클릭 시
@@ -5165,6 +5248,101 @@
                 qrInput.value = mockQR;
                 successDiv.style.display = "block";
                 addLog(`[제품 QR] 제품 일치 여부 확인 완료: ${mockQR}`);
+            }
+        }
+        function checkMyRequestStatus() {
+            let req = getHelperRequest();
+            if (!req || req.status === 'canceled') {
+                clearInterval(requesterPollInterval);
+                return;
+            }
+            const container = document.getElementById('help-process-container');
+            if (!container) return;
+
+            if (req.status === 'requested' || req.status === 'waiting_helper') {
+                let dynamicTextEl = document.getElementById('help-pending-dynamic-text');
+                if (dynamicTextEl) {
+                    let text = req.status === 'waiting_helper'
+                        ? "헬퍼님이 곧 가겠다고 응답했습니다.<br>잠시만 대기하며 기다려주세요."
+                        : (req.isHandoverCall ? "헬퍼가 가고 있습니다. 기다려주세요." : "대기열에 요청을 등록했습니다.<br>헬퍼님이 수락할 때까지 기다려주세요.");
+                    if (dynamicTextEl.innerHTML !== text) {
+                        dynamicTextEl.innerHTML = text;
+                    }
+                }
+            } else if (req.status === 'accepted') {
+                container.innerHTML = `
+                    <i class="bi bi-person-walking" style="font-size: 56px; color: #10b981;"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 이동 중!</p>
+                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        ${req.isHandoverCall ? "헬퍼가 가고 있습니다. 기다려주세요." : "헬퍼님이 도착하여 도움을 드리겠습니다.<br>기다려주세요."}
+                    </p>
+                    <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
+                        <i class="bi bi-x-circle"></i> 도움받기 취소
+                    </button>
+                `;
+            } else if (req.status === 'advising') {
+                let advSec = req.advisingTime || 0;
+                let m = Math.floor(advSec / 60).toString().padStart(2, '0');
+                let s = (advSec % 60).toString().padStart(2, '0');
+                container.innerHTML = `
+                    <i class="bi bi-people-fill" style="font-size: 56px; color: #3b82f6;"></i>
+                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼가 지금 도착했습니다.</p>
+                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                        ${req.isHandoverCall ? "헬퍼가 가고 있습니다. 기다려주세요." : `헬퍼님이 도움을 드리고 있습니다. (경과 시간: ${m}:${s})<br>잠시만 기다려주세요.`}
+                    </p>
+                `;
+            } else if (req.status === 'completed') {
+                clearInterval(requesterPollInterval);
+                
+                if (req.isHandoverCall) {
+                    // 교대 호출 정산 처리
+                    accumSalary -= 2000;
+                    const salEl = document.getElementById('accum-salary');
+                    if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
+                    
+                    detailHelpReceived++;
+                    addLog(`[라운지] 헬퍼가 매칭 및 교대 완료되어 2,000원이 차감되었습니다.`);
+                    
+                    // 헬퍼 요청 최종 소거
+                    saveHelperRequest(null);
+                    
+                    // 모달 닫기
+                    closeActionModal();
+                    
+                    // 인수인계 제출 및 퇴실
+                    submitHandover(true);
+                } else {
+                    let counts = getHelperFreeCounts();
+                    let freeLeft = counts[appData.user.name] ?? 5;
+                    let costMsg = freeLeft > 0 ? `무료 횟수 1회가 차감되었습니다. (남은 횟수: ${freeLeft - 1}회)` : "500원이 차감되었습니다.";
+
+                    if (freeLeft > 0) {
+                        counts[appData.user.name] = freeLeft - 1;
+                        saveHelperFreeCounts(counts);
+                    }
+
+                    // 도움받은 횟수 누적
+                    detailHelpReceived++;
+
+                    let helperName = req.helperName || '헬퍼';
+                    let m = Math.floor((req.duration || 0) / 60);
+                    let s = (req.duration || 0) % 60;
+                    let timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
+                    addLog(`[라운지] ${timeStr} 동안 ${helperName} 헬퍼님에게 도움을 받았습니다. (${costMsg})`);
+
+                    // 헬퍼 요청 최종 소거
+                    saveHelperRequest(null);
+
+                    container.innerHTML = `
+                        <i class="bi bi-check-circle-fill" style="font-size: 56px; color: var(--primary);"></i>
+                        <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">도움 완료</p>
+                        <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
+                            헬퍼의 도움을 성공적으로 받았습니다.<br>
+                            <strong style="color: #ef4444;">${costMsg}</strong>
+                        </p>
+                        <button class="btn-huge primary" onclick="completeHelperWorkAndProceed()">확인 및 작업 복귀</button>
+                    `;
+                }
             }
         }
         function simulateFinalCamera() {
@@ -5620,80 +5798,7 @@
             }
         };
 
-        // 진짜 P2P 헬퍼 요청은 상단 전역 영역에 선언식 함수 형태로 정의되어 구동됩니다.
-
-        function checkMyRequestStatus() {
-            let req = getHelperRequest();
-            if (!req || req.status === 'canceled') {
-                clearInterval(requesterPollInterval);
-                return;
-            }
-            const container = document.getElementById('help-process-container');
-            if (!container) return;
-
-            if (req.status === 'requested' || req.status === 'waiting_helper') {
-                let dynamicTextEl = document.getElementById('help-pending-dynamic-text');
-                if (dynamicTextEl) {
-                    let text = req.status === 'waiting_helper'
-                        ? "헬퍼님이 곧 가겠다고 응답했습니다.<br>잠시만 대기하며 기다려주세요."
-                        : "대기열에 요청을 등록했습니다.<br>헬퍼님이 수락할 때까지 기다려주세요.";
-                    if (dynamicTextEl.innerHTML !== text) {
-                        dynamicTextEl.innerHTML = text;
-                    }
-                }
-            } else if (req.status === 'accepted') {
-                container.innerHTML = `
-                    <i class="bi bi-person-walking" style="font-size: 56px; color: #10b981;"></i>
-                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 이동 중!</p>
-                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
-                        헬퍼님이 도착하여 도움을 드리겠습니다.<br>기다려주세요.
-                    </p>
-                    <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
-                        <i class="bi bi-x-circle"></i> 도움받기 취소
-                    </button>
-                `;
-            } else if (req.status === 'advising') {
-                let advSec = req.advisingTime || 0;
-                let m = Math.floor(advSec / 60).toString().padStart(2, '0');
-                let s = (advSec % 60).toString().padStart(2, '0');
-                container.innerHTML = `
-                    <i class="bi bi-people-fill" style="font-size: 56px; color: #3b82f6;"></i>
-                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼가 지금 도착했습니다.</p>
-                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
-                        헬퍼님이 도움을 드리고 있습니다. (경과 시간: ${m}:${s})<br>잠시만 기다려주세요.
-                    </p>
-                `;
-            } else if (req.status === 'completed') {
-                clearInterval(requesterPollInterval);
-                let counts = getHelperFreeCounts();
-                let freeLeft = counts[appData.user.name] ?? 5;
-                let costMsg = freeLeft > 0 ? `무료 횟수 1회가 차감되었습니다. (남은 횟수: ${freeLeft - 1}회)` : "500원이 차감되었습니다.";
-
-                if (freeLeft > 0) {
-                    counts[appData.user.name] = freeLeft - 1;
-                    saveHelperFreeCounts(counts);
-                }
-
-                let helperName = req.helperName || '헬퍼';
-                let m = Math.floor((req.duration || 0) / 60);
-                let s = (req.duration || 0) % 60;
-                let timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
-                addLog(`[라운지] ${timeStr} 동안 ${helperName} 헬퍼님에게 도움을 받았습니다. (${costMsg})`);
-
-                // 헬퍼 요청 최종 소거
-                saveHelperRequest(null);
-
-                container.innerHTML = `
-                    <i class="bi bi-check-circle-fill" style="font-size: 56px; color: var(--primary);"></i>
-                    <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">도움 완료</p>
-                    <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
-                        헬퍼의 도움을 성공적으로 받았습니다.<br>
-                        <strong style="color: #ef4444;">${costMsg}</strong>
-                    </p>
-                    <button class="btn-huge primary" onclick="completeHelperWorkAndProceed()">확인 및 작업 복귀</button>
-                `;
-            }
-        }
+        // P2P 헬퍼 요청 체크는 상단 선언식을 우선 적용합니다.
 
         function checkHelperQueue() {
             let req = getHelperRequest();

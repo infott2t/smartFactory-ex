@@ -788,14 +788,34 @@
             const product = currentProductData;
             if (!product) return;
 
+            // 1. rating, reviews, weight 가 누적/수집되지 않은 데이터일 경우 카탈로그(productCatalog)에서 매핑하여 복원
+            const catalogItem = productCatalog[product.id || currentProductId] || productCatalog["p300g"];
+            
+            // 2. 가격 파싱 방어 코드 (문자열 "3,000원" 형태를 숫자 3000으로 파싱)
+            let priceNum = 3000;
+            if (product.price !== undefined) {
+                if (typeof product.price === 'number') {
+                    priceNum = product.price;
+                } else {
+                    const cleaned = String(product.price).replace(/[^0-9]/g, '');
+                    priceNum = parseInt(cleaned) || 3000;
+                }
+            }
+
+            const ratingVal = product.rating !== undefined ? product.rating : catalogItem.rating;
+            const reviewsVal = product.reviews !== undefined ? product.reviews : catalogItem.reviews;
+            const weightVal = product.weight !== undefined ? product.weight : catalogItem.weight;
+
             // 텍스트 & 이미지 바인딩
             document.getElementById('product-img').src = product.img || product.imgUrl || "./images/kimchi_product_300g.png";
             document.getElementById('product-name').textContent = product.name;
-            document.getElementById('rating-score').textContent = product.rating;
-            document.getElementById('summary-score').textContent = product.rating;
-            document.getElementById('reviews-total').textContent = product.reviews;
-            document.getElementById('reviews-tab-total').textContent = product.reviews;
-            document.getElementById('product-price').textContent = product.price.toLocaleString() + "원";
+            document.getElementById('rating-score').textContent = ratingVal;
+            document.getElementById('summary-score').textContent = ratingVal;
+            document.getElementById('reviews-total').textContent = reviewsVal;
+            document.getElementById('reviews-tab-total').textContent = reviewsVal;
+            
+            // 💡 "원원" 중복 출력 완벽 수정
+            document.getElementById('product-price').textContent = priceNum.toLocaleString() + "원";
             
             // 브랜드 정보 바인딩
             const brandEl = document.querySelector('.brand-name');
@@ -819,7 +839,7 @@
                     unitPriceEl.style.display = 'none';
                 } else {
                     unitPriceEl.style.display = 'inline';
-                    const unitPriceVal = Math.round((product.price / product.weight) * 100);
+                    const unitPriceVal = Math.round((priceNum / weightVal) * 100);
                     unitPriceEl.textContent = `(100g당 ${unitPriceVal.toLocaleString()}원)`;
                 }
             }
