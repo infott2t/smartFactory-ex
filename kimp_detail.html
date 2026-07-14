@@ -727,36 +727,38 @@
                 }
             }
 
-            // 1. 상세정보 JSON에서 찾았을 경우
-            if (foundInDetail) {
-                currentProductId = prodId;
-                currentProductData = {
-                    ...foundInDetail,
-                    img: foundInDetail.imgUrl || foundInDetail.img || "./images/kimchi_product_300g.png",
-                    category: foundInDetail.category || "김치 (비살균제품)",
-                    ingredients: foundInDetail.ingredients || "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
-                    storage: foundInDetail.storage || "냉장보관 (0~10℃)",
-                    manufacturer: foundInDetail.manufacturer || "스마트팩토리 AFood 김치사업부"
-                };
-            }
-            // 2. window.MockData.products에서 조회 시도
-            else if (prodId && window.MockData && window.MockData.products && window.MockData.products[prodId]) {
-                currentProductId = prodId;
-                currentProductData = window.MockData.products[prodId];
-            } 
-            // 3. 만약 productCatalog에만 존재하는 키인 경우 (예: 기존 김치 매핑)
-            else if (prodId && productCatalog[prodId]) {
-                currentProductId = prodId;
-                currentProductData = {
+            // 1. window.MockData.products 에서 전체 상세 속성 및 리뷰가 포함된 원본 디비 조회
+            let originProduct = null;
+            if (prodId && window.MockData && window.MockData.products && window.MockData.products[prodId]) {
+                originProduct = window.MockData.products[prodId];
+            } else if (prodId && productCatalog[prodId]) {
+                originProduct = {
+                    id: prodId,
                     ...productCatalog[prodId],
                     category: "김치 (비살균제품)",
                     ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
                     storage: "냉장보관 (0~10℃)",
                     manufacturer: "스마트팩토리 AFood 김치사업부"
                 };
-            } 
-            // 4. 디폴트 처리
-            else {
+            }
+
+            // 2. 최적의 데이터 객체 합성
+            if (originProduct) {
+                currentProductId = prodId;
+                currentProductData = {
+                    ...originProduct,
+                    ...(foundInDetail || {}) // 라이브 가격 및 상태 정보 덮어쓰기
+                };
+                
+                // foundInDetail의 가격 포맷 복원 ("3,000원" 형태 보존)
+                if (foundInDetail && foundInDetail.price) {
+                    currentProductData.price = foundInDetail.price; 
+                }
+                if (foundInDetail && foundInDetail.name) {
+                    currentProductData.name = foundInDetail.name;
+                }
+            } else {
+                // 완전히 없는 제품일 경우의 디폴트 처리
                 currentProductId = "p300g";
                 currentProductData = (window.MockData && window.MockData.products && window.MockData.products["p300g"]) || {
                     ...productCatalog["p300g"],
@@ -788,6 +790,9 @@
             const product = currentProductData;
             if (!product) return;
 
+            const pName = String(product.name || "");
+            const pId = String(product.id || currentProductId || "");
+
             // 1. rating, reviews, weight 가 누적/수집되지 않은 데이터일 경우 카탈로그(productCatalog)에서 매핑하여 복원
             const catalogItem = productCatalog[product.id || currentProductId] || productCatalog["p300g"];
             
@@ -817,10 +822,20 @@
             // 💡 "원원" 중복 출력 완벽 수정
             document.getElementById('product-price').textContent = priceNum.toLocaleString() + "원";
             
+            const isLeatherOrWallet = 
+                (product.category && (product.category.includes('가죽') || product.category.includes('지갑') || product.category.includes('잡화'))) ||
+                (product.name && product.name.includes('지갑')) ||
+                (product.id && product.id.includes('wallet')) ||
+                (currentProductId && currentProductId.includes('wallet'));
+
+            const isUdon = pId.includes('udon') || pName.includes('우동');
+            const isBurger = pId.includes('burger') || pName.includes('버거') || pName.includes('패티');
+            const isBulgogi = pId.includes('bulgogi') || pName.includes('불고기') || pName.includes('고기');
+
             // 브랜드 정보 바인딩
             const brandEl = document.querySelector('.brand-name');
             if (brandEl) {
-                brandEl.textContent = product.brand || 'AFood Kimchi';
+                brandEl.textContent = product.brand || (isLeatherOrWallet ? 'Persa' : (isUdon ? 'Uton' : (isBurger ? 'BurgerQueen' : (isBulgogi ? 'K-Meat' : 'AFood Kimchi'))));
             }
             
             // 판매처 정보 바인딩
@@ -828,14 +843,14 @@
             vendorEls.forEach(el => {
                 const titleNode = el.querySelector('.info-item-title');
                 if (titleNode && titleNode.textContent.includes('판매처:')) {
-                    titleNode.textContent = `판매처: ${product.brand || 'AFood'}`;
+                    titleNode.textContent = `판매처: ${product.brand || (isLeatherOrWallet ? 'Persa' : (isUdon ? 'Uton' : (isBurger ? 'BurgerQueen' : (isBulgogi ? 'K-Meat' : 'AFood'))))}`;
                 }
             });
             
             // 100g당 단가 계산 (price / weight * 100)
             const unitPriceEl = document.getElementById('unit-price');
             if (unitPriceEl) {
-                if (product.category && product.category.includes('가죽')) {
+                if (isLeatherOrWallet) {
                     unitPriceEl.style.display = 'none';
                 } else {
                     unitPriceEl.style.display = 'inline';
@@ -846,37 +861,63 @@
             
             document.getElementById('product-desc-long').textContent = product.desc;
 
-            // 정보 블록 1 제목 & 본문
+            // 💡 제품군별 맞춤 안내 가이드 텍스트 분기 적용
             const infoTitle1El = document.getElementById('info-block-title-1');
-            if (infoTitle1El) {
-                infoTitle1El.innerHTML = `<i class="bi bi-stars"></i> ${product.infoTitle1 || '스마트 숙성 공법'}`;
-            }
-
-            // 정보 블록 2 제목 & 본문
             const infoTitle2El = document.getElementById('info-block-title-2');
             const infoDesc2El = document.getElementById('info-block-desc-2');
-            if (infoTitle2El) {
-                infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> ${product.infoTitle2 || '위생 및 안심 마크'}`;
+
+            if (isLeatherOrWallet) {
+                if (infoTitle1El) infoTitle1El.innerHTML = `<i class="bi bi-scissors"></i> 명장 장인 수제 공정`;
+                if (infoTitle2El) infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> 천연 가죽 품질 보증`;
+                if (infoDesc2El) infoDesc2El.textContent = `Persa Leather는 정품 천연 소가죽 원단만을 사용하며, 가공 및 재단 공정 전반에 걸쳐 숙련된 장인들이 비접촉 초음파 접합 및 스티치 정밀 검사를 통과한 고품격 가죽 가방/지갑 제품만을 보증 출하합니다.`;
+            } else if (isUdon) {
+                if (infoTitle1El) infoTitle1El.innerHTML = `<i class="bi bi-stars"></i> 전통 수타 족타 공법`;
+                if (infoTitle2El) infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> HACCP 위생 안심 가이드`;
+                if (infoDesc2El) infoDesc2El.textContent = `Uton Udon은 스마트팩토리의 온도/습도 자동 제어 면 숙성실에서 24시간 동안 진공 족타 공법을 거쳐 생산되며, 전 포장 라인이 스마트 HACCP 살균 및 밀폐 검사를 완벽히 통과하여 가장 신선하게 식탁에 도달합니다.`;
+            } else if (isBurger) {
+                if (infoTitle1El) infoTitle1El.innerHTML = `<i class="bi bi-egg-fried"></i> 불각 직화 패티 로스팅`;
+                if (infoTitle2El) infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> 신선 유통 안심 가이드`;
+                if (infoDesc2El) infoDesc2El.textContent = `BurgerQueen은 250도 직화 로스터를 통해 유해 세균을 완벽 차단하고 패티의 풍부한 육즙을 보존합니다. 비접촉 고속 진공 래핑 시스템을 통해 가장 신선하고 위생적인 버거만을 제공합니다.`;
+            } else if (isBulgogi) {
+                if (infoTitle1El) infoTitle1El.innerHTML = `<i class="bi bi-fire"></i> 저온 숙성 연육 공법`;
+                if (infoTitle2El) infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> 축산물 품질 안심 보증`;
+                if (infoDesc2El) infoDesc2El.textContent = `K-Meat 육가공사업부는 축산물 이력제를 완벽히 적용하며, 스마트팩토리의 실시간 콜드체인 온도 자동 통제 시스템 하에서 위생 절단 및 비접촉 양념 교반 공정을 거쳐 위생적이고 육질이 부드러운 불고기 제품만을 선별 제공합니다.`;
+            } else {
+                if (infoTitle1El) infoTitle1El.innerHTML = `<i class="bi bi-stars"></i> 스마트 숙성 공법`;
+                if (infoTitle2El) infoTitle2El.innerHTML = `<i class="bi bi-shield-check"></i> 위생 및 안심 마크`;
+                if (infoDesc2El) infoDesc2El.textContent = `AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.`;
             }
-            if (infoDesc2El) {
-                infoDesc2El.textContent = product.infoDesc2 || 'AFood Kimchi는 스마트팩토리의 전자동 위생 검사 시스템을 통과한 제품만을 출하합니다. 전 공정 비접촉 자동 포장 시스템으로 가장 위생적이고 안전합니다.';
+
+            // 필수 정보 고시 동적 맵핑 (지갑/식품 분기)
+            const specTable = document.querySelector('.spec-table');
+            if (specTable) {
+                const rows = specTable.querySelectorAll('tr');
+                if (isLeatherOrWallet) {
+                    rows[0].querySelector('td').textContent = product.name;
+                    rows[1].querySelector('th').textContent = "제품 소재";
+                    rows[1].querySelector('td').textContent = product.category && product.category.includes('가죽') ? product.category : "천연 가죽 (소가죽)";
+                    rows[2].querySelector('th').textContent = "크기 / 무게";
+                    rows[2].querySelector('td').textContent = product.sizeWeight || "11cm x 9cm / 약 80g";
+                    rows[3].querySelector('th').textContent = "색상 / 옵션";
+                    rows[3].querySelector('td').textContent = product.colors || "클래식 블랙, 에스프레소 브라운";
+                    rows[4].querySelector('th').textContent = "취급상 주의사항";
+                    rows[4].querySelector('td').textContent = product.storage && !product.storage.includes('냉장') ? product.storage : "가죽 전용 에센스 사용 권장, 화기 및 습기 주의";
+                    rows[5].querySelector('th').textContent = "제조국 / 제조원";
+                    rows[5].querySelector('td').textContent = product.manufacturer || "대한민국 / Persa";
+                } else {
+                    rows[0].querySelector('td').textContent = product.name;
+                    rows[1].querySelector('th').textContent = "식품의 유형";
+                    rows[1].querySelector('td').textContent = product.category || "김치 (비살균제품)";
+                    rows[2].querySelector('th').textContent = "포장 단위별 내용물 용량";
+                    rows[2].querySelector('td').textContent = product.weight ? (product.weight >= 1000 ? (product.weight/1000) + 'kg' : product.weight + 'g') : "300g";
+                    rows[3].querySelector('th').textContent = "원재료명 및 함량";
+                    rows[3].querySelector('td').textContent = product.ingredients || "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등";
+                    rows[4].querySelector('th').textContent = "보관방법";
+                    rows[4].querySelector('td').textContent = product.storage || "냉장보관 (0~10℃)";
+                    rows[5].querySelector('th').textContent = "제조원 및 판매원";
+                    rows[5].querySelector('td').textContent = product.manufacturer || "스마트팩토리 AFood 김치사업부";
+                }
             }
-
-            document.getElementById('spec-name').textContent = product.name;
-            document.getElementById('spec-weight').textContent = product.weight >= 1000 ? (product.weight / 1000) + "kg" : product.weight + "g";
-
-            // 동적 스펙 테이블 정보 바인딩
-            const catEl = document.getElementById('spec-category');
-            if (catEl && product.category) catEl.textContent = product.category;
-
-            const ingEl = document.getElementById('spec-ingredients');
-            if (ingEl && product.ingredients) ingEl.textContent = product.ingredients;
-
-            const storEl = document.getElementById('spec-storage');
-            if (storEl && product.storage) storEl.textContent = product.storage;
-
-            const manuEl = document.getElementById('spec-manufacturer');
-            if (manuEl && product.manufacturer) manuEl.textContent = product.manufacturer;
 
             // 리뷰 목록 렌더링
             renderReviews();
@@ -907,6 +948,8 @@
 
             let html = "";
             const product = currentProductData;
+            
+            // store.js 또는 catalog의 데이터로부터 리뷰 로드 (기본값은 dummyComments)
             const commentsToRender = (product && product.comments) ? product.comments : dummyComments;
 
             commentsToRender.forEach(comment => {
