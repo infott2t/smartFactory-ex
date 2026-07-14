@@ -497,7 +497,7 @@
 
         <!-- 이미지 배너 -->
         <div class="product-img-wrapper">
-            <img id="product-img" src="./images/kimchi_product_300g.png" alt="제품 이미지">
+            <img id="product-img" src="" alt="제품 이미지" style="background:#1a1a2e;">
             <div class="free-shipping-badge">무료배송</div>
         </div>
 
@@ -640,7 +640,7 @@
                 weight: 300,
                 rating: 4.8,
                 reviews: 142,
-                img: "./images/kimchi_product_300g.png",
+                img: "./images/kimchi_300g.png",
                 desc: "1인 가구용 실속형 맛김치. 한 끼에 드시기 알맞은 깔끔한 맛김치입니다. 100% 국산 농산물 원료를 사용하여 아삭한 식감과 깊은 고소함을 느낄 수 있습니다."
             },
             p1kg: {
@@ -649,7 +649,7 @@
                 weight: 1000,
                 rating: 4.9,
                 reviews: 320,
-                img: "./images/kimchi_product_1kg.png",
+                img: "./images/kimchi_1kg.png",
                 desc: "가정용 표준 포장 프리미엄 김치. 전통 방식 그대로 버무린 1kg 가정용 포기김치입니다. 적당하게 깊은 전라도식 맛깔나는 액젓 배합으로 밥도둑이 따로 없습니다."
             },
             p3kg: {
@@ -658,7 +658,7 @@
                 weight: 3000,
                 rating: 4.7,
                 reviews: 198,
-                img: "./images/kimchi_product_3kg.png",
+                img: "./images/kimchi_3kg.png",
                 desc: "다인가구 및 김장 보관용 실용 김치. 온 가족이 풍족하게 나누어 먹을 수 있는 3kg 대용량 김치입니다. 찌개, 찜 등 요리에 사용하기에도 넉넉한 부피입니다."
             },
             p5kg: {
@@ -667,7 +667,7 @@
                 weight: 5000,
                 rating: 4.8,
                 reviews: 85,
-                img: "./images/kimchi_product_1kg.png",
+                img: "./images/kimchi_1kg.png",
                 desc: "대가족 및 업소용 실속 포장. 대용량 실속 파우치에 담긴 5kg 배추김치입니다. 양념을 아낌없이 가득 버무려 오래 두고 먹어도 감칠맛이 살아서 변치 않습니다."
             },
             p10kg: {
@@ -676,7 +676,7 @@
                 weight: 10000,
                 rating: 4.6,
                 reviews: 43,
-                img: "./images/kimchi_product_3kg.png",
+                img: "./images/kimchi_3kg.png",
                 desc: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다. 스마트팩토리의 품질 관리 기술로 균일하고 검증된 품질을 보장합니다."
             }
         };
@@ -812,7 +812,7 @@
             const weightVal = product.weight !== undefined ? product.weight : catalogItem.weight;
 
             // 텍스트 & 이미지 바인딩
-            document.getElementById('product-img').src = product.img || product.imgUrl || "./images/kimchi_product_300g.png";
+            document.getElementById('product-img').src = product.img || product.imgUrl || "./images/kimchi_300g.png";
             document.getElementById('product-name').textContent = product.name;
             document.getElementById('rating-score').textContent = ratingVal;
             document.getElementById('summary-score').textContent = ratingVal;
