@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>근로 이력 상세 | 스마트팩토리</title>
+    <link rel="stylesheet" href="./css/mypage.css?v=1.0.2">
+    <link rel="stylesheet" href="./css/explore2.css?v=1.0.2">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 40px;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        /* 상세 정보 카드 스타일 */
+        .detail-card {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-job {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-job .job-icon {
+            width: 25px;
+            height: 25px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .detail-job .job-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .detail-corp {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 13px;
+            color: var(--neon-blue);
+            font-weight: bold;
+        }
+
+        .detail-date-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .detail-date-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .detail-time-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .detail-time-text {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-main);
+            letter-spacing: 0.5px;
+        }
+
+        .detail-duration-badge {
+            background-color: rgba(0, 184, 148, 0.15);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 184, 148, 0.3);
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* 테이블 레이아웃 */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .info-table tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .info-table td {
+            padding: 12px 0;
+            font-size: 14px;
+        }
+
+        .info-table td.label {
+
+            width: 40%;
+            text-align: left;
+        }
+
+        .info-table td.value {
+            color: var(--text-main);
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .info-table .pay-row {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-table .pay-row td {
+            font-size: 16px;
+            font-weight: bold;
+            padding: 16px 0;
+        }
+
+        .info-table .pay-row td.value {
+            color: var(--neon-green);
+            font-size: 18px;
+        }
+
+        /* 총 누적 시간 영역 */
+        .cumulative-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cumulative-label {
+            font-size: 14px;
+
+        }
+
+        .cumulative-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .cumulative-value span.added {
+            color: var(--neon-blue);
+            margin: 0 4px;
+        }
+
+        .tag-orange {
+            background: #e85d04 !important;
+            color: #fff !important;
+            padding: 2px 6px !important;
+            border-radius: 5px !important;
+            font: icon !important;
+            font-size: 13px !important;
+            border: none !important;
+            display: inline-block;
+        }
+
+        .ratio-val-text {
+            color: #ff7eee !important;
+            font-weight: bold;
+        }
+
+        /* 출근/퇴근/근무/휴식 시간 그룹의 테두리 보더 스타일 */
+        .time-group-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            margin: 12px 0;
+            padding: 4px 0;
+        }
+
+        /* 함께 일한 사람들 카드 */
+        .coworker-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            background-color: var(--card-bg);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .coworker-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            border-left: 3px solid var(--neon-blue);
+            padding-left: 8px;
+        }
+
+        .coworker-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .coworker-badge {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .coworker-badge span.role {
+            font-size: 11px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* 헤더 타이틀 중앙 정렬 보정 */
+        .header-wrap .title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-right: 0 !important;
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--text-main);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .header-wrap .header {
+            position: relative;
+            display: flex;
+            align-items: center;
+
+            box-sizing: border-box;
+        }
+
+        .header {
+            padding-bottom: 0px;
+        }
+
+        /* 로그보기 버튼 */
+        .btn-log {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+
+        .btn-log:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* 나의 성과 카드 */
+        .achievement-card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            background-color: var(--card-bg);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .achievement-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            border-left: 3px solid var(--neon-blue);
+            padding-left: 8px;
+        }
+
+        .achievement-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .achievement-row:last-child {
+            border-bottom: none;
+        }
+
+        .achievement-label {}
+
+        .achievement-value {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        /* 7월 순위 랭킹 */
+        .ranking-section {
+            margin-top: 25px;
+        }
+
+        .ranking-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .ranking-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .info-icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            padding: 0;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .info-icon-btn:hover {
+            color: var(--text-main);
+        }
+
+        /* 툴팁 */
+        .tooltip-box {
+            display: none;
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f1f38;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-icon-btn:hover .tooltip-box {
+            display: block;
+        }
+
+        .ranking-list {
+            background-color: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .ranking-item:last-child {
+            border-bottom: none;
+        }
+
+        .ranking-item.my-rank {
+            background-color: rgba(123, 146, 255, 0.08);
+        }
+
+        .rank-num {
+            width: 30px;
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--text-sub);
+            text-align: center;
+        }
+
+        .rank-medal {
+            font-size: 16px;
+        }
+
+        .rank-name {
+            flex: 1.2;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-left: 10px;
+        }
+
+        .rank-stats {
+            flex: 1.5;
+            text-align: center;
+            color: var(--text-sub);
+        }
+
+        .rank-stats span {
+            color: var(--text-main);
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .rank-bonus {
+            flex: 1.5;
+            text-align: right;
+            font-weight: bold;
+            color: #a29bfe;
+        }
+
+        .ranking-footer {
+            margin-top: 15px;
+            font-size: 15px;
+
+            line-height: 1.6;
+            padding: 0 5px;
+        }
+
+        /* 모달 팝업 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background-color: #121226;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .btn-close:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #d1d5db;
+        }
+
+        .log-line {
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-line:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--neon-blue);
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .log-text {
+            color: #e5e7eb;
+        }
+
+        .empty-logs {
+            text-align: center;
+            color: var(--text-sub);
+            padding: 30px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-wrap">
+        <div class="header menu-bar mypage">
+            <div class="chevron" onclick="window.history.back();" style="cursor: pointer;">
+                <i class="bi bi-chevron-left back"></i>
+            </div>
+            <div class="title"><span>근로 이력 상세</span></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 1. 이력 상세 카드 -->
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="detail-job">
+                    <img id="job-icon" class="job-icon" src="./images/k-icon_150x150.png" alt="icon">
+                    <span id="job-title" class="job-title">김치만들기</span>
+                </div>
+                <div id="corp-name" class="tag-orange">AFood</div>
+            </div>
+
+            <div class="detail-date-section">
+                <div id="detail-date" class="detail-date-text">7월 14일 화요일</div>
+                <div class="detail-time-row">
+                    <span id="detail-time" class="detail-time-text">10:00 ~ 12:00</span>
+                    <span class="detail-duration-badge">2h</span>
+                </div>
+            </div>
+
+            <table class="info-table">
+                <!-- 사물함 정보 추가 -->
+                <tr>
+                    <td class="label">나의 사물함 번호</td>
+                    <td id="val-locker" class="value" style="color: var(--text-sub);">남성 사물함 2번 (XXL)</td>
+                </tr>
+            </table>
+
+            <!-- 실제 출퇴근/근무/휴식 시간을 관계성에 따라 보더로 그룹화 -->
+            <div class="time-group-section">
+                <table class="info-table" style="margin-top: 0;">
+                    <tr>
+                        <td class="label">실제 출근 시간</td>
+                        <td id="val-checkin" class="value">09:55:12</td>
+                    </tr>
+                    <tr>
+                        <td class="label">퇴근시간</td>
+                        <td id="val-checkout" class="value">12:03:32</td>
+                    </tr>
+                    <tr>
+                        <td class="label">근무시간</td>
+                        <td id="val-worktime" class="value">2시간 8분</td>
+                    </tr>
+                    <tr>
+                        <td class="label">휴식시간</td>
+                        <td id="val-breaktime" class="value">20분</td>
+                    </tr>
+                </table>
+            </div>
+
+            <table class="info-table" style="margin-top: 0;">
+                <tr>
+                    <td class="label">예약 급여비율</td>
+                    <td id="val-ratio" class="value">1.2배</td>
+                </tr>
+                <tr>
+                    <td class="label">순위 보너스</td>
+                    <td id="val-bonus" class="value">0</td>
+                </tr>
+                <tr>
+                    <td id="label-help" class="label">도움을 받은 횟수</td>
+                    <td id="val-help" class="value">2회 (-1,000)</td>
+                </tr>
+                <tr>
+                    <td class="label">교대 차감</td>
+                    <td id="val-deduct" class="value">0</td>
+                </tr>
+                <tr class="pay-row">
+                    <td class="label">급여</td>
+                    <td id="val-pay" class="value">+₩ 24,000</td>
+                </tr>
+            </table>
+
+            <!-- 누적 정산 통계 -->
+            <div class="cumulative-section">
+                <div class="cumulative-label">총 누적시간</div>
+                <div id="val-cumulative" class="cumulative-value">
+                    135h<span class="added">+2.0h</span>=137h
+                </div>
+            </div>
+            <div class="cumulative-section" style="border-top: none; margin-top: 8px; padding-top: 0;">
+                <div class="cumulative-label">현재 등급</div>
+                <div id="val-grade" style="font-weight: bold; color: var(--neon-blue);">매니저</div>
+            </div>
+        </div>
+
+        <!-- 2. 나의 로그기록보기 버튼 -->
+        <button id="btn-show-log" class="btn-log">나의 로그기록보기</button>
+
+        <!-- 3. 나의 성과 카드 -->
+        <div class="achievement-card">
+            <div class="achievement-title">나의 성과</div>
+            <div id="achievement-container">
+                <div class="achievement-row">
+                    <span class="achievement-label">Stage 1</span>
+                    <span class="achievement-value">3회</span>
+                </div>
+                <div class="achievement-row">
+                    <span class="achievement-label">Stage 2</span>
+                    <span class="achievement-value">5회</span>
+                </div>
+                <div class="achievement-row">
+                    <span class="achievement-label">뒤집기</span>
+                    <span class="achievement-value">3회</span>
+                </div>
+            </div>
+            <!-- 총 횟수 표시 영역 -->
+            <div id="achievement-total-row"
+                style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
+                <span class="achievement-label" style="color: var(--text-main);">총 횟수</span>
+                <span id="val-achievement-total" style="color: var(--neon-blue);">11회</span>
+            </div>
+        </div>
+
+        <!-- 함께 일한 사람들 카드 -->
+        <div class="coworker-card">
+            <div class="coworker-title">함께 일한 사람들</div>
+            <div id="coworker-container" class="coworker-list">
+                <!-- 동적 추가 -->
+            </div>
+        </div>
+
+        <!-- 4. 랭킹 리스트 -->
+        <div class="ranking-section">
+            <div class="ranking-title-wrap">
+                <span id="rank-title" class="ranking-title">김치만들기 7월 순위</span>
+                <button class="info-icon-btn">
+                    <i class="bi bi-info-circle"></i>
+                    <div class="tooltip-box"
+                        style="line-height: 1.5; padding: 10px 14px; width: 220px; white-space: normal;">
+                        순위는 나의 성과 횟수에 따라 매겨지며, 보너스는 회사의 사정에 따라 월별로 달라집니다.
+                    </div>
+                </button>
+            </div>
+
+            <div id="ranking-list" class="ranking-list">
+                <!-- 1위 ~ 10위 렌더링 -->
+            </div>
+
+            <div class="ranking-footer">
+                * 1회 참가 시 500 크레딧 추가<br>
+                * 크레딧은 출석체크 포인트와 같은 개념입니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- 로그 팝업 모달 -->
+    <div id="log-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">상세 작업 로그</span>
+                <button id="btn-close-modal" class="btn-close">&times;</button>
+            </div>
+            <div id="modal-log-body" class="modal-body">
+                <!-- 로그 라인들 동적 추가 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            // URL 파라미터 id 파싱
+            const urlParams = new URLSearchParams(window.location.search);
+            const historyId = parseInt(urlParams.get('id'), 10);
+
+            // 유저 정보 로드
+            function getCurrentUser() {
+                let userJson = sessionStorage.getItem("user");
+                if (userJson) return JSON.parse(userJson);
+                return { id: '2', name: '최수아', email: 'sua.choi@example.com' };
+            }
+            const user = getCurrentUser();
+
+            // 이력 정보 로드
+            function getHistoryData(userId, name) {
+                try {
+                    const localHistory = localStorage.getItem("mypage_history_" + userId);
+                    if (localHistory) {
+                        const parsed = JSON.parse(localHistory);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            return parsed;
+                        }
+                    }
+                } catch (e) { }
+
+                // Mock fallback
+                const today = new Date();
+                const formatDate = (daysAgo) => {
+                    const d = new Date();
+                    d.setDate(today.getDate() - daysAgo);
+                    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+                };
+                if (name === '최현일') {
+                    return [
+                        { id: 101, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "매니저", pay: 220000, status: "완료", logs: ["[13:02] Persa 지갑공장 출근 등록완료", "[13:45] 가죽 자재 재단 완료", "[14:20] 지갑 외피 본딩 처리 완료", "[14:50] 지갑 최종 조립 및 검수 완료", "[15:03] 최종 정산 및 퇴근 완료"] },
+                        { id: 102, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "매니저", pay: 190000, status: "완료", logs: ["[10:01] Uton 면 가공공정 시작", "[10:40] 수타 면발 압착 완료", "[11:20] 육수 배합 및 가마 가열 완료", "[11:58] 우동 밀키트 포장 완료 및 퇴근"] },
+                        { id: 103, date: formatDate(5), time: "15:00 ~ 17:00", job: "김치만들기", role: "매니저", pay: 180000, status: "완료", logs: ["[15:00] AFood 김치공장 도착", "[15:20] 배추 세척 완료", "[15:55] 소금 절임 상태 점검", "[16:40] 김치 양념 소 버무림 완료", "[17:02] 박스 포장 및 입고 검수 완료"] }
+                    ];
+                } else if (name === '최수아') {
+                    return [
+                        { id: 201, date: formatDate(2), time: "13:00 ~ 15:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", logs: ["[13:01] 헬퍼 등록 완료", "[13:30] 우동 가마 세척 보조", "[14:15] 식자재 운반 지원", "[15:02] 정리정돈 지원 후 퇴근"] },
+                        { id: 202, date: formatDate(6), time: "10:00 ~ 12:00", job: "지갑만들기", role: "일반", pay: 50000, status: "완료", logs: ["[09:56] Persa 공장 입장", "[10:20] 가죽 부품 매칭 검수", "[11:10] 가죽 연마 가공 작업", "[12:01] 정산 확인 후 정상 퇴근"] },
+                        { id: 203, date: formatDate(10), time: "15:00 ~ 17:00", job: "김치만들기", role: "일반", pay: 45000, status: "완료", logs: ["[15:03] 위생 장비 착용 검사 승인", "[15:30] Stage 1 배추 속넣기 진행", "[16:15] Stage 2 뒤집기 공정 진행", "[17:04] 퇴근 스캔 및 정산 승인"] }
+                    ];
+                } else if (name === '김수민') {
+                    return [
+                        { id: 301, date: formatDate(4), time: "10:00 ~ 12:00", job: "우동만들기", role: "일반", pay: 45000, status: "완료", logs: ["[10:02] 출근 QR 스캔", "[10:45] 우동 육수 재료 계량 완료", "[11:30] 우동 용기 살균 소독 진행", "[12:01] 근무 정산 및 퇴근 완료"] }
+                    ];
+                } else if (name === '김영희') {
+                    return [
+                        { id: 401, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료", logs: ["[13:00] 헬퍼 출근 접수", "[13:40] 자재 운반 대기 수송 지원", "[14:45] 포장 라인 부자재 피딩 완료", "[15:03] 최종 조퇴 정산 승인"] },
+                        { id: 402, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", logs: ["[09:58] 헬퍼 안전 교육 수강", "[10:30] 용기 적재 지원 작업 완료", "[11:45] 공장 청결 청소 대행", "[12:02] 정산 후 퇴근"] },
+                        { id: 403, date: formatDate(8), time: "15:00 ~ 17:00", job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료", logs: ["[15:01] 위생복 소독실 통과 완료", "[15:40] 양념 대야 물류 수송 보조", "[16:30] 포장박스 밴딩 기기 세팅 지원", "[17:03] 헬퍼 정산 퇴근 확인"] }
+                    ];
+                }
+                return [
+                    { id: 999, date: formatDate(2), time: "10:00 ~ 12:00", job: "김치만들기", role: "일반", pay: 40000, status: "완료", logs: ["[09:55] 출근 등록 완료", "[10:35] Stage 1 양념 혼합 시작", "[11:15] Stage 2 배추 절임 스택 관리", "[12:03] 작업 최종 승인 및 정상 퇴근"] }
+                ];
+            }
+
+            const historyList = getHistoryData(user.id, user.name);
+            let currentItem = historyList.find(h => h.id === historyId);
+
+            if (!currentItem && historyList.length > 0) {
+                currentItem = historyList[0];
+            }
+
+            function parseDate(dateStr) {
+                if (!dateStr) return new Date();
+                if (dateStr.includes('년') && dateStr.includes('월')) {
+                    const cleaned = dateStr.replace(/년|월|일/g, '').trim().split(/\s+/);
+                    if (cleaned.length === 3) {
+                        return new Date(parseInt(cleaned[0], 10), parseInt(cleaned[1], 10) - 1, parseInt(cleaned[2], 10));
+                    }
+                }
+                const parts = dateStr.replace(/\./g, '-').split('-');
+                if (parts.length === 3) {
+                    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                }
+                return new Date(dateStr);
+            }
+
+            function formatDisplayDateWithDay(dateStr) {
+                const dateObj = parseDate(dateStr);
+                const month = dateObj.getMonth() + 1;
+                const day = dateObj.getDate();
+                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                const dayName = dayNames[dateObj.getDay()];
+                return `${month}월 ${day}일 ${dayName}`;
+            }
+
+            let brandLogo = './images/k-icon_150x150.png';
+            let brandName = 'AFood';
+            if (currentItem.job.includes('우동')) {
+                brandLogo = './images/Uton_150x150.png';
+                brandName = 'Uton';
+            } else if (currentItem.job.includes('지갑')) {
+                brandLogo = './images/fancy_150x150.png';
+                brandName = 'Persa';
+            }
+
+            $('#job-icon').attr('src', brandLogo);
+            $('#job-title').text(currentItem.job);
+            $('#corp-name').text(brandName);
+            $('#detail-date').text(formatDisplayDateWithDay(currentItem.date));
+            $('#detail-time').text(currentItem.time || '10:00 ~ 12:00');
+
+            let checkInTime = "09:55:12";
+            let checkOutTime = "12:03:32";
+            let actualWorkMin = 128;
+
+            if (currentItem.logs && currentItem.logs.length > 0) {
+                try {
+                    const firstLog = currentItem.logs[0];
+                    const lastLog = currentItem.logs[currentItem.logs.length - 1];
+                    const timePattern = /\[(\d{2}:\d{2})\]/;
+                    const matchIn = firstLog.match(timePattern);
+                    const matchOut = lastLog.match(timePattern);
+                    if (matchIn) checkInTime = matchIn[1] + ":12";
+                    if (matchOut) checkOutTime = matchOut[1] + ":32";
+
+                    const inParts = checkInTime.split(':');
+                    const outParts = checkOutTime.split(':');
+                    const minDiff = (parseInt(outParts[0]) * 60 + parseInt(outParts[1])) - (parseInt(inParts[0]) * 60 + parseInt(inParts[1]));
+                    if (minDiff > 0) actualWorkMin = minDiff;
+                } catch (e) { }
+            } else {
+                try {
+                    const timeRange = currentItem.time.split('~');
+                    if (timeRange.length === 2) {
+                        const start = timeRange[0].trim();
+                        const end = timeRange[1].trim();
+                        checkInTime = start + ":12";
+                        checkOutTime = end + ":32";
+                        actualWorkMin = 120;
+                    }
+                } catch (e) { }
+            }
+
+            const workHours = Math.floor(actualWorkMin / 60);
+            const workMins = actualWorkMin % 60;
+            const workTimeStr = workHours > 0 ? `${workHours}시간 ${workMins}분` : `${workMins}분`;
+
+            $('#val-checkin').text(checkInTime);
+            $('#val-checkout').text(checkOutTime);
+            $('#val-worktime').text(workTimeStr);
+
+            // 사물함 정보 세팅
+            $('#val-locker').text(currentItem.locker || '남성 사물함 2번 (XXL)');
+
+            let ratio = 1.2;
+            try {
+                const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                if (selRes && selRes.ratio !== undefined) {
+                    ratio = Number(selRes.ratio);
+                }
+            } catch (e) { }
+            $('#val-ratio').text(ratio.toFixed(1) + 'x').addClass('ratio-val-text');
+
+            $('#val-pay').text('+₩ ' + currentItem.pay.toLocaleString());
+
+            let helpCount = 2;
+            if (currentItem.role === '헬퍼') {
+                $('#label-help').text('도움을 준 횟수');
+                $('#val-help').text(`${helpCount}회 (+${(helpCount * 500).toLocaleString()})`);
+            } else {
+                $('#label-help').text('도움을 받은 횟수');
+                $('#val-help').text(`${helpCount}회 (-${(helpCount * 500).toLocaleString()})`);
+            }
+
+            const workHoursFloat = (actualWorkMin / 60).toFixed(1);
+            let userBaseHours = 22;
+            if (user.name === '최현일') userBaseHours = 133;
+            else if (user.name === '김영희') userBaseHours = 45;
+            else if (user.name === '김수민') userBaseHours = 5;
+
+            const prevHours = Math.max(0, userBaseHours - Number(workHoursFloat)).toFixed(1);
+            $('#val-cumulative').html(`${prevHours}h<span class="added">+${workHoursFloat}h</span>=${userBaseHours}h`);
+            $('#val-grade').text(currentItem.role);
+
+            let stage1Count = currentItem.role === '매니저' ? 12 : (currentItem.role === '헬퍼' ? 2 : 4);
+            let stage2Count = currentItem.role === '매니저' ? 18 : (currentItem.role === '헬퍼' ? 3 : 5);
+            let flipCount = currentItem.role === '매니저' ? 10 : (currentItem.role === '헬퍼' ? 1 : 3);
+
+            let achievementHtml = '';
+            if (currentItem.job.includes('김치')) {
+                achievementHtml = `
+                    <div class="achievement-row"><span class="achievement-label">Stage 1</span><span class="achievement-value">${stage1Count}회</span></div>
+                    <div class="achievement-row"><span class="achievement-label">Stage 2</span><span class="achievement-value">${stage2Count}회</span></div>
+                    <div class="achievement-row"><span class="achievement-label">뒤집기</span><span class="achievement-value">${flipCount}회</span></div>
+                `;
+            } else if (currentItem.job.includes('우동')) {
+                achievementHtml = `
+                    <div class="achievement-row"><span class="achievement-label">면 가공</span><span class="achievement-value">${stage1Count}회</span></div>
+                    <div class="achievement-row"><span class="achievement-label">육수 정수</span><span class="achievement-value">${stage2Count}회</span></div>
+                    <div class="achievement-row"><span class="achievement-label">포장 완성</span><span class="achievement-value">${flipCount}회</span></div>
+                `;
+            } else {
+                achievementHtml = `
+                    <div class="achievement-row"><span class="achievement-label">가죽 제단</span><span class="achievement-value">${stage1Count}회</span></div>
+                    <div class="achievement-row"><span class="achievement-label">본딩 가공</span><span class="achievement-value">${stage2Count}회</span></div>
+                    <div class="achievement-row"><span class="achievement-label">외피 장식</span><span class="achievement-value">${flipCount}회</span></div>
+                `;
+            }
+            $('#achievement-container').html(achievementHtml);
+
+            // 성과 총 횟수 바인딩
+            const totalAchievementCount = stage1Count + stage2Count + flipCount;
+            $('#val-achievement-total').text(totalAchievementCount + '회');
+
+            // 함께 일한 사람들 렌더링
+            let coworkerHtml = '';
+            const defaultCoworkers = [
+                { name: '이민수', role: '일반' },
+                { name: '박지영', role: '헬퍼' }
+            ];
+            const coworkerList = currentItem.coworkers || defaultCoworkers;
+
+            // 중복 제거
+            const uniqueCoworkers = [];
+            const seenNames = new Set();
+            coworkerList.forEach(cw => {
+                let name = typeof cw === 'string' ? cw : cw.name;
+                if (!seenNames.has(name)) {
+                    seenNames.add(name);
+                    uniqueCoworkers.push(cw);
+                }
+            });
+
+            if (uniqueCoworkers.length > 0) {
+                uniqueCoworkers.forEach(cw => {
+                    let name = typeof cw === 'string' ? cw : cw.name;
+                    let role = cw.role || '일반';
+                    let badgeColor = 'rgba(255, 255, 255, 0.1)';
+                    let textColor = '#fff';
+                    if (role === '매니저') {
+                        badgeColor = 'rgba(123, 146, 255, 0.15)';
+                        textColor = 'var(--neon-blue)';
+                    } else if (role === '헬퍼') {
+                        badgeColor = 'rgba(0, 184, 148, 0.15)';
+                        textColor = 'var(--neon-green)';
+                    }
+                    coworkerHtml += `
+                        <div class="coworker-badge">
+                            <i class="bi bi-person"></i>
+                            <span>${name}</span>
+                            <span class="role" style="background-color: ${badgeColor}; color: ${textColor};">${role}</span>
+                        </div>
+                    `;
+                });
+            } else {
+                coworkerHtml = '<div style="color: var(--text-sub); font-size: 13px;">동일 공정에 참여한 동료가 없습니다.</div>';
+            }
+            $('#coworker-container').html(coworkerHtml);
+
+            $('#rank-title').text(`${currentItem.job} 7월 순위`);
+
+            const ranks = [
+                { name: '최현일', stageCount: 340, hours: 60, bonus: 3000, grade: '매니저' },
+                { name: '김영희', stageCount: 220, hours: 42, bonus: 1000, grade: '헬퍼' },
+                { name: '박준호', stageCount: 195, hours: 38, bonus: 1000, grade: '헬퍼' },
+                { name: '최수아', stageCount: 154, hours: 28, bonus: 500, grade: '일반' },
+                { name: '이민수', stageCount: 120, hours: 22, bonus: 500, grade: '일반' },
+                { name: '정수연', stageCount: 98, hours: 18, bonus: 500, grade: '일반' },
+                { name: '강동원', stageCount: 75, hours: 14, bonus: 500, grade: '일반' },
+                { name: '윤아름', stageCount: 42, hours: 10, bonus: 500, grade: '일반' },
+                { name: '홍길동', stageCount: 28, hours: 7, bonus: 500, grade: '일반' },
+                { name: '김수민', stageCount: 15, hours: 5, bonus: 500, grade: '일반' }
+            ];
+
+            let rankingHtml = '';
+            ranks.forEach((r, idx) => {
+                const rankNum = idx + 1;
+                let medalHtml = rankNum;
+                if (rankNum === 1) medalHtml = '<span class="rank-medal">🥇</span>';
+                else if (rankNum === 2) medalHtml = '<span class="rank-medal">🥈</span>';
+                else if (rankNum === 3) medalHtml = '<span class="rank-medal">🥉</span>';
+
+                const isMe = r.name === user.name;
+                const highlightClass = isMe ? 'my-rank' : '';
+
+                rankingHtml += `
+                    <div class="ranking-item ${highlightClass}">
+                        <div class="rank-num">${medalHtml}</div>
+                        <div class="rank-name">${r.name}${isMe ? ' (나)' : ''}</div>
+                        <div class="rank-stats"><span>${r.stageCount}</span>회 <span>${r.hours}</span>시간</div>
+                        <div class="rank-bonus">시급 +${r.bonus.toLocaleString()}원 보너스</div>
+                    </div>
+                `;
+            });
+            $('#ranking-list').html(rankingHtml);
+
+            $('#btn-show-log').click(function () {
+                const body = $('#modal-log-body');
+                body.empty();
+
+                if (currentItem.logs && currentItem.logs.length > 0) {
+                    currentItem.logs.forEach(log => {
+                        const timePattern = /\[(\d{2}:\d{2})\]/;
+                        const match = log.match(timePattern);
+                        let logTime = "[00:00]";
+                        let logText = log;
+
+                        if (match) {
+                            logTime = match[0];
+                            logText = log.replace(timePattern, '').trim();
+                        }
+
+                        body.append(`
+                            <div class="log-line">
+                                <span class="log-time">${logTime}</span>
+                                <span class="log-text">${logText}</span>
+                            </div>
+                        `);
+                    });
+                } else {
+                    body.append('<div class="empty-logs">기록된 상세 작업 로그가 없습니다.</div>');
+                }
+
+                $('#log-modal').css('display', 'flex');
+            });
+
+            $('#btn-close-modal').click(function () {
+                $('#log-modal').hide();
+            });
+
+            $(window).click(function (event) {
+                if (event.target.id === 'log-modal') {
+                    $('#log-modal').hide();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

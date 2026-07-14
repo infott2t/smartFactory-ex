@@ -109,7 +109,7 @@ body {
     row-gap: 3px;
 }
 .mypage-box23 {
-    color: rgb(124 123 166);
+    color: #ffffff;
     border-radius: 10px;
     background: var(--card-bg);
     margin: 0px 15px 0px 15px;
@@ -182,7 +182,7 @@ justify-content: end;
 }
 
 .brand-work-name {
-    color: rgb(124 123 166);
+    color: var(--text-main);
 }
 .badge01, .badge02, .badge03 {
     background-color: #1a202c !important; /* 배경은 어두운 칩 형태로 통일 */
@@ -430,9 +430,10 @@ html, body {
 
 /* History Item Styles */
 .history-item {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid #7570b5;
     padding-bottom: 8px;
     margin-bottom: 8px;
+    
 }
 
 .history-item:last-child {
@@ -442,14 +443,15 @@ html, body {
 }
 
 .history-item .hist-date {
-    font-size: 11px;
-    color: var(--text-sub);
-    width: 85px;
+    font-size: 14px;
+    color: var(--text-main);
+    width: 120px;
+    flex-shrink: 0;
 }
 
 .history-item .box-corp {
-    width: 50%;
-    justify-content: flex-start;
+    flex-grow: 1;
+    justify-content: center;
     gap: 10px;
 }
 
@@ -473,6 +475,9 @@ html, body {
     font-weight: bold;
     color: var(--neon-green);
     font-size: 14px;
+    width: 120px;
+    text-align: right;
+    flex-shrink: 0;
 }
 
 /* Simulation Panel Styles */
@@ -581,6 +586,7 @@ html, body {
     color: #ff7eee;
     font-weight: bold;
 }
+ 
 @media (max-width: 672px) {
     .box-partner.reservation-item {
         flex-direction: column;
@@ -641,5 +647,28 @@ html, body {
         height: 40px;
         font-size: 16px;
     }
-   
+    
+    .history-item {
+        flex-wrap: wrap;
+        row-gap: 8px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+    .history-item .hist-date {
+        width: 50% !important;
+        order: 1;
+        text-align: left;
+    }
+    .history-item .hist-pay {
+        width: 50% !important;
+        order: 2;
+        text-align: right;
+    }
+    .history-item .box-corp {
+        width: 100% !important;
+        order: 3;
+        justify-content: center;
+        margin-top: 4px;
+        flex-grow: 0;
+    }
 }

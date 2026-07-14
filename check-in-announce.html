@@ -49,7 +49,7 @@
             <div class="check-in-rail">
                 <div><i class="bi bi-map"></i>&nbsp;오늘 나의 예약</div>
             </div>
-            <div class="mypage-box2 notice-write">
+            <div class="mypage-box2 notice-write" id="today-reservation-box">
               
                     <div class="box-corp res-date-box">
                         <span class="res-date-time">6월 22일</span>
@@ -267,7 +267,117 @@
                
             });
 
-             
+            // 오늘 나의 예약 렌더링 호출
+            renderTodayReservation();
+        }
+
+        function renderTodayReservation() {
+            let res = null;
+            const saved = sessionStorage.getItem('selected_reservation');
+            if (saved) {
+                try {
+                    res = JSON.parse(saved);
+                } catch(e) {}
+            }
+
+            // 만약 선택된 예약 정보가 없다면, 로그인한 유저의 예약 리스트 중 첫 번째 항목을 사용
+            if (!res) {
+                let db = FactoryStore.getState().reservations || [];
+                try {
+                    let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
+                    if (kimpDb && kimpDb.length > 0) {
+                        db = db.concat(kimpDb);
+                    }
+                } catch (e) { }
+
+                // 중복 제거
+                let uniqueDbMap = {};
+                db.forEach(r => {
+                    const key = r.date + '_' + r.slot + '_' + r.userId;
+                    uniqueDbMap[key] = r;
+                });
+                db = Object.values(uniqueDbMap);
+
+                const myReservations = db.filter(r => String(r.userId) === String(currentUser.id) || r.userName === currentUser.name);
+                if (myReservations.length > 0) {
+                    res = myReservations[0];
+                }
+            }
+
+            const container = $('#today-reservation-box');
+            if (!res) {
+                container.html('<div class="empty-state" style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">오늘 예약된 일정이 없습니다.</div>');
+                return;
+            }
+
+            const parts = res.date.split('-');
+            let dayName = '';
+            if (parts.length === 3) {
+                const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                dayName = dayNames[d.getDay()];
+            }
+
+            const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+            const roleLabel = res.role === 'helper' ? '헬퍼' : (res.role === 'manager' ? '매니저' : '일반');
+            const badgeClass = res.role === 'helper' ? 'badge02' : (res.role === 'manager' ? 'badge03' : 'badge01');
+            
+            const ratio = res.ratio ? Number(res.ratio) : 1.2;
+            const displayRatio = ratio.toFixed(1);
+            const baseHourlyWage = 10320;
+            const calculatedWage = Math.floor(baseHourlyWage * ratio);
+
+            let html = `
+                <div class="box-corp res-date-box">
+                    <span class="res-date-time">${parts[1]}월 ${parts[2]}일</span>
+                    <span class="res-date-time">${dayName}</span>
+                </div>
+                <div class="box-corp res-time-box">
+                    <span class="res-date-time">${slotLabels[res.slot] || '지정 시간'}</span>
+                </div>
+                <div class="box-value res-job-box">
+                    <div class="res-job-box2">
+                       <div class="res-sm">시급 <i class="bi bi-caret-up-fill"></i> ${displayRatio}배 &nbsp;<span class="money-num">₩</span><span class="money-num">${calculatedWage.toLocaleString()}</span></div>
+                    </div>
+                    <div>
+                    <span class="box-time">2h</span>
+                    <span class="${badgeClass}">${roleLabel}</span>
+                    </div>
+                </div>
+                <div class="box-value res-btn-box reverse">
+                    <button type="button" class="res-check-in-btn" onclick="location.href='kimp_virt2.html'">입장하기</button>
+                    <button type="button" class="res-cancel-btn" onclick="cancelReservationInAnnounce(${res.id})">예약 취소</button>
+                </div>
+            `;
+            container.html(html);
+        }
+
+        function cancelReservationInAnnounce(id) {
+            if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
+
+            let db = FactoryStore.getState().reservations;
+            const targetRes = db.find(r => r.id === id);
+
+            const updatedReservations = db.filter(r => r.id !== id);
+            FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: updatedReservations });
+
+            try {
+                let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
+                if (kimpDb && kimpDb.length > 0) {
+                    const filteredKimpDb = kimpDb.filter(r => r.id !== id);
+                    localStorage.setItem('app_reservations_db', JSON.stringify(filteredKimpDb));
+                }
+            } catch(e) {}
+
+            if (targetRes && typeof window.addAppLog === 'function') {
+                const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                const slotText = slotLabels[targetRes.slot] || '지정 시간';
+                window.addAppLog(`김치만들기 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
+            }
+
+            sessionStorage.removeItem('selected_reservation');
+            alert("예약이 정상적으로 취소되었습니다.");
+            renderTodayReservation();
         }
 
         function getDefaultProfileByName(name) {

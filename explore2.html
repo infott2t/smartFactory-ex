@@ -61,14 +61,14 @@
 
                 <section class="tab-content" id="tab-history">
                     <div class="sort-row">
-                        <div class="sort-item sort-down">
+                        <div class="sort-item sort-down" data-type="date">
                             <span class="lspace">날짜</span>
                             <div class="sort-arrows">
                                 <i class="bi bi-caret-up-fill"></i>
                                 <i class="bi bi-caret-down-fill"></i>
                             </div>
                         </div>
-                        <div class="sort-item">
+                        <div class="sort-item" data-type="pay">
                             <span class="lspace">급여</span>
                             <div class="sort-arrows">
                                 <i class="bi bi-caret-up-fill"></i>
@@ -114,19 +114,32 @@
                 renderCurrentTab(newIndex);
             });
 
+            // 전역 정렬 상태
+            let currentSortType = 'date'; // 'date' or 'pay'
+            let currentSortDir = 'desc';  // 'asc' or 'desc'
+
             // ★ 정렬 토글 기능 (오름차순/내림차순)
             $(document).on('click', '.sort-item', function () {
                 let $this = $(this);
+                let selectedType = $this.data('type') || ($this.find('.lspace').text().trim() === '날짜' ? 'date' : 'pay');
 
                 // 다른 정렬 항목들의 화살표 초기화
                 $('.sort-item').not(this).removeClass('sort-up sort-down');
 
-                // 클릭한 항목 방향 전환
-                if ($this.hasClass('sort-up')) {
-                    $this.removeClass('sort-up').addClass('sort-down');
+                if (currentSortType === selectedType) {
+                    currentSortDir = currentSortDir === 'desc' ? 'asc' : 'desc';
                 } else {
-                    $this.removeClass('sort-down').addClass('sort-up');
+                    currentSortType = selectedType;
+                    currentSortDir = 'desc';
                 }
+
+                if (currentSortDir === 'asc') {
+                    $this.removeClass('sort-down').addClass('sort-up');
+                } else {
+                    $this.removeClass('sort-up').addClass('sort-down');
+                }
+
+                renderCurrentTab(2);
             });
 
             // 데이터 불러오기 유틸리티
@@ -250,7 +263,19 @@
                         $('#reservation-container').html(html);
                     }
                 } else if (index === 2) {
-                    function getMockHistory(name) {
+                    function getHistoryData(userObj) {
+                        const userId = userObj ? userObj.id : "guest";
+                        try {
+                            const localHistory = localStorage.getItem("mypage_history_" + userId);
+                            if (localHistory) {
+                                const parsed = JSON.parse(localHistory);
+                                if (Array.isArray(parsed) && parsed.length > 0) {
+                                    return parsed;
+                                }
+                            }
+                        } catch(e) {}
+
+                        const name = userObj ? userObj.name : "손님";
                         const today = new Date();
                         const formatDate = (daysAgo) => {
                             const d = new Date();
@@ -259,42 +284,84 @@
                         };
                         if (name === '최현일') {
                             return [
-                                { date: formatDate(1), job: "지갑만들기", role: "매니저", pay: 220000, status: "완료", slot: '10:00 ~ 12:00' },
-                                { date: formatDate(3), job: "우동만들기", role: "매니저", pay: 190000, status: "완료", slot: '13:00 ~ 15:00' },
-                                { date: formatDate(5), job: "김치만들기", role: "매니저", pay: 180000, status: "완료", slot: '15:00 ~ 17:00' }
+                                { id: 101, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
+                                { id: 102, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
+                                { id: 103, date: formatDate(5), time: "15:00 ~ 17:00", job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
                             ];
                         } else if (name === '최수아') {
                             return [
-                                { date: formatDate(2), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", slot: '10:00 ~ 12:00' },
-                                { date: formatDate(6), job: "지갑만들기", role: "일반", pay: 50000, status: "완료", slot: '13:00 ~ 15:00' },
-                                { date: formatDate(10), job: "김치만들기", role: "일반", pay: 45000, status: "완료", slot: '15:00 ~ 17:00' }
+                                { id: 201, date: formatDate(2), time: "13:00 ~ 15:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
+                                { id: 202, date: formatDate(6), time: "10:00 ~ 12:00", job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
+                                { id: 203, date: formatDate(10), time: "15:00 ~ 17:00", job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
                             ];
                         } else if (name === '김수민') {
                             return [
-                                { date: formatDate(4), job: "우동만들기", role: "일반", pay: 45000, status: "완료", slot: '13:00 ~ 15:00' }
+                                { id: 301, date: formatDate(4), time: "10:00 ~ 12:00", job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
                             ];
                         } else if (name === '김영희') {
                             return [
-                                { date: formatDate(1), job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료", slot: '10:00 ~ 12:00' },
-                                { date: formatDate(3), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료", slot: '15:00 ~ 17:00' },
-                                { date: formatDate(8), job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료", slot: '10:00 ~ 12:00' }
+                                { id: 401, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
+                                { id: 402, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
+                                { id: 403, date: formatDate(8), time: "15:00 ~ 17:00", job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
                             ];
                         }
                         return [
-                            { date: formatDate(2), job: "김치만들기", role: "일반", pay: 40000, status: "완료", slot: '10:00 ~ 12:00' }
+                            { id: 999, date: formatDate(2), time: "10:00 ~ 12:00", job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
                         ];
                     }
 
-                    const historyData = getMockHistory(user.name);
+                    function parseDate(dateStr) {
+                        if (!dateStr) return new Date(0);
+                        if (dateStr.includes('년') && dateStr.includes('월')) {
+                            const cleaned = dateStr.replace(/년|월|일/g, '').trim().split(/\s+/);
+                            if (cleaned.length === 3) {
+                                return new Date(parseInt(cleaned[0], 10), parseInt(cleaned[1], 10) - 1, parseInt(cleaned[2], 10));
+                            }
+                        }
+                        const parts = dateStr.replace(/\./g, '-').split('-');
+                        if (parts.length === 3) {
+                            return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                        }
+                        return new Date(dateStr);
+                    }
+
+                    function formatDisplayDate(dateStr) {
+                        if (!dateStr) return '';
+                        if (dateStr.includes('년') && dateStr.includes('월')) {
+                            return dateStr.replace(/^\d+년\s*/, '');
+                        }
+                        const parts = dateStr.replace(/\./g, '-').split('-');
+                        if (parts.length === 3) {
+                            const month = parseInt(parts[1], 10);
+                            const day = parseInt(parts[2], 10);
+                            return `${month}월 ${day}일`;
+                        }
+                        return dateStr;
+                    }
+
+                    let historyData = getHistoryData(user);
+                    
+                    historyData = [...historyData].sort((a, b) => {
+                        let comparison = 0;
+                        if (currentSortType === 'date') {
+                            const dateA = parseDate(a.date);
+                            const dateB = parseDate(b.date);
+                            comparison = dateA - dateB;
+                        } else if (currentSortType === 'pay') {
+                            comparison = (a.pay || 0) - (b.pay || 0);
+                        }
+                        
+                        return currentSortDir === 'asc' ? comparison : -comparison;
+                    });
                     let html = '';
 
                     historyData.forEach(h => {
                         let corpName = 'AFood';
                         let iconSrc = './images/k-icon_150x150.png';
-                        if (h.job === '우동만들기') {
+                        if (h.job.includes('우동')) {
                             corpName = 'Uton';
                             iconSrc = './images/Uton_150x150.png';
-                        } else if (h.job === '지갑만들기') {
+                        } else if (h.job.includes('지갑')) {
                             corpName = 'Persa';
                             iconSrc = './images/fancy_150x150.png';
                         }
@@ -303,8 +370,10 @@
                         if (h.role === '매니저') badgeClass = 'badge03';
                         else if (h.role === '헬퍼') badgeClass = 'badge02';
 
+                        const displayTime = h.time || h.slot || '10:00 ~ 12:00';
+
                         html += `
-                        <div class="task-item" style="margin-bottom: 12px;">
+                        <div class="task-item" style="margin-bottom: 12px; cursor: pointer;" onclick="location.href='explore_detail.html?id=${h.id}'">
                             <div class="task-items0" style="align-items: center;">
                                 <div class="task-items" style="flex: 1.2;">
                                     <img class="icon" src="${iconSrc}" alt="icon"> 
@@ -318,10 +387,10 @@
                                         <span class="box-time">2h</span>
                                         <span class="${badgeClass}">${h.role}</span>
                                     </div>
-                                    <span style="font-size: 11px; color: #a29bfe;">${h.slot || '10:00 ~ 12:00'}</span>
+                                    <span style="font-size: 11px; color: #a29bfe;">${displayTime}</span>
                                 </div>
-                                <div class="task-info-col" style="flex: 1.5; text-align: right; align-items: flex-end;">
-                                    <span class="date-text">${h.date}</span>
+                                <div class="task-info-col" style="flex: 1.5; text-align: right; align-items: flex-end; display: flex; flex-direction: column;">
+                                    <span class="date-text">${formatDisplayDate(h.date)}</span>
                                     <span class="pay-text">+₩ ${h.pay.toLocaleString()}</span>  
                                 </div>
                             </div>

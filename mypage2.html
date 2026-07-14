@@ -118,46 +118,8 @@
             </div>
 
             <!-- New Section 2: 내가 했던 일 -->
-            <div class="mypage-box2">
-
-                <div class="box-partner reservation-item">
-                    <div class="box-corp res-date-box">
-                        <span class="res-date-time">2026년 6월 15일</span>
-                        <span class="res-date-time">월요일</span>
-                    </div>
-                    <div class="box-corp res-time-box">
-                        <span class="res-date-time">13:00 ~ 15:00</span>
-                    </div>
-                    <div class="box-value res-job-box">
-                        <img class="icon" src="./images/k-icon_150x150.png">
-                        <span class="brand-name">AFood</span>
-                        김치만들기
-                    </div>
-                    <div class="box-value res-btn-box">
-                        <span class="box-time">2h</span>
-                        <span class="badge01">일반</span>
-                        <span class="box-time">₩ 15,000</span>
-                    </div>
-                </div>
-                <div class="box-partner reservation-item">
-                    <div class="box-corp res-date-box">
-                        <span class="res-date-time">2026년 6월 15일</span>
-                        <span class="res-date-time">월요일</span>
-                    </div>
-                    <div class="box-corp res-time-box">
-                        <span class="res-date-time">10:00 ~ 12:00</span>
-                    </div>
-                    <div class="box-value res-job-box">
-                        <img class="icon" src="./images/k-icon_150x150.png">
-                        <span class="brand-name">AFood</span>
-                        김치만들기
-                    </div>
-                    <div class="box-value res-btn-box">
-                        <span class="box-time">2h</span>
-                        <span class="badge01">일반</span>
-                        <span class="box-time">₩ 15,000</span>
-                    </div>
-                </div>
+            <div class="mypage-box2" id="history-container">
+                <!-- Dynamic history render here -->
             </div>
 
 
@@ -297,29 +259,29 @@
 
             if (name === '최현일') {
                 return [
-                    { date: formatDate(1), job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
-                    { date: formatDate(3), job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
-                    { date: formatDate(5), job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
+                    { date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
+                    { date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
+                    { date: formatDate(5), time: "15:00 ~ 17:00", job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
                 ];
             } else if (name === '최수아') {
                 return [
-                    { date: formatDate(2), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                    { date: formatDate(6), job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
-                    { date: formatDate(10), job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
+                    { date: formatDate(2), time: "13:00 ~ 15:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
+                    { date: formatDate(6), time: "10:00 ~ 12:00", job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
+                    { date: formatDate(10), time: "15:00 ~ 17:00", job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
                 ];
             } else if (name === '김수민') {
                 return [
-                    { date: formatDate(4), job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
+                    { date: formatDate(4), time: "10:00 ~ 12:00", job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
                 ];
             } else if (name === '김영희') {
                 return [
-                    { date: formatDate(1), job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
-                    { date: formatDate(3), job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                    { date: formatDate(8), job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
+                    { date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
+                    { date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
+                    { date: formatDate(8), time: "15:00 ~ 17:00", job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
                 ];
             }
             return [
-                { date: formatDate(2), job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
+                { date: formatDate(2), time: "10:00 ~ 12:00", job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
             ];
         }
 
@@ -447,13 +409,37 @@
                     </div>
                     <div class="box-value res-btn-box reverse">
                         
-                        <button type="button" class="res-check-in-btn" onclick="location.href='check-in-announce.html'">출근하기</button>
+                        <button type="button" class="res-check-in-btn" onclick="goToCheckIn(${r.id})">출근하기</button>
                         <button type="button" class="res-cancel-btn" onclick="cancelReservation(${r.id})">예약 취소</button>
                     </div>
                 </div>
                 `;
                 container.append(row);
             });
+        }
+
+        function goToCheckIn(id) {
+            let db = FactoryStore.getState().reservations || [];
+            try {
+                let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
+                if (kimpDb && kimpDb.length > 0) {
+                    db = db.concat(kimpDb);
+                }
+            } catch (e) { }
+
+            // Deduplicate
+            let uniqueDbMap = {};
+            db.forEach(r => {
+                const key = r.date + '_' + r.slot + '_' + r.userId;
+                uniqueDbMap[key] = r;
+            });
+            db = Object.values(uniqueDbMap);
+
+            const selected = db.find(r => r.id === id);
+            if (selected) {
+                sessionStorage.setItem('selected_reservation', JSON.stringify(selected));
+            }
+            window.location.href = 'check-in-announce.html';
         }
 
         function cancelReservation(id) {
@@ -478,11 +464,42 @@
             const container = $('#history-container');
             container.empty();
 
-            const history = FactoryStore.getState().history;
+            let history = FactoryStore.getState().history || [];
 
             if (history.length === 0) {
                 container.html('<div class="empty-state">참여 이력이 없습니다.</div>');
                 return;
+            }
+
+            function parseDate(dateStr) {
+                if (!dateStr) return new Date(0);
+                if (dateStr.includes('년') && dateStr.includes('월')) {
+                    const cleaned = dateStr.replace(/년|월|일/g, '').trim().split(/\s+/);
+                    if (cleaned.length === 3) {
+                        return new Date(parseInt(cleaned[0], 10), parseInt(cleaned[1], 10) - 1, parseInt(cleaned[2], 10));
+                    }
+                }
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                }
+                return new Date(dateStr);
+            }
+
+            history = [...history].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+            function formatDisplayDate(dateStr) {
+                if (!dateStr) return '';
+                if (dateStr.includes('년') && dateStr.includes('월')) {
+                    return dateStr.replace(/^\d+년\s*/, '');
+                }
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    const month = parseInt(parts[1], 10);
+                    const day = parseInt(parts[2], 10);
+                    return `${month}월 ${day}일`;
+                }
+                return dateStr;
             }
 
             history.forEach(item => {
@@ -498,7 +515,10 @@
 
                 let row = `
                 <div class="box-partner history-item" style="margin-bottom: 12px; cursor: pointer;" onclick="showHistoryDetail(${item.id})">
-                    <div class="hist-date">${item.date}</div>
+                    <div class="hist-date">
+                        <div>${formatDisplayDate(item.date)}</div>
+                        <div style="font-size: 10px; color: #a29bfe; margin-top: 3px;">${item.time || '10:00 ~ 12:00'}</div>
+                    </div>
                     <div class="box-corp">
                         <img class="icon2" src="${brandLogo}">
                         <span class="brand-name">${brandName}</span>

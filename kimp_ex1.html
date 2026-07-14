@@ -3301,7 +3301,7 @@
                             </strong>
                         </div>
                         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
-                            출근 시 기억한 사물함 번호를 터치하여 열어주세요.
+                            해당 사물함 번호를 터치하여주세요.
                         </p>
                         
                         <!-- 1~5번 사물함 버튼 -->
@@ -3368,7 +3368,7 @@
                     activeBtn.style.borderColor = '#10b981';
                 }
                 msgEl.style.color = '#10b981';
-                msgEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 사물함이 정상적으로 열렸습니다. 소지품을 꺼낸 후 열쇠를 반납해 주세요.';
+                msgEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 열쇠를 이용해 사물함을 열어주세요. 감사합니다.';
                 
                 // 열쇠 반납 섹션 슬라이드 다운
                 $('#locker-key-return-section').slideDown(250);
@@ -3460,13 +3460,36 @@
                 // 누적된 로그 정보 포맷팅
                 const formattedLogs = (appData.logs || []).map(l => `[${l.time}] ${l.text}`);
 
+                let workTimeStr = "10:00 ~ 12:00"; // 기본값
+                try {
+                    const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                    if (selRes && selRes.slot !== undefined) {
+                        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                        workTimeStr = slotLabels[selRes.slot] || "10:00 ~ 12:00";
+                    } else {
+                        let checkInTime = "";
+                        const oldUserIds = [`local-${userObj.email}`, userId];
+                        for (let oldId of oldUserIds) {
+                            let v = localStorage.getItem("kimp_check_in_time_" + oldId);
+                            if (v) { checkInTime = v; break; }
+                        }
+                        if (!checkInTime) {
+                            checkInTime = localStorage.getItem("kimp_check_in_time") || "10:00";
+                        }
+                        const now = new Date();
+                        const checkOutTime = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+                        workTimeStr = `${checkInTime} ~ ${checkOutTime}`;
+                    }
+                } catch(e) {}
+
                 const historyItem = {
                     id: Date.now(),
                     date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                    time: workTimeStr,
                     job: "김치만들기",
                     role: "일반",
                     pay: Math.floor(accumSalary) || 0,
-                    locker: `${lockerGender} 사물함 ${lockerNumber}번 (${lockerSize})`,
+                    locker: `${lockerGender} Safe 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
                     coworkers: coworkers
                 };

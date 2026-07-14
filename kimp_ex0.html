@@ -2165,9 +2165,32 @@
                 // 누적된 로그 정보 포맷팅
                 const formattedLogs = (appData.logs || []).map(l => `[${l.time}] ${l.text}`);
 
+                let workTimeStr = "10:00 ~ 12:00"; // 기본값
+                try {
+                    const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                    if (selRes && selRes.slot !== undefined) {
+                        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                        workTimeStr = slotLabels[selRes.slot] || "10:00 ~ 12:00";
+                    } else {
+                        let checkInTime = "";
+                        const oldUserIds = [`local-${userObj.email}`, userId];
+                        for (let oldId of oldUserIds) {
+                            let v = localStorage.getItem("kimp_check_in_time_" + oldId);
+                            if (v) { checkInTime = v; break; }
+                        }
+                        if (!checkInTime) {
+                            checkInTime = localStorage.getItem("kimp_check_in_time") || "10:00";
+                        }
+                        const now = new Date();
+                        const checkOutTime = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+                        workTimeStr = `${checkInTime} ~ ${checkOutTime}`;
+                    }
+                } catch(e) {}
+
                 const historyItem = {
                     id: Date.now(),
                     date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+                    time: workTimeStr,
                     job: "김치만들기",
                     role: "일반",
                     pay: Math.floor(accumSalary) || 0,
