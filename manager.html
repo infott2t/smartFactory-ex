@@ -673,13 +673,14 @@
         }
 
         /* 양념용 지시서 보드 th 전용 — 13px + 줄바꿈 허용 */
-        #seasoning-orders-table-body ~ thead th,
-        #seasoning-orders-table-body:empty ~ * th,
+        #seasoning-orders-table-body~thead th,
+        #seasoning-orders-table-body:empty~* th,
         table.console-table:has(#seasoning-orders-table-body) th,
         .seasoning-board-table th {
             font-size: 13px;
             white-space: normal;
         }
+
         /* 양념 보드 테이블 전체 최소 너비 */
         .seasoning-board-table {
             min-width: 1500px;
@@ -1692,13 +1693,20 @@
                         <div class="task-selector-wrapper" id="mgr-task-selector">
                             <span class="status-btn-title">투입할 세부 공정(Stage) 선택</span>
                             <div class="task-option-btns" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                <button class="task-mini-btn" id="mgr-task-1" onclick="assignManagerTask(1)">Stage 1 (적재)</button>
-                                <button class="task-mini-btn" id="mgr-task-2" onclick="assignManagerTask(2)">Stage 2 (절임)</button>
-                                <button class="task-mini-btn" id="mgr-task-3" onclick="assignManagerTask(3)">Stage 3 (세척/탈수)</button>
-                                <button class="task-mini-btn" id="mgr-task-4" onclick="assignManagerTask(4)">Stage 4 (밀봉)</button>
-                                <button class="task-mini-btn" id="mgr-task-5-1" onclick="assignManagerTask('5-1')">Stage 5-1 (양념조제)</button>
-                                <button class="task-mini-btn" id="mgr-task-5-2" onclick="assignManagerTask('5-2')">Stage 5-2 (양념바름)</button>
-                                <button class="task-mini-btn" id="mgr-task-6" onclick="assignManagerTask(6)">Stage 6 (포장/출하)</button>
+                                <button class="task-mini-btn" id="mgr-task-1" onclick="assignManagerTask(1)">Stage 1
+                                    (적재)</button>
+                                <button class="task-mini-btn" id="mgr-task-2" onclick="assignManagerTask(2)">Stage 2
+                                    (절임)</button>
+                                <button class="task-mini-btn" id="mgr-task-3" onclick="assignManagerTask(3)">Stage 3
+                                    (세척/탈수)</button>
+                                <button class="task-mini-btn" id="mgr-task-4" onclick="assignManagerTask(4)">Stage 4
+                                    (밀봉)</button>
+                                <button class="task-mini-btn" id="mgr-task-5-1" onclick="assignManagerTask('5-1')">Stage
+                                    5-1 (양념조제)</button>
+                                <button class="task-mini-btn" id="mgr-task-5-2" onclick="assignManagerTask('5-2')">Stage
+                                    5-2 (양념바름)</button>
+                                <button class="task-mini-btn" id="mgr-task-6" onclick="assignManagerTask(6)">Stage 6
+                                    (포장/출하)</button>
                             </div>
                         </div>
 
@@ -1742,7 +1750,8 @@
                                     <div>• 완제품 총 예상 생산 무게 (배추+양념): <strong id="lbl-needed-total-weight"
                                             style="color: var(--neon-green);">90.0 kg</strong></div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 8px;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-top: 8px; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 8px;">
                                     <div>• 생산 중인 지시서 배추 무게 합계: <strong id="lbl-producing-cabbage-weight"
                                             style="color: var(--accent-purple);">0.0 kg</strong></div>
                                     <div>• 생산 중인 양념용 지시서 무게 합계: <strong id="lbl-producing-seasoning-weight"
@@ -1815,11 +1824,13 @@
                             style="display: flex; justify-content: space-between; align-items: center;">
                             <h3><i class="bi bi-receipt"></i> 주문 출하 현황판 (어제 17:00 ~ 오늘 10:00 접수분)</h3>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <button id="btn-bulk-print-delivery" onclick="window.printSelectedDeliveryLabels()" class="top-action-btn" 
+                                <button id="btn-bulk-print-delivery" onclick="window.printSelectedDeliveryLabels()"
+                                    class="top-action-btn"
                                     style="background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); padding: 4px 10px; font-weight: bold; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                                     <i class="bi bi-printer-fill"></i> 배송 라벨 일괄 인쇄
                                 </button>
-                                <span style="font-size: 11px; color: var(--text-secondary);" id="lbl-orders-date-range">조회
+                                <span style="font-size: 11px; color: var(--text-secondary);"
+                                    id="lbl-orders-date-range">조회
                                     기준일: 2026-06-15</span>
                             </div>
                         </div>
@@ -1827,7 +1838,9 @@
                             <table class="console-table" style="font-size: 12px;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 30px;"><input type="checkbox" id="check-all-orders" onclick="window.toggleSelectAllOrders(this)" style="cursor: pointer;"></th>
+                                        <th style="width: 30px;"><input type="checkbox" id="check-all-orders"
+                                                onclick="window.toggleSelectAllOrders(this)" style="cursor: pointer;">
+                                        </th>
                                         <th>주문시각</th>
                                         <th>주문자</th>
                                         <th>배송 주소</th>
@@ -1941,7 +1954,8 @@
 
                 <!-- Feature 3: 포장 규격 확장 및 당일 출하/배송 대시보드 -->
                 <div class="section-card">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="card-header"
+                        style="display: flex; justify-content: space-between; align-items: center;">
                         <h3><i class="bi bi-truck"></i> 당일 출하 / 배송 현황 (포장 규격별)</h3>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span class="badge badge-green" id="shipping-overall-badge">출하율 80%</span>
@@ -2120,50 +2134,83 @@
                 <!-- 양념용 생산지시서 발행 제어판 -->
                 <div class="section-card" style="margin-top: 20px;">
                     <div class="card-header">
-                        <h3><i class="bi bi-droplet-half" style="color: var(--accent-purple);"></i> 양념용 생산지시서 발행 제어판</h3>
+                        <h3><i class="bi bi-droplet-half" style="color: var(--accent-purple);"></i> 양념용 생산지시서 발행 제어판
+                        </h3>
                     </div>
                     <div class="form-wrapper" style="padding: 15px 0;">
                         <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
                             양념용 원부자재의 투입 무게(g)를 설정하여 Stage 5-1(양념 만들기) 생산 지시서를 발행합니다.
                         </p>
                         <!-- 7가지 재료 입력 그리드 -->
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;">
+                        <div
+                            style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px;">
                             <div>
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">대파 (g)</label>
-                                <input type="number" id="seasoning-input-scallion" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="100" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">대파
+                                    (g)</label>
+                                <input type="number" id="seasoning-input-scallion" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="100" oninput="calculateSeasoningTotalWeight()">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">쪽파 (g)</label>
-                                <input type="number" id="seasoning-input-chives" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="100" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">쪽파
+                                    (g)</label>
+                                <input type="number" id="seasoning-input-chives" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="100" oninput="calculateSeasoningTotalWeight()">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">양파 무게 (g)</label>
-                                <input type="number" id="seasoning-input-onion" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="200" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">양파
+                                    무게 (g)</label>
+                                <input type="number" id="seasoning-input-onion" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="200" oninput="calculateSeasoningTotalWeight()">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">생강 (g)</label>
-                                <input type="number" id="seasoning-input-ginger" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="50" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">생강
+                                    (g)</label>
+                                <input type="number" id="seasoning-input-ginger" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="50" oninput="calculateSeasoningTotalWeight()">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">고춧가루 (g)</label>
-                                <input type="number" id="seasoning-input-chili" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="300" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">고춧가루
+                                    (g)</label>
+                                <input type="number" id="seasoning-input-chili" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="300" oninput="calculateSeasoningTotalWeight()">
                             </div>
                             <div>
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">액젓 (g)</label>
-                                <input type="number" id="seasoning-input-fishsauce" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="150" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">액젓
+                                    (g)</label>
+                                <input type="number" id="seasoning-input-fishsauce" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="150" oninput="calculateSeasoningTotalWeight()">
                             </div>
                             <div style="grid-column: span 2;">
-                                <label style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">밀가루풀 (g)</label>
-                                <input type="number" id="seasoning-input-paste" class="sim-input" style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;" min="0" value="1000" oninput="calculateSeasoningTotalWeight()">
+                                <label
+                                    style="display: block; font-size: 11px; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">밀가루풀
+                                    (g)</label>
+                                <input type="number" id="seasoning-input-paste" class="sim-input"
+                                    style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px;"
+                                    min="0" value="1000" oninput="calculateSeasoningTotalWeight()">
                             </div>
                         </div>
 
                         <!-- 실시간 무게 합계 -->
-                        <div id="seasoning-weight-calc-result" style="padding: 12px; background-color: var(--accent-purple-bg); border: 1px solid var(--accent-purple); border-radius: 8px; font-size: 12px; color: var(--accent-purple); font-weight: 600; margin-bottom: 14px;">
+                        <div id="seasoning-weight-calc-result"
+                            style="padding: 12px; background-color: var(--accent-purple-bg); border: 1px solid var(--accent-purple); border-radius: 8px; font-size: 12px; color: var(--accent-purple); font-weight: 600; margin-bottom: 14px;">
                             예정된 총 양념 생산 무게: 1900 g
                         </div>
 
-                        <button id="seasoning-issue-btn" class="top-action-btn" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 700; background-color: var(--accent-purple); color: #fff; border: none; border-radius: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;" onclick="issueSeasoningOrder()">
+                        <button id="seasoning-issue-btn" class="top-action-btn"
+                            style="width: 100%; padding: 10px; font-size: 13px; font-weight: 700; background-color: var(--accent-purple); color: #fff; border: none; border-radius: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;"
+                            onclick="issueSeasoningOrder()">
                             <i class="bi bi-file-earmark-plus-fill"></i> 양념용 생산지시서 발행 및 등록
                         </button>
                     </div>
@@ -2172,11 +2219,13 @@
                 <!-- 양념용 생산지시서 현황 및 Stage 5-1 전달 처리 -->
                 <div class="section-card" style="margin-top: 20px;">
                     <div class="card-header">
-                        <h3><i class="bi bi-list-task" style="color: var(--accent-purple);"></i> 양념용 생산지시서 현황 및 Stage 5-1 전달 처리</h3>
+                        <h3><i class="bi bi-list-task" style="color: var(--accent-purple);"></i> 양념용 생산지시서 현황 및 Stage
+                            5-1 전달 처리</h3>
                         <span class="badge badge-purple" id="seasoning-orders-total-lbl">총 0건</span>
                     </div>
                     <p style="font-size: 13px; color: var(--text-secondary);">
-                        양념용 생산지시서 DB와 연동됩니다. 재료 투입 무게를 확인하고 <strong>'Stage 5-1(양념만들기)로 전달'</strong> 버튼을 클릭하면, 작업자 HMI 화면에 해당 지시서가 전송되어 작업을 수행할 수 있습니다.
+                        양념용 생산지시서 DB와 연동됩니다. 재료 투입 무게를 확인하고 <strong>'Stage 5-1(양념만들기)로 전달'</strong> 버튼을 클릭하면, 작업자 HMI
+                        화면에 해당 지시서가 전송되어 작업을 수행할 수 있습니다.
                     </p>
                     <div class="table-wrapper">
                         <table class="console-table seasoning-board-table">
@@ -2207,7 +2256,8 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
                             <div>
                                 <label
-                                    style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">[양념 배추 선택]</label>
+                                    style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">[양념
+                                    배추 선택]</label>
                                 <select id="pkg-order-select" class="sim-select"
                                     style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px;"
                                     onchange="onPkgOrderSelectChange()">
@@ -2461,10 +2511,12 @@
                     <!-- 배추 단가 설정 카드 -->
                     <div class="section-card">
                         <div class="card-header">
-                            <h3><i class="bi bi-currency-exchange" style="color: var(--accent-green);"></i> 배추 단가 실시간 설정</h3>
+                            <h3><i class="bi bi-currency-exchange" style="color: var(--accent-green);"></i> 배추 단가 실시간 설정
+                            </h3>
                         </div>
                         <div class="form-wrapper" style="padding: 10px 0;">
-                            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px;">배추 1포기당 단가 (원):</label>
+                            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px;">배추
+                                1포기당 단가 (원):</label>
                             <div style="display: flex; gap: 8px;">
                                 <input type="number" id="input-cabbage-unit-price" value="2500" min="500" max="10000"
                                     style="flex-grow: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; font-size: 14px;" />
@@ -2479,7 +2531,8 @@
                     <!-- 설비 / 위생 비품 재고 및 구매 (홈쇼핑 기준) -->
                     <div class="section-card" style="grid-column: span 2;">
                         <div class="card-header">
-                            <h3><i class="bi bi-cart-plus-fill" style="color: var(--accent-purple);"></i> 설비 및 위생 비품 재고/구매 관리 (홈쇼핑 가격 기준)</h3>
+                            <h3><i class="bi bi-cart-plus-fill" style="color: var(--accent-purple);"></i> 설비 및 위생 비품
+                                재고/구매 관리 (홈쇼핑 가격 기준)</h3>
                         </div>
                         <div class="table-wrapper">
                             <table class="console-table" style="font-size: 12.5px;">
@@ -2512,8 +2565,9 @@
                             <h3><i class="bi bi-snow2"></i> 냉장 절임(Stage2) & 절임 세척 배추보관용(Stage3) 냉장고와 물기제거 상황</h3>
                             <span class="badge badge-blue" id="salting-batch-total-lbl">진행 중 0개</span>
                         </div>
-                        
-                        <p style="font-size: 14px; font-weight: bold; color: var(--accent-purple); padding: 8px 12px; border-radius: 6px; background-color: rgba(139, 92, 246, 0.08); margin: 10px 0;" id="salting-guide-text">
+
+                        <p style="font-size: 14px; font-weight: bold; color: var(--accent-purple); padding: 8px 12px; border-radius: 6px; background-color: rgba(139, 92, 246, 0.08); margin: 10px 0;"
+                            id="salting-guide-text">
                             <i class="bi bi-info-circle-fill"></i> 배추를 소금물에 절이는 작업입니다. 5시간마다 뒤집어 주세요.
                         </p>
                         <div class="salting-grid" id="salting-room-container">
@@ -3047,10 +3101,19 @@
             // 5.1. 재정 기본 상태 설정
             localStorage.setItem("kimp_factory_finance", JSON.stringify({ revenue: 0, cost: 0 }));
 
-            // 5.2. 기본 오더 맵 구조
-            saveProductionOrders(defaultProductionOrders);
-            localStorage.setItem("kimp_approval_requests", JSON.stringify([]));
+            // 5.2. 기본 오더 맵 구조 (초기화 시 더미 작업자들의 성과/이름 정보만 깔끔하게 클렌징)
+            let freshOrders = JSON.parse(JSON.stringify(defaultProductionOrders));
+            Object.values(freshOrders).forEach(order => {
+                if (order.stages) {
+                    Object.values(order.stages).forEach(stage => {
+                        stage.operator = ""; // 작업자 이름 삭제 (성과 집계 방지)
+                        if (stage.operators) stage.operators = [];
+                    });
+                }
+            });
+            saveProductionOrders(freshOrders);
 
+            localStorage.setItem("kimp_approval_requests", JSON.stringify([]));
             // Calculate yesterday's date dynamically
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -3523,7 +3586,7 @@
 
             const ordersObj = loadProductionOrders();
             let seq = 1;
-            
+
             const todaySeasoningIds = Object.keys(ordersObj).filter(id => {
                 const parts = id.split('-');
                 return parts.length === 3 && parts[0] === dateStr;
@@ -3573,7 +3636,7 @@
 
             addConsoleLog(`[양념 지시] 양념 생산지시서 ${newId}가 발행되었습니다. (총 무게: ${totalWeight}g)`);
             window.addAppLog(`양념 생산지시서 ${newId}를 새로 발행하였습니다.`);
-            
+
             if (window.refreshAllData) window.refreshAllData();
             else renderProductionOrdersTable();
 
@@ -3917,7 +3980,7 @@
 
             // Open popup window
             const popup = window.open("", "_blank", "width=600,height=700");
-            
+
             let printBodyHtml = "";
             if (o.isSeasoning) {
                 const ing = o.ingredients || {};
@@ -4230,12 +4293,12 @@
             let deletedIds = [];
             try {
                 deletedIds = JSON.parse(localStorage.getItem("kimp_deleted_order_ids") || "[]");
-            } catch (e) {}
+            } catch (e) { }
 
             // Generate the next sequence number based ONLY on quantity, ignoring date prefix
             let maxSeq = 0;
             const targetQtyStr = `-${quantity}-`;
-            
+
             const allKeys = new Set([...Object.keys(ordersObj), ...deletedIds]);
             allKeys.forEach(key => {
                 if (key && typeof key === 'string' && key.includes(targetQtyStr)) {
@@ -4374,7 +4437,7 @@
                 let raw = window.localStorage.getItem("kimp_production_orders");
                 let ordersObj = {};
                 if (raw) {
-                    try { ordersObj = JSON.parse(raw); } catch(e) { ordersObj = {}; }
+                    try { ordersObj = JSON.parse(raw); } catch (e) { ordersObj = {}; }
                 }
 
                 // 💡 [정리] 기존에 이중 등록되어 중복을 일으키던 낡은 ORD- 접두사 키들을 완전히 제거
@@ -4389,7 +4452,7 @@
                         delete pkgObj["260710-5-3"];
                         delete pkgObj["260710-15-4"];
                         window.localStorage.setItem("kimp_packaging_orders", JSON.stringify(pkgObj));
-                    } catch(e) {}
+                    } catch (e) { }
                 }
 
                 // 두 지시서 템플릿 생성
@@ -4427,7 +4490,7 @@
                 addConsoleLog("[개발자 도구] Stage 4 완료 지시서 2개(260710-5-3, 260710-15-4)가 중복 없이 정상 주입되었습니다.");
                 alert("Stage 4 완료 지시서 2개(260710-5-3, 260710-15-4)가 중복 없이 정상 주입되었습니다!");
                 refreshAllData();
-            } catch(err) {
+            } catch (err) {
                 console.error("Failed to inject test orders:", err);
                 alert("주입 중 오류가 발생했습니다: " + err.message);
             }
@@ -4565,10 +4628,10 @@
 
                 // 💡 [실시간 근로자 레코드 상호 동기화] 중복 키(이메일 형식, 숫자 ID 등) 간에 출근시간 및 진행 상태를 최신 상태로 일치 복사시킨다!
                 let workers = {};
-                try { 
-                    workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); 
+                try {
+                    workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
                     let nameMap = {};
-                    
+
                     // 1차 패스: 각 사용자 이름별로 가장 최신의 출근시간 및 상태 정보 병합
                     Object.keys(workers).forEach(k => {
                         const w = workers[k];
@@ -4577,14 +4640,14 @@
                         if (!nameMap[name]) {
                             nameMap[name] = { checkInTime: null, accumWorkSeconds: 0, accumBreakSeconds: 0, completedOrdersCount: 0, currentStep: 1, stepName: "대기", location: "대기실", status: "active", lastActiveTime: "" };
                         }
-                        
+
                         // 더 최근에 들어온 유효한 출근 시각 복제
                         if (w.checkInTime && w.checkInTime !== "" && w.checkInTime !== "null" && w.checkInTime !== "-") {
                             if (!nameMap[name].checkInTime || (w.lastActiveTime > nameMap[name].lastActiveTime)) {
                                 nameMap[name].checkInTime = w.checkInTime;
                             }
                         }
-                        
+
                         // 더 최신의 상태 정보 병합
                         if (w.lastActiveTime > nameMap[name].lastActiveTime) {
                             nameMap[name].accumWorkSeconds = w.accumWorkSeconds || 0;
@@ -4597,7 +4660,7 @@
                             nameMap[name].lastActiveTime = w.lastActiveTime;
                         }
                     });
-                    
+
                     // 2차 패스: 동일 이름을 가진 모든 레코드에 병합된 최신 정보 전파
                     Object.keys(workers).forEach(k => {
                         const w = workers[k];
@@ -4615,9 +4678,9 @@
                             w.lastActiveTime = merged.lastActiveTime || w.lastActiveTime;
                         }
                     });
-                    
+
                     localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
-                } catch (e) { 
+                } catch (e) {
                     workers = {};
                 }
                 const stagesSync = JSON.parse(localStorage.getItem("kimp_stages_sync") || "[]");
@@ -4648,7 +4711,7 @@
                 // A) 근로자 시간 증가 및 강제 리셋 방어 (현실 시간 deltaSecs 만큼만 더함)
                 Object.keys(workers).forEach(k => {
                     const w = workers[k];
-                    
+
                     // 💡 [실시간 강제 0초 리셋 및 고정] 준비 중(currentStep < 7)인 경우 근로시간을 무조건 0으로 정지 및 초기화한다!
                     // 단, completedOrdersCount(작업 완료 횟수)는 누적값이므로 절대 초기화하지 않는다!
                     if (!w.currentStep || w.currentStep < 7) {
@@ -4656,7 +4719,7 @@
                         w.accumBreakSeconds = 0;
                         isChanged = true;
                     }
-                    
+
                     // 💡 [수정] 체험관에 최종 입장 완료(currentStep >= 7)한 상태인 경우에만 실시간 근로시간을 누적 가산한다!
                     if (w.checkInTime && w.currentStep >= 7) {
                         if (w.status === "active") {
@@ -4723,13 +4786,13 @@
                         } else if (typeof parsed === 'object' && parsed !== null) {
                             obj = parsed;
                         }
-                        
+
                         // 현재 리덕스 스토어 상태와 실시간으로 내용 비교하여 다르면 dispatch
                         const currentStoreState = window.FactoryStore.getState().productionOrders || {};
                         if (JSON.stringify(currentStoreState) !== JSON.stringify(obj)) {
                             window.FactoryStore.dispatch({ type: 'SET_PRODUCTION_ORDERS', payload: obj });
                         }
-                    } catch(e) {}
+                    } catch (e) { }
                 }
             }
 
@@ -4778,10 +4841,10 @@
             // 5. 근로자 현황 화면 렌더링
             // 💡 [실시간 근로자 레코드 상호 동기화] 중복 키(이메일 형식, 숫자 ID 등) 간에 출근시간 및 진행 상태를 최신 상태로 일치 복사시킨다!
             let workers = {};
-            try { 
-                workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); 
+            try {
+                workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
                 let nameMap = {};
-                
+
                 // 1차 패스: 각 사용자 이름별로 가장 최신의 출근시간 및 상태 정보 병합
                 Object.keys(workers).forEach(k => {
                     const w = workers[k];
@@ -4790,14 +4853,14 @@
                     if (!nameMap[name]) {
                         nameMap[name] = { checkInTime: null, accumWorkSeconds: 0, accumBreakSeconds: 0, completedOrdersCount: 0, currentStep: 1, stepName: "대기", location: "대기실", status: "active", lastActiveTime: "" };
                     }
-                    
+
                     // 더 최근에 들어온 유효한 출근 시각 복제
                     if (w.checkInTime && w.checkInTime !== "" && w.checkInTime !== "null" && w.checkInTime !== "-") {
                         if (!nameMap[name].checkInTime || (w.lastActiveTime > nameMap[name].lastActiveTime)) {
                             nameMap[name].checkInTime = w.checkInTime;
                         }
                     }
-                    
+
                     // 더 최신의 상태 정보 병합
                     if (w.lastActiveTime > nameMap[name].lastActiveTime) {
                         nameMap[name].accumWorkSeconds = w.accumWorkSeconds || 0;
@@ -4810,7 +4873,7 @@
                         nameMap[name].lastActiveTime = w.lastActiveTime;
                     }
                 });
-                
+
                 // 2차 패스: 동일 이름을 가진 모든 레코드에 병합된 최신 정보 전파
                 Object.keys(workers).forEach(k => {
                     const w = workers[k];
@@ -4828,9 +4891,9 @@
                         w.lastActiveTime = merged.lastActiveTime || w.lastActiveTime;
                     }
                 });
-                
+
                 localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
-            } catch (e) { 
+            } catch (e) {
                 workers = {};
             }
 
@@ -4899,7 +4962,7 @@
                 </div>
                 `;
             });
-            
+
             // 💡 [추가] 생성된 HTML이 이전과 완벽히 동일하다면 돔 갱신을 생략하여 이미지 중복 요청 및 깜빡임 차단
             if (lastProductSummaryHtml !== html) {
                 summaryContainer.innerHTML = html;
@@ -5204,12 +5267,12 @@
                                 if (stageKey === "6") {
                                     orders[orderId].status = "completed";
                                     orders[orderId].progressStatus = "생산 완료";
-                                    
+
                                     // 💡 완제품 재고 가산
                                     let products = {};
                                     try {
                                         products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
-                                    } catch(e) {}
+                                    } catch (e) { }
                                     const prodId = orders[orderId].productId || "p1kg";
                                     if (products[prodId]) {
                                         products[prodId].stock = (products[prodId].stock || 0) + (orders[orderId].quantity || 15);
@@ -5220,7 +5283,7 @@
                                     let inventory = {};
                                     try {
                                         inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
-                                    } catch(e) {}
+                                    } catch (e) { }
                                     if (inventory.seasoning) {
                                         const neededSauceKg = (orders[orderId].quantity || 15) * 2.5 * 0.3;
                                         inventory.seasoning.weight = Math.max(0, (inventory.seasoning.weight || 0) - neededSauceKg);
@@ -5229,24 +5292,24 @@
                                 } else if (stageKey === "5" || stageKey === "5-1") {
                                     orders[orderId].status = "completed";
                                     orders[orderId].progressStatus = "생산 완료";
-                                } else { 
-                                     if (stageNum === 2) { 
-                                         orders[orderId].currentTask = 2; 
-                                     } else if (stageNum === 4) { 
-                                         orders[orderId].currentTask = "5-2"; 
-                                     } else if (stageKey === "5-2") {
-                                         orders[orderId].currentTask = "5-2-completed";
-                                     } else { 
-                                         orders[orderId].currentTask = stageNum + 1; 
-                                     } 
-                                     
-                                     if (stageNum === 4) { 
-                                         orders[orderId].progressStatus = "생산중 (Stage 4 완료, 5-2 대기)"; 
-                                     } else if (stageKey === "5-2") {
-                                         orders[orderId].progressStatus = "생산중(Stage 5-2완료)";
-                                     } else { 
-                                         orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`; 
-                                     }
+                                } else {
+                                    if (stageNum === 2) {
+                                        orders[orderId].currentTask = 2;
+                                    } else if (stageNum === 4) {
+                                        orders[orderId].currentTask = "5-2";
+                                    } else if (stageKey === "5-2") {
+                                        orders[orderId].currentTask = "5-2-completed";
+                                    } else {
+                                        orders[orderId].currentTask = stageNum + 1;
+                                    }
+
+                                    if (stageNum === 4) {
+                                        orders[orderId].progressStatus = "생산중 (Stage 4 완료, 5-2 대기)";
+                                    } else if (stageKey === "5-2") {
+                                        orders[orderId].progressStatus = "생산중(Stage 5-2완료)";
+                                    } else {
+                                        orders[orderId].progressStatus = `생산중 (Stage${stageNum}완료)`;
+                                    }
                                 }
 
                                 if (stageNum === 2) {
@@ -5383,7 +5446,7 @@
                 let raw = window.localStorage.getItem("kimp_production_orders");
                 let orders = {};
                 if (raw) {
-                    try { orders = JSON.parse(raw); } catch(e) { orders = {}; }
+                    try { orders = JSON.parse(raw); } catch (e) { orders = {}; }
                 }
                 // FactoryStore에서도 보완적으로 읽기
                 if (window.FactoryStore) {
@@ -5411,7 +5474,7 @@
                 let inventory = {};
                 try {
                     inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
-                } catch(e) {}
+                } catch (e) { }
                 const ing = orders[orderId].ingredients || {};
                 if (inventory.redPepperPowder) {
                     const chiliKg = (ing.chili || 0) / 1000.0;
@@ -5442,7 +5505,7 @@
                 }
 
                 setTimeout(() => { refreshAllData(); }, 50);
-            } catch(err) {
+            } catch (err) {
                 console.error('[deliverToStage5_1 오류]', err);
                 alert('전달 처리 중 오류가 발생했습니다: ' + err.message);
             }
@@ -5616,7 +5679,7 @@
                     let deletedIds = [];
                     try {
                         deletedIds = JSON.parse(localStorage.getItem("kimp_deleted_order_ids") || "[]");
-                    } catch (e) {}
+                    } catch (e) { }
                     if (!deletedIds.includes(orderId)) {
                         deletedIds.push(orderId);
                         localStorage.setItem("kimp_deleted_order_ids", JSON.stringify(deletedIds));
@@ -5805,13 +5868,13 @@
 
                 // 💡 [실시간 출근 시간 바인딩 보강]
                 let displayCheckInTime = w.checkInTime;
-                
+
                 // 1순위: 로컬 스토리지의 사용자별 직접 출근 키 조회
                 const localCheckInTime = localStorage.getItem("kimp_check_in_time_" + k);
                 if (localCheckInTime && localCheckInTime !== "" && localCheckInTime !== "null") {
                     displayCheckInTime = localCheckInTime;
                 }
-                
+
                 // 2순위: 중앙 스토어 상태 조회
                 if (!displayCheckInTime || displayCheckInTime === '-') {
                     if (window.FactoryStore) {
@@ -5829,7 +5892,7 @@
                 }
 
                 const detailLogs = w.workDetailLogs || [];
-                const logsTooltip = detailLogs.length > 0 
+                const logsTooltip = detailLogs.length > 0
                     ? `[실적 누적 상세 내역]\n` + detailLogs.map(l => `• ${l}`).join('\n')
                     : '누적된 작업 실적 기록이 없습니다.';
 
@@ -6076,7 +6139,7 @@
             try {
                 const stored = localStorage.getItem("kimp_factory_finance");
                 if (stored) finance = JSON.parse(stored);
-            } catch(e) {}
+            } catch (e) { }
 
             finance.cost += costAmount;
             localStorage.setItem("kimp_factory_finance", JSON.stringify(finance));
@@ -6101,19 +6164,19 @@
             }
 
             localStorage.setItem("kimp_cabbage_unit_price", price.toString());
-            
+
             // 배추 재고 가격 정보 업데이트를 위해 inventory 단가 갱신
             let inventory = {};
             try {
                 inventory = JSON.parse(localStorage.getItem("kimp_factory_inventory") || "{}");
-            } catch(e) {}
+            } catch (e) { }
             if (inventory && inventory.cabbage) {
                 inventory.cabbage.unitPrice = price;
                 localStorage.setItem("kimp_factory_inventory", JSON.stringify(inventory));
             }
 
             alert(`배추 1포기당 단가가 ${price.toLocaleString()}원으로 변경되었습니다.`);
-            
+
             // 화면 갱신
             setTimeout(() => { refreshAllData(); }, 50);
         }
@@ -6122,7 +6185,7 @@
             let orders = [];
             try {
                 orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
-            } catch(e) {}
+            } catch (e) { }
 
             if (orders.length === 0) {
                 alert("출하/배송 대상 주문이 존재하지 않습니다.");
@@ -6327,7 +6390,7 @@
             printWindow.document.close();
         }
 
-        window.renderDeliveryLabels = function(selectedOrders) {
+        window.renderDeliveryLabels = function (selectedOrders) {
             // 가상 배송 메모 리스트 (문의사항이 지정되지 않았을 때 다채로움을 위해 매칭)
             const fallbackMemos = [
                 "문 앞에 놔주시고 벨은 누르지 말아주세요.",
@@ -6531,7 +6594,7 @@
         window.isPrintModeActive = false;
         window.selectedDeliveryOrderIds = {};
 
-        window.handleOrderCheckboxChange = function(orderId, isChecked) {
+        window.handleOrderCheckboxChange = function (orderId, isChecked) {
             if (isChecked) {
                 window.selectedDeliveryOrderIds[orderId] = true;
             } else {
@@ -6539,7 +6602,7 @@
             }
         }
 
-        window.toggleSelectAllOrders = function(master) {
+        window.toggleSelectAllOrders = function (master) {
             const checkboxes = document.querySelectorAll(".order-select-checkbox");
             checkboxes.forEach(cb => {
                 cb.checked = master.checked;
@@ -6552,12 +6615,12 @@
             });
         }
 
-        window.printSelectedDeliveryLabels = function() {
+        window.printSelectedDeliveryLabels = function () {
             // 1. 인쇄 모드가 비활성화되어 있는 경우 -> 활성화로 전환
             if (!window.isPrintModeActive) {
                 window.isPrintModeActive = true;
                 window.selectedDeliveryOrderIds = {}; // 선택 상태 초기화
-                
+
                 // 버튼 스타일 및 텍스트 강제 변경
                 const btn = document.getElementById("btn-bulk-print-delivery");
                 if (btn) {
@@ -6595,7 +6658,7 @@
             let allOrders = [];
             try {
                 allOrders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
-            } catch(e) {}
+            } catch (e) { }
 
             const selectedOrders = allOrders.filter(o => selectedIds.includes(o.orderId));
             if (selectedOrders.length === 0) {
@@ -6614,7 +6677,7 @@
             });
 
             localStorage.setItem("kimp_delivery_orders", JSON.stringify(allOrders));
-            
+
             // 인쇄 완료 후 자동 모드 리셋
             window.isPrintModeActive = false;
             window.selectedDeliveryOrderIds = {};
@@ -6631,11 +6694,11 @@
             setTimeout(() => { refreshAllData(); }, 100);
         }
 
-        window.printSingleDeliveryLabel = function(orderId) {
+        window.printSingleDeliveryLabel = function (orderId) {
             let allOrders = [];
             try {
                 allOrders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");
-            } catch(e) {}
+            } catch (e) { }
 
             const targetOrder = allOrders.find(o => o.orderId === orderId);
             if (!targetOrder) {
@@ -6654,7 +6717,7 @@
             });
 
             localStorage.setItem("kimp_delivery_orders", JSON.stringify(allOrders));
-            
+
             // 화면 갱신
             setTimeout(() => { refreshAllData(); }, 100);
         }
@@ -6798,7 +6861,7 @@
                     } else {
                         b.flipCount = b.flipCount || 0;
                         const nextFlipTriggerMs = (b.flipCount + 1) * 5 * 3600 * 1000;
-                        
+
                         const oldFlipPending = b.isFlipPending;
                         b.isFlipPending = false;
                         b.nextFlipTimeStr = "";
@@ -6886,7 +6949,7 @@
                         투입: 배추 <b>${b.cabbageHeads}포기</b> (${b.orderId || '지시서연동'})
                     </div>
                     <div class="salting-countdown">${countdownStr}</div>
-                    <div style="font-size:11px; color:var(--text-secondary);">${(limit/3600000).toFixed(0)}시간 절임 카운트다운</div>
+                    <div style="font-size:11px; color:var(--text-secondary);">${(limit / 3600000).toFixed(0)}시간 절임 카운트다운</div>
                     <div style="font-size:11px; font-weight:600; color:var(--accent-purple); margin-top:4px;">누적 뒤집기: ${flipCount}회</div>
                     ${flipHtml}
                     <button class="top-action-btn" style="width: 100%; margin-top: 10px; padding: 6px 0; font-size: 11px; background-color: var(--accent-purple-bg); color: var(--accent-purple); border: 1px solid var(--accent-purple); border-radius: 6px;" onclick="window.cheatCompleteSalting('${b.id}')">절임 즉시 완료 (치트)</button>
@@ -7085,13 +7148,13 @@
                 batch.status = "matured";
                 batch.maturedTime = Date.now() - 1000;
                 batch.cheated = true; // 치트 완료 플래그 활성화 (강제 리셋 방지)
-                
+
                 let maturedCabbages = parseInt(localStorage.getItem("kimp_factory_matured_cabbages") || "0");
                 maturedCabbages += batch.cabbageHeads || 15;
-                
+
                 localStorage.setItem("kimp_factory_salting", JSON.stringify(batches));
                 localStorage.setItem("kimp_factory_matured_cabbages", maturedCabbages.toString());
-                
+
                 addConsoleLog(`[치트] 배치 ${batchId}의 절임 보관이 즉시 완료 처리되었습니다.`);
                 refreshAllData();
             }
@@ -7664,7 +7727,7 @@
                     labels: ['최수아', '김수민', '현장 헬퍼(김영희)'],
                     datasets: [{
                         label: '작업자별 완료 지시서 수량',
-                        data: [2, 0, 1],
+                        data: [0, 0, 0],
                         backgroundColor: ['#0984e3', '#e1b12c', '#6c5ce7'],
                         borderWidth: 0,
                         borderRadius: 8
@@ -7763,7 +7826,7 @@
                     if (!workerNameMap[name]) workerNameMap[name] = 0;
                     workerNameMap[name] = Math.max(workerNameMap[name], workerOrderCount[name]);
                 });
-            } catch(e) {}
+            } catch (e) { }
 
             const workerNames = Object.keys(workerNameMap);
             const workerCounts = workerNames.map(n => workerNameMap[n]);
@@ -7805,7 +7868,7 @@
             // 매니저 전용 상태 로딩
             loadManagerStatus();
             initKimpDeliveryData(); // 주문 출하 및 부자재 초기화
-            
+
             // 💡 [초기 설정 동기화] 저장된 절임 시간 설정을 입력 폼 및 가이드 텍스트에 적용
             const initialSaltingSetting = getSaltingTimeSetting();
             const inputSalting = document.getElementById("input-salting-hours");
@@ -7836,7 +7899,7 @@
                                 obj = parsed;
                             }
                             window.FactoryStore.dispatch({ type: 'SET_PRODUCTION_ORDERS', payload: obj });
-                        } catch(err) {
+                        } catch (err) {
                             console.error("[Storage Sync Error]", err);
                         }
                     }
@@ -8102,12 +8165,12 @@
             // 💡 [추가] 생산 중인 배추 및 양념 무게 합산 계산
             let producingCabbageWeight = 0;
             let producingSeasoningWeight = 0;
-            
+
             try {
                 const prodOrders = Object.values(loadProductionOrders());
                 prodOrders.forEach(o => {
                     if (!o || o.status === "completed" || o.status === "Stage 6 완료") return;
-                    
+
                     // 1) 생산 중인 배추 (양념 지시서가 아니고, Stage 1 ~ Stage 5-2 완료 전 상태)
                     if (!o.isSeasoning) {
                         const taskStr = String(o.currentTask);
@@ -8116,7 +8179,7 @@
                             producingCabbageWeight += heads * 2.1; // 1포기당 절임배추 2.1kg 기준
                         }
                     }
-                    
+
                     // 2) 생산 중인 양념 (양념 지시서이며, 5-1 단계에서 작업이 제출되기 전 상태)
                     if (o.isSeasoning) {
                         const isCompleted = !!(o.stages && o.stages["5-1"] && o.stages["5-1"].statusSubmitted);
@@ -8126,7 +8189,7 @@
                         }
                     }
                 });
-            } catch(e) {
+            } catch (e) {
                 console.error("Failed to compute producing raw weights:", e);
             }
 
@@ -8429,7 +8492,7 @@
             }
         }
 
-        window.openOrderHistoryModal = function(orderId) {
+        window.openOrderHistoryModal = function (orderId) {
             const orders = loadProductionOrders();
             const o = orders[orderId];
             if (!o) {
@@ -8445,11 +8508,11 @@
             let brineSalinity = "-";
             let brineVolume = "-";
             let extraSalt = "-";
-            
+
             if (o.stages && o.stages[2]) {
                 const s2 = o.stages[2];
                 const specSalting = s2.step2_salting || {};
-                
+
                 const durationVal = s2.targetDuration !== undefined && s2.targetDuration !== null ? s2.targetDuration : specSalting.targetDuration;
                 const salinityVal = s2.brineSalinity !== undefined && s2.brineSalinity !== null ? s2.brineSalinity : specSalting.brineSalinity;
                 const volumeVal = s2.brineVolumeLiters !== undefined && s2.brineVolumeLiters !== null ? s2.brineVolumeLiters : specSalting.brineVolumeLiters;
@@ -8498,7 +8561,7 @@
             let approvalRequests = [];
             try {
                 approvalRequests = JSON.parse(localStorage.getItem("kimp_approval_requests") || "[]");
-            } catch(e) {}
+            } catch (e) { }
 
             let hasShownActiveInProgress = false;
 
@@ -8510,10 +8573,10 @@
                     stageData = o.stages && o.stages[s.id];
                 }
 
-                const pendingComp = approvalRequests.find(r => 
-                    r.orderId === o.orderId && 
-                    String(r.stageNum) === String(s.id) && 
-                    r.status === "pending" && 
+                const pendingComp = approvalRequests.find(r =>
+                    r.orderId === o.orderId &&
+                    String(r.stageNum) === String(s.id) &&
+                    r.status === "pending" &&
                     r.type === "completion"
                 );
 
@@ -8524,7 +8587,7 @@
 
                 let startTime = (stageData && stageData.startTime) || "-";
                 let endTime = (stageData && stageData.endTime) || "-";
-                
+
                 let qty = "-";
                 if (pendingComp && pendingComp.postWorkQty !== undefined) {
                     qty = pendingComp.postWorkQty;
@@ -8538,7 +8601,7 @@
                 } else if (stageData && stageData.postWorkWeight) {
                     weight = `${stageData.postWorkWeight}kg`;
                 }
-                
+
                 let operators = [];
                 if (stageData && stageData.operator) {
                     operators.push(stageData.operator);
@@ -8546,7 +8609,7 @@
                 if (pendingComp && pendingComp.userName && !operators.includes(pendingComp.userName)) {
                     operators.push(pendingComp.userName);
                 }
-                
+
                 if (stageData && stageData.workLogs) {
                     stageData.workLogs.forEach(log => {
                         const matchOp = log.match(/작업자:\s*([^\s|]+)/) || log.match(/작업자:([^\s|]+)/);
@@ -8605,13 +8668,13 @@
                     iconColor = "color: #718096;";
                 }
 
-                        let flipInfoHtml = "";
-                        if (s.id === "2") {
-                            const fc = (stageData && stageData.flipCount) || 0;
-                            flipInfoHtml = `<div style="grid-column: span 2; font-weight:600; color:#c084fc;">배추 뒤집기 완료 횟수: ${fc}회</div>`;
-                        }
+                let flipInfoHtml = "";
+                if (s.id === "2") {
+                    const fc = (stageData && stageData.flipCount) || 0;
+                    flipInfoHtml = `<div style="grid-column: span 2; font-weight:600; color:#c084fc;">배추 뒤집기 완료 횟수: ${fc}회</div>`;
+                }
 
-                        html += `
+                html += `
                             <div style="position: relative; padding: 12px; border: 1px solid #3f4257; border-radius: 8px; ${borderStyle}">
                                 <div style="position: absolute; left: -28px; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: #13141a; border: 2px solid ${isActivated && endTime !== '-' ? '#c084fc' : (isActivated && borderStyle.includes('fbbf24') ? '#fbbf24' : '#3f4257')};"></div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -8636,20 +8699,28 @@
             document.getElementById("order-history-modal").style.display = "flex";
         };
 
-        window.closeOrderHistoryModal = function() {
+        window.closeOrderHistoryModal = function () {
             document.getElementById("order-history-modal").style.display = "none";
         };
 
     </script>
 
     <!-- ── 생산지시서 상세 이력 팝업 모달 마크업 ── -->
-    <div class="modal-overlay" id="order-history-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
-        <div class="modal-content" style="background-color: #13141a; border: 2px solid #3f4257; border-radius: 12px; width: 90%; max-width: 600px; height: 580px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);">
-            <div class="modal-header" style="padding: 16px; border-bottom: 1px solid #3f4257; display: flex; justify-content: space-between; align-items: center; background-color: #1a1b24;">
-                <h3 style="margin: 0; color: #c084fc; font-size: 18px; font-weight: 700;"><i class="bi bi-clock-history"></i> 생산지시서 상세 이력 추적</h3>
-                <button style="background: none; border: none; color: #a0aec0; cursor: pointer; font-size: 20px; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#a0aec0'" onclick="closeOrderHistoryModal()"><i class="bi bi-x-lg"></i></button>
+    <div class="modal-overlay" id="order-history-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div class="modal-content"
+            style="background-color: #13141a; border: 2px solid #3f4257; border-radius: 12px; width: 90%; max-width: 600px; height: 580px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);">
+            <div class="modal-header"
+                style="padding: 16px; border-bottom: 1px solid #3f4257; display: flex; justify-content: space-between; align-items: center; background-color: #1a1b24;">
+                <h3 style="margin: 0; color: #c084fc; font-size: 18px; font-weight: 700;"><i
+                        class="bi bi-clock-history"></i> 생산지시서 상세 이력 추적</h3>
+                <button
+                    style="background: none; border: none; color: #a0aec0; cursor: pointer; font-size: 20px; transition: color 0.2s;"
+                    onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#a0aec0'"
+                    onclick="closeOrderHistoryModal()"><i class="bi bi-x-lg"></i></button>
             </div>
-            <div class="modal-body" id="order-history-modal-body" style="padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 16px; background-color: #13141a;">
+            <div class="modal-body" id="order-history-modal-body"
+                style="padding: 20px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 16px; background-color: #13141a;">
                 <!-- 상세 이력 리스트 노출 -->
             </div>
         </div>

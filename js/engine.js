@@ -183,10 +183,10 @@
                 }
             }
 
-            // Trigger page update/render functions
-            if (typeof updateClocks === 'function') {
-                updateClocks();
-            }
+            // // Trigger page update/render functions
+             if (typeof updateClocks === 'function') {
+                 updateClocks();
+             }
             if (typeof updateSalaryAndBreakTime === 'function') {
                 updateSalaryAndBreakTime();
             }

@@ -165,7 +165,7 @@
             // 렌더링 함수
             function renderCurrentTab(index) {
                 const user = getCurrentUser();
-                
+
                 if (index === 0) {
                     const profile = getWorkerProfile(user.name);
                     const hours = Math.floor(profile.workedHours || 0);
@@ -199,7 +199,7 @@
                     let db = [];
                     try {
                         db = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
-                    } catch(e) {}
+                    } catch (e) { }
 
                     const myReservations = db.filter(r => String(r.userId) === String(user.id) || r.userName === user.name);
 
@@ -227,7 +227,7 @@
 
                             let minimumWage = 10320;
                             let ratioVal = r.ratio ? Number(r.ratio) : 1.2;
-                            let expectedPay = Math.floor(minimumWage * 2 * ratioVal); 
+                            let expectedPay = Math.floor(minimumWage * 2 * ratioVal);
                             const displayRatio = ratioVal.toFixed(1);
 
                             html += `
@@ -273,7 +273,7 @@
                                     return parsed;
                                 }
                             }
-                        } catch(e) {}
+                        } catch (e) { }
 
                         const name = userObj ? userObj.name : "손님";
                         const today = new Date();
@@ -340,7 +340,7 @@
                     }
 
                     let historyData = getHistoryData(user);
-                    
+
                     historyData = [...historyData].sort((a, b) => {
                         let comparison = 0;
                         if (currentSortType === 'date') {
@@ -350,7 +350,7 @@
                         } else if (currentSortType === 'pay') {
                             comparison = (a.pay || 0) - (b.pay || 0);
                         }
-                        
+
                         return currentSortDir === 'asc' ? comparison : -comparison;
                     });
                     let html = '';
@@ -370,7 +370,23 @@
                         if (h.role === '매니저') badgeClass = 'badge03';
                         else if (h.role === '헬퍼') badgeClass = 'badge02';
 
-                        const displayTime = h.time || h.slot || '10:00 ~ 12:00';
+                        let rawTime = h.time || h.slot || '10:00 ~ 12:00';
+                        let displayTime = rawTime;
+
+                        if (rawTime.includes('~')) {
+                            // '~' 기준으로 출근/퇴근 시간 분리
+                            let parts = rawTime.split('~');
+
+                            // 각 시간의 ':'를 기준으로 쪼갠 뒤 시(0), 분(1)까지만 합침
+                            let start = parts[0].trim().split(':').slice(0, 2).join(':');
+                            let end = parts[1].trim().split(':').slice(0, 2).join(':');
+
+                            displayTime = `${start} ~ ${end}`;
+                        } else if (rawTime.includes(':')) {
+                            // 단일 시간만 있는 경우 방어 코드
+                            displayTime = rawTime.split(':').slice(0, 2).join(':');
+                        }
+                        
 
                         html += `
                         <div class="task-item" style="margin-bottom: 12px; cursor: pointer;" onclick="location.href='explore_detail.html?id=${h.id}'">

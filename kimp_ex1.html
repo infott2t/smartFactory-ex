@@ -671,6 +671,21 @@
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
         // ============================================================
+        // 💡 [시간 보정 및 타이머] 시스템 시간에 영향받지 않는 가상 시간 (반드시 최상단에 배치!)
+        // ============================================================
+        const APP_START_TIME = new Date().getTime();
+        const APP_START_PERF = performance.now();
+
+        function getVirtualNow() {
+            return new Date(APP_START_TIME + (performance.now() - APP_START_PERF));
+        }
+
+        let isResting = false;
+        let lastTickPerf = performance.now();
+        let localAccumWorkSeconds = 0;
+        let localAccumBreakSeconds = 0;
+        let restSeconds = 0;
+        // ============================================================
         // 💡 로그인 및 사용자 세션 관리 로직 (완전 통합본)
         // ============================================================
         function openLoginModal() {
@@ -695,6 +710,17 @@
 
             alert("모든 데이터가 초기화되었습니다. 페이지를 새로고침합니다.");
             location.reload();
+        }
+
+        // ============================================================
+        // 💡 [시간 보정] 시스템 시간 변경에 영향받지 않는 가상 시간 헬퍼
+        // ============================================================
+
+
+        // 이후 현재 시간은 항상 이 함수를 통해 구합니다.
+        function getVirtualNow() {
+            // 진입 시점 시간 + (현재 시점까지 브라우저가 실행된 순수 경과 시간)
+            return new Date(APP_START_TIME + (performance.now() - APP_START_PERF));
         }
 
         function performLogin(userId) {
@@ -725,6 +751,11 @@
             // login.html과 동일하게 세션스토리지에 저장
             sessionStorage.setItem("user-id", email);
             sessionStorage.setItem("user", JSON.stringify(userData));
+
+            localStorage.setItem("kimp_check_in_timestamp_" + email, getVirtualNow().getTime());
+
+            // 💡 [핵심 추가 1] 새로운 테스트 로그인 시, 과거에 공용으로 누적되었던 성과 기록을 완전히 삭제 (0으로 초기화)
+            localStorage.removeItem('kimp_ex0_performance');
 
             // 보건증 및 근무시간(worker_profile) 세션 강제 세팅 (login.html 방식 통합)
             sessionStorage.setItem("kimp_worker_profile", JSON.stringify({
@@ -850,7 +881,7 @@
         };
 
         function getRemainingSeconds() {
-            const now = new Date();
+            const now = getVirtualNow();
             const h = now.getHours();
             const m = now.getMinutes();
             const s = now.getSeconds();
@@ -885,8 +916,11 @@
         let brinePhotosCaptured = { salt: false, water: false };
 
         // 👇 여기에 휴식 상태를 관리할 변수를 추가합니다.
-        let isResting = false;  // 휴식 중인지 여부
-        let restSeconds = 0;    // 휴식 타이머 초
+
+        // 👇 시스템 시간에 영향받지 않는 가상 시간 및 독립 타이머 변수
+
+
+
 
         function getActiveOrderForStage(stageId, targetSpotId = null) {
             const raw = localStorage.getItem('kimp_production_orders');
@@ -1321,6 +1355,8 @@
         // ============================================================
         document.addEventListener('DOMContentLoaded', () => {
             initSession();
+            // 💡 초기화 과정에서 Step 7 강제 할당 실행
+            forceSetWorkingStep();
             updateHeaderInfo();
             setInterval(updateClocks, 1000);
 
@@ -2656,7 +2692,7 @@
 
         // 💡 [2시간 단위 시프트 남은 시간 계산 헬퍼]
         function getShiftRemainingSeconds() {
-            const now = new Date();
+            const now = getVirtualNow();
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
             const currentSeconds = now.getSeconds();
 
@@ -2689,52 +2725,40 @@
         }
 
         // 💡 [출근 이후 경과 초 계산 헬퍼]
+        // 💡 [출근 이후 경과 초 계산 헬퍼 - 타임스탬프 기반 완벽 수정]
         function getElapsedSecondsFromCheckIn() {
             const userId = sessionStorage.getItem("user-id") || "guest";
+            let startTimestamp = localStorage.getItem("kimp_check_in_timestamp_" + userId);
 
-            // 💡 [방어 코드] window.getPartitionedItem 이 정의 안 된 상황을 완벽하게 방지
-            let checkInTimeStr = null;
-            if (typeof window.getPartitionedItem === 'function') {
-                try { checkInTimeStr = window.getPartitionedItem("kimp_check_in_time"); } catch (e) { }
-            }
-            if (!checkInTimeStr) {
-                checkInTimeStr = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
+            // 저장된 타임스탬프가 없으면 (페이지에 처음 들어온 시점) 현재 시간 숫자로 기록
+            if (!startTimestamp) {
+                startTimestamp = getVirtualNow().getTime();
+                localStorage.setItem("kimp_check_in_timestamp_" + userId, startTimestamp);
             }
 
-            // 💡 [핵심 수정] 로그인 후 아이디가 바뀌었을 때 출근 기록이 없다면 현재 시간으로 자동 생성!
-            if (!checkInTimeStr || checkInTimeStr === '-' || checkInTimeStr === 'null') {
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                checkInTimeStr = `${hours}:${minutes}:${seconds}`;
+            // (현재 시간 - 출근 시간) / 1000 = 순수하게 흐른 초 단위 시간
+            let diffMs = getVirtualNow().getTime() - parseInt(startTimestamp, 10);
+            if (diffMs < 0) diffMs = 0;
 
-                if (typeof window.setPartitionedItem === 'function') {
-                    window.setPartitionedItem("kimp_check_in_time", checkInTimeStr);
-                } else {
-                    localStorage.setItem("kimp_check_in_time_" + userId, checkInTimeStr);
-                }
-            }
-
-            const parts = checkInTimeStr.split(':');
-            if (parts.length < 2) return 0;
-
-            const now = new Date();
-            const checkInDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
-                parseInt(parts[0]), parseInt(parts[1]), parts[2] ? parseInt(parts[2]) : 0);
-
-            let diffMs = now.getTime() - checkInDate.getTime();
-            if (diffMs < 0) {
-                diffMs = 0;
-            }
             return Math.floor(diffMs / 1000);
         }
+
 
         // ============================================================
         // 4. 시계/급여 타이머 업데이트 (조퇴 완료 시 현재시간만 흐름)
         // ============================================================
+        // ============================================================
+        // 4. 시계/급여 타이머 업데이트 (조퇴 완료 시 현재시간만 흐름)
+        // ============================================================
+        // 1. 실시간 시계 및 급여 타이머 (교대 차감/보너스, 도움 보너스 완벽 합산)
+        // 1. 실시간 시계 및 급여 타이머 (독립형 정밀 타이머 적용)
+        // 1. 실시간 시계 및 급여 타이머 (독립형 정밀 타이머 적용)
+        // ============================================================
+        // 4. 시계/급여 타이머 업데이트 (조퇴 완료 시 현재시간만 흐름)
+        // ============================================================
+        // 1. 실시간 시계 및 급여 타이머 (독립형 정밀 타이머 적용 완료)
         function updateClocks() {
-            const now = new Date();
+            const now = getVirtualNow();
             const curEl = document.getElementById('clock-current');
             const remEl = document.getElementById('clock-remaining');
             const salEl = document.getElementById('salary-display');
@@ -2744,57 +2768,77 @@
             if (curEl) curEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             if (typeof isWorkFinished !== 'undefined' && isWorkFinished) return;
 
-            // 💡 2시간 단위 시프트 기반으로 작업 남은 시간을 실시간 계산 및 반영
             remainingSeconds = getShiftRemainingSeconds();
 
-            try {
-                let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
-                let myKey = Object.keys(workers).find(k => workers[k].userName === appData.user.name);
+            // ==========================================================
+            // 💡 [새로고침 방어] 브라우저 경과 시간을 이용해 휴식 시간 누적
+            // ==========================================================
+            const currentPerf = performance.now();
+            const deltaSecs = (currentPerf - lastTickPerf) / 1000;
+            lastTickPerf = currentPerf;
 
-                if (myKey && workers[myKey]) {
-                    // 매니저가 계산해서 올려둔 진짜 휴식 시간 정보 동기화
-                    restSeconds = workers[myKey].accumBreakSeconds || 0;
-                }
-            } catch (e) {
-                console.error("데이터 동기화 에러:", e);
+            let workers = {};
+            try { workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}"); } catch (e) { }
+            let myKey = Object.keys(workers).find(k => workers[k].userName === (appData.user.name || "손님"));
+
+            // 새로고침으로 인해 초기화되었다면 로컬 스토리지에서 복구
+            if (myKey && workers[myKey] && localAccumBreakSeconds === 0) {
+                localAccumBreakSeconds = workers[myKey].accumBreakSeconds || 0;
             }
 
+            // 내가 휴식 중일 때만 휴식 시간(deltaSecs) 누적
+            if (typeof isResting !== 'undefined' && isResting) {
+                localAccumBreakSeconds += deltaSecs;
+            }
 
-            // 💡 예상 급여액 실시간 초당 누적 계산 (2026년 최저임금 10,320원의 1.2배인 12,384원 기준)
+            // UI 호환용 변수 매핑
+            let restSeconds = Math.floor(localAccumBreakSeconds);
+
+            // 전체 경과 시간 - 휴식 시간 = 실제 순수 근로 시간
             const elapsedSecs = getElapsedSecondsFromCheckIn();
-
-            // 👉 총 경과 시간(elapsedSecs)에서 누적 휴식 시간(restSeconds)을 뺀 '실제 작업 시간' 산출
             const actualWorkSecs = Math.max(0, elapsedSecs - restSeconds);
 
-            // 💡 세션스토리지에 저장된 선택한 예약 정보(selected_reservation)에서 배율(ratio) 값을 가져옵니다.
-            let ratio = 1.2; // 기본값 1.2
+            // 단말기 자체 계산값을 상태로 덮어씌워 매니저에 전달
+            if (myKey && workers[myKey]) {
+                workers[myKey].status = isResting ? "on_break" : "active";
+                if (isResting) workers[myKey].location = "공정 밖";
+                workers[myKey].accumWorkSeconds = actualWorkSecs;
+                workers[myKey].accumBreakSeconds = restSeconds;
+                localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+            }
+            // ==========================================================
+
+            // 급여 계산
+            let ratio = 1.2;
             try {
                 const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
-                if (selRes && selRes.ratio !== undefined) {
-                    ratio = Number(selRes.ratio);
-                }
+                if (selRes && selRes.ratio !== undefined) ratio = Number(selRes.ratio);
             } catch (e) { }
 
-            // 2026년 최저임금 10,320원에 예약 배율(ratio)을 곱한 뒤 초당 시급으로 나눕니다.
             const hourlyWage = 10320 * ratio;
             const wageRatePerSecond = hourlyWage / 3600;
 
-            // 👉 실제 작업 시간에 초당 시급을 곱하여 누적 급여를 산출합니다.
-            accumSalary = actualWorkSecs * wageRatePerSecond;
+            let baseSalary = actualWorkSecs * wageRatePerSecond;
+            let totalBonus = (detailHelpGiven * 500) + detailShiftBonus;
+            accumSalary = Math.max(0, baseSalary - detailShiftDeduct + totalBonus);
 
-
-            // 💡 화면 렌더링 (가져온 데이터 렌더링)
+            // UI 업데이트
             if (restEl || modalRestEl) {
                 const rHrs = Math.floor(restSeconds / 3600);
                 const rMins = Math.floor((restSeconds % 3600) / 60);
-                const rSecs = restSeconds % 60;
+                const rSecs = Math.floor(restSeconds % 60);
                 const restTimeStr = `${String(rHrs).padStart(2, '0')}:${String(rMins).padStart(2, '0')}:${String(rSecs).padStart(2, '0')}`;
-
                 if (restEl) restEl.textContent = restTimeStr;
                 if (modalRestEl) modalRestEl.textContent = restTimeStr;
             }
 
-            if (remEl) remEl.textContent = `${String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+            if (remEl) {
+                const h = Math.floor(remainingSeconds / 3600);
+                const m = Math.floor((remainingSeconds % 3600) / 60);
+                const s = Math.floor(remainingSeconds % 60);
+                remEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+
             if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
         }
 
@@ -3219,6 +3263,7 @@
         let leaveTimer = null;
         let leaveSecondsLeft = 300; // 5분 = 300초
         let isWorkFinished = false; // 퇴근/조퇴 완료 여부
+        let isEarlyLeave = false; // 
 
         // 1. 조퇴 사유 선택 폼
         function showLeaveForm() {
@@ -3329,6 +3374,7 @@
             playShutterSound();
             addLog("[조퇴] 작업장 퇴실 완료. 업무가 종료되었습니다.");
             isWorkFinished = true; // 배경의 급여 타이머 등을 멈추기 위한 플래그
+            isEarlyLeave = true; // 💡 조퇴임을 명시 (새로 추가)
 
             // 💡 [핵심 추가] body에 클래스를 추가하여 뒷배경 클릭을 원천 차단
             document.body.classList.add('work-finished');
@@ -3528,142 +3574,147 @@
         }
 
         // 최종 퇴근 및 이력 저장 마이그레이션
+        // 5. 퇴근 영수증에 헬퍼 직급 강등 버그 수정
+        // 최종 퇴근 및 이력 저장 마이그레이션
+        // 💡 [수정됨] 마이페이지로 넘어가는 출근/퇴근 시간 및 근무 시간을 타임스탬프 기반으로 완벽 계산
         function finalCheckoutWork() {
-            // 1. 퇴근 로그 최종 기록
             addLog("[퇴근] 오늘 생산 공정 체험을 모두 마치고 안전하게 퇴근하였습니다. 수고하셨습니다!");
-
-            // 2. 예약 데이터 및 마이페이지 이력 데이터 처리
             try {
                 const userId = sessionStorage.getItem("user-id") || "guest";
                 const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
                 const userName = userObj.name || "손님";
 
-                // 2-1. 오늘 날짜 예약 건 지우기
-                const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
-                let reservations = [];
-                try {
-                    reservations = JSON.parse(localStorage.getItem("mypage_reservations_" + userId) || "[]");
-                } catch (e) { }
+                const todayStr = new Date().toISOString().split('T')[0];
+                let reservations = JSON.parse(localStorage.getItem("mypage_reservations_" + userId) || "[]");
                 if (!Array.isArray(reservations)) reservations = [];
-
                 const filteredReservations = reservations.filter(r => r.date !== todayStr);
                 localStorage.setItem("mypage_reservations_" + userId, JSON.stringify(filteredReservations));
 
-                // 2-2. 마이페이지 히스토리에 완료 기록 추가
-                let history = [];
-                try {
-                    history = JSON.parse(localStorage.getItem("mypage_history_" + userId) || "[]");
-                } catch (e) { }
+                let history = JSON.parse(localStorage.getItem("mypage_history_" + userId) || "[]");
                 if (!Array.isArray(history)) history = [];
 
-                // 동료 목록 수집
                 let coworkers = ["김수민", "최수아", "김영희"];
                 try {
                     const workersProg = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
-                    const names = Object.values(workersProg)
-                        .map(w => w.userName)
-                        .filter(name => name && name !== userName);
+                    const names = Object.values(workersProg).map(w => w.userName).filter(name => name && name !== userName);
                     if (names.length > 0) coworkers = names;
                 } catch (e) { }
 
-                // 사용한 사물함 정보 가져오기
                 const lockerGender = localStorage.getItem('kimp_locker_gender') || '남성';
                 const lockerNumber = localStorage.getItem('kimp_locker_number') || '2';
                 const lockerSize = localStorage.getItem('kimp_locker_size') || 'XXL';
 
-                // 누적된 로그 정보 포맷팅
-                const formattedLogs = (appData.logs || []).map(l => `[${l.time}] ${l.text}`);
+                const formattedLogs = (appData.logs || []).map(l => {
+                    let baseStr = `[${l.time}] ${l.text}`;
+                    if (l.photo) baseStr += `|IMG|${l.photo}`;
+                    return baseStr;
+                });
 
-                let workTimeStr = "10:00 ~ 12:00"; // 기본값
+                // =======================================================
+                // 💡 1. 타임스탬프를 이용한 정확한 출근/퇴근 시간 추출
+                // =======================================================
+                let checkInTimeStr = "10:00:00";
+                const startTimestamp = localStorage.getItem("kimp_check_in_timestamp_" + userId);
+
+                if (startTimestamp) {
+                    // 저장된 타임스탬프를 시간 객체로 변환하여 시:분:초 포맷으로 만듦
+                    const startDate = new Date(parseInt(startTimestamp, 10));
+                    checkInTimeStr = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}:${String(startDate.getSeconds()).padStart(2, '0')}`;
+                } else {
+                    // 혹시나 타임스탬프가 없다면 기존 방식의 데이터 폴백
+                    const oldTime = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
+                    if (oldTime) {
+                        checkInTimeStr = oldTime.split(':').length === 2 ? oldTime + ":00" : oldTime;
+                    }
+                }
+
+                // 퇴근 시간 역시 가상 시간(getVirtualNow)을 우선 사용
+                const now = typeof getVirtualNow === 'function' ? getVirtualNow() : new Date();
+                const checkOutTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                const checkOutTimeShort = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+                let workTimeStr = "10:00 ~ 12:00";
                 try {
                     const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
                     if (selRes && selRes.slot !== undefined) {
                         const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
                         workTimeStr = slotLabels[selRes.slot] || "10:00 ~ 12:00";
                     } else {
-                        let checkInTime = "";
-                        const oldUserIds = [`local-${userObj.email}`, userId];
-                        for (let oldId of oldUserIds) {
-                            let v = localStorage.getItem("kimp_check_in_time_" + oldId);
-                            if (v) { checkInTime = v; break; }
-                        }
-                        if (!checkInTime) {
-                            checkInTime = localStorage.getItem("kimp_check_in_time") || "10:00";
-                        }
-                        const now = new Date();
-                        const checkOutTime = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
-                        workTimeStr = `${checkInTime} ~ ${checkOutTime}`;
+                        workTimeStr = `${checkInTimeStr} ~ ${checkOutTimeShort}`;
                     }
                 } catch (e) { }
 
-                // 예약 비율 가져오기
                 let ratio = 1.2;
                 try {
                     const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
-                    if (selRes && selRes.ratio !== undefined) {
-                        ratio = Number(selRes.ratio);
+                    if (selRes && selRes.ratio !== undefined) ratio = Number(selRes.ratio);
+                } catch (e) { }
+
+                let actualWorkMin = 120;
+                try {
+                    // 만들어두었던 경과시간 계산 함수 재활용
+                    if (typeof getElapsedSecondsFromCheckIn === 'function') {
+                        const workedSeconds = getElapsedSecondsFromCheckIn();
+                        actualWorkMin = Math.floor(workedSeconds / 60);
                     }
                 } catch (e) { }
+                // =======================================================
 
-                // 실제 근무시간 분 단위 구하기
-                let actualWorkMin = 120; // 기본 2시간
-                try {
-                    const workedSeconds = getElapsedSecondsFromCheckIn();
-                    actualWorkMin = Math.floor(workedSeconds / 60);
-                } catch (e) { }
-
-                // 실제 출퇴근 시각 구하기
-                let checkInTimeStr = null;
-                if (typeof window.getPartitionedItem === 'function') {
-                    try { checkInTimeStr = window.getPartitionedItem("kimp_check_in_time"); } catch (e) { }
-                }
-                if (!checkInTimeStr) {
-                    checkInTimeStr = localStorage.getItem("kimp_check_in_time_" + userId) || localStorage.getItem("kimp_check_in_time");
-                }
-                if (!checkInTimeStr) {
-                    checkInTimeStr = "10:00:00";
-                } else if (checkInTimeStr.split(':').length === 2) {
-                    checkInTimeStr = checkInTimeStr + ":00";
-                }
-
-                const now = new Date();
-                const checkOutTimeStr = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
-
-                // 실제 휴식시간 분 단위 구하기
                 let detailBreakTime = 0;
-                if (typeof restSeconds !== 'undefined') {
-                    detailBreakTime = Math.floor(restSeconds / 60);
-                }
+                if (typeof restSeconds !== 'undefined') detailBreakTime = Math.floor(restSeconds / 60);
 
-                // 유저 역할 가져오기
                 let userRole = "일반";
                 try {
                     const role = appData.user.role;
-                    if (role === "헬퍼" || role === "매니저") userRole = role;
+                    if (role === "헬퍼" || role === "ROLE_HELPER" || role === "HELPER") userRole = "헬퍼";
+                    else if (role === "매니저" || role === "ROLE_MANAGER" || role === "MANAGER") userRole = "매니저";
                 } catch (e) { }
-                // --- [추가/수정할 코드] 모든 Stage 성과 횟수 통합 계산 ---
+
                 let stageCounts = { "1": 0, "2": 0, "3": 0, "4": 0, "5-1": 0, "5-2": 0, "6": 0 };
                 let realFlipCount = 0;
+                let progressCount = 0;
 
                 try {
-                    // 1. 모든 공정(Stage 1 ~ 6) 완료 횟수 합산
+                    const allOrdersRaw = localStorage.getItem('kimp_production_orders');
+                    if (allOrdersRaw) {
+                        const allOrders = JSON.parse(allOrdersRaw);
+                        Object.values(allOrders).forEach(o => {
+                            if (!o || !o.stages) return;
+                            Object.keys(o.stages).forEach(stageKey => {
+                                const s = o.stages[stageKey];
+                                const operator = s.operator || (s.operators && s.operators[0]);
+                                if (operator === userName && s.statusSubmitted) {
+                                    let sKey = String(stageKey);
+                                    if (sKey === "3-2" || sKey === "32") sKey = "3";
+                                    if (stageCounts[sKey] !== undefined) stageCounts[sKey]++;
+                                }
+                            });
+                        });
+                    }
+
                     let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
+                    let perfStageCounts = { "1": 0, "2": 0, "3": 0, "4": 0, "5-1": 0, "5-2": 0, "6": 0 };
                     perfs.forEach(p => {
-                        let stageKey = String(p.stage);
-                        if (stageCounts[stageKey] !== undefined) {
-                            stageCounts[stageKey]++;
-                        }
+                        let sKey = String(p.stage);
+                        if (perfStageCounts[sKey] !== undefined) perfStageCounts[sKey]++;
                     });
 
-                    // 2. 뒤집기 완료 횟수 추출
+                    Object.keys(stageCounts).forEach(key => {
+                        stageCounts[key] = Math.max(stageCounts[key], perfStageCounts[key]);
+                    });
+
                     let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
                     let myKey = Object.keys(workers).find(k => workers[k].userName === userName);
-                    if (myKey && workers[myKey] && workers[myKey].workDetailLogs) {
-                        realFlipCount = workers[myKey].workDetailLogs.filter(log => log.includes("배추 뒤집기 완료")).length;
+                    if (myKey && workers[myKey]) {
+                        progressCount = workers[myKey].completedOrdersCount || 0;
+                        if (workers[myKey].workDetailLogs) {
+                            realFlipCount = workers[myKey].workDetailLogs.filter(log => log.includes("배추 뒤집기 완료")).length;
+                        }
                     }
-                } catch (e) {
-                    console.error("성과 횟수 계산 중 오류:", e);
-                }
+
+                    let currentSum = Object.values(stageCounts).reduce((a, b) => a + b, 0);
+                    if (progressCount > currentSum) stageCounts["1"] += (progressCount - currentSum);
+                } catch (e) { }
 
                 const historyItem = {
                     id: Date.now(),
@@ -3675,22 +3726,17 @@
                     locker: `${lockerGender} Safe 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
                     coworkers: coworkers,
-
-                    // 수집된 세부 변수 저장 추가
                     helpGiven: detailHelpGiven,
                     helpReceived: detailHelpReceived,
                     shiftDeduct: detailShiftDeduct,
                     shiftBonus: detailShiftBonus,
-                    breakTimeMin: detailBreakTime, // 실제 쉰 시간 대입
+                    breakTimeMin: detailBreakTime,
                     ratio: ratio,
                     actualWorkMin: actualWorkMin,
                     isEarlyLeave: isEarlyLeave,
                     checkoutType: isEarlyLeave ? "조퇴" : "퇴근",
-                    // --- [수정] 전체 횟수가 담긴 객체 전달 ---
                     stageCounts: stageCounts,
                     flipCount: realFlipCount,
-
-                    // 실제 출근 및 퇴근 시각 명시적 추가
                     checkInTime: checkInTimeStr,
                     checkOutTime: checkOutTimeStr
                 };
@@ -3698,7 +3744,6 @@
                 history.push(historyItem);
                 localStorage.setItem("mypage_history_" + userId, JSON.stringify(history));
 
-                // 스토어 싱크를 위해 FactoryStore 디스패치 (로드되어 있다면)
                 if (window.FactoryStore) {
                     window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: filteredReservations });
                     window.FactoryStore.dispatch({ type: 'SET_HISTORY', payload: history });
@@ -3707,7 +3752,11 @@
                 console.error("Failed to migrate work history to mypage:", e);
             }
 
-            // 3. 출근 세션 데이터 및 임시 데이터 삭제
+            // =======================================================
+            // 💡 2. 작업이 끝났으므로 기존 출근 기록을 모두 깨끗이 지웁니다.
+            // =======================================================
+            const userId = sessionStorage.getItem("user-id") || "guest";
+
             if (typeof removePartitionedItem === 'function') {
                 removePartitionedItem('kimp_check_in_time');
                 removePartitionedItem('kimp_handover_req');
@@ -3715,6 +3764,10 @@
                 localStorage.removeItem('kimp_check_in_time');
                 localStorage.removeItem('kimp_handover_req');
             }
+
+            // 타임스탬프 키도 깔끔하게 삭제
+            localStorage.removeItem("kimp_check_in_timestamp_" + userId);
+            localStorage.removeItem("kimp_check_in_time_" + userId);
 
             document.body.classList.remove('work-finished');
             closeActionModal();
@@ -5175,6 +5228,7 @@
             exitStageToWaitingArea(stageId, appData.activeSpotId);
         }
 
+        // 2. 교대 요청 완료 시 퇴실(휴식) QR 정상 호출
         function submitHandover(isFromHelper) {
             const msg = window.currentHandoverMessage;
             if (isFromHelper) {
@@ -5183,11 +5237,11 @@
                 addLog(`[인수인계] ${msg}`);
             }
 
-            // 💡 다음 작업자가 볼 수 있도록 localStorage에 메시지 저장
             if (appData.activeStageId !== 0) {
                 localStorage.setItem(`kimp_auto_handover_msg_${appData.activeStageId}`, msg);
             }
 
+            // 작업 뺏김 시 휴식하러 나가기 화면 띄움
             showRestExitQR();
         }
 
@@ -5206,7 +5260,7 @@
             saveHelperRequest(req);
 
             const content = `
-                <div style="text-align: center; padding: 20px 0;">
+                <div id="help-process-container" style="text-align: center; padding: 20px 0;">
                     <i class="bi bi-arrow-repeat spin-anim" style="font-size: 56px; color: var(--warning); display: inline-block;"></i>
                     <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 매칭 대기 중</p>
                     <p id="help-pending-dynamic-text" style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
@@ -5386,6 +5440,7 @@
                 addLog(`[제품 QR] 제품 일치 여부 확인 완료: ${mockQR}`);
             }
         }
+        // 3. 교대 승인 시 도움 요청자(초심자)에게 2000원 삭감 적용
         function checkMyRequestStatus() {
             let req = getHelperRequest();
             if (!req || req.status === 'canceled') {
@@ -5410,10 +5465,10 @@
                     <i class="bi bi-person-walking" style="font-size: 56px; color: #10b981;"></i>
                     <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼 이동 중!</p>
                     <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
-                        ${req.isHandoverCall ? "헬퍼가 가고 있습니다. 기다려주세요." : "헬퍼님이 도착하여 도움을 드리겠습니다.<br>기다려주세요."}
+                        ${req.isHandoverCall ? "헬퍼님이 교대 호출을 수락하여 오고 있습니다.<br>잠시만 기다려주세요." : "헬퍼님이 도착하여 도움을 드리겠습니다.<br>기다려주세요."}
                     </p>
                     <button class="btn-huge danger" style="background-color: var(--danger); color: white;" onclick="cancelStageHelp()">
-                        <i class="bi bi-x-circle"></i> 도움받기 취소
+                        <i class="bi bi-x-circle"></i> 호출 취소
                     </button>
                 `;
             } else if (req.status === 'advising') {
@@ -5424,49 +5479,50 @@
                     <i class="bi bi-people-fill" style="font-size: 56px; color: #3b82f6;"></i>
                     <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">헬퍼가 지금 도착했습니다.</p>
                     <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 24px;">
-                        ${req.isHandoverCall ? "헬퍼가 가고 있습니다. 기다려주세요." : `헬퍼님이 도움을 드리고 있습니다. (경과 시간: ${m}:${s})<br>잠시만 기다려주세요.`}
+                        ${req.isHandoverCall
+                        ? `헬퍼님이 작업을 인계받아 대신 수행 중입니다.<br>도움 받는 중... (경과 시간: <span style="color:var(--primary); font-weight:bold;">${m}:${s}</span>)`
+                        : `헬퍼님이 도움을 드리고 있습니다.<br>(경과 시간: <span style="color:var(--primary); font-weight:bold;">${m}:${s}</span>)<br>잠시만 기다려주세요.`}
                     </p>
                 `;
             } else if (req.status === 'completed') {
                 clearInterval(requesterPollInterval);
 
                 if (req.isHandoverCall) {
-                    // 교대 호출 정산 처리
-                    accumSalary -= 2000;
-                    const salEl = document.getElementById('accum-salary');
+                    // 교대 요청자의 영수증 차감 변수에 2000원 기록!
+                    detailShiftDeduct += 2000;
+                    accumSalary = Math.max(0, accumSalary - 2000);
+                    const salEl = document.getElementById('salary-display');
                     if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
 
                     detailHelpReceived++;
                     addLog(`[라운지] 헬퍼가 매칭 및 교대 완료되어 2,000원이 차감되었습니다.`);
-
-                    // 헬퍼 요청 최종 소거
                     saveHelperRequest(null);
 
-                    // 모달 닫기
-                    closeActionModal();
-
-                    // 인수인계 제출 및 퇴실
                     submitHandover(true);
+                    document.getElementById('action-modal').classList.add('open');
                 } else {
                     let counts = getHelperFreeCounts();
                     let freeLeft = counts[appData.user.name] ?? 5;
-                    let costMsg = freeLeft > 0 ? `무료 횟수 1회가 차감되었습니다. (남은 횟수: ${freeLeft - 1}회)` : "500원이 차감되었습니다.";
+                    let costMsg = "";
 
                     if (freeLeft > 0) {
-                        counts[appData.user.name] = freeLeft - 1;
+                        freeLeft = freeLeft - 1;
+                        counts[appData.user.name] = freeLeft;
                         saveHelperFreeCounts(counts);
+                        costMsg = `무료 횟수 1회가 차감되었습니다. (남은 찬스: ${freeLeft}회)`;
+                    } else {
+                        accumSalary = Math.max(0, accumSalary - 500);
+                        const salEl = document.getElementById('salary-display');
+                        if (salEl) salEl.textContent = Math.floor(accumSalary).toLocaleString() + ' 원';
+                        costMsg = "실시간 급여에서 500원이 차감되었습니다.";
                     }
 
-                    // 도움받은 횟수 누적
                     detailHelpReceived++;
-
                     let helperName = req.helperName || '헬퍼';
                     let m = Math.floor((req.duration || 0) / 60);
                     let s = (req.duration || 0) % 60;
                     let timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
                     addLog(`[라운지] ${timeStr} 동안 ${helperName} 헬퍼님에게 도움을 받았습니다. (${costMsg})`);
-
-                    // 헬퍼 요청 최종 소거
                     saveHelperRequest(null);
 
                     container.innerHTML = `
@@ -6102,6 +6158,7 @@
             }, 1000);
         }
 
+        // 4. 헬퍼의 도움 분기 처리 (교대 보너스 2000 vs 일반 보너스 500 + 횟수추가)
         function completeActiveHelp() {
             if (activeHelpInterval) clearInterval(activeHelpInterval);
             if (helpTimerInterval) clearInterval(helpTimerInterval);
@@ -6112,15 +6169,20 @@
                 req.duration = activeHelpSeconds;
                 saveHelperRequest(req);
 
-                // 헬퍼 보너스 급여 가산
-                let bonus = parseInt(localStorage.getItem("kimp_helper_bonus") || "0");
-                bonus += 500;
-                localStorage.setItem("kimp_helper_bonus", bonus.toString());
-
                 let m = Math.floor(activeHelpSeconds / 60);
                 let s = activeHelpSeconds % 60;
                 let timeStr = m > 0 ? `${m}분 ${s}초` : `${s}초`;
-                addLog(`[헬퍼 임무] Stage ${req.stage}에서 ${req.requester}님에게 ${timeStr} 동안 도움을 주었습니다. 수익 500원.`);
+
+                if (req.isHandoverCall) {
+                    detailShiftBonus += 2000; // 교대 시 보너스 2000원 추가!
+                    addLog(`[헬퍼 임무] Stage ${req.stage}에서 ${req.requester}님의 작업을 인수(교대)하였습니다. 교대 보너스 2,000원 획득.`);
+                } else {
+                    detailHelpGiven++; // 일반 도움 시 '도움 준 횟수' 증가!
+                    let bonus = parseInt(localStorage.getItem("kimp_helper_bonus") || "0");
+                    bonus += 500;
+                    localStorage.setItem("kimp_helper_bonus", bonus.toString());
+                    addLog(`[헬퍼 임무] Stage ${req.stage}에서 ${req.requester}님에게 ${timeStr} 동안 도움을 주었습니다. 수익 500원.`);
+                }
             }
             document.getElementById('active-help-modal').classList.remove('open');
             showHmiToast('<i class="bi bi-check-circle-fill" style="color: #10b981;"></i> 도움을 완료하고 복귀했습니다.');
@@ -6300,6 +6362,50 @@
         // document.addEventListener('DOMContentLoaded', () => {
         //     initSystem();
         // });
+        // 💡 [추가됨] kimp_ex1.html 진입 시, manager.html의 타이머 가동 조건(Step 7 이상)을 충족시키는 함수
+        function forceSetWorkingStep() {
+            try {
+                // 1. 현재 사용자 이름 가져오기 (appData 또는 sessionStorage 사용)
+                const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
+                const userName = (typeof appData !== 'undefined' && appData.user && appData.user.name)
+                    ? appData.user.name
+                    : (userObj.name || "손님");
+
+                // 2. localStorage에서 전체 작업자 상태 가져오기
+                let workers = JSON.parse(localStorage.getItem("kimp_workers_progress") || "{}");
+
+                // 3. 내 키값 찾기
+                let myKey = Object.keys(workers).find(k => workers[k].userName === userName);
+
+                if (myKey && workers[myKey]) {
+                    let isChanged = false;
+
+                    // 💡 핵심: currentStep이 7보다 작다면, 7로 강제 점프시켜 타이머 가동 조건을 충족시킵니다!
+                    if (workers[myKey].currentStep < 7) {
+                        workers[myKey].currentStep = 7;
+                        workers[myKey].stepName = "Step 7. 김치 공정 실습 진행 중";
+                        workers[myKey].location = "AFood Kimchi룸(작업장)";
+                        isChanged = true;
+                    }
+
+                    // 만약 출근 시간(checkInTime)도 찍혀있지 않다면 현재 시간으로 발급합니다 (타이머 필수 조건)
+                    if (!workers[myKey].checkInTime || workers[myKey].checkInTime === "-") {
+                        workers[myKey].checkInTime = new Date().toLocaleTimeString();
+                        isChanged = true;
+                    }
+
+                    // 변경사항이 있다면 저장하여 manager.html 및 engine.js에 알림
+                    if (isChanged) {
+                        workers[myKey].status = "active";
+                        workers[myKey].lastActiveTime = new Date().toISOString();
+                        localStorage.setItem("kimp_workers_progress", JSON.stringify(workers));
+                        console.log("[System] 작업자가 공정 화면에 진입하여 Step 7로 상태를 업데이트하고 타이머를 가동합니다.");
+                    }
+                }
+            } catch (e) {
+                console.error("작업 단계 강제 업데이트 중 오류 발생:", e);
+            }
+        }
     </script>
 
     <!-- 헬퍼 모드 UI 플로팅 버튼 -->
