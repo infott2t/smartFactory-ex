@@ -1,6 +1,11 @@
   .header {
-      padding-bottom: 48px;
+      padding-bottom: 34px;
+      padding-top: 16px;
   }
+
+  .task-item:first-child {
+    padding-top: 19px !important;
+}
 
   /* 기본 탭 설정 및 여백 조정 */
   .content-area {
@@ -34,7 +39,7 @@
       align-items: center;
       width: 100%;
       box-sizing: border-box;
-      padding: 0 15px;
+      padding: 18px 15px;
       /* 좌우 여백 */
       border-bottom: 1px solid #2a2a35;
       /* var(--var-line-color1) 대체 다크 테마 라인 */
@@ -134,3 +139,16 @@
           font-size: 12px;
       }
   }
+
+  /* 1. 각 탭의 리스트 컨테이너 여백을 동일하게 통일 (HTML 인라인 스타일 강제 덮어쓰기) */
+ 
+
+/* 2. 정렬 바(sort-row)의 높이를 고정하여 탭 전환 시 상하 밀림 현상 완벽 방지 */
+.sort-row {
+    padding: 10px 15px;
+    border-bottom: 1px solid #2a2a35;
+    height: 42px !important; /* 높이를 정확한 픽셀로 고정 */
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}

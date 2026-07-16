@@ -1,73 +1,315 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Settings | 스마트팩토리 (Dark Mode)</title>
 
-    <link rel="stylesheet" href="./css/mypage.css?v=1.0.1">
-    <link rel="stylesheet" href="./css/settings.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- 기존 스크립트 그대로 유지 -->
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
     <script src="./js/store.js" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
-    <title>Settings | 스마트팩토리</title>
+
+    <style>
+        /* =========================================
+           ✨ Modern Dark Theme Variables (마이페이지와 동일)
+           ========================================= */
+        :root {
+            --bg-base: #070320;
+            /* 깊은 네이비 배경 */
+            --bg-card: #272727;
+            /* 카드 배경 */
+            --bg-card-hover: #334155;
+
+            --text-main: #f8fafc;
+            /* 밝은 흰색 */
+            --text-sub: #94a3b8;
+            /* 은은한 회색 */
+
+            --accent-primary: #6366f1;
+            /* 인디고/보라 */
+            --accent-secondary: rgb(253, 132, 237);
+            /* 보라 */
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --accent-money: #10b981;
+            /* 수입용 에메랄드 그린 */
+            --border-light: rgba(255, 255, 255, 0.08);
+
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .main-wrap {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* --- Header (Glassmorphism) --- */
+        .fixed-header-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            /*background: rgba(15, 23, 42, 0.7);*/
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .menu-bar {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .menu-bar .back-btn {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-main);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .menu-bar i.back {
+            margin-right: 8px;
+            color: var(--text-sub);
+            font-size: 20px;
+            transition: color 0.2s;
+        }
+
+        .menu-bar .back-btn:hover i.back {
+            color: var(--text-main);
+        }
+
+        /* --- Settings Container --- */
+        .settings-section {
+            padding: 24px 20px 0;
+        }
+
+        .settings-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+            padding-left: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .settings-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .setting-row:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .setting-label {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .setting-label i {
+            font-size: 20px;
+            color: var(--accent-secondary);
+            width: 24px;
+            text-align: center;
+        }
+
+        .setting-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-sub);
+        }
+
+        .setting-right i {
+            font-size: 16px;
+            opacity: 0.7;
+        }
+
+        /* --- JS Dynamic Badges --- */
+        .badge {
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* JS에서 추가하는 클래스들에 대한 다크모드 색상 재정의 */
+        .badge-approved {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-needed {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* --- Logout Button --- */
+        .logout-section {
+            padding: 30px 20px;
+            margin-top: 10px;
+        }
+
+        .btn-logout {
+            width: 100%;
+            background: rgba(16,0,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e1e2ec;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(116,8,102);
+            color: #ffffff;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="main-wrap settings-wrap">
+    <div class="main-wrap">
         <main class="main-settings">
+
             <!-- Header -->
             <div class="fixed-header-wrap">
-                <div class="menu-bar mypage">
-                    <div onclick="location.href='mypage2.html'" style="cursor: pointer;">
-                        <i class="bi bi-chevron-left back"></i><span>Settings</span>
+                <div class="menu-bar">
+                    <div class="back-btn" onclick="location.href='mypage2.html'">
+                        <i class="bi bi-chevron-left back"></i>
+                        <span>Settings</span>
                     </div>
                 </div>
             </div>
 
-            <div class="padding-15"></div>
+            <!-- Group 1: 회원정보 수정 -->
+            <div class="settings-section">
+                <div class="settings-title">Account</div>
+                <div class="settings-card">
+                    <div class="setting-row" onclick="location.href='change_password.html'">
+                        <div class="setting-label">
+                            <i class="bi bi-key"></i>
+                            <span>비밀번호 변경</span>
+                        </div>
+                        <div class="setting-right"><i class="bi bi-chevron-right"></i></div>
+                    </div>
 
-            <div class="settings-container">
-                <div class="settings-title">회원정보 수정</div>
-                <div class="settings-box">
-                    <div class="settings-item" onclick="location.href='change_password.html'">
-                        <span>비밀번호 변경</span>
+                    <div class="setting-row" onclick="location.href='account_info.html'">
+                        <div class="setting-label">
+                            <i class="bi bi-credit-card"></i>
+                            <span>계좌 정보 확인 및 변경</span>
+                        </div>
+                        <div class="setting-right"><i class="bi bi-chevron-right"></i></div>
                     </div>
-                    <div class="settings-item" onclick="location.href='account_info.html'">
-                        <span>계좌 정보 확인 및 변경</span>
-                    </div>
-                    <div class="settings-item" onclick="location.href='health_cert.html'" style="display: flex; align-items: center;">
-                        <span>보건증 올리기</span>
-                        <span id="health-cert-badge" class="badge"></span>
+
+                    <div class="setting-row" onclick="location.href='health_cert.html'">
+                        <div class="setting-label">
+                            <i class="bi bi-file-earmark-medical"></i>
+                            <span>보건증 올리기</span>
+                        </div>
+                        <div class="setting-right">
+                            <!-- JS가 조작할 뱃지 영역 -->
+                            <span id="health-cert-badge"></span>
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="settings-container">
+            <!-- Group 2: About Us -->
+            <div class="settings-section">
                 <div class="settings-title">About Us</div>
-                <div class="settings-box">
-                    <div class="settings-item" onclick="location.href='about.html'">
-                        <span>개인정보 처리방침</span>
+                <div class="settings-card">
+                    <div class="setting-row" onclick="location.href='about.html'">
+                        <div class="setting-label">
+                            <i class="bi bi-shield-check"></i>
+                            <span>개인정보 처리방침</span>
+                        </div>
+                        <div class="setting-right"><i class="bi bi-chevron-right"></i></div>
                     </div>
-                    <div class="settings-item" onclick="location.href='about.html?tab=github'">
-                        <span>github 주소</span>
+
+                    <div class="setting-row" onclick="location.href='about.html?tab=github'">
+                        <div class="setting-label">
+                            <i class="bi bi-github"></i>
+                            <span>GitHub 주소</span>
+                        </div>
+                        <div class="setting-right"><i class="bi bi-chevron-right"></i></div>
                     </div>
                 </div>
             </div>
 
-            <div class="logout-container">
-                <button class="logout-btn" onclick="resetSession()">로그아웃</button>
+            <!-- Logout Button -->
+            <div class="logout-section">
+                <button class="btn-logout" onclick="resetSession()">
+                    <i class="bi bi-box-arrow-right"></i>
+                    로그아웃
+                </button>
             </div>
+
         </main>
     </div>
 
+    <!-- 기존 자바스크립트 원본 그대로 유지 -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             let profile = JSON.parse(sessionStorage.getItem("kimp_worker_profile")) || {};
             let status = profile.healthCertificateStatus;
-            
+
             const badge = document.getElementById('health-cert-badge');
             if (badge) {
                 if (status === 'approved') {
@@ -94,4 +336,5 @@
         }
     </script>
 </body>
+
 </html>

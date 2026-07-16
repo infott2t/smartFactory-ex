@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyPage App</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <style>
+        /* 1. 기본 설정 및 다크모드 배경 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000; /* 전체 창의 배경색 (앱 밖의 영역) */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            justify-content: center; /* 앱 컨테이너를 가로 가운데로 정렬 */
+            min-height: 100vh;
+        }
+
+        /* 2. 앱 컨테이너 (핵심 요구사항 반영) */
+        .app-container {
+            width: 100%;
+            max-width: 800px; /* 최대 너비 800px */
+            margin: 0 auto;   /* 가운데 정렬 */
+            background-color: #121212; /* 다크모드 앱 배경색 */
+            color: #ffffff;            /* 다크모드 기본 글자색 */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;         /* 화면 전체 높이 사용 */
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.05); /* 앱 영역 구분을 위한 은은한 그림자 */
+        }
+
+        /* 3. 헤더 (Header) */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* 양 끝과 가운데로 요소 분산 */
+            padding: 16px 20px;
+            background-color: #1e1e1e; /* 헤더 배경을 살짝 밝게 */
+            border-bottom: 1px solid #333333;
+            position: sticky;
+            top: 0;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* 타이틀을 완벽하게 가운데로 맞추기 위한 투명한 빈 공간 */
+        .header-placeholder {
+            width: 24px; 
+        }
+
+        /* 4. 메인 (Main) */
+        main {
+            flex: 1; /* 남은 공간을 모두 차지하게 하여 푸터를 하단으로 밀어냄 */
+            padding: 20px;
+            overflow-y: auto; /* 내용이 많으면 스크롤 생성 */
+        }
+
+        /* 5. 푸터 (Footer) */
+        footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-around; /* 3개의 아이콘을 균일하게 간격 배치 */
+            padding: 12px 20px;
+            background-color: #1e1e1e;
+            border-top: 1px solid #333333;
+            position: sticky;
+            bottom: 0;
+        }
+
+        /* 공통 아이콘 버튼 스타일 */
+        .icon-btn {
+            background: none;
+            border: none;
+            color: #aaaaaa;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: color 0.2s ease;
+        }
+
+        .icon-btn:hover, .icon-btn.active {
+            color: #ffffff; /* 마우스 오버 시 흰색으로 강조 */
+        }
+
+        .icon-btn .material-symbols-outlined {
+            font-size: 28px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <header>
+            <button class="icon-btn active" aria-label="뒤로가기" style="padding:0;">
+                <span class="material-symbols-outlined">arrow_back_ios_new</span>
+            </button>
+            <h1>mypage</h1>
+            <div class="header-placeholder"></div> </header>
+
+        <main>
+            <h2>안녕하세요!</h2>
+            <p>이곳에 마이페이지 관련 콘텐츠(프로필, 설정, 찜한 목록 등)를 자유롭게 추가해 보세요.</p>
+            <p>화면의 너비가 커져도 최대 800px까지만 늘어나며 화면 중앙에 예쁘게 유지됩니다.</p>
+        </main>
+
+        <footer>
+            <button class="icon-btn" aria-label="홈">
+                <span class="material-symbols-outlined">home</span>
+            </button>
+            <button class="icon-btn" aria-label="검색">
+                <span class="material-symbols-outlined">search</span>
+            </button>
+            <button class="icon-btn active" aria-label="마이페이지">
+                <span class="material-symbols-outlined">person</span>
+            </button>
+        </footer>
+
+    </div>
+
+</body>
+</html>
