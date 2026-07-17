@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>주방 KDS - 주문 연동형 우동 조리</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e24;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+            margin: 0; padding: 10px;
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            width: 100%; max-width: 1000px; 
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        
+        /* 💡 수정된 헤더 레이아웃 */
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 타이틀을 정중앙에 배치 */
+            height: 60px;
+            position: relative; /* 버튼의 절대 위치 기준점 */
+            margin-bottom: 5px;
+        }
+
+        .main-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 2px;
+            margin: 0; 
+        }
+        
+        /* 💡 가상체험중 버튼 크기 및 위치 수정 */
+        .experi {
+           position: absolute;
+            left: 0;
+            width: auto;
+            padding: 8px 12px;
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;      /* 세로 가운데 정렬 */
+            justify-content: center;  /* 가로 가운데 정렬 */
+            line-height: 1;           /* 폰트 기본 줄간격을 초기화하여 정확한 세로 중앙을 맞춤 */
+            gap: 6px;
+            transition: background-color 0.3s;
+            white-space: nowrap;
+         
+        }
+        .experi.completed {
+            background-color: var(--accent-green);
+        }
+
+        .status-bar {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            background-color: var(--panel-bg); padding: 15px; border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: center; font-weight: bold;
+        }
+        .status-item { font-size: 1rem; display: flex; flex-direction: column; gap: 5px; }
+        .status-value { font-size: 1.3rem; color: var(--accent-green); }
+        .order-highlight { color: var(--accent-orange); font-size: 1.5rem; }
+
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translate(-50%, -150px);
+            background: var(--accent-orange); color: white; padding: 15px 30px;
+            border-radius: 30px; font-weight: bold; font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.6);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000; pointer-events: none;
+        }
+        .toast.show { transform: translate(-50%, 0); }
+        
+        .panel { background-color: var(--panel-bg); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2 { margin-top: 0; color: var(--accent-blue); border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
+
+        .step-indicator { 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; 
+            background-color: var(--panel-bg); padding: 10px; border-radius: 12px; 
+        }
+        .step { 
+            text-align: center; color: var(--text-muted); font-weight: bold; 
+            font-size: 0.9rem; padding: 12px 5px; border-radius: 8px; cursor: pointer; 
+            transition: all 0.2s; position: relative; background-color: #2a2a35;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        }
+        .step.active { background-color: var(--accent-blue); color: white; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4); }
+        
+        .tab-badge { display: none; background: rgba(0,0,0,0.5); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; }
+        .tab-badge.active { display: inline-block; }
+        .step.alarm { background-color: var(--accent-red); color: white; animation: tabBlinker 1s infinite; }
+        .step.alarm .tab-badge { background: white; color: var(--accent-red); font-weight: bold; }
+        @keyframes tabBlinker { 50% { opacity: 0.6; box-shadow: 0 0 15px red; } }
+        
+        .image-container { margin: 10px 0; text-align: center; }
+        .step-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+        .instruction-box { font-size: 1.1rem; line-height: 1.5; margin: 15px 0; word-break: keep-all; }
+        
+        .alert-box { 
+            background-color: rgba(239, 68, 68, 0.15); 
+            border-left: 4px solid var(--accent-red); 
+            padding: 12px; 
+            margin-top: 10px; 
+            margin-bottom: 10px; 
+            border-radius: 0 8px 8px 0; 
+            font-size: 1.05rem; 
+        }
+        .info-box { 
+            background-color: rgba(59, 130, 246, 0.15); 
+            border-left: 4px solid var(--accent-blue); 
+            padding: 12px; 
+            margin-top: 10px;
+            margin-bottom: 10px; 
+            border-radius: 0 8px 8px 0; 
+            font-size: 1.05rem; 
+        }
+
+        .timer-display { font-size: 3rem; font-weight: bold; text-align: center; margin: 10px 0; color: var(--accent-orange); display: none; }
+        .timer-display.done-text { color: var(--accent-red); font-size: 2.2rem; animation: textBlinker 1s linear infinite; }
+        @keyframes textBlinker { 50% { opacity: 0; } }
+
+        /* 하단 공통 버튼 스타일 */
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        button { width: 100%; padding: 15px; font-size: 1.1rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; touch-action: manipulation; }
+        .btn-action { background-color: var(--accent-orange); }
+        .btn-stop { background-color: var(--accent-red); }
+        .btn-next { background-color: var(--accent-green); }
+        .btn-test-order { background-color: #4b5563; padding: 10px; font-size: 1rem; margin-top: 10px; }
+        
+        .recipe-manual { font-size: 0.95rem; line-height: 1.5; color: #d1d5db; }
+        .recipe-manual ul { padding-left: 20px; margin-bottom: 15px; }
+
+        @media (min-width: 768px) {
+            body { padding: 20px; }
+            .container { display: grid; grid-template-columns: 1fr 350px; align-items: start; }
+            .app-header, .status-bar, .btn-test-order { grid-column: span 2; }
+            .main-title { font-size: 2.2rem; }
+            .step-indicator { grid-column: span 2; grid-template-columns: repeat(4, 1fr); }
+            .step { flex-direction: row; font-size: 1.1rem; padding: 15px 10px; gap: 8px; }
+            h2 { font-size: 1.5rem; }
+            .step-image { max-height: 240px; }
+            .instruction-box { font-size: 1.3rem; min-height: 60px; }
+            .timer-display { font-size: 4rem; }
+            .timer-display.done-text { font-size: 3rem; }
+            .btn-group { flex-direction: row; }
+        }
+        .bi { color: white; }
+        .img-icon {
+            width: 25px;
+            height: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast">🔔 신규 우동 주문이 들어왔습니다!</div>
+
+    <div class="container">
+        <!-- 💡 헤더 영역 레이아웃 조정 -->
+        <header class="app-header">
+            <button class="experi" id="btn-experi" onclick="finishExperience()">
+                <i class="bi bi-play-circle-fill"></i> 가상체험중 (<span id="experi-timer">03:00</span>)
+            </button>
+            <img class="img-icon" src="./images/Uton_150x150.png" alt="Uton" /><div class="main-title">&nbsp;&nbsp;우동만들기</div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span style="color: var(--text-muted);">🕒 현재 시간</span>
+                <span id="current-time-display" class="status-value">00:00:00</span>
+            </div>
+            <div class="status-item">
+                <span style="color: var(--text-muted);">⏱️ 남은 근무시간</span>
+                <span id="work-timer-display" class="status-value" style="color: var(--accent-blue);">02:00:00</span>
+            </div>
+            <div class="status-item">
+                <span style="color: var(--text-muted);">🍜 대기 주문</span>
+                <span id="order-count-display" class="status-value order-highlight">0건</span>
+            </div>
+        </div>
+
+        <button class="btn-test-order" onclick="receiveNewOrder()">+ 임시 주문 받기 (테스트용 버튼)</button>
+
+        <div class="step-indicator">
+            <div class="step active" id="tab-0" onclick="goToStep(0)">1. 육수 가열</div>
+            <div class="step" id="tab-1" onclick="goToStep(1)">2. 면 삶기 <span id="tab-badge" class="tab-badge"></span></div>
+            <div class="step" id="tab-2" onclick="goToStep(2)">3. 고명 준비</div>
+            <div class="step" id="tab-3" onclick="goToStep(3)">4. 담기/완성</div>
+        </div>
+
+        <div class="panel">
+            <h2 id="step-title">1. 육수 가열</h2>
+            
+            <div class="image-container">
+                <img id="step-img" class="step-image" src="https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQqwqpyNU8dyOvKvOsEMqaDKaWgUjzElQUcmPiKv-5McxjlAOF341arCU5BfRkR4m7QNcGdv9A-srwYUNs" alt="조리 과정 사진">
+            </div>
+
+            <div class="instruction-box" id="instruction-text">지시 사항 로딩 중...</div>
+            
+            <div class="timer-display" id="main-timer">03:00</div>
+
+            <div class="btn-group">
+                <button class="btn-action" id="btn-start-timer" style="display:none;" onclick="startTimer()">▶ 3분 타이머 시작</button>
+                <button class="btn-stop" id="btn-stop-timer" style="display:none;" onclick="stopTimer()">■ 알람 끄기 및 면 건지기</button>
+                <button class="btn-next" onclick="nextStep()" id="btn-next">다음 단계로 ➔</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>표준 매뉴얼</h2>
+            <div class="recipe-manual">
+                <h3>[재료 준비]</h3>
+                <ul>
+                    <li>냉동 우동면 1개</li>
+                    <li>멸치 다시마 육수 500ml</li>
+                    <li>고명: 어묵, 대파, 튀김가루, 김가루</li>
+                </ul>
+                <h3>[주의 사항]</h3>
+                <ul style="color: #fca5a5;">
+                    <li>면을 억지로 풀면 끊어집니다. 자연스럽게 풀리게 두세요.</li>
+                    <li>타이머가 울리면 즉시 건져내세요.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 💡 체험 타이머 로직
+        let experiTimeLeft = 180; // 3분
+        let experiInterval = null;
+        let isExperiFinished = false;
+
+        function startExperiTimer() {
+            const experiTimerSpan = document.getElementById('experi-timer');
+            experiInterval = setInterval(() => {
+                if (isExperiFinished) return;
+                
+                experiTimeLeft--;
+                experiTimerSpan.innerText = formatTime(experiTimeLeft);
+                
+                if (experiTimeLeft <= 0) {
+                    finishExperience();
+                }
+            }, 1000);
+        }
+
+        function finishExperience() {
+            if (isExperiFinished) return;
+            isExperiFinished = true;
+            clearInterval(experiInterval);
+            
+            const btn = document.getElementById('btn-experi');
+            btn.classList.add('completed');
+            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
+        }
+
+        const WORK_DURATION_MS = 2 * 60 * 60 * 1000; 
+        let orderCount = 0;
+
+        function initDashboard() {
+            if(sessionStorage.getItem('udonOrderCount')) {
+                orderCount = parseInt(sessionStorage.getItem('udonOrderCount'));
+            }
+            document.getElementById('order-count-display').innerText = `${orderCount}건`;
+
+            if(!sessionStorage.getItem('workStartTime')) {
+                sessionStorage.setItem('workStartTime', new Date().getTime().toString());
+            }
+
+            setInterval(updateDashboardTime, 1000);
+            updateDashboardTime(); 
+            
+            // 체험 타이머 시작
+            startExperiTimer();
+        }
+
+        function updateDashboardTime() {
+            const now = new Date();
+            document.getElementById('current-time-display').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+
+            const startTime = parseInt(sessionStorage.getItem('workStartTime'));
+            const elapsed = now.getTime() - startTime;
+            let remaining = WORK_DURATION_MS - elapsed;
+
+            if (remaining < 0) remaining = 0; 
+
+            const rHours = Math.floor(remaining / (1000 * 60 * 60));
+            const rMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            const rSeconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+            const timerEl = document.getElementById('work-timer-display');
+            timerEl.innerText = `${String(rHours).padStart(2,'0')}:${String(rMinutes).padStart(2,'0')}:${String(rSeconds).padStart(2,'0')}`;
+            
+            if(remaining <= 10 * 60 * 1000 && remaining > 0) {
+                timerEl.style.color = "var(--accent-red)";
+            } else if (remaining === 0) {
+                timerEl.innerText = "근무 종료";
+                timerEl.style.color = "var(--accent-red)";
+            }
+        }
+
+        function receiveNewOrder() {
+            orderCount++;
+            sessionStorage.setItem('udonOrderCount', orderCount);
+            document.getElementById('order-count-display').innerText = `${orderCount}건`;
+            
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000); 
+        }
+
+        function completeOrder() {
+            if (orderCount > 0) {
+                orderCount--;
+                sessionStorage.setItem('udonOrderCount', orderCount);
+                document.getElementById('order-count-display').innerText = `${orderCount}건`;
+            }
+        }
+
+        const steps = [
+            { 
+                title: "1. 육수 가열", 
+                text: "가스레인지 점화.<br>냄비에 육수 500ml를 넣고 <b>강불</b>로 가열하세요.<br><br>육수가 팔팔 끓을 때까지 기다려주세요.<br>" +
+                      "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>" +
+                      "<div class='info-box'>💧 <b>정리:</b> 육수를 다 끓이고 난 후에는 물에 냄비를 깨끗하게 씻어주세요.</div>",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQqwqpyNU8dyOvKvOsEMqaDKaWgUjzElQUcmPiKv-5McxjlAOF341arCU5BfRkR4m7QNcGdv9A-srwYUNs" 
+            },
+            { 
+                title: "2. 면 삶기 (타이머)", 
+                text: "물이 끓으면 우동면을 투입하세요.<br>아래 <b>타이머 시작</b>을 누르고 다른 탭으로 이동 가능합니다.<br><br>" +
+                      "<div class='alert-box'>🔥 <b>주의:</b> 면을 삶을 때 끓는 물이 튈 수 있으니 화상에 조심하세요!</div>" +
+                      "<div class='info-box'>💧 <b>정리:</b> 면을 건져낸 후에는 사용한 채(뜰채)를 물에 살짝 씻어주세요.</div>",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcSxtDC-YXbt_U9wqJ_WtNPUeYshc-CwQrhRbr61FDdv67f5nlwunxHS89vjBV3Y5a409kGdZ3-VXUYrfYA" 
+            },
+            { 
+                title: "3. 고명 준비", 
+                text: "면이 삶아지는 동안 세팅합니다.<br>어묵 1장, 대파, 튀김가루 1스푼, 김가루를 <b>작은 그릇에 따로 준비</b>해두세요.<br>(완성된 면 위에 마지막에 올릴 용도입니다.)",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQfilAExQYJe152JPFNBy8KLIfRrWPYsPUykEi6W9znLdEo8Eq-ICBKPJe5k67QohqubWBeAOx1ud5SON8" 
+            },
+            { 
+                title: "4. 담기/완성", 
+                text: "물기를 털어 그릇에 담습니다.<br>뜨거운 육수를 붓고 준비된 고명을 위에 올려 완성하세요.",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcS1If8pDsgRf6p0m0Zqp9wRmQm8Iplx6CnTFE49qxXhYZaSGTVua5ybRvbgJZJAoaksUlbdBcTEDLbXN-Y" 
+            }
+        ];
+
+        let currentStep = 0;
+        let noodleTimeLeft = 180;
+        let timerInterval = null;
+        let timerState = 'idle';
+
+        function goToStep(index) {
+            currentStep = index;
+            updateUI();
+        }
+
+        function nextStep() {
+            if(currentStep === 3) {
+                completeOrder();
+            }
+            currentStep = (currentStep + 1) % steps.length;
+            updateUI();
+        }
+
+        function updateUI() {
+            document.querySelectorAll('.step').forEach((el, idx) => {
+                if (idx === currentStep) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+
+            document.getElementById('step-title').innerText = steps[currentStep].title;
+            document.getElementById('instruction-text').innerHTML = steps[currentStep].text;
+            document.getElementById('step-img').src = steps[currentStep].img;
+            
+            if (currentStep === 3) {
+                document.getElementById('btn-next').innerText = "조리 완료 및 배식 ➔";
+            } else {
+                document.getElementById('btn-next').innerText = "다음 단계로 ➔";
+            }
+
+            const mainTimer = document.getElementById('main-timer');
+            const btnStart = document.getElementById('btn-start-timer');
+            const btnStop = document.getElementById('btn-stop-timer');
+
+            if (currentStep === 1) {
+                mainTimer.style.display = 'block';
+                if (timerState === 'idle') {
+                    btnStart.style.display = 'block';
+                    btnStop.style.display = 'none';
+                    mainTimer.innerText = "03:00";
+                    mainTimer.classList.remove('done-text');
+                } else if (timerState === 'running') {
+                    btnStart.style.display = 'none';
+                    btnStop.style.display = 'none';
+                } else if (timerState === 'done') {
+                    btnStart.style.display = 'none';
+                    btnStop.style.display = 'block';
+                }
+            } else {
+                mainTimer.style.display = 'none';
+                btnStart.style.display = 'none';
+                btnStop.style.display = 'none';
+            }
+            updateTimerVisuals();
+        }
+
+        function startTimer() {
+            if (timerState !== 'idle') return;
+            timerState = 'running';
+            noodleTimeLeft = 180;
+            updateUI(); 
+
+            timerInterval = setInterval(() => {
+                noodleTimeLeft--;
+                updateTimerVisuals();
+                if (noodleTimeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerState = 'done';
+                    updateUI();
+                    updateTimerVisuals();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerState = 'idle';
+            updateUI();
+        }
+
+        function updateTimerVisuals() {
+            const timeStr = formatTime(noodleTimeLeft);
+            const tabBadge = document.getElementById('tab-badge');
+            const tabEl = document.getElementById('tab-1');
+            const mainTimer = document.getElementById('main-timer');
+
+            if (timerState === 'idle') {
+                tabBadge.classList.remove('active');
+                tabEl.classList.remove('alarm');
+            } else if (timerState === 'running') {
+                tabBadge.classList.add('active');
+                tabBadge.innerText = timeStr;
+                tabEl.classList.remove('alarm');
+                if (currentStep === 1) mainTimer.innerText = timeStr;
+            } else if (timerState === 'done') {
+                tabBadge.classList.add('active');
+                tabBadge.innerText = "완료!";
+                tabEl.classList.add('alarm'); 
+                if (currentStep === 1) {
+                    mainTimer.innerText = "TIME OUT";
+                    mainTimer.classList.add('done-text');
+                }
+            }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        initDashboard();
+        updateUI();
+    </script>
+</body>
+</html>

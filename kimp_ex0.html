@@ -245,7 +245,7 @@
         .hmi-toast i {
             font-size: 18px;
         }
-        
+
         body.resting-mode main.main-content {
             opacity: 0.4;
             pointer-events: none;
@@ -277,7 +277,9 @@
             </div>
 
             <div class="header-actions">
-                <button id="btn-complete-experience" class="btn-menu" style="background-color: #3b82f6; color: white; border: none; font-weight:bold;" onclick="completeExperience()">
+                <button id="btn-complete-experience" class="btn-menu"
+                    style="background-color: #3b82f6; color: white; border: none; font-weight:bold;"
+                    onclick="completeExperience()">
                     <i class="bi bi-check-circle-fill"></i> <span id="exp-timer-text">체험완료하기</span>
                 </button>
                 <button class="btn-select-task" onclick="openTaskSelector()">
@@ -396,7 +398,8 @@
                 <button class="btn-close-modal" onclick="closeTaskSelector()"><i class="bi bi-x-lg"></i></button>
             </div>
 
-            <div class="task-grid" id="task-grid-container" style="overflow-y: auto; flex-grow: 1; padding-bottom: 10px;">
+            <div class="task-grid" id="task-grid-container"
+                style="overflow-y: auto; flex-grow: 1; padding-bottom: 10px;">
             </div>
         </div>
     </div>
@@ -488,7 +491,8 @@
                 </h2>
                 <button class="btn-close-modal" onclick="closeWorkRules()"><i class="bi bi-x-lg"></i></button>
             </div>
-            <div class="work-rules-content" style="flex: 1; overflow-y: auto; padding: 10px; font-size: 15px; line-height: 1.6; color: var(--text-primary);">
+            <div class="work-rules-content"
+                style="flex: 1; overflow-y: auto; padding: 10px; font-size: 15px; line-height: 1.6; color: var(--text-primary);">
                 <ul style="list-style: none; padding-left: 0; margin-top: 0;">
                     <li style="margin-bottom: 16px; display: flex; gap: 8px;">
                         <i class="bi bi-clock-fill" style="color: #10b981; margin-top: 3px;"></i>
@@ -504,16 +508,17 @@
                     </li>
                     <li style="margin-bottom: 16px; display: flex; gap: 8px;">
                         <i class="bi bi-coin" style="color: #f59e0b; margin-top: 3px;"></i>
-                        <span>헬퍼의 도움을 받을 때에는 <strong>500원</strong>이 차감되며, 초심자의 경우에는 <strong>5회 무료</strong>로 도움을 받을 수 있습니다.</span>
+                        <span>헬퍼의 도움을 받을 때에는 <strong>500원</strong>이 차감되며, 초심자의 경우에는 <strong>5회 무료</strong>로 도움을 받을 수
+                            있습니다.</span>
                     </li>
                     <li style="margin-bottom: 16px; display: flex; gap: 8px;">
                         <i class="bi bi-diagram-3-fill" style="color: #ec4899; margin-top: 3px;"></i>
                         <span><strong>[작업 프로세스]</strong><br>
-                        1. 작업 전 공정 완료된 제품 수령<br>
-                        2. 생산지시서와 실제 제품 수량 확인<br>
-                        3. 실제 작업 진행<br>
-                        4. 작업 후 수량 확인 및 사진 심사<br>
-                        5. 완료 후 완료 구역에 제품 이동</span>
+                            1. 작업 전 공정 완료된 제품 수령<br>
+                            2. 생산지시서와 실제 제품 수량 확인<br>
+                            3. 실제 작업 진행<br>
+                            4. 작업 후 수량 확인 및 사진 심사<br>
+                            5. 완료 후 완료 구역에 제품 이동</span>
                     </li>
                 </ul>
             </div>
@@ -525,14 +530,16 @@
             <div class="modal-header" style="justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <h2 class="modal-title" id="log-modal-title"><i class="bi bi-clock-history"></i> 나의 작업 로그</h2>
-                    <button id="btn-show-performance" class="btn-menu" style="background-color: var(--primary); color: white; padding: 4px 8px; font-size: 14px; border: none; border-radius: 4px; font-weight: bold;" onclick="toggleLogView()">작업성과</button>
+                    <button id="btn-show-performance" class="btn-menu"
+                        style="background-color: var(--primary); color: white; padding: 4px 8px; font-size: 14px; border: none; border-radius: 4px; font-weight: bold;"
+                        onclick="toggleLogView()">작업성과</button>
                 </div>
                 <button class="btn-close-modal" onclick="closeLogModal()"><i class="bi bi-x-lg"></i></button>
             </div>
 
             <div class="log-list" id="log-list-container" style="flex: 1; overflow-y: auto;">
             </div>
-            
+
             <div class="log-list" id="perf-list-container" style="flex: 1; overflow-y: auto; display: none;">
             </div>
         </div>
@@ -551,8 +558,11 @@
     <div id="hmi-toast" class="hmi-toast"></div>
 
     <!-- 💡 카메라 촬영 효과음 (404 에러 수정) -->
-    <audio id="shutter-sound" src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYxLjEuMTAwAAAAAAAAAAAAAAD/+0DAAAAAAAAAAAAAAAAAAAAAAABlu/xAABgAAgAQAAD+cM8AAAAAAAAP/7QMAAABkZgAAAAABmZmQAAAAAP/7QMAAABkZgAAAAABmZmQAAAAA" preload="auto"></audio>
+    <audio id="shutter-sound"
+        src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYxLjEuMTAwAAAAAAAAAAAAAAD/+0DAAAAAAAAAAAAAAAAAAAAAAABlu/xAABgAAgAQAAD+cM8AAAAAAAAP/7QMAAABkZgAAAAABmZmQAAAAAP/7QMAAABkZgAAAAABmZmQAAAAA"
+        preload="auto"></audio>
     <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/store.js"></script>
     <script>
         // ============================================================
         // 💡 로그인 및 사용자 세션 관리 로직
@@ -578,25 +588,39 @@
             localStorage.removeItem("kimp_stages_sync");
             localStorage.removeItem("kimp_ex0_performance");
             localStorage.removeItem("kimp_ex0_is3min");
-            
+
             alert("모든 데이터가 초기화되었습니다. 페이지를 새로고침합니다.");
             location.reload();
         }
 
         function performLogin(name, role) {
+            // 1. store.js의 users 배열에서 이름으로 진짜 회원 정보를 찾습니다.
+            let targetUser = null;
+            if (window.MockData && window.MockData.users) {
+                targetUser = window.MockData.users.find(u => u.name === name);
+            }
+
+            if (!targetUser) {
+                alert("DB(store.js)에서 해당 회원 정보를 찾을 수 없습니다.");
+                return;
+            }
+
             const loginTime = new Date().toLocaleTimeString();
-            const userData = { name, role, loginTime };
+            targetUser.loginTime = loginTime; // 화면 표시용 로그인 시간 추가
 
-            sessionStorage.setItem("user", JSON.stringify(userData));
+            // 2. 완벽한 회원 정보(id 포함)를 세션 스토리지에 저장합니다.
+            sessionStorage.setItem("user", JSON.stringify(targetUser));
+            sessionStorage.setItem("user-id", targetUser.id.toString());
+
             closeActionModal();
-            applyLoginState(userData);
-            
-            appData.user = userData;
-            const userDisplay = document.querySelector('.user-info span');
-            if (userDisplay) userDisplay.textContent = name;
+            applyLoginState(targetUser);
 
-            showHmiToast(`${name}(${role})님 환영합니다! (로그인: ${loginTime})`);
-            
+            appData.user = targetUser;
+            const userDisplay = document.querySelector('.user-info span');
+            if (userDisplay) userDisplay.textContent = targetUser.name;
+
+            showHmiToast(`${targetUser.name}(${targetUser.roleName})님 환영합니다!`);
+
             if (document.getElementById('task-modal').classList.contains('open')) {
                 openTaskSelector();
             }
@@ -610,18 +634,7 @@
         }
 
         // 💡 기존 initSession 함수를 아래와 같이 수정
-        function initSession() {
-            try {
-                const userStr = sessionStorage.getItem("user");
-                if (userStr) {
-                    const user = JSON.parse(userStr);
-                    applyLoginState(user);
-                    appData.user = user;
-                    const userDisplay = document.querySelector('.user-info span');
-                    if (userDisplay) userDisplay.textContent = user.name;
-                }
-            } catch (e) { console.error("세션 로드 실패", e); }
-        }
+
         // ============================================================
         // 1. 공정 및 지시서 데이터 모델
         // ============================================================
@@ -690,23 +703,23 @@
         function editLog(index) {
             const log = appData.logs[index];
             if (!log) return;
-            
+
             let defaultGood = 0;
             let defaultDefect = 0;
             let defaultWeight = 0;
-            
+
             const matchGood = log.text.match(/양품:\s*(\d+)/);
             if (matchGood) defaultGood = matchGood[1];
-            
+
             const matchDefect = log.text.match(/불량:\s*(\d+)/);
             if (matchDefect) defaultDefect = matchDefect[1];
-            
+
             const matchWeight = log.text.match(/무게:\s*([\d.]+)/);
             if (matchWeight) defaultWeight = matchWeight[1];
-            
+
             let orderIdMatch = log.text.match(/\[지시서:\s*([^\]]+)\]/);
             let orderId = orderIdMatch ? orderIdMatch[1] : (appData.currentOrder ? appData.currentOrder.id : 'N/A');
-            
+
             const contentHtml = `
                 <div style="display:flex; flex-direction:column; gap:16px; padding: 12px;">
                     <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
@@ -733,7 +746,7 @@
                     <button class="btn-huge primary" onclick="editLogStep2(${index})" style="padding:16px; font-size:18px; margin-top:8px;">다음 (사진 촬영)</button>
                 </div>
             `;
-            
+
             openActionModal('수량 재입력 (1/2)', '<i class="bi bi-pencil-square" style="color: var(--primary);"></i>', contentHtml);
         }
 
@@ -741,7 +754,7 @@
             const goodQty = document.getElementById('edit-good-qty').value;
             const defectQty = document.getElementById('edit-defect-qty').value;
             const weight = document.getElementById('edit-weight').value;
-            
+
             const contentHtml = `
                 <div style="display:flex; flex-direction:column; gap:16px; padding: 12px; align-items:center;">
                     <p style="color:var(--text-secondary); font-size:14px; text-align:center;">수정 내역 증빙을 위해 사진을 촬영해주세요.</p>
@@ -763,7 +776,7 @@
                     <button id="btn-edit-submit" class="btn-huge primary" onclick="submitEditLog(${index})" style="padding:16px; font-size:18px; margin-top:16px; opacity:0.5; pointer-events:none;">승인 요청 및 수정 완료</button>
                 </div>
             `;
-            
+
             openActionModal('수량 재입력 (2/2)', '<i class="bi bi-camera-fill" style="color: var(--success);"></i>', contentHtml);
         }
 
@@ -772,15 +785,15 @@
             const text = document.getElementById('edit-camera-text');
             const photo = document.getElementById('edit-mock-photo');
             const submitBtn = document.getElementById('btn-edit-submit');
-            
+
             if (icon && text && photo && submitBtn) {
                 icon.style.display = 'none';
                 text.style.display = 'none';
                 photo.style.display = 'block';
-                
+
                 submitBtn.style.opacity = '1';
                 submitBtn.style.pointerEvents = 'auto';
-                
+
                 const box = document.querySelector('#action-modal .qr-scanner-box');
                 if (box) {
                     box.style.backgroundColor = 'white';
@@ -795,21 +808,21 @@
             const goodQty = document.getElementById('final-edit-good').value;
             const defectQty = document.getElementById('final-edit-defect').value;
             const weight = document.getElementById('final-edit-weight').value;
-            
+
             const log = appData.logs[index];
             if (!log) return;
-            
+
             let orderIdMatch = log.text.match(/\[지시서:\s*([^\]]+)\]/);
             let orderPrefix = orderIdMatch ? `[지시서: ${orderIdMatch[1]}] ` : '';
-            
+
             if (log.editCount === undefined) log.editCount = 0;
             log.editCount++;
-            
+
             log.text = `${orderPrefix}실적 등록 (양품: ${goodQty} | 불량: ${defectQty} | 무게: ${weight}kg) ${log.editCount}회 수정`;
-            
+
             closeActionModal();
             showHmiToast(`<i class="bi bi-check-circle-fill" style="color: #10b981;"></i> 수량 수정 및 승인 요청 완료`);
-            
+
             addLog(`${orderPrefix}수정 증빙 사진 전송 및 매니저 승인 요청 완료`);
             showWorkLogs();
         }
@@ -825,11 +838,11 @@
             // 💡 체험 완료 3분 타이머 로직
             const is3min = localStorage.getItem('kimp_ex0_is3min') === 'true';
             const timerText = document.getElementById('exp-timer-text');
-            
+
             if (!is3min && timerText) {
                 let timeLeft = 180; // 3분 (180초)
                 timerText.textContent = `체험 3:00`;
-                
+
                 window.expTimer = setInterval(() => {
                     timeLeft--;
                     if (timeLeft <= 0) {
@@ -895,15 +908,44 @@
             }, 2500);
         }
 
+        // 💡 [수정됨] 중복을 제거하고 하나로 합친 세션 초기화 함수
         function initSession() {
             try {
                 const userStr = sessionStorage.getItem("user");
                 if (userStr) {
-                    appData.user = JSON.parse(userStr);
+                    const user = JSON.parse(userStr);
+
+                    // 1. 전역 앱 데이터에 유저 정보 세팅
+                    appData.user = user;
+
+                    // 2. 로그인 상태 UI 적용 (상단 로그인 버튼 이름 변경)
+                    applyLoginState(user);
+
+                    // 3. (옵션) 기타 텍스트 노드가 있다면 업데이트
                     const nameEl = document.getElementById("display-user-name");
-                    if (nameEl) nameEl.textContent = appData.user.name;
+                    if (nameEl) nameEl.textContent = user.name;
+
+                    const userDisplay = document.querySelector('.user-info span');
+                    if (userDisplay) userDisplay.textContent = user.name;
                 }
-            } catch (e) { console.error("세션 초기화 실패", e); }
+            } catch (e) {
+                console.error("세션 로드 실패", e);
+            }
+        }
+
+        // 💡 [수정됨] 로그인 버튼 UI를 변경해주는 함수 (store.js의 roleName 우선 적용)
+        function applyLoginState(user) {
+            const btn = document.getElementById('login-btn');
+            if (btn) {
+                // store.js에 있는 roleName("일반", "헬퍼")을 우선 표시하고, 없으면 role 표시
+                const displayRole = user.roleName || user.role || '일반';
+                btn.innerHTML = `<i class="bi bi-person-check-fill"></i> ${user.name} (${displayRole})`;
+
+                // 로그인된 상태임을 나타내기 위해 색상을 약간 변경 (선택사항)
+                btn.style.backgroundColor = '#1e293b';
+                btn.style.color = '#f8fafc';
+                btn.style.border = '1px solid #3b82f6';
+            }
         }
 
         function updateHeaderInfo() {
@@ -931,7 +973,7 @@
         }
 
         // 다른 탭에서 상태 변경 시 즉시 반영하기 위한 리스너
-        window.addEventListener('storage', function(e) {
+        window.addEventListener('storage', function (e) {
             if (e.key === 'kimp_stages_sync') {
                 loadStagesFromStorage();
                 // 만약 현재 작업선택창이 열려있다면 새로고침
@@ -1022,7 +1064,7 @@
             req.status = 'accepted';
             localStorage.setItem('kimp_handover_req', JSON.stringify(req));
             closeActionModal();
-            
+
             alert("교대가 완료되었습니다. 대기장소로 이동합니다.");
             moveToStage(0, '대기장소');
         }
@@ -1060,7 +1102,7 @@
                 if (stage.worker === appData.user.name && stage.worker !== "") {
                     // 💡 나의 공정일 때
                     if (isResting) {
-                        btnClass = 'current'; 
+                        btnClass = 'current';
                         statusText = `<span style="color:#fcd34d; font-weight:bold;">휴식 중</span><br><span style="font-size:12px; color:rgba(255,255,255,0.85); display:block; margin-top:4px; line-height:1.3;">본인이 참여중인 일입니다.</span>`;
                     } else {
                         btnClass = 'current';
@@ -1143,66 +1185,66 @@
                     const reqObj = { reqId: reqId, from: appData.user.name, to: workerName, stageId: finalStageId, stageName: stageName, status: 'pending' };
                     localStorage.setItem('kimp_handover_req', JSON.stringify(reqObj));
 
-                // 대기 UI 표시
-                const content = `
+                    // 대기 UI 표시
+                    const content = `
                     <div style="text-align:center; padding:20px;">
                         <div style="font-size:40px; margin-bottom:20px; color:#3b82f6;"><i class="bi bi-hourglass-split"></i></div>
                         <p id="handover-waiting-text" style="margin-bottom:20px;"><strong>${workerName}</strong>님의 수락을 기다리고 있습니다...</p>
                         <button class="btn btn-outline-danger w-100" onclick="cancelHandover()">요청 취소</button>
                     </div>
                 `;
-                openActionModal('작업 인수 요청', '<i class="bi bi-send"></i>', content);
+                    openActionModal('작업 인수 요청', '<i class="bi bi-send"></i>', content);
 
-                // 요청 응답 대기 리스너
-                const responseListener = function(e) {
-                    if (e.key === 'kimp_handover_req') {
-                        const resStr = e.newValue;
-                        if (!resStr) return;
-                        const res = JSON.parse(resStr);
-                        
-                        if (res.reqId === reqId && res.from === appData.user.name) {
-                            if (res.status === 'accepted_moving') {
-                                // 💡 1차 수락 시: 이동 안내 메시지로 대기창 내용 변경
-                                const waitingContent = document.getElementById('handover-waiting-text');
-                                if (waitingContent) {
-                                    waitingContent.innerHTML = `상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span>`;
-                                } else {
-                                    // 기존 모달이 없거나 덮어씌워졌다면 다시 띄움
-                                    const content = `
+                    // 요청 응답 대기 리스너
+                    const responseListener = function (e) {
+                        if (e.key === 'kimp_handover_req') {
+                            const resStr = e.newValue;
+                            if (!resStr) return;
+                            const res = JSON.parse(resStr);
+
+                            if (res.reqId === reqId && res.from === appData.user.name) {
+                                if (res.status === 'accepted_moving') {
+                                    // 💡 1차 수락 시: 이동 안내 메시지로 대기창 내용 변경
+                                    const waitingContent = document.getElementById('handover-waiting-text');
+                                    if (waitingContent) {
+                                        waitingContent.innerHTML = `상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span>`;
+                                    } else {
+                                        // 기존 모달이 없거나 덮어씌워졌다면 다시 띄움
+                                        const content = `
                                         <div style="text-align:center; padding:20px;">
                                             <div style="font-size:40px; margin-bottom:20px; color:#3b82f6;"><i class="bi bi-person-walking"></i></div>
                                             <p id="handover-waiting-text" style="margin-bottom:20px;">상대방이 수락했습니다.<br><strong>Stage ${finalStageId}</strong>로 이동해주세요.<br><span style="font-size:14px; color:var(--text-secondary);">(상대방이 인수인계 완료를 누르면 작업 화면이 열립니다)</span></p>
                                         </div>
                                     `;
-                                    openActionModal('이동 안내', '<i class="bi bi-info-circle"></i>', content);
-                                }
-                            } else if (res.status === 'accepted') {
-                                // 💡 2차 최종 완료 시: 실제 교대 처리
-                                window.removeEventListener('storage', responseListener);
-                                closeActionModal();
-                                
-                                // 실제 교대 점유 실행
-                                finalizeStageMove(finalStageId, stageName);
+                                        openActionModal('이동 안내', '<i class="bi bi-info-circle"></i>', content);
+                                    }
+                                } else if (res.status === 'accepted') {
+                                    // 💡 2차 최종 완료 시: 실제 교대 처리
+                                    window.removeEventListener('storage', responseListener);
+                                    closeActionModal();
 
-                            } else if (res.status === 'rejected') {
-                                window.removeEventListener('storage', responseListener);
-                                closeActionModal();
-                                alert("상대방이 거절하셨습니다. 교대가 취소되었습니다.");
-                            } else if (res.status === 'cancelled') {
-                                window.removeEventListener('storage', responseListener);
+                                    // 실제 교대 점유 실행
+                                    finalizeStageMove(finalStageId, stageName);
+
+                                } else if (res.status === 'rejected') {
+                                    window.removeEventListener('storage', responseListener);
+                                    closeActionModal();
+                                    alert("상대방이 거절하셨습니다. 교대가 취소되었습니다.");
+                                } else if (res.status === 'cancelled') {
+                                    window.removeEventListener('storage', responseListener);
+                                }
                             }
                         }
-                    }
-                };
-                
-                window.addEventListener('storage', responseListener);
-                return; // 수락될 때까지 진입 차단
+                    };
 
-            } else if (status === 'resting') {
-                // 💡 휴식 중일 때는 즉시 교대 확인창 표시
-                if (!confirm(`[${workerName}]님이 휴식 중입니다.\n대신 작업하시겠습니까?`)) return;
-            }
-        } else if (status === 'disabled') {
+                    window.addEventListener('storage', responseListener);
+                    return; // 수락될 때까지 진입 차단
+
+                } else if (status === 'resting') {
+                    // 💡 휴식 중일 때는 즉시 교대 확인창 표시
+                    if (!confirm(`[${workerName}]님이 휴식 중입니다.\n대신 작업하시겠습니까?`)) return;
+                }
+            } else if (status === 'disabled') {
                 alert("현재 작업 불가한 공정입니다."); return;
             } else {
                 if (!confirm(`[${stageName}] 공정으로 이동하여 작업을 시작하시겠습니까?`)) return;
@@ -1258,7 +1300,7 @@
 
             if (stageId !== 0) {
                 addLog(`작업자가 [Stage ${stageId}. ${stageName}] 위치로 이동했습니다.`);
-                
+
                 // 💡 휴식/교대 시 화면을 기억하기 위해, 저장된 상태가 있으면 복원하고 없으면 초기화
                 let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
                 if (stageStates[stageId]) {
@@ -1273,7 +1315,7 @@
                 if (String(stageId) === "2" && currentStepIndex === 0) {
                     brinePhotosCaptured = { salt: false, water: false };
                 }
-                
+
                 // 💡 만약 복원된 인덱스가 0보다 크면(즉, 이미 체크인을 통과한 이력이 있으면),
                 // 현재 공정을 내가 다시 점유해야 함 (타인이 점유 중이지 않을 때만)
                 if (currentStepIndex > 0) {
@@ -1284,9 +1326,9 @@
                         syncStagesToStorage();
                     }
                 }
-                
+
                 renderCurrentStep();
-                
+
                 // 💡 이전 작업자가 남긴 자동 인수인계 메시지가 있는지 확인하고 모달 띄우기
                 const autoMsg = localStorage.getItem(`kimp_auto_handover_msg_${stageId}`);
                 if (autoMsg) {
@@ -1306,7 +1348,7 @@
                     setTimeout(() => {
                         openActionModal('작업 인수인계', '<i class="bi bi-briefcase" style="color: #8b5cf6;"></i>', content);
                     }, 100);
-                    
+
                     localStorage.removeItem(`kimp_auto_handover_msg_${stageId}`);
                 }
             }
@@ -1429,10 +1471,10 @@
                     if (log.editableIndex !== null && log.editableIndex !== undefined) {
                         editBtn = `<button class="btn-menu" style="padding: 4px 8px; font-size: 12px; margin-top: 8px; background: #e0e7ff; color: var(--primary); border:none;" onclick="editLog(${actualIndex})"><i class="bi bi-pencil-square"></i> 수량 재입력하기</button>`;
                     }
-                    
+
                     let formattedText = '';
                     let photoHtml = '';
-                    
+
                     if (log.photo) {
                         formattedText = log.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                         const timeText = log.time ? `[${log.time}] ` : '';
@@ -1473,7 +1515,7 @@
             if (log.includes('<img')) {
                 const srcMatch = log.match(/src=['"]([^'"]+)['"]/);
                 const imgSrc = srcMatch ? srcMatch[1] : '';
-                
+
                 let textOnly = log.replace(/<img[^>]*>/g, '').replace(/<br\s*\/?>/g, ' ').trim();
                 const timeText = logTime ? `[${logTime}] ` : '';
                 const safeText = (timeText + textOnly).replace(/'/g, "\\'");
@@ -1486,13 +1528,13 @@
             }
         }
 
-        window.viewLogImageDetail = function(imgSrc, text) {
+        window.viewLogImageDetail = function (imgSrc, text) {
             document.getElementById('log-detail-expanded-img').src = imgSrc;
             document.getElementById('log-detail-expanded-text').textContent = text;
             document.getElementById('log-image-detail-modal').style.display = 'flex';
         }
 
-        window.closeLogImageDetailModal = function() {
+        window.closeLogImageDetailModal = function () {
             document.getElementById('log-image-detail-modal').style.display = 'none';
         }
 
@@ -1501,7 +1543,7 @@
             const perfContainer = document.getElementById('perf-list-container');
             const toggleBtn = document.getElementById('btn-show-performance');
             const modalTitle = document.getElementById('log-modal-title');
-            
+
             if (logContainer.style.display !== 'none') {
                 logContainer.style.display = 'none';
                 perfContainer.style.display = 'block';
@@ -1519,9 +1561,9 @@
         function renderPerformance() {
             const container = document.getElementById('perf-list-container');
             let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
-            
+
             const totalStageCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-            
+
             const displayPerfs = perfs.map(p => {
                 if (totalStageCounts[p.stage] !== undefined) {
                     totalStageCounts[p.stage]++;
@@ -1531,7 +1573,7 @@
                     runningCount: totalStageCounts[p.stage] || 1
                 };
             });
-            
+
             let badgesHtml = '<div class="perf-badges-container">';
             let hasBadges = false;
             for (let i = 1; i <= 6; i++) {
@@ -1546,11 +1588,11 @@
                 }
             }
             badgesHtml += '</div>';
-            
+
             if (!hasBadges) {
                 badgesHtml = ''; // 0회 완료만 있을 경우 (또는 기록이 없을 경우) 뱃지 영역 숨김
             }
-            
+
             let listHtml = '';
             if (displayPerfs.length === 0) {
                 listHtml = `<div class="perf-empty-msg">아직 기록된 작업 성과가 없습니다.</div>`;
@@ -1568,7 +1610,7 @@
                     </div>`;
                 }).join('');
             }
-            
+
             container.innerHTML = badgesHtml + listHtml;
         }
 
@@ -2019,7 +2061,7 @@
                         
                         <!-- 1~5번 사물함 버튼 -->
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;">
-                            ${[1,2,3,4,5].map(n => `
+                            ${[1, 2, 3, 4, 5].map(n => `
                                 <button type="button" class="locker-btn-exit" id="locker-exit-${n}" onclick="checkExitLocker(${n})" style="padding: 12px 0; font-size: 16px; font-weight: bold; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); cursor: pointer; transition: all 0.2s;">
                                     ${n}
                                 </button>
@@ -2060,7 +2102,7 @@
         function checkExitLocker(num) {
             const correctNum = parseInt(localStorage.getItem('kimp_locker_number') || '2');
             const msgEl = document.getElementById('locker-exit-message');
-            
+
             // 모든 사물함 버튼 상태 초기화
             for (let i = 1; i <= 5; i++) {
                 const btn = document.getElementById(`locker-exit-${i}`);
@@ -2072,7 +2114,7 @@
             }
 
             const activeBtn = document.getElementById(`locker-exit-${num}`);
-            
+
             if (num === correctNum) {
                 // 성공
                 if (activeBtn) {
@@ -2082,7 +2124,7 @@
                 }
                 msgEl.style.color = '#10b981';
                 msgEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 사물함이 정상적으로 열렸습니다. 소지품을 꺼낸 후 열쇠를 반납해 주세요.';
-                
+
                 // 열쇠 반납 섹션 슬라이드 다운
                 $('#locker-key-return-section').slideDown(250);
             } else {
@@ -2094,7 +2136,7 @@
                 }
                 msgEl.style.color = '#ef4444';
                 msgEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> 사물함 번호가 다릅니다. 올바른 번호를 선택해 주세요.';
-                
+
                 // 열쇠 반납 섹션 숨김
                 $('#locker-key-return-section').slideUp(250);
             }
@@ -2136,15 +2178,15 @@
                 const userId = sessionStorage.getItem("user-id") || "guest";
                 const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
                 const userName = userObj.name || "손님";
-                
+
                 // 2-1. 오늘 날짜 예약 건 지우기
                 const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
                 let reservations = [];
                 try {
                     reservations = JSON.parse(localStorage.getItem("mypage_reservations_" + userId) || "[]");
-                } catch(e) {}
+                } catch (e) { }
                 if (!Array.isArray(reservations)) reservations = [];
-                
+
                 const filteredReservations = reservations.filter(r => r.date !== todayStr);
                 localStorage.setItem("mypage_reservations_" + userId, JSON.stringify(filteredReservations));
 
@@ -2152,7 +2194,7 @@
                 let history = [];
                 try {
                     history = JSON.parse(localStorage.getItem("mypage_history_" + userId) || "[]");
-                } catch(e) {}
+                } catch (e) { }
                 if (!Array.isArray(history)) history = [];
 
                 // 동료 목록 수집
@@ -2163,7 +2205,7 @@
                         .map(w => w.userName)
                         .filter(name => name && name !== userName);
                     if (names.length > 0) coworkers = names;
-                } catch(e) {}
+                } catch (e) { }
 
                 // 사용한 사물함 정보 가져오기
                 const lockerGender = localStorage.getItem('kimp_locker_gender') || '남성';
@@ -2193,7 +2235,7 @@
                         const checkOutTime = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
                         workTimeStr = `${checkInTime} ~ ${checkOutTime}`;
                     }
-                } catch(e) {}
+                } catch (e) { }
 
                 // 예약 비율 가져오기
                 let ratio = 1.2;
@@ -2202,21 +2244,21 @@
                     if (selRes && selRes.ratio !== undefined) {
                         ratio = Number(selRes.ratio);
                     }
-                } catch(e) {}
+                } catch (e) { }
 
                 // 실제 근무시간 분 단위 구하기
                 let actualWorkMin = 120; // 기본 2시간
                 try {
                     const workedSeconds = getElapsedSecondsFromCheckIn();
                     actualWorkMin = Math.floor(workedSeconds / 60);
-                } catch(e) {}
+                } catch (e) { }
 
                 // 유저 역할 가져오기
                 let userRole = "일반";
                 try {
                     const role = appData.user.role;
                     if (role === "헬퍼" || role === "매니저") userRole = role;
-                } catch(e) {}
+                } catch (e) { }
 
                 // 실제 출퇴근 시각 구하기
                 let checkInTimeStr = null;
@@ -2251,7 +2293,7 @@
                     locker: `${lockerGender} 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
                     coworkers: coworkers,
-                    
+
                     // 수집된 세부 변수 저장 추가
                     helpGiven: detailHelpGiven,
                     helpReceived: detailHelpReceived,
@@ -2262,7 +2304,7 @@
                     actualWorkMin: actualWorkMin,
                     isEarlyLeave: isEarlyLeave,
                     checkoutType: isEarlyLeave ? "조퇴" : "퇴근",
-                    
+
                     // 실제 출근 및 퇴근 시각 명시적 추가
                     checkInTime: checkInTimeStr,
                     checkOutTime: checkOutTimeStr
@@ -2270,13 +2312,13 @@
 
                 history.push(historyItem);
                 localStorage.setItem("mypage_history_" + userId, JSON.stringify(history));
-                
+
                 // 스토어 싱크를 위해 FactoryStore 디스패치 (로드되어 있다면)
                 if (window.FactoryStore) {
                     window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: filteredReservations });
                     window.FactoryStore.dispatch({ type: 'SET_HISTORY', payload: history });
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error("Failed to migrate work history to mypage:", e);
             }
 
@@ -2447,9 +2489,9 @@
 
             // 💡 현재 렌더링되는 화면의 상태(인덱스)를 로컬스토리지에 무조건 저장
             let stageStates = JSON.parse(localStorage.getItem('kimp_stage_states') || '{}');
-            stageStates[appData.activeStageId] = { 
-                stepIndex: currentStepIndex, 
-                highest: highestStepReached 
+            stageStates[appData.activeStageId] = {
+                stepIndex: currentStepIndex,
+                highest: highestStepReached
             };
             localStorage.setItem('kimp_stage_states', JSON.stringify(stageStates));
 
@@ -2576,12 +2618,12 @@
             `;
             }
             else if (step.type === 'brine-photos') {
-                const saltPhotoHtml = brinePhotosCaptured.salt 
-                    ? `<img src="./images/salt_cup.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />` 
+                const saltPhotoHtml = brinePhotosCaptured.salt
+                    ? `<img src="./images/salt_cup.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />`
                     : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary);"><i class="bi bi-camera-fill" style="font-size:32px; margin-bottom:6px; color:var(--text-secondary);"></i><span style="font-size:12px; font-weight:bold;">소금 계량 컵 촬영</span></div>`;
-                
-                const waterPhotoHtml = brinePhotosCaptured.water 
-                    ? `<img src="./images/brine_water.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />` 
+
+                const waterPhotoHtml = brinePhotosCaptured.water
+                    ? `<img src="./images/brine_water.png" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" />`
                     : `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary);"><i class="bi bi-camera-fill" style="font-size:32px; margin-bottom:6px; color:var(--text-secondary);"></i><span style="font-size:12px; font-weight:bold;">물 수량 촬영</span></div>`;
 
                 visualElement = `
@@ -2631,7 +2673,7 @@
         // 💡 [핵심 추가] 염수 체크용 소금/물 계량 사진 촬영 시뮬레이션
         function simulateBrineCamera(target) {
             playShutterSound();
-            
+
             if (target === 'salt') {
                 brinePhotosCaptured.salt = true;
                 showHmiToast('<i class="bi bi-camera-fill" style="color: #10b981;"></i> 소금 계량 컵 촬영 완료!');
@@ -2641,7 +2683,7 @@
                 showHmiToast('<i class="bi bi-camera-fill" style="color: #10b981;"></i> 물의 양 수량 촬영 완료!');
                 addLog("[염수] 물의 양 수량 사진 촬영 완료", null, "./images/brine_water.png");
             }
-            
+
             // 화면 즉시 갱신
             renderCurrentStep();
         }
@@ -2749,7 +2791,7 @@
             }
 
             currentStepIndex++;
-            
+
             // 💡 최초 QR 체크인(Step 0 -> Step 1) 통과 시점에 현재 스테이지를 '작업 중'으로 공식 점유
             if (currentStepIndex === 1 && appData.activeStageId !== 0) {
                 const targetStage = appData.stages.find(s => s.id === appData.activeStageId);
@@ -2825,12 +2867,12 @@
             } else {
                 addLog(`[인수인계] ${msg}`);
             }
-            
+
             // 💡 다음 작업자가 볼 수 있도록 localStorage에 메시지 저장
             if (appData.activeStageId !== 0) {
                 localStorage.setItem(`kimp_auto_handover_msg_${appData.activeStageId}`, msg);
             }
-            
+
             showRestExitQR();
         }
 
@@ -3019,7 +3061,7 @@
             let photoPath = './images/cabbage_weighed.png';
             let photoText = "배추 촬영 증빙";
             const currentStageStr = String(appData.activeStageId);
-            
+
             if (currentStageStr === "1") {
                 photoPath = './images/cabbage_zone_a.png';
                 photoText = "1/2 컷팅 배추";
@@ -3103,7 +3145,7 @@
                     const lastLog = stageLogs[stageLogs.length - 1];
                     const elapsedMs = lastLog.timestamp - firstLog.timestamp;
                     elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
-                    
+
                     let firstTimeSplit = firstLog.time.split(':');
                     startTimeStr = `${firstTimeSplit[0]}:${firstTimeSplit[1]}`;
                 } else if (stageLogs.length === 1) {
@@ -3112,11 +3154,11 @@
                     let firstTimeSplit = firstLog.time.split(':');
                     startTimeStr = `${firstTimeSplit[0]}:${firstTimeSplit[1]}`;
                 }
-                
+
                 let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
                 const now = new Date();
                 const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                
+
                 perfs.push({
                     time: timeStr,
                     startTime: startTimeStr || timeStr,
@@ -3125,7 +3167,7 @@
                     orderId: appData.currentOrder.id
                 });
                 localStorage.setItem('kimp_ex0_performance', JSON.stringify(perfs));
-                
+
                 // 해당 스테이지 타이머 초기화 (다음 수행을 위해)
                 if (window.stageStartTimes) window.stageStartTimes[stageId] = null;
 
@@ -3143,51 +3185,79 @@
             moveToStage(0, '대기장소');
         }
 
+        // 💡 [수정] 체험 완료 시 실제 유저 ID를 기반으로 매핑 테이블(가상 DB)을 업데이트합니다.
+        // 💡 [수정] 세션의 긴 아이디가 아닌, 이름을 통해 store.js의 진짜 숫자 ID를 가져옵니다.
         function completeExperience() {
-            var userId = sessionStorage.getItem('user-id');
-            if (!userId) {
-                var userStr = sessionStorage.getItem('user');
-                if (userStr) {
-                    try {
-                        var userObj = JSON.parse(userStr);
-                        userId = userObj.id || userObj.name;
-                    } catch(e) {}
+            // 1. 세션 스토리지에서 현재 로그인된 전체 유저 객체 가져오기
+            let sessionUser = null;
+            let userStr = sessionStorage.getItem('user');
+
+            if (userStr) {
+                try {
+                    sessionUser = JSON.parse(userStr);
+                } catch (e) { }
+            }
+
+            // 2. 💡 [핵심 해결] 세션의 '이름'으로 store.js의 진짜 숫자 ID를 찾아냅니다!
+            let userId = 2; // 기본값 최수아(2)
+            if (sessionUser && window.MockData && window.MockData.users) {
+                let matchedUser = window.MockData.users.find(function (u) {
+                    return u.name === sessionUser.name || u.email === sessionUser.email;
+                });
+                if (matchedUser) {
+                    userId = matchedUser.id; // 예: 김수민이면 정확히 '3'을 가져옴!
                 }
             }
-            userId = userId || 'guest';
-            var key = 'experienceCompleted_' + userId;
 
+            const workId = 1; // 현재 김치만들기 공정 ID
+
+            // 3. 로컬 스토리지에서 매핑 테이블(userWorkProgress) 불러오기
+            let progressDbStr = localStorage.getItem('app_user_work_progress');
+            let progressDb = progressDbStr ? JSON.parse(progressDbStr) : [];
+
+            // 혹시라도 로컬 스토리지가 비어있다면 store.js의 원본 데이터로 초기화
+            if (progressDb.length === 0 && window.MockData && window.MockData.userWorkProgress) {
+                progressDb = JSON.parse(JSON.stringify(window.MockData.userWorkProgress));
+            }
+
+            // 4. 현재 유저(userId)와 작업(workId)에 일치하는 기록 찾기
+            let recordIndex = progressDb.findIndex(p => p.userId === userId && p.workId === workId);
+            let todayStr = new Date().toISOString().split('T')[0];
+
+            // 5. isExp 상태 업데이트 (DB Update 또는 Insert)
+            if (recordIndex > -1) {
+                progressDb[recordIndex].isExp = true; // 체험 완료 처리!
+                progressDb[recordIndex].expCompletedAt = todayStr;
+            } else {
+                progressDb.push({
+                    userId: userId,
+                    workId: workId,
+                    isExp: true, // 새로 넣을 때도 체험 완료 처리!
+                    expCompletedAt: todayStr
+                });
+            }
+
+            // 6. 업데이트된 데이터를 로컬 스토리지에 최종 저장!
+            localStorage.setItem('app_user_work_progress', JSON.stringify(progressDb));
+
+            // 7. 데모 타이머 처리 및 페이지 리다이렉트
             if (localStorage.getItem('kimp_ex0_is3min') !== 'true') {
-                showHmiToast(`<i class="bi bi-info-circle-fill" style="color: #3b82f6;"></i> 데모로 3분이전에 넘어갑니다.`);
+                showHmiToast(`<i class="bi bi-info-circle-fill" style="color: #3b82f6;"></i> 데모로 3분 이전에 넘어갑니다.`);
                 localStorage.setItem('kimp_ex0_is3min', 'true');
+
                 if (window.expTimer) clearInterval(window.expTimer);
                 const timerText = document.getElementById('exp-timer-text');
                 if (timerText) timerText.textContent = '체험완료하기';
 
-                // 토스트 메시지를 볼 수 있도록 약간의 지연 후 페이지 이동
                 setTimeout(() => {
-                    if (typeof setPartitionedItem === 'function') {
-                        setPartitionedItem(key, 'true');
-                    } else if (window.parent && typeof window.parent.setPartitionedItem === 'function') {
-                        window.parent.setPartitionedItem(key, 'true');
-                    } else {
-                        localStorage.setItem(key, 'true');
-                    }
-                    alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
-                    history.back();
+                    alert('가상 체험이 완료되었습니다! 예약 페이지로 돌아갑니다.');
+                    window.location.replace("work_detail.html?id=" + workId);
                 }, 1000);
                 return;
             }
 
-            if (typeof setPartitionedItem === 'function') {
-                setPartitionedItem(key, 'true');
-            } else if (window.parent && typeof window.parent.setPartitionedItem === 'function') {
-                window.parent.setPartitionedItem(key, 'true');
-            } else {
-                localStorage.setItem(key, 'true');
-            }
-            alert('체험이 완료되었습니다. 이전 페이지로 이동합니다.');
-            history.back();
+            alert('가상 체험이 완료되었습니다! 예약 페이지로 돌아갑니다.');
+            window.location.replace("work_detail.html?id=" + workId);
         }
 
         // ============================================================
@@ -3196,10 +3266,10 @@
         let helperPollInterval = null;
         let requesterPollInterval = null;
         let currentRequestId = null;
-        let alertedRequests = new Set(); 
+        let alertedRequests = new Set();
         let activeHelpInterval = null;
         let helpTimerInterval = null;
-        let activeHelpSeconds = 0; 
+        let activeHelpSeconds = 0;
 
         function getHelperQueue() { return JSON.parse(localStorage.getItem('kimp_helper_queue') || '[]'); }
         function saveHelperQueue(queue) { localStorage.setItem('kimp_helper_queue', JSON.stringify(queue)); }
@@ -3207,25 +3277,25 @@
         function saveHelperFreeCounts(counts) { localStorage.setItem('kimp_helper_free_counts', JSON.stringify(counts)); }
 
         const originalApplyLoginState = applyLoginState;
-        applyLoginState = function(user) {
+        applyLoginState = function (user) {
             originalApplyLoginState(user);
-            
+
             if (helperPollInterval) clearInterval(helperPollInterval);
             if (requesterPollInterval) clearInterval(requesterPollInterval);
-            
+
             const helperBtnContainer = document.getElementById('helper-floating-btn');
             if (user.role === '헬퍼') {
                 if (helperBtnContainer) helperBtnContainer.style.display = 'block';
                 document.documentElement.style.setProperty('--primary', '#8b5cf6');
                 helperPollInterval = setInterval(checkHelperQueue, 2000);
-                checkHelperQueue(); 
+                checkHelperQueue();
             } else {
                 if (helperBtnContainer) helperBtnContainer.style.display = 'none';
                 document.documentElement.style.setProperty('--primary', '#3b82f6');
             }
         };
 
-        requestStageHelp = function() {
+        requestStageHelp = function () {
             const container = document.getElementById('help-process-container');
             if (!container) return;
 
@@ -3257,7 +3327,7 @@
             requesterPollInterval = setInterval(checkMyRequestStatus, 1500);
         };
 
-        cancelStageHelp = function() {
+        cancelStageHelp = function () {
             if (requesterPollInterval) clearInterval(requesterPollInterval);
             if (currentRequestId) {
                 let queue = getHelperQueue();
@@ -3285,16 +3355,16 @@
                 let dynamicTextEl = document.getElementById('help-pending-dynamic-text');
                 if (dynamicTextEl) {
                     let activeReq = queue.find(q => q.status === 'accepted' || q.status === 'arrived');
-                    let pendingArr = queue.filter(q => q.status === 'pending').sort((a,b) => a.timestamp - b.timestamp);
+                    let pendingArr = queue.filter(q => q.status === 'pending').sort((a, b) => a.timestamp - b.timestamp);
                     let myIndex = pendingArr.findIndex(q => q.id === currentRequestId);
                     let myRank = myIndex + 1;
-                    
+
                     let newHtml = "";
                     if (activeReq) {
                         newHtml += `도움받기에 <strong>${activeReq.requester}</strong>님을 도와주고 있습니다.<br>`;
                     }
                     newHtml += `다음 순번(<strong>${myRank}번째</strong> 순번)입니다.<br>기다려주세요.`;
-                    
+
                     if (dynamicTextEl.innerHTML !== newHtml) {
                         dynamicTextEl.innerHTML = newHtml;
                     }
@@ -3323,12 +3393,12 @@
                 let counts = getHelperFreeCounts();
                 let freeLeft = counts[appData.user.name] ?? 5;
                 let costMsg = freeLeft > 0 ? `무료 횟수 1회가 차감되었습니다. (남은 횟수: ${freeLeft - 1}회)` : "500원이 차감되었습니다.";
-                
+
                 if (freeLeft > 0) {
                     counts[appData.user.name] = freeLeft - 1;
                     saveHelperFreeCounts(counts);
                 }
-                
+
                 let helperName = req.helperName || '헬퍼';
                 let m = Math.floor((req.duration || 0) / 60);
                 let s = (req.duration || 0) % 60;
@@ -3337,7 +3407,7 @@
 
                 let newQueue = getHelperQueue().filter(q => q.id !== req.id);
                 saveHelperQueue(newQueue);
-                
+
                 container.innerHTML = `
                     <i class="bi bi-check-circle-fill" style="font-size: 56px; color: var(--primary);"></i>
                     <p style="font-size: 22px; font-weight: 700; margin-top: 16px; color: var(--text-primary);">도움 완료</p>
@@ -3354,7 +3424,7 @@
         function checkHelperQueue() {
             let queue = getHelperQueue();
             let pending = queue.filter(q => q.status === 'pending');
-            
+
             const badge = document.getElementById('helper-badge-count');
             if (badge) {
                 badge.textContent = pending.length;
@@ -3362,7 +3432,7 @@
             }
 
             if (pending.length > 0) {
-                pending.sort((a,b) => a.timestamp - b.timestamp); // FIFO
+                pending.sort((a, b) => a.timestamp - b.timestamp); // FIFO
                 let oldest = pending[0];
                 if (!alertedRequests.has(oldest.id)) {
                     showHelperAlert(oldest);
@@ -3392,7 +3462,7 @@
         function openHelperQueue() {
             let queue = getHelperQueue();
             let pending = queue.filter(q => q.status === 'pending');
-            pending.sort((a,b) => a.timestamp - b.timestamp); 
+            pending.sort((a, b) => a.timestamp - b.timestamp);
 
             const listContainer = document.getElementById('helper-queue-list');
             if (pending.length === 0) {
@@ -3403,7 +3473,7 @@
                     return `
                     <div style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
                         <div>
-                            <span style="font-size:12px; font-weight:bold; background:#e2e8f0; padding:2px 6px; border-radius:4px; color:#475569;">#${index+1}</span>
+                            <span style="font-size:12px; font-weight:bold; background:#e2e8f0; padding:2px 6px; border-radius:4px; color:#475569;">#${index + 1}</span>
                             <strong style="margin-left:6px;">${req.requester}</strong> (Stage ${req.stage})
                             <div style="font-size:12px; color:var(--text-secondary); margin-top:4px;">대기: ${minPassed}분 전</div>
                         </div>
@@ -3430,13 +3500,13 @@
                 closeLogModal();
                 document.getElementById('active-help-req-id').value = reqId;
                 document.getElementById('active-help-msg').innerHTML = `현재 <strong>${req.requester}</strong>님의 Stage ${req.stage} 작업을 돕고 있습니다.`;
-                
+
                 let btnContainer = document.getElementById('active-help-btn-container');
                 if (btnContainer) {
                     btnContainer.innerHTML = `<button class="btn-huge primary" style="padding: 12px; font-size: 15px; width: 100%;" onclick="helperArrived()">도착알림</button>`;
                 }
                 document.getElementById('active-help-modal').classList.add('open');
-                
+
                 if (activeHelpInterval) clearInterval(activeHelpInterval);
                 activeHelpInterval = setInterval(() => {
                     let q = getHelperQueue();
@@ -3465,7 +3535,7 @@
                 saveHelperQueue(queue);
             }
             document.getElementById('active-help-msg').innerHTML = `도움 받는 중! 헬퍼님이 도움을 드리고 있습니다.<br><span id="help-timer-display" style="font-size:28px; font-weight:bold; color:var(--primary); margin-top: 10px; display:block;">00:00</span>`;
-            
+
             let btnContainer = document.getElementById('active-help-btn-container');
             if (btnContainer) {
                 btnContainer.innerHTML = `
@@ -3491,7 +3561,7 @@
         function completeActiveHelp() {
             if (activeHelpInterval) clearInterval(activeHelpInterval);
             if (helpTimerInterval) clearInterval(helpTimerInterval);
-            
+
             const reqId = document.getElementById('active-help-req-id').value;
             let queue = getHelperQueue();
             let req = queue.find(q => q.id === reqId);
@@ -3533,9 +3603,11 @@
 
     <!-- 헬퍼 모드 UI 플로팅 버튼 -->
     <div id="helper-floating-btn" style="display:none; position:fixed; bottom: 20px; right: 20px; z-index: 9999;">
-        <button onclick="openHelperQueue()" style="background-color: var(--primary); color: white; border: none; border-radius: 30px; padding: 12px 20px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+        <button onclick="openHelperQueue()"
+            style="background-color: var(--primary); color: white; border: none; border-radius: 30px; padding: 12px 20px; font-weight: bold; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
             <i class="bi bi-bell-fill"></i> 도움 요청 대기
-            <span id="helper-badge-count" style="display:none; background: #ef4444; color: white; font-size: 12px; border-radius: 10px; padding: 2px 6px; margin-left: 4px;">0</span>
+            <span id="helper-badge-count"
+                style="display:none; background: #ef4444; color: white; font-size: 12px; border-radius: 10px; padding: 2px 6px; margin-left: 4px;">0</span>
         </button>
     </div>
 
@@ -3543,24 +3615,31 @@
     <div class="modal-overlay" id="helper-queue-modal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
-                <h2 class="modal-title" style="color: var(--text-primary);"><i class="bi bi-list-task"></i> 도움 요청 순서</h2>
+                <h2 class="modal-title" style="color: var(--text-primary);"><i class="bi bi-list-task"></i> 도움 요청 순서
+                </h2>
                 <button class="btn-close-modal" onclick="closeHelperQueue()"><i class="bi bi-x-lg"></i></button>
             </div>
-            <div id="helper-queue-list" style="max-height: 300px; overflow-y: auto; padding-right: 4px; padding-top: 10px;">
+            <div id="helper-queue-list"
+                style="max-height: 300px; overflow-y: auto; padding-right: 4px; padding-top: 10px;">
             </div>
         </div>
     </div>
 
     <!-- 헬퍼 신규 알림 팝업 -->
     <div class="modal-overlay" id="helper-alert-modal">
-        <div class="modal-content" style="max-width: 320px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <i class="bi bi-exclamation-circle-fill" style="font-size: 48px; color: var(--primary); margin-bottom: 12px; display: inline-block;"></i>
+        <div class="modal-content"
+            style="max-width: 320px; text-align: center; border: 2px solid var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <i class="bi bi-exclamation-circle-fill"
+                style="font-size: 48px; color: var(--primary); margin-bottom: 12px; display: inline-block;"></i>
             <h3 style="margin:0 0 12px 0; color: var(--text-primary);">신규 도움 요청</h3>
             <p id="helper-alert-msg" style="margin-bottom: 20px; font-size: 15px; color: var(--text-secondary);"></p>
             <input type="hidden" id="helper-alert-req-id">
             <div style="display: flex; gap: 10px;">
-                <button class="btn-huge primary" style="flex:1; padding: 12px; font-size: 15px;" onclick="acceptHelpFromAlert()">지금 가기</button>
-                <button class="btn-huge" style="flex:1; padding: 12px; font-size: 15px; background: #e2e8f0; color: #475569;" onclick="closeHelperAlert()">나중에 가기</button>
+                <button class="btn-huge primary" style="flex:1; padding: 12px; font-size: 15px;"
+                    onclick="acceptHelpFromAlert()">지금 가기</button>
+                <button class="btn-huge"
+                    style="flex:1; padding: 12px; font-size: 15px; background: #e2e8f0; color: #475569;"
+                    onclick="closeHelperAlert()">나중에 가기</button>
             </div>
         </div>
     </div>
@@ -3568,33 +3647,44 @@
     <!-- 헬퍼 수행 중 모달 -->
     <div class="modal-overlay" id="active-help-modal" style="background: rgba(0,0,0,0.8);">
         <div class="modal-content" style="max-width: 400px; text-align: center; border-top: 5px solid #10b981;">
-            <i class="bi bi-tools" style="font-size: 56px; color: #10b981; margin-bottom: 16px; display: inline-block;"></i>
+            <i class="bi bi-tools"
+                style="font-size: 56px; color: #10b981; margin-bottom: 16px; display: inline-block;"></i>
             <h2 style="margin-bottom: 12px; color: var(--text-primary);">헬퍼 임무 수행 중</h2>
             <p id="active-help-msg" style="margin-bottom: 24px; font-size: 16px; color: var(--text-secondary);"></p>
             <input type="hidden" id="active-help-req-id">
             <div id="active-help-btn-container">
-                <button class="btn-huge primary" style="padding: 12px; font-size: 15px; width: 100%;" onclick="helperArrived()">도착알림</button>
+                <button class="btn-huge primary" style="padding: 12px; font-size: 15px; width: 100%;"
+                    onclick="helperArrived()">도착알림</button>
             </div>
         </div>
     </div>
     <!-- 💡 [핵심 추가] 작업 로그 이미지 확대 뷰어 모달 (전체화면 오버레이) -->
-    <div id="log-image-detail-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.98); backdrop-filter: blur(12px); z-index: 100000; flex-direction: column; overflow: hidden; padding: 0; box-sizing: border-box; justify-content: space-between; opacity: 1 !important; visibility: visible !important;">
+    <div id="log-image-detail-modal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.98); backdrop-filter: blur(12px); z-index: 100000; flex-direction: column; overflow: hidden; padding: 0; box-sizing: border-box; justify-content: space-between; opacity: 1 !important; visibility: visible !important;">
         <!-- 상단 헤더 영역 -->
-        <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
-            <h5 style="margin: 0; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
+        <div
+            style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <h5
+                style="margin: 0; font-size: 18px; font-weight: bold; color: #f8fafc; display: flex; align-items: center; gap: 10px;">
                 <i class="bi bi-journal-text" style="color: #3b82f6; font-size: 20px;"></i> 나의 작업로그
             </h5>
-            <button type="button" onclick="window.closeLogImageDetailModal()" style="background: none; border: none; color: #94a3b8; font-size: 32px; cursor: pointer; padding: 0 8px; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">
+            <button type="button" onclick="window.closeLogImageDetailModal()"
+                style="background: none; border: none; color: #94a3b8; font-size: 32px; cursor: pointer; padding: 0 8px; display: flex; align-items: center; transition: color 0.2s;"
+                onmouseover="this.style.color='#f8fafc'" onmouseout="this.style.color='#94a3b8'">
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
         <!-- 중앙 이미지 상세 영역 (화면 가득 채우기) -->
-        <div style="flex: 1; display: flex; justify-content: center; align-items: center; background: #090d16; padding: 24px; box-sizing: border-box; overflow: hidden;">
-            <img id="log-detail-expanded-img" src="" style="max-width: 95%; max-height: 75vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
+        <div
+            style="flex: 1; display: flex; justify-content: center; align-items: center; background: #090d16; padding: 24px; box-sizing: border-box; overflow: hidden;">
+            <img id="log-detail-expanded-img" src=""
+                style="max-width: 95%; max-height: 75vh; object-fit: contain; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
         </div>
         <!-- 하단 텍스트 설명 영역 -->
-        <div style="padding: 24px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
-            <div id="log-detail-expanded-text" style="font-size: 16px; font-weight: 500; color: #a7f3d0; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+        <div
+            style="padding: 24px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box;">
+            <div id="log-detail-expanded-text"
+                style="font-size: 16px; font-weight: 500; color: #a7f3d0; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left; padding: 12px 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
                 -
             </div>
         </div>

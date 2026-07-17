@@ -368,7 +368,7 @@
                 <!-- 확인해보기 버튼 (체험 모드에서만 표시) -->
                 <div id="try-experience-area" class="hidden mb-18">
                     <div class="section-label"><i class="bi bi-phone"></i> 앱으로 미리 체험해보기</div>
-                    <button class="btn-try-experience" onclick="completeExperienceNow()">
+                    <button class="btn-try-experience" onclick="tryExperience()">
                         <i class="bi bi-play-circle-fill"></i> 확인해보기
                     </button>
                     <div class="desc-muted">시간대를 예약하기 전에, 앱에서 미리 작업 내용을 체험해볼 수 있습니다.</div>
@@ -1086,6 +1086,7 @@
 
         // 확인해보기 버튼 → 모달 팝업 호출
         function tryExperience() {
+            closeReservation();
             openExperienceModeModal();
         }
 
@@ -1258,42 +1259,129 @@
                 });
             }
         });
+        // 💡 1. store.js의 체험 데이터를 로컬 스토리지에 복사하는 함수 (새로 추가됨)
+        function seedUserWorkProgress() {
+            var progressDbStr = localStorage.getItem('app_user_work_progress');
 
-        // 체험 완료 상태 체크 (localStorage 기반, 로그인된 사용자 별)
-        function checkExperienceStatus() {
-            var userId = sessionStorage.getItem('user-id');
-            if (!userId) {
-                var userStr = sessionStorage.getItem('user');
-                if (userStr) {
-                    try {
-                        var userObj = JSON.parse(userStr);
-                        userId = userObj.id || userObj.name;
-                    } catch (e) { }
+            // 값이 아예 없거나, 이전에 잘못 저장된 빈 배열("[]")일 경우 강제로 덮어쓰기
+            if (!progressDbStr || progressDbStr === "[]" || progressDbStr === "") {
+                if (window.MockData && window.MockData.userWorkProgress) {
+                    localStorage.setItem('app_user_work_progress', JSON.stringify(window.MockData.userWorkProgress));
+                    console.log("store.js의 체험 데이터를 로컬 스토리지에 성공적으로 복사했습니다!");
                 }
             }
-            userId = userId || 'guest';
+        }
 
-            var status = getPartitionedItem('experienceCompleted_' + userId);
-            if (!status) {
-                status = localStorage.getItem('experienceCompleted_' + userId);
+
+        // 체험 완료 상태 체크 (localStorage 기반, 로그인된 사용자 별)
+        // 💡 [최종 동기화] 세션에 저장된 진짜 숫자 ID를 읽어와 DB(로컬 스토리지)와 대조합니다.
+        // 💡 [최종 해결] 세션의 긴 소셜/서버 ID 대신, 이름으로 store.js의 가상 DB ID를 매칭합니다!
+        function checkExperienceStatus() {
+            // 1. 초기 데이터 세팅
+            if (typeof seedUserWorkProgress === 'function') {
+                seedUserWorkProgress();
             }
-            if (status === 'true') {
-                experienceCompleted = true;
-                var badge = document.getElementById('exp-badge');
+
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = parseInt(urlParams.get('id') || '1', 10);
+
+            // 2. 세션에서 로그인 정보 전체 객체를 가져옵니다.
+            var sessionUser = null;
+            var userStr = sessionStorage.getItem('user');
+            if (userStr) {
+                try { sessionUser = JSON.parse(userStr); } catch (e) { }
+            }
+
+            // 3. 💡 [핵심] 이름(또는 이메일)을 통해 store.js의 진짜 유저 번호(1, 2, 3, 4)를 찾아냅니다!
+            var realUserId = 2; // 기본값 (최수아)
+            if (sessionUser && window.MockData && window.MockData.users) {
+                var matchedUser = window.MockData.users.find(function (u) {
+                    return u.name === sessionUser.name || u.email === sessionUser.email;
+                });
+                if (matchedUser) {
+                    realUserId = matchedUser.id; // 드디어 찾은 진짜 가상 DB 기준 ID (예: 2)
+                }
+            }
+
+            // 4. 로컬 스토리지에서 매핑 데이터 불러오기
+            var progressDbStr = localStorage.getItem('app_user_work_progress');
+            var progressDb = progressDbStr ? JSON.parse(progressDbStr) : [];
+
+            // 5. 정확한 ID(realUserId)로 체험 기록을 검색합니다.
+            var record = progressDb.find(function (p) {
+                return p.userId === realUserId && p.workId === workId;
+            });
+
+            var badge = document.getElementById('exp-badge');
+
+            // 6. UI(뱃지) 반영
+            if (record && (record.isExp === true || record.isExp === "true")) {
+                experienceCompleted = true; // 전역 변수 활성화!
                 if (badge) {
                     badge.className = 'experience-badge done';
                     badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
                 }
             } else {
-                experienceCompleted = false;
-                var badge = document.getElementById('exp-badge');
+                experienceCompleted = false; // 전역 변수 비활성화
                 if (badge) {
                     badge.className = 'experience-badge not-done';
                     badge.innerHTML = '<i class="bi bi-exclamation-circle"></i> 체험 미완료';
                 }
             }
         }
+        // 💡 3. 강제 완료 함수 (이 함수도 동일하게 이름으로 ID를 찾도록 변경)
+        function completeExperienceNow() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = parseInt(urlParams.get('id') || '1', 10);
 
+            var userName = '최수아';
+            var userStr = sessionStorage.getItem('user');
+            if (userStr) {
+                try {
+                    var userObj = JSON.parse(userStr);
+                    userName = userObj.name || '최수아';
+                } catch (e) { }
+            }
+
+            var mockUserId = 2;
+            if (window.MockData && window.MockData.users) {
+                var matchedUser = window.MockData.users.find(function (u) {
+                    return u.name === userName;
+                });
+                if (matchedUser) {
+                    mockUserId = matchedUser.id;
+                }
+            }
+
+            var progressDb = JSON.parse(localStorage.getItem('app_user_work_progress') || '[]');
+
+            var recordIndex = progressDb.findIndex(function (p) {
+                return p.userId === mockUserId && p.workId === workId;
+            });
+
+            var todayStr = new Date().toISOString().split('T')[0];
+
+            if (recordIndex > -1) {
+                progressDb[recordIndex].isExp = true;
+                progressDb[recordIndex].expCompletedAt = todayStr;
+            } else {
+                progressDb.push({
+                    userId: mockUserId,
+                    workId: workId,
+                    isExp: true,
+                    expCompletedAt: todayStr
+                });
+            }
+
+            localStorage.setItem('app_user_work_progress', JSON.stringify(progressDb));
+            checkExperienceStatus();
+
+            if (document.getElementById('reservation-overlay').classList.contains('show')) {
+                openModal('reserve');
+            } else {
+                alert("가상 체험이 완료 처리되었습니다. 이제 예약이 가능합니다!");
+            }
+        }
         // 모달 열기 (모드: 'reserve' 또는 'experience')
         function openModal(mode) {
             currentModalMode = mode || 'reserve';
@@ -1369,12 +1457,17 @@
             selectedSlot = idx;
             renderTimeSlots();
 
-            // 체험 완료 시에만 확정 버튼 활성화
             var btn = document.getElementById('btn-confirm');
+
+            // 💡 experienceCompleted (즉, isExp)가 true일 때만 버튼 활성화
             if (experienceCompleted) {
                 btn.disabled = false;
+                btn.style.cursor = 'pointer';
+                btn.style.opacity = '1';
             } else {
                 btn.disabled = true;
+                btn.style.cursor = 'not-allowed';
+                btn.style.opacity = '0.5';
             }
         }
 

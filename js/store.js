@@ -1728,6 +1728,16 @@ window.MockData = {
             modifiedDate: new Date().toISOString()
         }
     ],
+    userWorkProgress: [
+        // workId 1 (김치만들기) 매핑
+        { userId: 1, workId: 1, isExp: true, expCompletedAt: "2024-08-01" }, // 최현일 (완료)
+        { userId: 2, workId: 1, isExp: true, expCompletedAt: "2024-08-05" }, // 최수아 (완료)
+        { userId: 3, workId: 1, isExp: false, expCompletedAt: null },        // 김수민 (미완료 - 요청사항 반영)
+        { userId: 4, workId: 1, isExp: true, expCompletedAt: "2024-08-10" }, // 김영희 (완료)
+
+        // 향후 확장을 위한 데이터 예시 (우동만들기 등)
+        { userId: 2, workId: 2, isExp: false, expCompletedAt: null }         // 최수아 - 우동만들기(미완료)
+    ],
 
     // 2. 예약(Reservations) 목업 데이터 생성기
     getReservations: function(todayStr, tomorrowStr, nextDayStr) {
