@@ -34,15 +34,15 @@
 
             <!-- Profile Info Box -->
             <div class="check-in-box">
-                 <img class="icon" src="./images/k-icon_150x150.png"> 
-                 <span class="brand-name">AFood</span> 
-                 <div class="tx-color">김치만들기</div>
+                 <img class="icon" src="./images/k-icon_150x150.png" id="info-icon"> 
+                 <span class="brand-name" id="info-brand">AFood</span> 
+                 <div class="tx-color" id="info-work-title">김치만들기</div>
             </div>
             <div class="check-in-rail">
                 <div><i class="bi bi-map"></i>&nbsp;주소</div>
             </div>
             <div class="mypage-box2 notice-write">
-                <div>서울시 성동구 성수동 1층 AFood</div>
+                <div id="info-address">서울시 성동구 성수동 1층 AFood</div>
                  
                 
             </div>
@@ -327,6 +327,51 @@
             const baseHourlyWage = 10320;
             const calculatedWage = Math.floor(baseHourlyWage * ratio);
 
+            // workId 기반으로 동적 정보 매핑
+            const workId = res.workId || 1;
+            let workTitle = "김치만들기";
+            let brandName = "AFood";
+            let iconUrl = "./images/k-icon_150x150.png";
+            let workHoursLabel = "2h";
+            let expPage = "kimp_virt2.html"; // 기본 가상체험 입장 페이지
+            let addressStr = "서울시 성동구 성수동";
+
+            try {
+                const worksList = JSON.parse(window.MockData.worksJSON);
+                const workObj = worksList.find(w => w.workId == workId);
+                if (workObj) {
+                    workTitle = workObj.workName;
+                    brandName = workObj.brandName;
+                    iconUrl = workObj.iconUrl;
+                }
+
+                const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                const detail = detailMap[String(workId)];
+                if (detail) {
+                    if (detail.stats && detail.stats.address) {
+                        addressStr = detail.stats.address;
+                    }
+                    if (detail.expPage) {
+                        // 만약 실제 일 체험 페이지가 등록되어 있으면 해당 페이지로 입장
+                        expPage = detail.expPage;
+                    }
+                    const workTime = detail.workTime || "";
+                    if (workTime.includes("1시간 30분")) {
+                        workHoursLabel = "1.5h";
+                    } else if (workTime.includes("1시간")) {
+                        workHoursLabel = "1h";
+                    } else if (workTime.includes("2시간")) {
+                        workHoursLabel = "2h";
+                    }
+                }
+            } catch(e) {}
+
+            // 상단 Profile Info Box 업데이트
+            $('#info-icon').attr('src', iconUrl);
+            $('#info-brand').text(brandName);
+            $('#info-work-title').text(workTitle);
+            $('#info-address').text(addressStr + " 1층 " + brandName);
+
             let html = `
                 <div class="box-corp res-date-box">
                     <span class="res-date-time">${parts[1]}월 ${parts[2]}일</span>
@@ -340,12 +385,12 @@
                        <div class="res-sm">시급 <i class="bi bi-caret-up-fill"></i> ${displayRatio}배 &nbsp;<span class="money-num">₩</span><span class="money-num">${calculatedWage.toLocaleString()}</span></div>
                     </div>
                     <div>
-                    <span class="box-time">2h</span>
+                    <span class="box-time">${workHoursLabel}</span>
                     <span class="${badgeClass}">${roleLabel}</span>
                     </div>
                 </div>
                 <div class="box-value res-btn-box reverse">
-                    <button type="button" class="res-check-in-btn" onclick="location.href='kimp_virt2.html'">입장하기</button>
+                    <button type="button" class="res-check-in-btn" onclick="location.href='${expPage}'">입장하기</button>
                     <button type="button" class="res-cancel-btn" onclick="cancelReservationInAnnounce(${res.id})">예약 취소</button>
                 </div>
             `;
@@ -372,7 +417,15 @@
             if (targetRes && typeof window.addAppLog === 'function') {
                 const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
                 const slotText = slotLabels[targetRes.slot] || '지정 시간';
-                window.addAppLog(`김치만들기 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
+                
+                let workTitle = "김치만들기";
+                try {
+                    const worksList = JSON.parse(window.MockData.worksJSON);
+                    const workObj = worksList.find(w => w.workId == (targetRes.workId || 1));
+                    if (workObj) workTitle = workObj.workName;
+                } catch(e) {}
+
+                window.addAppLog(`${workTitle} 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
             }
 
             sessionStorage.removeItem('selected_reservation');

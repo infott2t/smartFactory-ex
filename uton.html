@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>주방 KDS - 주문 연동형 우동 조리</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/store.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/auth-guard.js"></script>
     <style>
         :root {
             --bg-color: #121212;
@@ -35,10 +38,19 @@
         .app-header {
             display: flex;
             align-items: center;
-            justify-content: center; /* 타이틀을 정중앙에 배치 */
             height: 60px;
-            position: relative; /* 버튼의 절대 위치 기준점 */
+            position: relative;
             margin-bottom: 5px;
+            width: 100%;
+        }
+        /* 타이틀(아이콘+제목)을 중앙에 배치하기 위해 absolute 사용 */
+        .app-header .header-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            pointer-events: none;
         }
 
         .main-title {
@@ -172,6 +184,77 @@
             width: 25px;
             height: 25px;
         }
+        /* 로그인 뱃지 버튼 */
+        #h-open-btn {
+            position: absolute !important;
+            right: 15px !important;
+            left: auto !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 9999 !important;
+            background: transparent !important;
+            border: none !important;
+            cursor: pointer !important;
+            font-size: 24px !important;
+            color: white !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 4px !important;
+            width: auto !important;
+            height: auto !important;
+        }
+        .badge-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #cd00bb;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        /* 라운지 모달 오버레이 */
+        .lounge-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+        }
+        .lounge-modal {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .rest-timer-display {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px dashed var(--accent-green);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        /* 업무 인계 모달 추가 */
+        .lounge-share-box {
+            background: #24242b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+            border: 1px solid #444;
+            color: #d1d5db;
+        }
+        .lounge-timer-display {
+            font-size: 1rem;
+            color: #fbbf24;
+            font-weight: 500;
+            margin-bottom: 8px;
+            background: rgba(251, 191, 36, 0.05);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            padding: 8px;
+            border-radius: 6px;
+        }
     </style>
 </head>
 <body>
@@ -181,24 +264,27 @@
     <div class="container">
         <!-- 💡 헤더 영역 레이아웃 조정 -->
         <header class="app-header">
-            <button class="experi" id="btn-experi" onclick="finishExperience()">
+            <button class="experi" id="btn-experi" onclick="handleExperiBtnClick()">
                 <i class="bi bi-play-circle-fill"></i> 가상체험중 (<span id="experi-timer">03:00</span>)
             </button>
-            <img class="img-icon" src="./images/Uton_150x150.png" alt="Uton" /><div class="main-title">&nbsp;&nbsp;우동만들기</div>
+            <!-- 타이틀 중앙 배치 -->
+            <div class="header-center">
+                <img class="img-icon" src="./images/Uton_150x150.png" alt="Uton" /><div class="main-title">&nbsp;&nbsp;우동만들기</div>
+            </div>
+            <!-- 로그인 뱃지 버튼 -->
+            <button class="h-open-btn" id="h-open-btn" type="button">
+                <i class="bi bi-person-circle"></i>
+            </button>
         </header>
 
         <div class="status-bar">
             <div class="status-item">
-                <span style="color: var(--text-muted);">🕒 현재 시간</span>
-                <span id="current-time-display" class="status-value">00:00:00</span>
+                <span style="color: var(--text-muted);">🍜 우동 대기</span>
+                <span id="udon-order-display" class="status-value order-highlight">0건</span>
             </div>
             <div class="status-item">
-                <span style="color: var(--text-muted);">⏱️ 남은 근무시간</span>
-                <span id="work-timer-display" class="status-value" style="color: var(--accent-blue);">02:00:00</span>
-            </div>
-            <div class="status-item">
-                <span style="color: var(--text-muted);">🍜 대기 주문</span>
-                <span id="order-count-display" class="status-value order-highlight">0건</span>
+                <span style="color: var(--text-muted);">🥢 비빔면 대기</span>
+                <span id="bibim-order-display" class="status-value order-highlight" style="color: var(--accent-orange);">0건</span>
             </div>
         </div>
 
@@ -212,6 +298,11 @@
         </div>
 
         <div class="panel">
+            <!-- 🍜 조리 품목 선택 토글 그룹 -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button type="button" id="btn-select-udon" onclick="switchRecipeMode('udon')" style="background-color: var(--accent-blue); padding: 12px; font-size: 0.95rem; border-radius: 6px; width: 50%;">🍜 우동 조리</button>
+                <button type="button" id="btn-select-bibim" onclick="switchRecipeMode('bibim')" style="background-color: #374151; padding: 12px; font-size: 0.95rem; border-radius: 6px; width: 50%;">🥢 비빔면 조리</button>
+            </div>
             <h2 id="step-title">1. 육수 가열</h2>
             
             <div class="image-container">
@@ -231,7 +322,7 @@
 
         <div class="panel">
             <h2>표준 매뉴얼</h2>
-            <div class="recipe-manual">
+            <div class="recipe-manual" id="recipe-manual-content">
                 <h3>[재료 준비]</h3>
                 <ul>
                     <li>냉동 우동면 1개</li>
@@ -243,6 +334,175 @@
                     <li>면을 억지로 풀면 끊어집니다. 자연스럽게 풀리게 두세요.</li>
                     <li>타이머가 울리면 즉시 건져내세요.</li>
                 </ul>
+            </div>
+        </div>
+
+        <!-- 🛋️ 라운지 쉼터 패널 -->
+        <div class="panel lounge-panel">
+            <h2>🛋️ 라운지 쉼터 (Break Lounge)</h2>
+            <div class="lounge-content">
+                <!-- 실시간 매장 정보 표시 -->
+                <div class="lounge-timer-display">
+                    <div style="margin-bottom: 4px;">🕒 현재 시간: <span id="current-time-display">00:00:00</span></div>
+                    <div style="margin-bottom: 4px;">⏱️ 남은 근무시간: <span id="work-timer-display" style="color: var(--accent-blue); font-weight: bold;">01:30:00</span></div>
+                    <div style="margin-bottom: 8px;">👥 근무 인원: <span style="color: var(--accent-green); font-weight: bold;">2명 (본인 포함)</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(1명일 시 휴식 불가)</span></div>
+                    <button type="button" class="btn-test-order" style="background-color: #4b5563; width: 100%; border: 1px solid #6b7280; font-size: 0.9rem;" onclick="showLoungeLogs()">📋 나의 기록 보기</button>
+                </div>
+
+                <!-- 1. 휴식 기능 섹션 -->
+                <div class="lounge-section text-center" style="text-align: center; margin-top: 15px;">
+                    <h3>휴식 및 휴게소 입장</h3>
+                    <div id="rest-timer-area" class="rest-timer-display" style="display: none; font-size: 2rem; color: var(--accent-green); margin: 15px 0;">
+                        🕒 휴식 시간: <span id="rest-time-counter">00:00</span>
+                    </div>
+                    <div class="btn-group" style="margin-top: 10px;">
+                        <button type="button" class="btn-action" id="btn-request-rest" onclick="requestRest()">☕ 휴식하기 (출구 QR)</button>
+                        <button type="button" class="btn-stop" id="btn-finish-rest" onclick="finishRest()" style="display: none;">🏭 업무 복귀</button>
+                    </div>
+                </div>
+
+                <!-- 2. 실내 지도 섹션 -->
+                <div class="lounge-section" style="margin-top: 20px;">
+                    <h3>🗺️ 매장 실내 지도</h3>
+                    <button type="button" class="btn-test-order" style="background-color: var(--accent-blue);" onclick="toggleLoungeMap()">🗺️ 실내 지도 보기/닫기</button>
+                    
+                    <div id="lounge-map-area" style="display: none; margin-top: 15px;">
+                        <!-- 3개의 구역(Zone)으로 나뉜 지도 SVG -->
+                        <svg viewBox="0 0 400 240" style="width:100%; border-radius:8px; background:#1c1917; border: 1px solid #444;">
+                            <!-- 1구역: 조리 및 영업 구역 (우동매장 지역) -->
+                            <rect x="15" y="15" width="200" height="210" rx="6" fill="#2d2219" stroke="#ea580c" stroke-width="1.5"></rect>
+                            <text x="115" y="125" text-anchor="middle" fill="#fdba74" font-size="12" font-weight="bold">🍜 우동매장 구역</text>
+                            
+                            <!-- 2구역: 편의 구역 (화장실, 휴게소) -->
+                            <rect x="230" y="15" width="155" height="100" rx="6" fill="#1b253b" stroke="#3b82f6" stroke-width="1.5"></rect>
+                            <text x="307" y="55" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="bold">🚽 화장실 / 🛋️ 휴게소</text>
+                            <line x1="230" y1="65" x2="385" y2="65" stroke="#3b82f6" stroke-dasharray="2,2"></line>
+                            <text x="307" y="85" text-anchor="middle" fill="#93c5fd" font-size="9">위: 화장실 | 아래: 휴게소</text>
+                            
+                            <!-- 3구역: 지원 및 관리 구역 (사무실, 탈의실) -->
+                            <rect x="230" y="125" width="155" height="100" rx="6" fill="#241e3a" stroke="#a855f7" stroke-width="1.5"></rect>
+                            <text x="307" y="165" text-anchor="middle" fill="#d8b4fe" font-size="12" font-weight="bold">💼 사무실 / 👔 탈의실</text>
+                            <line x1="230" y1="175" x2="385" y2="175" stroke="#a855f7" stroke-dasharray="2,2"></line>
+                            <text x="307" y="195" text-anchor="middle" fill="#d8b4fe" font-size="9">위: 사무실 | 아래: 남녀 탈의실</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 👥 업무 인계 알림 모달 -->
+    <div id="lounge-share-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal">
+            <h3 style="color: white; margin-top: 0;">📢 업무 현황 공유 및 인계</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">휴식을 취하기 전, 동료 근무자에게 현재 진행 중인 나의 업무를 인계해주세요.</p>
+            
+            <div class="lounge-share-box">
+                <div style="font-weight: bold; color: var(--accent-orange); margin-bottom: 6px;">📢 실시간 업무 인계 메시지:</div>
+                <div id="lounge-share-msg" style="font-size: 0.95rem; line-height: 1.4;">현재 조리 대기 및 공정 현황을 계산 중입니다...</div>
+            </div>
+
+            <div class="btn-group" style="flex-direction: row; gap: 10px;">
+                <button type="button" class="btn-next" onclick="shareWorkStatus()">공유 및 완료 ➔</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeShareModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 출구 QR코드 스캔 팝업 모달 -->
+    <div id="lounge-qr-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal">
+            <h3 style="color: white; margin-top: 0;">🚪 출구 QR코드 스캔</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">휴게실 입장을 위해 출구 QR코드를 리더기에 인식해 주세요.</p>
+            
+            <!-- 가상의 QR코드 영역 (터치 시 스캔 완료 연동) -->
+            <div onclick="simulateQRScan()" style="background: white; padding: 15px; width: 160px; height: 160px; margin: 15px auto; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 3px solid var(--accent-blue);" title="터치하여 QR코드 인식하기">
+                <svg viewBox="0 0 100 100" style="width: 130px; height: 130px;">
+                    <!-- QR Borders -->
+                    <rect x="5" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="70" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="75" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="78" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="5" y="70" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="75" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="78" width="9" height="9" fill="black"></rect>
+                    
+                    <rect x="40" y="40" width="10" height="10" fill="black"></rect>
+                    <rect x="55" y="45" width="10" height="5" fill="black"></rect>
+                    <rect x="45" y="60" width="15" height="10" fill="black"></rect>
+                    <rect x="80" y="45" width="5" height="15" fill="black"></rect>
+                    <rect x="80" y="80" width="10" height="10" fill="black"></rect>
+                </svg>
+            </div>
+            
+            <div class="btn-group" style="flex-direction: row; gap: 10px;">
+                <button type="button" class="btn-next" onclick="simulateQRScan()">📷 가상 스캔 완료</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeExitQR()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚪 입구 QR코드 스캔 팝업 모달 (업무 복귀 전용) -->
+    <div id="lounge-entry-qr-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal">
+            <h3 style="color: white; margin-top: 0;">🚪 입구 QR코드 스캔</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">매장 복귀 및 업무 재개를 위해 입구 QR코드를 리더기에 인식해 주세요.</p>
+            
+            <!-- 가상의 QR코드 영역 (터치 시 스캔 완료 연동) -->
+            <div onclick="simulateEntryQRScan()" style="background: white; padding: 15px; width: 160px; height: 160px; margin: 15px auto; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 3px solid var(--accent-green);" title="터치하여 QR코드 인식하기">
+                <svg viewBox="0 0 100 100" style="width: 130px; height: 130px;">
+                    <!-- QR Borders -->
+                    <rect x="5" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="70" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="75" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="78" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="5" y="70" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="75" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="78" width="9" height="9" fill="black"></rect>
+                    
+                    <!-- Inner random dots to simulate Entry QR -->
+                    <rect x="35" y="35" width="10" height="10" fill="black"></rect>
+                    <rect x="50" y="40" width="10" height="10" fill="black"></rect>
+                    <rect x="40" y="55" width="20" height="10" fill="black"></rect>
+                    <rect x="75" y="45" width="5" height="15" fill="black"></rect>
+                    <rect x="80" y="75" width="15" height="15" fill="black"></rect>
+                </svg>
+            </div>
+            
+            <div class="btn-group" style="flex-direction: row; gap: 10px;">
+                <button type="button" class="btn-next" onclick="simulateEntryQRScan()">📷 가상 스캔 완료</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeEntryQR()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📋 나의 기록 보기 모달 -->
+    <div id="lounge-logs-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 450px;">
+            <h3 style="color: white; margin-top: 0;">📋 나의 업무 및 휴식 기록</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">오늘 수행한 주문 접수, 조리 완료 및 휴식 이력입니다.</p>
+            
+            <!-- 누적 휴식시간 배너 -->
+            <div style="background-color: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-green); padding: 8px; border-radius: 6px; font-weight: bold; color: var(--accent-green); margin-bottom: 15px; font-size: 0.95rem;">
+                ⏱️ 총 누적 휴식시간: <span id="total-rest-accumulated">0분 0초</span>
+            </div>
+
+            <!-- 타임라인 로그 영역 -->
+            <div id="lounge-logs-list" style="background: #24242b; border: 1px solid #444; border-radius: 8px; max-height: 250px; overflow-y: auto; text-align: left; padding: 12px; font-size: 0.85rem; color: #d1d5db; display: flex; flex-direction: column; gap: 8px;">
+                <!-- 기록이 채워질 자리 -->
+                <div style="text-align: center; color: var(--text-muted); padding: 15px;">기록된 업무 내역이 없습니다.</div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 15px;">
+                <button type="button" class="btn-stop" style="background-color: #6b7280; width: 100%;" onclick="closeLoungeLogs()">닫기</button>
             </div>
         </div>
     </div>
@@ -267,6 +527,16 @@
             }, 1000);
         }
 
+        function handleExperiBtnClick() {
+            if (!isExperiFinished) {
+                // 아직 완료되지 않은 상태라면 완료 상태로 변경
+                finishExperience();
+            } else {
+                // 이미 완료된 상태라면 이전 페이지로 복귀 이동
+                window.location.href = "work_detail.html?id=2";
+            }
+        }
+
         function finishExperience() {
             if (isExperiFinished) return;
             isExperiFinished = true;
@@ -275,16 +545,232 @@
             const btn = document.getElementById('btn-experi');
             btn.classList.add('completed');
             btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
+
+            // ★ 체험 완료 상태 저장 (uton.html은 항상 workId=2)
+            const workId = 2;
+            const userStr = sessionStorage.getItem('user');
+            let numericUserId = null;
+            if (userStr && window.MockData && window.MockData.users) {
+                try {
+                    const sessionUser = JSON.parse(userStr);
+                    const matched = window.MockData.users.find(u =>
+                        u.name === sessionUser.name || u.email === sessionUser.email
+                    );
+                    if (matched) numericUserId = matched.id;
+                } catch(e) {}
+            }
+
+            if (numericUserId && window.MockData && window.MockData.setExpCompleted) {
+                window.MockData.setExpCompleted(numericUserId, workId);
+            }
+
+            console.log("가상체험 3분이 완료되었습니다! 자동 페이지 리다이렉션 없이 uton.html 화면에 계속 머무릅니다.");
         }
 
-        const WORK_DURATION_MS = 2 * 60 * 60 * 1000; 
-        let orderCount = 0;
+        const WORK_DURATION_MS = 1.5 * 60 * 60 * 1000; // 1시간 30분
+
+        // ☕ 라운지 쉼터 휴식 기능 스크립트
+        let restTimeSeconds = 0;
+        let restInterval = null;
+        let isResting = false;
+
+        // 📋 나의 기록 로깅용 데이터 구조
+        let loungeLogs = [];
+        let totalRestSeconds = 0;
+
+        try {
+            const savedLogs = sessionStorage.getItem('udonBibimLoungeLogs');
+            if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+            
+            const savedSeconds = sessionStorage.getItem('totalRestSeconds');
+            if (savedSeconds) totalRestSeconds = parseInt(savedSeconds);
+        } catch(e) {
+            console.error("Lounge Logs Load Error:", e);
+        }
+
+        function addLoungeLog(message) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const logEntry = `[${hh}시 ${mm}분] ${message}`;
+            
+            loungeLogs.push(logEntry);
+            
+            try {
+                sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
+            } catch(e) {}
+        }
+
+        function showLoungeLogs() {
+            const listEl = document.getElementById('lounge-logs-list');
+            if (!listEl) return;
+
+            // 누적 휴식 시간 연동
+            const accMin = Math.floor(totalRestSeconds / 60);
+            const accSec = totalRestSeconds % 60;
+            document.getElementById('total-rest-accumulated').innerText = `${accMin}분 ${accSec}초`;
+
+            if (loungeLogs.length === 0) {
+                listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px;">기록된 업무 내역이 없습니다.</div>`;
+            } else {
+                // 가장 최근 로그가 아래에 쌓이도록 렌더링
+                listEl.innerHTML = loungeLogs.map(log => `
+                    <div style="border-bottom: 1px solid #333; padding-bottom: 4px; line-height: 1.4;">
+                        🟢 ${log}
+                    </div>
+                `).join('');
+                
+                // 스크롤 맨 아래로 이동
+                setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 50);
+            }
+
+            document.getElementById('lounge-logs-overlay').style.display = 'flex';
+        }
+
+        function closeLoungeLogs() {
+            document.getElementById('lounge-logs-overlay').style.display = 'none';
+        }
+
+        function showExitQR() {
+            document.getElementById('lounge-qr-overlay').style.display = 'flex';
+        }
+
+        function closeExitQR() {
+            document.getElementById('lounge-qr-overlay').style.display = 'none';
+        }
+
+        function simulateQRScan() {
+            closeExitQR();
+            isResting = true;
+            restTimeSeconds = 0;
+            document.getElementById('rest-time-counter').innerText = "00:00";
+            document.getElementById('rest-timer-area').style.display = 'block';
+            document.getElementById('btn-request-rest').style.display = 'none';
+            document.getElementById('btn-finish-rest').style.display = 'block';
+
+            // 휴식 타이머 시작 (+1초)
+            restInterval = setInterval(() => {
+                restTimeSeconds++;
+                const m = Math.floor(restTimeSeconds / 60).toString().padStart(2, '0');
+                const s = (restTimeSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-time-counter').innerText = `${m}:${s}`;
+            }, 1000);
+
+            // 📋 휴식 시작 로그 등록
+            addLoungeLog("휴식을 시작했습니다.");
+            
+            alert("출구 QR 스캔이 완료되었습니다! 휴게실로 이동하며, 휴식 타이머가 작동합니다.");
+        }
+
+        function finishRest() {
+            // 휴식 종료 시 입구 QR코드를 먼저 찍도록 모달창 표시
+            showEntryQR();
+        }
+
+        function showEntryQR() {
+            document.getElementById('lounge-entry-qr-overlay').style.display = 'flex';
+        }
+
+        function closeEntryQR() {
+            document.getElementById('lounge-entry-qr-overlay').style.display = 'none';
+        }
+
+        function simulateEntryQRScan() {
+            closeEntryQR();
+            isResting = false;
+            clearInterval(restInterval);
+            
+            // 📋 누적 휴식시간 합산 및 세션 저장
+            totalRestSeconds += restTimeSeconds;
+            try {
+                sessionStorage.setItem('totalRestSeconds', totalRestSeconds.toString());
+            } catch(e) {}
+
+            document.getElementById('rest-timer-area').style.display = 'none';
+            document.getElementById('btn-request-rest').style.display = 'block';
+            document.getElementById('btn-finish-rest').style.display = 'none';
+
+            // 📋 휴식 종료 및 누적 시간 로그 등록
+            addLoungeLog("휴식을 마쳤습니다.");
+            
+            const accMin = Math.floor(totalRestSeconds / 60);
+            const accSec = totalRestSeconds % 60;
+            addLoungeLog(`누적 휴식시간: ${accMin}분 ${accSec}초`);
+            
+            alert(`입구 QR 스캔이 완료되었습니다! 총 휴식 시간: ${Math.floor(restTimeSeconds / 60)}분 ${restTimeSeconds % 60}초. 매장으로 입장하여 업무에 복귀합니다!`);
+        }
+
+        function toggleLoungeMap() {
+            const mapArea = document.getElementById('lounge-map-area');
+            mapArea.style.display = mapArea.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 띵~ 사운드 신디사이저 (Web Audio API)
+        function playDingSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                // 띵 소리를 위한 주파수 880Hz -> 1200Hz
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                
+                // 볼륨 페이드 아웃
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e) {
+                console.error("Audio Play Error:", e);
+            }
+        }
+
+        // 라운지 휴식 플로우 제어 스크립트
+        function requestRest() {
+            // 현재 내 진행 상태 구성 (대기 주문 상태 및 현재 조리상태를 기반으로 동적 작성)
+            let currentWorkMsg = "";
+            if (udonOrderCount === 0 && bibimOrderCount === 0) {
+                currentWorkMsg = "현재 모든 조리 대기 주문(0건)이 완료되어 대기 중인 상태입니다.";
+            } else {
+                currentWorkMsg = `현재 우동 대기 ${udonOrderCount}건, 비빔면 대기 ${bibimOrderCount}건인 상황입니다. `;
+                if (currentRecipeMode === "udon") {
+                    currentWorkMsg += `저는 지금 우동 조리 공정(${currentStep + 1}단계)을 진행하고 있었습니다.`;
+                } else {
+                    currentWorkMsg += `저는 지금 비빔면 조리 공정(단계)을 준비/진행하고 있었습니다.`;
+                }
+            }
+            
+            document.getElementById('lounge-share-msg').innerText = currentWorkMsg;
+            document.getElementById('lounge-share-overlay').style.display = 'flex';
+        }
+
+        function closeShareModal() {
+            document.getElementById('lounge-share-overlay').style.display = 'none';
+        }
+
+        function shareWorkStatus() {
+            closeShareModal();
+            // 공유 완료 후 출구 QR 띄우기
+            showExitQR();
+        }
+
+        let udonOrderCount = 0;
+        let bibimOrderCount = 0;
 
         function initDashboard() {
             if(sessionStorage.getItem('udonOrderCount')) {
-                orderCount = parseInt(sessionStorage.getItem('udonOrderCount'));
+                udonOrderCount = parseInt(sessionStorage.getItem('udonOrderCount'));
             }
-            document.getElementById('order-count-display').innerText = `${orderCount}건`;
+            if(sessionStorage.getItem('bibimOrderCount')) {
+                bibimOrderCount = parseInt(sessionStorage.getItem('bibimOrderCount'));
+            }
+            updateOrderCountDisplays();
 
             if(!sessionStorage.getItem('workStartTime')) {
                 sessionStorage.setItem('workStartTime', new Date().getTime().toString());
@@ -295,11 +781,49 @@
             
             // 체험 타이머 시작
             startExperiTimer();
+
+            // ★ 로그인 뱃지 렌더링 (sessionStorage에서 직접 읽기)
+            renderLoginBadge();
+        }
+
+        function updateOrderCountDisplays() {
+            document.getElementById('udon-order-display').innerText = `${udonOrderCount}건`;
+            document.getElementById('bibim-order-display').innerText = `${bibimOrderCount}건`;
+        }
+
+        function renderLoginBadge() {
+            const btn = document.getElementById('h-open-btn');
+            if (!btn) return;
+
+            let user = null;
+            try {
+                const userStr = sessionStorage.getItem('user');
+                if (userStr) user = JSON.parse(userStr);
+            } catch(e) {}
+
+            if (user) {
+                if (user.picture) {
+                    btn.innerHTML = '<img src="' + user.picture + '" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; vertical-align: middle;" alt="' + (user.name || '') + '" />';
+                } else if (user.name) {
+                    btn.innerHTML = '<span class="badge-name">' + user.name + '</span>';
+                } else {
+                    btn.innerHTML = '<i class="bi bi-person-circle"></i>';
+                }
+            } else {
+                btn.innerHTML = '<i class="bi bi-person-circle"></i>';
+            }
+
+            btn.onclick = function(e) {
+                e.stopPropagation();
+                location.href = sessionStorage.getItem('user') ? './mypage2.html' : './login.html';
+            };
         }
 
         function updateDashboardTime() {
             const now = new Date();
-            document.getElementById('current-time-display').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+            const timeDisplays = document.querySelectorAll('#current-time-display');
+            const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false });
+            timeDisplays.forEach(el => el.innerText = timeStr);
 
             const startTime = parseInt(sessionStorage.getItem('workStartTime'));
             const elapsed = now.getTime() - startTime;
@@ -311,36 +835,67 @@
             const rMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
             const rSeconds = Math.floor((remaining % (1000 * 60)) / 1000);
 
-            const timerEl = document.getElementById('work-timer-display');
-            timerEl.innerText = `${String(rHours).padStart(2,'0')}:${String(rMinutes).padStart(2,'0')}:${String(rSeconds).padStart(2,'0')}`;
+            const timerStr = `${String(rHours).padStart(2,'0')}:${String(rMinutes).padStart(2,'0')}:${String(rSeconds).padStart(2,'0')}`;
+            const timerDisplays = document.querySelectorAll('#work-timer-display');
             
-            if(remaining <= 10 * 60 * 1000 && remaining > 0) {
-                timerEl.style.color = "var(--accent-red)";
-            } else if (remaining === 0) {
-                timerEl.innerText = "근무 종료";
-                timerEl.style.color = "var(--accent-red)";
-            }
+            timerDisplays.forEach(el => {
+                el.innerText = remaining === 0 ? "근무 종료" : timerStr;
+                if (remaining <= 10 * 60 * 1000) {
+                    el.style.color = "var(--accent-red)";
+                } else {
+                    el.style.color = "var(--accent-blue)";
+                }
+            });
         }
 
         function receiveNewOrder() {
-            orderCount++;
-            sessionStorage.setItem('udonOrderCount', orderCount);
-            document.getElementById('order-count-display').innerText = `${orderCount}건`;
+            // 띵~ 소리 재생
+            playDingSound();
+
+            // 50% 확률로 우동 또는 비빔면 임시 주문 접수
+            if (Math.random() < 0.5) {
+                udonOrderCount++;
+                sessionStorage.setItem('udonOrderCount', udonOrderCount);
+                // 📋 주문 수신 로그
+                addLoungeLog("우동 주문이 들어왔습니다.");
+            } else {
+                bibimOrderCount++;
+                sessionStorage.setItem('bibimOrderCount', bibimOrderCount);
+                // 📋 주문 수신 로그
+                addLoungeLog("간장 비빔면 주문이 들어왔습니다.");
+            }
+            updateOrderCountDisplays();
             
+            // 토스트 알림창 띄우기
             const toast = document.getElementById('toast');
+            toast.innerText = "🔔 신규 주문이 추가되었습니다! (띵~)";
             toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 3000); 
         }
 
         function completeOrder() {
-            if (orderCount > 0) {
-                orderCount--;
-                sessionStorage.setItem('udonOrderCount', orderCount);
-                document.getElementById('order-count-display').innerText = `${orderCount}건`;
+            if (currentRecipeMode === 'udon') {
+                if (udonOrderCount > 0) {
+                    udonOrderCount--;
+                    sessionStorage.setItem('udonOrderCount', udonOrderCount);
+                }
+                // 📋 조리 완료 로그
+                addLoungeLog("우동을 만들었습니다.");
+            } else {
+                if (bibimOrderCount > 0) {
+                    bibimOrderCount--;
+                    sessionStorage.setItem('bibimOrderCount', bibimOrderCount);
+                }
+                // 📋 조리 완료 로그
+                addLoungeLog("간장 비빔면을 만들었습니다.");
             }
+            updateOrderCountDisplays();
         }
 
-        const steps = [
+        // 🍜 레시피 단계 정의
+        let currentRecipeMode = "udon"; // "udon" 또는 "bibim"
+
+        const udonSteps = [
             { 
                 title: "1. 육수 가열", 
                 text: "가스레인지 점화.<br>냄비에 육수 500ml를 넣고 <b>강불</b>로 가열하세요.<br><br>육수가 팔팔 끓을 때까지 기다려주세요.<br>" +
@@ -367,12 +922,62 @@
             }
         ];
 
+        const bibimSteps = [
+            { 
+                title: "1. 육수 가열 없음", 
+                text: "간장 비빔면은 육수 가열 단계가 없습니다.<br>2단계 <b>면 삶기</b>로 이동하여 조리를 시작하세요.",
+                img: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23222'/><text x='50' y='55' font-size='10' fill='white' text-anchor='middle'>육수 가열 없음</text></svg>"
+            },
+            { 
+                title: "2. 면 삶기 (타이머)", 
+                text: "냄비의 끓는 물에 소면을 넣으세요.<br>아래 <b>타이머 시작</b>을 누르고 조리를 진행합니다.<br><br><b>면을 삶고 찬물로 채에 잘 치데어 차게해주세요.</b><br><br>" +
+                      "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
+                img: "./images/somyeon_boil.png" 
+            },
+            { 
+                title: "3. 양념 비비기", 
+                text: "삶은 면을 찬물에 헹궈 물기를 완전히 짠 후 그릇에 넣습니다.<br><b>참기름, 간장 2스푼, 설탕 2스푼, 참기름 2스푼</b>을 넣고 맛있게 비벼줍니다.<br><br>" +
+                      "<div class='alert-box'>⚠️ <b>위생 안전 지침:</b> 면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</div>",
+                img: "./images/somyeon_mix.png" 
+            },
+            { 
+                title: "4. 담기/완성", 
+                text: "양념에 맛있게 비벼진 간장 비빔면을 완성 접시에 정갈하게 담아 배식 준비를 합니다.",
+                img: "./images/somyeon_complete.png" 
+            }
+        ];
+
+        let steps = udonSteps;
         let currentStep = 0;
         let noodleTimeLeft = 180;
         let timerInterval = null;
         let timerState = 'idle';
 
+        function switchRecipeMode(mode) {
+            currentRecipeMode = mode;
+            if (mode === "udon") {
+                steps = udonSteps;
+                currentStep = 0;
+                document.getElementById('btn-select-udon').style.backgroundColor = "var(--accent-blue)";
+                document.getElementById('btn-select-bibim').style.backgroundColor = "#374151";
+            } else {
+                steps = bibimSteps;
+                currentStep = 1; // 비빔면은 1단계(육수 없음) 건너뛰고 2단계(면 삶기)로 바로 진입
+                document.getElementById('btn-select-udon').style.backgroundColor = "#374151";
+                document.getElementById('btn-select-bibim').style.backgroundColor = "var(--accent-blue)";
+            }
+            // 알람 타이머 리셋
+            clearInterval(timerInterval);
+            timerState = 'idle';
+            
+            updateUI();
+        }
+
         function goToStep(index) {
+            if (currentRecipeMode === "bibim" && index === 0) {
+                alert("간장 비빔면 조리 시에는 육수 가열 단계가 없습니다. '2. 면 삶기' 단계부터 조리해 주세요.");
+                return;
+            }
             currentStep = index;
             updateUI();
         }
@@ -381,11 +986,73 @@
             if(currentStep === 3) {
                 completeOrder();
             }
-            currentStep = (currentStep + 1) % steps.length;
+            
+            if (currentRecipeMode === "bibim" && currentStep === 3) {
+                // 비빔면 조리 완료 시 루프 돌 때 0단계(육수 가열 없음) 건너뛰고 1단계로 순환
+                currentStep = 1;
+            } else {
+                currentStep = (currentStep + 1) % steps.length;
+            }
             updateUI();
         }
 
         function updateUI() {
+            // 탭 제목 텍스트 및 활성화 상태 동적 갱신
+            const tab0 = document.getElementById('tab-0');
+            const tab1 = document.getElementById('tab-1');
+            const tab2 = document.getElementById('tab-2');
+            const tab3 = document.getElementById('tab-3');
+
+            if (currentRecipeMode === "udon") {
+                tab0.innerHTML = "1. 육수 가열";
+                tab1.innerHTML = '2. 면 삶기 <span id="tab-badge" class="tab-badge"></span>';
+                tab2.innerHTML = "3. 고명 준비";
+                tab3.innerHTML = "4. 담기/완성";
+                tab0.style.opacity = "1";
+                tab0.style.cursor = "pointer";
+            } else {
+                tab0.innerHTML = "❌ 육수 가열 없음";
+                tab1.innerHTML = '1. 면 삶기 <span id="tab-badge" class="tab-badge"></span>';
+                tab2.innerHTML = "2. 양념 비비기";
+                tab3.innerHTML = "3. 담기/완성";
+                tab0.style.opacity = "0.4";
+                tab0.style.cursor = "not-allowed";
+            }
+
+            // 💡 표준 매뉴얼 동적 업데이트
+            const manualContent = document.getElementById('recipe-manual-content');
+            if (manualContent) {
+                if (currentRecipeMode === "udon") {
+                    manualContent.innerHTML = `
+                        <h3>[재료 준비]</h3>
+                        <ul>
+                            <li>냉동 우동면 1개</li>
+                            <li>멸치 다시마 육수 500ml</li>
+                            <li>고명: 어묵, 대파, 튀김가루, 김가루</li>
+                        </ul>
+                        <h3>[주의 사항]</h3>
+                        <ul style="color: #fca5a5;">
+                            <li>면을 억지로 풀면 끊어집니다. 자연스럽게 풀리게 두세요.</li>
+                            <li>타이머가 울리면 즉시 건져내세요.</li>
+                        </ul>
+                    `;
+                } else {
+                    manualContent.innerHTML = `
+                        <h3>[재료 준비]</h3>
+                        <ul>
+                            <li>소면 1인분</li>
+                            <li>양념: 간장 2스푼, 설탕 2스푼, 참기름 2스푼</li>
+                            <li>기타: 1회용 비닐장갑</li>
+                        </ul>
+                        <h3>[주의 사항]</h3>
+                        <ul style="color: #fca5a5;">
+                            <li>면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</li>
+                            <li>면이 삶아진 후 찬물에 충분히 치대어 전분기를 빼야 면발이 쫄깃해집니다.</li>
+                        </ul>
+                    `;
+                }
+            }
+
             document.querySelectorAll('.step').forEach((el, idx) => {
                 if (idx === currentStep) el.classList.add('active');
                 else el.classList.remove('active');
@@ -410,7 +1077,7 @@
                 if (timerState === 'idle') {
                     btnStart.style.display = 'block';
                     btnStop.style.display = 'none';
-                    mainTimer.innerText = "03:00";
+                    mainTimer.innerText = (currentRecipeMode === "udon") ? "03:00" : "04:00";
                     mainTimer.classList.remove('done-text');
                 } else if (timerState === 'running') {
                     btnStart.style.display = 'none';
@@ -430,7 +1097,7 @@
         function startTimer() {
             if (timerState !== 'idle') return;
             timerState = 'running';
-            noodleTimeLeft = 180;
+            noodleTimeLeft = (currentRecipeMode === "udon") ? 180 : 240;
             updateUI(); 
 
             timerInterval = setInterval(() => {
@@ -484,6 +1151,8 @@
 
         initDashboard();
         updateUI();
+
+
     </script>
 </body>
 </html>

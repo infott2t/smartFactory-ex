@@ -71,6 +71,102 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        /* 🛍️ 상품 카드 및 모달 CSS 추가 */
+        .product-card {
+            background: #24242c;
+            border: 1px solid #3b3b4f;
+            border-radius: 8px;
+            padding: 10px;
+            width: 140px;
+            flex-shrink: 0;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: scale(1.03);
+            border-color: #7b5cf5;
+        }
+        .product-card img {
+            width: 120px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .product-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            margin: 6px 0 2px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .product-price {
+            font-size: 12px;
+            color: #a855f7;
+            font-weight: 600;
+        }
+        .product-status {
+            font-size: 9px;
+            background: #10b981;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .product-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+        }
+        .product-modal-container {
+            background: #1e1e24;
+            border: 1px solid #333;
+            width: 90%;
+            max-width: 440px;
+            max-height: 85vh;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            color: #d1d5db;
+        }
+        .review-list-box {
+            background: #16161c;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+        }
+        .review-item-card {
+            border-bottom: 1px solid #2e2e38;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .review-item-card:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .review-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #9ca3af;
+            margin-bottom: 3px;
+        }
+        .review-stars {
+            color: #fbbf24;
+        }
+        .review-comment {
+            font-size: 12px;
+            color: #e5e7eb;
+            line-height: 1.4;
+        }
     </style>
 </head>
 
@@ -135,12 +231,12 @@
                     </div>
                 </div>
 
-                <!-- 생산되는 제품 카드 추가 (Chart 탭 아래) -->
+                <!-- 생산되는 매장 추천 상품 카드 추가 -->
                 <div class="stats-card alternate2" style="margin-top: 15px;">
-                    <div class="stats-card-header">
-                        <i class="bi bi-gift" style="color: #7b5cf5;"></i> 여기서 만든 신선한 김치. 구매해보세요~. 🎁
+                    <div class="stats-card-header" id="product-section-title">
+                        <i class="bi bi-gift" style="color: #7b5cf5;"></i> 매장 대표 판매 상품 🎁
                     </div>
-                    <div class="boxs kimp-product-list-class" id="kimp-product-list-chart"
+                    <div class="boxs product-list-container" id="product-list-container"
                         style="padding-left: 0; padding-top: 10px; display: flex; overflow-x: auto; gap: 12px;">
                         <!-- JS 동적 바인딩 -->
                     </div>
@@ -347,15 +443,15 @@
                     <div class="modal-card-body">
                         <div class="modal-card-row">
                             <span class="modal-card-label">작업 이름:</span>
-                            <strong class="text-white">김치만들기</strong>
+                            <strong class="text-white" id="modal-work-name">김치만들기</strong>
                         </div>
                         <div class="modal-card-row">
                             <span class="modal-card-label">작업장 위치:</span>
-                            <span class="text-white">AFood - 1층 KimchiA</span>
+                            <span class="text-white" id="modal-work-location">AFood - 1층 KimchiA</span>
                         </div>
                         <div class="modal-card-row last">
                             <span class="modal-card-label">주소:</span>
-                            <span class="modal-card-desc">서울시 성동구 성수동 AFood 1층 KimchiA</span>
+                            <span class="modal-card-desc" id="modal-work-address">서울시 성동구 성수동 AFood 1층 KimchiA</span>
                         </div>
                     </div>
                 </div>
@@ -526,6 +622,46 @@
         <div>가상체험을 통해서 티켓을 얻어보세요. 😀😊</div>
         <div><input type="button" value="가상체험해서 티켓얻기" id="ticket0" /></div>
     </div>
+
+    <!-- 🛍️ 상품 상세 및 리뷰 정보 모달창 -->
+    <div id="product-detail-modal-overlay" class="product-modal-overlay" style="display: none;">
+        <div class="product-modal-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px;">
+                <h3 id="modal-product-name" style="color: white; margin: 0; font-size: 1.2rem;">상품명 로딩 중...</h3>
+                <i class="bi bi-x" onclick="closeProductModal()" style="font-size: 24px; color: #9ca3af; cursor: pointer;"></i>
+            </div>
+            
+            <!-- 1. 큰 사진 -->
+            <img id="modal-product-img" src="" alt="상품 이미지" style="width: 100%; height: 220px; object-fit: cover; border-radius: 8px; border: 1px solid #444; margin-bottom: 15px;">
+            
+            <!-- 2. 가격 및 상태 정보 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span id="modal-product-price" style="font-size: 1.15rem; color: #a855f7; font-weight: bold;">3,000원</span>
+                <!-- 매장에서 구매가능 강조 뱃지 -->
+                <span style="font-size: 0.85rem; background-color: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); padding: 4px 10px; border-radius: 12px; font-weight: bold;">
+                    🛒 매장에서 구매가능
+                </span>
+            </div>
+
+            <!-- 3. 설명 및 매장 위치 주소 -->
+            <p id="modal-product-desc" style="font-size: 0.85rem; color: #9ca3af; line-height: 1.5; margin: 0 0 12px 0;">상품 상세 설명 영역입니다.</p>
+            
+            <div style="background-color: #24242c; border: 1px solid #333; padding: 10px; border-radius: 6px; font-size: 0.85rem; line-height: 1.4; margin-bottom: 20px;">
+                <div style="font-weight: bold; color: var(--accent-blue); margin-bottom: 4px;">📍 판매 매장 위치</div>
+                <div>공방명: <span id="modal-shop-name">우동 공방</span></div>
+                <div>위치 주소: <span id="modal-shop-address" style="color: white;">주소 데이터 로드 중...</span></div>
+            </div>
+
+            <!-- 4. 리뷰 목록 (5개) -->
+            <div style="font-weight: bold; color: white; font-size: 0.95rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-chat-left-text-fill" style="color: #7b5cf5;"></i> 고객 이용 리뷰 (최근 5개)
+            </div>
+            <div id="modal-reviews-container" class="review-list-box">
+                <!-- 리뷰 바인딩 영역 -->
+            </div>
+        </div>
+    </div>
+
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script src="./js/simulator.js" type="text/javascript"></script>
     <script>
@@ -1147,35 +1283,25 @@
         }
 
         function goToWorkExperience() {
-            // 기존 로직은 다음에 다시 사용할 수 있도록 주석 처리해 둡니다.
-            /*
-            var isCheckinCompleted = getPartitionedItem('kimp_checkin_prep_completed');
-            if (isCheckinCompleted === 'true') {
-                var user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-                if (user && user.role === '헬퍼') {
-                    window.location.href = "kimp_helper.html?t=" + Date.now();
-                } else {
-                    window.location.href = "kimp_experience.html?t=" + Date.now();
-                }
-            } else {
-                var warning = document.getElementById('sequence-warning-msg');
-                if (warning) {
-                    $(warning).slideDown(200).css('display', 'flex');
-                }
-            }
-            */
-            // 1. 세션 스토리지에서 회원 정보 조회
+            // 1. 로그인 여부 검증
             var userId = sessionStorage.getItem('user-id');
             var userInfo = sessionStorage.getItem('user');
-
-            // 2. 로그인 여부 검증 (정보가 없으면 로그인 페이지로 이동)
             if (!userId || !userInfo) {
                 alert("로그인이 필요한 서비스입니다. 로그인 페이지로 이동합니다.");
                 window.location.href = "login.html";
-                return; // 이후 코드 실행 방지
+                return;
             }
-            // '실제 일 체험하기' 클릭 시 kimp_ex0.html로 즉시 이동
-            window.location.href = "kimp_ex0.html";
+            // 2. workDetailJSON에서 expPage 필드를 읽어 체험 페이지 결정
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = urlParams.get('id') || '1';
+            var detailMap = window.MockData && window.MockData.workDetailJSON
+                ? JSON.parse(window.MockData.workDetailJSON) : {};
+            var targetPage = detailMap[workId] && detailMap[workId].expPage;
+            if (targetPage) {
+                window.location.href = targetPage;
+            } else {
+                alert("해당 체험은 아직 준비 중입니다.");
+            }
         }
 
         $(document).ready(function () {
@@ -1204,10 +1330,14 @@
 
             if (workId !== '1') {
                 var workTitle = "기타만들기";
-                if (workId === '2') workTitle = "우동만들기";
-                else if (workId === '3') workTitle = "지갑만들기";
-                else if (workId === '6') workTitle = "불고기구이";
-                else if (workId === '7') workTitle = "버거만들기";
+                if (window.MockData && window.MockData.workDetailJSON) {
+                    try {
+                        var detailMap = JSON.parse(window.MockData.workDetailJSON);
+                        if (detailMap[workId] && detailMap[workId].title) {
+                            workTitle = detailMap[workId].title;
+                        }
+                    } catch(e) {}
+                }
 
                 var titleEls = document.querySelectorAll('span.experience-modal-title');
                 titleEls.forEach(function (el) {
@@ -1219,34 +1349,40 @@
                     headerTitle.textContent = workTitle;
                 }
 
-                // .btn-modal-action.primary 버튼(실제 일 체험하기 등) 비활성화 및 색상 변경
-                var btnPrimaries = document.querySelectorAll('.btn-modal-action.primary');
-                btnPrimaries.forEach(function (btn) {
-                    if (btn.textContent.includes("실제 일 체험하기") || btn.textContent.includes("출근 체험하기")) {
-                        btn.style.backgroundColor = '#6c757d'; // inactive
-                        btn.style.borderColor = '#6c757d';
-                        btn.style.cursor = 'not-allowed';
-                        btn.disabled = true; // HTML disabled 속성 추가
-                        btn.onclick = function (e) {
+                // expPage가 없을 때만 버튼 비활성
+                var detailMap2 = {};
+                try { detailMap2 = JSON.parse(window.MockData.workDetailJSON); } catch(e) {}
+                var expPage = detailMap2[workId] && detailMap2[workId].expPage;
+
+                if (!expPage) {
+                    // 처엄 일 체험하기 버튼 비활성
+                    var btnPrimaries = document.querySelectorAll('.btn-modal-action.primary');
+                    btnPrimaries.forEach(function (btn) {
+                        if (btn.textContent.includes("실제 일 체험하기") || btn.textContent.includes("출근 체험하기")) {
+                            btn.style.backgroundColor = '#6c757d';
+                            btn.style.borderColor = '#6c757d';
+                            btn.style.cursor = 'not-allowed';
+                            btn.disabled = true;
+                            btn.onclick = function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                alert(workTitle + " 체험은 아직 준비 중입니다.");
+                            };
+                        }
+                    });
+
+                    var mainExpBtn = document.getElementById('btn-experience');
+                    if (mainExpBtn) {
+                        mainExpBtn.style.backgroundColor = '#6c757d';
+                        mainExpBtn.style.borderColor = '#6c757d';
+                        mainExpBtn.style.cursor = 'not-allowed';
+                        mainExpBtn.disabled = true;
+                        mainExpBtn.onclick = function (e) {
                             e.preventDefault();
                             e.stopPropagation();
                             alert(workTitle + " 체험은 아직 준비 중입니다.");
                         };
                     }
-                });
-
-                // 메인 페이지의 "체험하기" 버튼 비활성화
-                var mainExpBtn = document.getElementById('btn-experience');
-                if (mainExpBtn) {
-                    mainExpBtn.style.backgroundColor = '#6c757d'; // inactive
-                    mainExpBtn.style.borderColor = '#6c757d';
-                    mainExpBtn.style.cursor = 'not-allowed';
-                    mainExpBtn.disabled = true;
-                    mainExpBtn.onclick = function (e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        alert(workTitle + " 체험은 아직 준비 중입니다.");
-                    };
                 }
             }
 
@@ -1261,71 +1397,63 @@
         });
         // 💡 1. store.js의 체험 데이터를 로컬 스토리지에 복사하는 함수 (새로 추가됨)
         function seedUserWorkProgress() {
-            var progressDbStr = localStorage.getItem('app_user_work_progress');
+            var progressDbStr = localStorage.getItem('userWorkProgress');
 
             // 값이 아예 없거나, 이전에 잘못 저장된 빈 배열("[]")일 경우 강제로 덮어쓰기
             if (!progressDbStr || progressDbStr === "[]" || progressDbStr === "") {
                 if (window.MockData && window.MockData.userWorkProgress) {
-                    localStorage.setItem('app_user_work_progress', JSON.stringify(window.MockData.userWorkProgress));
+                    localStorage.setItem('userWorkProgress', JSON.stringify(window.MockData.userWorkProgress));
                     console.log("store.js의 체험 데이터를 로컬 스토리지에 성공적으로 복사했습니다!");
                 }
             }
         }
 
 
-        // 체험 완료 상태 체크 (localStorage 기반, 로그인된 사용자 별)
-        // 💡 [최종 동기화] 세션에 저장된 진짜 숫자 ID를 읽어와 DB(로컬 스토리지)와 대조합니다.
-        // 💡 [최종 해결] 세션의 긴 소셜/서버 ID 대신, 이름으로 store.js의 가상 DB ID를 매칭합니다!
         function checkExperienceStatus() {
-            // 1. 초기 데이터 세팅
-            if (typeof seedUserWorkProgress === 'function') {
-                seedUserWorkProgress();
-            }
-
             var urlParams = new URLSearchParams(window.location.search);
-            var workId = parseInt(urlParams.get('id') || '1', 10);
-
-            // 2. 세션에서 로그인 정보 전체 객체를 가져옵니다.
-            var sessionUser = null;
-            var userStr = sessionStorage.getItem('user');
-            if (userStr) {
-                try { sessionUser = JSON.parse(userStr); } catch (e) { }
-            }
-
-            // 3. 💡 [핵심] 이름(또는 이메일)을 통해 store.js의 진짜 유저 번호(1, 2, 3, 4)를 찾아냅니다!
-            var realUserId = 2; // 기본값 (최수아)
-            if (sessionUser && window.MockData && window.MockData.users) {
-                var matchedUser = window.MockData.users.find(function (u) {
-                    return u.name === sessionUser.name || u.email === sessionUser.email;
-                });
-                if (matchedUser) {
-                    realUserId = matchedUser.id; // 드디어 찾은 진짜 가상 DB 기준 ID (예: 2)
-                }
-            }
-
-            // 4. 로컬 스토리지에서 매핑 데이터 불러오기
-            var progressDbStr = localStorage.getItem('app_user_work_progress');
-            var progressDb = progressDbStr ? JSON.parse(progressDbStr) : [];
-
-            // 5. 정확한 ID(realUserId)로 체험 기록을 검색합니다.
-            var record = progressDb.find(function (p) {
-                return p.userId === realUserId && p.workId === workId;
-            });
-
+            var workId = urlParams.get('id') || '1';
             var badge = document.getElementById('exp-badge');
 
-            // 6. UI(뱃지) 반영
-            if (record && (record.isExp === true || record.isExp === "true")) {
-                experienceCompleted = true; // 전역 변수 활성화!
+            // 1. workDetailJSON에서 expPage 확인 → 없으면 뱃지 숨김
+            var detailMap = {};
+            try { detailMap = JSON.parse(window.MockData.workDetailJSON); } catch(e) {}
+            var expPage = detailMap[workId] && detailMap[workId].expPage;
+            if (!expPage) {
+                if (badge) badge.style.display = 'none';
+                experienceCompleted = false;
+                return;
+            }
+
+            // 2. sessionStorage의 user.id(숫자)로 MockData.users에서 매칭
+            var sessionUser = null;
+            try { sessionUser = JSON.parse(sessionStorage.getItem('user') || '{}'); } catch(e) {}
+            var numericUserId = null;
+            if (sessionUser && window.MockData && window.MockData.users) {
+                var matched = window.MockData.users.find(function(u) {
+                    return u.name === sessionUser.name || u.email === sessionUser.email;
+                });
+                if (matched) numericUserId = matched.id;
+            }
+
+            // 3. MockData.getWorkProgress로 isExp 확인
+            var isCompleted = false;
+            if (numericUserId && window.MockData.getWorkProgress) {
+                var progress = window.MockData.getWorkProgress(numericUserId, parseInt(workId));
+                isCompleted = progress && progress.isExp === true;
+            }
+
+            // 4. 뱃지 UI 반영
+            if (isCompleted) {
+                experienceCompleted = true;
                 if (badge) {
                     badge.className = 'experience-badge done';
                     badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
                 }
             } else {
-                experienceCompleted = false; // 전역 변수 비활성화
+                experienceCompleted = false;
                 if (badge) {
                     badge.className = 'experience-badge not-done';
-                    badge.innerHTML = '<i class="bi bi-exclamation-circle"></i> 체험 미완료';
+                    badge.innerHTML = '<i class="bi bi-exclamation-circle"></i> 체험 필요';
                 }
             }
         }
@@ -1353,7 +1481,7 @@
                 }
             }
 
-            var progressDb = JSON.parse(localStorage.getItem('app_user_work_progress') || '[]');
+            var progressDb = JSON.parse(localStorage.getItem('userWorkProgress') || '[]');
 
             var recordIndex = progressDb.findIndex(function (p) {
                 return p.userId === mockUserId && p.workId === workId;
@@ -1373,7 +1501,7 @@
                 });
             }
 
-            localStorage.setItem('app_user_work_progress', JSON.stringify(progressDb));
+            localStorage.setItem('userWorkProgress', JSON.stringify(progressDb));
             checkExperienceStatus();
 
             if (document.getElementById('reservation-overlay').classList.contains('show')) {
@@ -1396,6 +1524,30 @@
             var notice = document.getElementById('experience-notice');
             var titleEl = document.getElementById('modal-title');
             var tryArea = document.getElementById('try-experience-area');
+
+            // 💡 작업 정보를 store.js에서 불러와 동적으로 업데이트
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = urlParams.get('id') || '1';
+            var detailMap = {};
+            try {
+                detailMap = JSON.parse(window.MockData.workDetailJSON);
+            } catch(e) {}
+            var detail = detailMap[workId] || {};
+            
+            // worksJSON에서 brandName 가져오기
+            var worksList = [];
+            try {
+                worksList = JSON.parse(window.MockData.worksJSON);
+            } catch(e) {}
+            var workObj = worksList.find(function(w) { return String(w.workId) === workId; }) || {};
+            var brandName = workObj.brandName || "AFood";
+            var workTitle = detail.title || workObj.workName || "김치만들기";
+            var locationStr = brandName + " - 1층 " + brandName + "A";
+            var addressStr = (detail.stats && detail.stats.address) || "서울시 성동구 성수동";
+
+            document.getElementById('modal-work-name').textContent = workTitle;
+            document.getElementById('modal-work-location').textContent = locationStr;
+            document.getElementById('modal-work-address').textContent = addressStr + " " + locationStr;
 
             // 모달 타이틀 및 확인해보기 영역 설정
             if (currentModalMode === 'experience') {
@@ -1439,8 +1591,18 @@
 
         // 예약하기 버튼에서 호출
         function openReservation() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = urlParams.get('id') || '1';
+            var workTitle = "김치만들기";
+            try {
+                var detailMap = JSON.parse(window.MockData.workDetailJSON);
+                if (detailMap[workId] && detailMap[workId].title) {
+                    workTitle = detailMap[workId].title;
+                }
+            } catch(e) {}
+
             if (typeof window.addAppLog === 'function') {
-                window.addAppLog("김치만들기 예약하기 창을 열었습니다.");
+                window.addAppLog(workTitle + " 예약하기 창을 열었습니다.");
             }
             openModal('reserve');
         }
@@ -1531,6 +1693,9 @@
             var hourlyWage = Math.floor(MINIMUM_WAGE * currentRatio); // 최종 1시간 임금 계산
 
             // 3. 예약 추가 실행 (SQL 호환이 쉬운 평탄화 데이터 구조)
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = parseInt(urlParams.get('id') || '1', 10);
+
             var newId = db.length > 0 ? Math.max.apply(null, db.map(function (r) { return r.id; })) + 1 : 1;
             var newReservation = {
                 id: newId,
@@ -1539,7 +1704,11 @@
                 date: selectedDateString,
                 slot: selectedSlot,
                 role: selectedRole,
-                ratio: currentRatio
+                ratio: currentRatio,
+                hourlyWage: hourlyWage,
+                status: "reserved",
+                createdAt: new Date().toISOString(),
+                workId: workId
             };
             db.push(newReservation);
             setPartitionedItem('app_reservations_db', JSON.stringify(db));

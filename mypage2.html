@@ -719,6 +719,36 @@
                 const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
                 const displayRatio = r.ratio ? Number(r.ratio).toFixed(1) : '1.2';
 
+                // workId 기반으로 동적 데이터 매핑
+                const workId = r.workId || 1;
+                let workTitle = "김치만들기";
+                let brandName = "AFood";
+                let iconUrl = "./images/k-icon_150x150.png";
+                let workHoursLabel = "2h";
+
+                try {
+                    const worksList = JSON.parse(window.MockData.worksJSON);
+                    const workObj = worksList.find(w => w.workId == workId);
+                    if (workObj) {
+                        workTitle = workObj.workName;
+                        brandName = workObj.brandName;
+                        iconUrl = workObj.iconUrl;
+                    }
+
+                    const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                    const detail = detailMap[String(workId)];
+                    if (detail && detail.workTime) {
+                        const workTime = detail.workTime;
+                        if (workTime.includes("1시간 30분")) {
+                            workHoursLabel = "1.5h";
+                        } else if (workTime.includes("1시간")) {
+                            workHoursLabel = "1h";
+                        } else if (workTime.includes("2시간")) {
+                            workHoursLabel = "2h";
+                        }
+                    }
+                } catch(e) {}
+
                 let row = `
                 <div class="box-partner reservation-item">
                     <div style="font-weight:700; color:var(--accent-secondary);"><span style="font-size:12px;">x</span>${displayRatio}배</div> 
@@ -731,12 +761,12 @@
                     </div>
                     <div class="res-job-box">
                         <div class="res-job-box2">
-                         <img src="./images/k-icon_150x150.png"> 
-                         <span>AFood</span> 
-                         <span>김치만들기</span>
+                         <img src="${iconUrl}"> 
+                         <span>${brandName}</span> 
+                         <span>${workTitle}</span>
                         </div>
                         <div>
-                        <span class="box-time" style="margin-right:8px;">2h</span>
+                        <span class="box-time" style="margin-right:8px;">${workHoursLabel}</span>
                         <span class="${badgeClass}">${roleLabel}</span>
                         </div>
                     </div>
@@ -785,7 +815,15 @@
             if (targetRes && typeof window.addAppLog === 'function') {
                 const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
                 const slotText = slotLabels[targetRes.slot] || '지정 시간';
-                window.addAppLog(`김치만들기 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
+                
+                let workTitle = "김치만들기";
+                try {
+                    const worksList = JSON.parse(window.MockData.worksJSON);
+                    const workObj = worksList.find(w => w.workId == (targetRes.workId || 1));
+                    if (workObj) workTitle = workObj.workName;
+                } catch(e) {}
+
+                window.addAppLog(`${workTitle} 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
             }
 
             alert("예약이 정상적으로 취소되었습니다.");

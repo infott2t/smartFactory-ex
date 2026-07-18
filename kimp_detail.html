@@ -498,10 +498,10 @@
         <!-- 이미지 배너 -->
         <div class="product-img-wrapper">
             <img id="product-img" src="" alt="제품 이미지" style="background:#1a1a2e;">
-            <div class="free-shipping-badge">무료배송</div>
+            <div class="free-shipping-badge" id="free-shipping-badge">무료배송</div>
         </div>
 
-        <!-- 제품 요약 정보 카드 -->
+        <!-- opacity-fade-in product-summary-card -->
         <div class="product-summary-card">
             <div class="brand-name">AFood Kimchi</div>
             <h1 class="product-name" id="product-name">300g 맛김치 팩</h1>
@@ -524,7 +524,7 @@
 
             <!-- 정보 리스트 카드 -->
             <div class="info-list-card">
-                <div class="info-item">
+                <div class="info-item" id="delivery-info-item">
                     <i class="bi bi-truck"></i>
                     <div class="info-item-content">
                         <span class="info-item-title" id="delivery-date">6월 16일 (목) 도착예정</span>
@@ -536,6 +536,14 @@
                     <div class="info-item-content">
                         <span class="info-item-title">판매처: AFood</span>
                         <span class="info-item-desc">스마트팩토리 직접 생산 및 공식 판매</span>
+                    </div>
+                </div>
+                <!-- 📍 매장 위치 동적 추가 (우동만들기 등 매장 상품 상세용) -->
+                <div class="info-item" id="shop-address-item" style="display: none; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 2px;">
+                    <i class="bi bi-geo-alt-fill" style="color: var(--amber-accent);"></i>
+                    <div class="info-item-content">
+                        <span class="info-item-title">매장 위치</span>
+                        <span class="info-item-desc" id="shop-address-text" style="color: white; font-weight: bold;">위치 주소 로딩 중...</span>
                     </div>
                 </div>
             </div>
@@ -678,6 +686,32 @@
                 reviews: 43,
                 img: "./images/kimchi_3kg.png",
                 desc: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다. 스마트팩토리의 품질 관리 기술로 균일하고 검증된 품질을 보장합니다."
+            },
+            p1: {
+                name: "정통 가쓰오 우동",
+                price: 3000,
+                weight: 500,
+                rating: 4.9,
+                reviews: 152,
+                img: "./images/udon_product.png",
+                desc: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.",
+                category: "패스트푸드",
+                ingredients: "우동면, 육수, 쪽파",
+                storage: "",
+                manufacturer: "Uton"
+            },
+            p2: {
+                name: "감칠맛 간장 비빔면",
+                price: 3000,
+                weight: 350,
+                rating: 4.8,
+                reviews: 94,
+                img: "./images/somyeon_complete.png",
+                desc: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.",
+                category: "패스트푸드",
+                ingredients: "소면, 간장, 설탕, 참기름",
+                storage: "",
+                manufacturer: "Uton"
             }
         };
 
@@ -727,18 +761,21 @@
                 }
             }
 
-            // 1. window.MockData.products 에서 전체 상세 속성 및 리뷰가 포함된 원본 디비 조회
+            // 1. window.MockData.products 및 storeProducts 에서 전체 상세 속성이 포함된 원본 디비 조회
             let originProduct = null;
-            if (prodId && window.MockData && window.MockData.products && window.MockData.products[prodId]) {
-                originProduct = window.MockData.products[prodId];
-            } else if (prodId && productCatalog[prodId]) {
+            if (prodId && window.MockData) {
+                if (window.MockData.storeProducts) {
+                    originProduct = window.MockData.storeProducts.find(p => String(p.productId) === String(prodId));
+                }
+                if (!originProduct && window.MockData.products && window.MockData.products[prodId]) {
+                    originProduct = window.MockData.products[prodId];
+                }
+            }
+            
+            if (!originProduct && prodId && productCatalog[prodId]) {
                 originProduct = {
                     id: prodId,
-                    ...productCatalog[prodId],
-                    category: "김치 (비살균제품)",
-                    ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
-                    storage: "냉장보관 (0~10℃)",
-                    manufacturer: "스마트팩토리 AFood 김치사업부"
+                    ...productCatalog[prodId]
                 };
             }
 
@@ -821,6 +858,34 @@
             
             // 💡 "원원" 중복 출력 완벽 수정
             document.getElementById('product-price').textContent = priceNum.toLocaleString() + "원";
+
+            // 📍 매장 위치 동적 바인딩 및 배송 정보 숨김 (workId가 2인 경우 활성화)
+            const addressItem = document.getElementById('shop-address-item');
+            const freeShippingBadge = document.getElementById('free-shipping-badge');
+            const deliveryInfoItem = document.getElementById('delivery-info-item');
+
+            if (String(currentWorkId) === '2') {
+                if (freeShippingBadge) freeShippingBadge.style.display = 'none';
+                if (deliveryInfoItem) deliveryInfoItem.style.display = 'none';
+                if (addressItem) {
+                    addressItem.style.display = 'flex';
+                    let shopAddress = "서울시 강남구 역삼동";
+                    try {
+                        const worksData = window.MockData.worksJSON ? JSON.parse(window.MockData.worksJSON) : [];
+                        const currentWork = worksData.find(w => String(w.workId) === '2');
+                        if (currentWork && currentWork.region) {
+                            shopAddress = `${currentWork.region} (${currentWork.brandName || 'Uton'} 공방)`;
+                        }
+                    } catch(e) {
+                        console.error("Failed to parse address in kimp_detail:", e);
+                    }
+                    document.getElementById('shop-address-text').textContent = shopAddress;
+                }
+            } else {
+                if (freeShippingBadge) freeShippingBadge.style.display = 'block';
+                if (deliveryInfoItem) deliveryInfoItem.style.display = 'flex';
+                if (addressItem) addressItem.style.display = 'none';
+            }
             
             const isLeatherOrWallet = 
                 (product.category && (product.category.includes('가죽') || product.category.includes('지갑') || product.category.includes('잡화'))) ||
@@ -908,6 +973,16 @@
                     rows[0].querySelector('td').textContent = product.name;
                     rows[1].querySelector('th').textContent = "식품의 유형";
                     rows[1].querySelector('td').textContent = product.category || "김치 (비살균제품)";
+                    
+                    // 💡 우동만들기 상품인 경우 포장단위와 보관방법 행 숨기기
+                    if (String(currentWorkId) === '2') {
+                        rows[2].style.display = 'none';
+                        rows[4].style.display = 'none';
+                    } else {
+                        rows[2].style.display = '';
+                        rows[4].style.display = '';
+                    }
+
                     rows[2].querySelector('th').textContent = "포장 단위별 내용물 용량";
                     rows[2].querySelector('td').textContent = product.weight ? (product.weight >= 1000 ? (product.weight/1000) + 'kg' : product.weight + 'g') : "300g";
                     rows[3].querySelector('th').textContent = "원재료명 및 함량";
@@ -949,8 +1024,24 @@
             let html = "";
             const product = currentProductData;
             
-            // store.js 또는 catalog의 데이터로부터 리뷰 로드 (기본값은 dummyComments)
-            const commentsToRender = (product && product.comments) ? product.comments : dummyComments;
+            // 1. MockData에 주입된 해당 상품용 5개 리뷰 우선 수집
+            let commentsToRender = [];
+            if (window.MockData && window.MockData.getReviewsByProductId) {
+                const liveReviews = window.MockData.getReviewsByProductId(currentProductId);
+                if (liveReviews && liveReviews.length > 0) {
+                    commentsToRender = liveReviews.map(r => ({
+                        name: r.user || "고객",
+                        score: r.rating || 5,
+                        date: r.date || "2026.07.18",
+                        body: r.comment || ""
+                    }));
+                }
+            }
+
+            // 2. 없을 시 기본 김치용 dummyComments 또는 catalog 백업 활용
+            if (commentsToRender.length === 0) {
+                commentsToRender = (product && product.comments) ? product.comments : dummyComments;
+            }
 
             commentsToRender.forEach(comment => {
                 // 평점에 따라 별 문자열 생성
@@ -967,7 +1058,7 @@
                 <div class="review-item">
                     <div class="review-header">
                         <div class="reviewer-info">
-                            <div class="reviewer-avatar">${comment.name[0]}</div>
+                            <div class="reviewer-avatar">${comment.name ? comment.name[0] : "고"}</div>
                             <span class="reviewer-name">${comment.name}</span>
                         </div>
                         <span class="review-date">${comment.date}</span>

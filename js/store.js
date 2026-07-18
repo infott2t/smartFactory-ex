@@ -1630,31 +1630,36 @@ window.MockData = {
             "workId": 1, "workName": "김치만들기", "brandName": "AFood", "iconUrl": "./images/k-icon_150x150.png",
             "salary": 1.3, "salaryChange": 0.01, "taskCount": 6, "participants": 123, "createdAt": "2024-08-01",
             "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"],
-            "isNew": false
+            "isNew": false,
+            "exp": "kimp"
         },
         {
             "workId": 2, "workName": "우동만들기", "brandName": "Uton", "iconUrl": "./images/Uton_150x150.png",
             "salary": 1.1, "salaryChange": -0.05, "taskCount": 4, "participants": 70, "createdAt": "2025-03-19",
             "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"],
-            "isNew": false
+            "isNew": false,
+            "exp": "uton"
         },
         {
             "workId": 3, "workName": "지갑만들기", "brandName": "Persa", "iconUrl": "./images/fancy_150x150.png",
             "salary": 1.2, "salaryChange": 0.02, "taskCount": 5, "participants": 30, "createdAt": "2026-05-09",
             "region": "서울시 마포구 합정동", "categories": ["악세사리", "지갑", "만들기"],
-            "isNew": false
+            "isNew": false,
+            "exp": null
         },
         {
             "workId": 6, "workName": "불고기구이", "brandName": "K-Meat", "iconUrl": "./images/beef_500.png",
             "salary": 1.5, "salaryChange": -0.02, "taskCount": 5, "participants": 80, "createdAt": "2026-06-20",
             "region": "서울시 종로구 연남동", "categories": ["음식", "요리", "불고기", "고기", "구이"],
-            "isNew": true
+            "isNew": true,
+            "exp": null
         },
         {
             "workId": 7, "workName": "버거만들기", "brandName": "BurgerQueen", "iconUrl": "./images/burger_500.png",
             "salary": 1.25, "salaryChange": 0.01, "taskCount": 4, "participants": 55, "createdAt": "2026-06-25",
             "region": "서울시 용산구 이태원", "categories": ["음식", "요리", "버거", "만들기", "패스트푸드"],
-            "isNew": true
+            "isNew": true,
+            "exp": null
         }
     ]`,
     // 2. 신규 추가: 통합된 사용자(Users) 데이터
@@ -1760,6 +1765,7 @@ window.MockData = {
     workDetailJSON: `{
         "1": {
             "title": "김치만들기",
+            "expPage": "kimp_ex1.html",
             "iconUrl": "./images/k-icon_150x150.png",
             "value": 1.3,
             "change": "+0.03%",
@@ -1821,6 +1827,7 @@ window.MockData = {
         },
         "2": {
             "title": "우동만들기",
+            "expPage": "uton.html",
             "iconUrl": "./images/Uton_150x150.png",
             "value": 1.1,
             "change": "-0.05%",
@@ -1829,8 +1836,8 @@ window.MockData = {
             "productSlogan": "갓 뽑은 쫄깃한 우동 면발과 특제 육수. 🍜",
             "products": [
                 { "id": "udon_01", "name": "수제 쫄깃 우동면 2인분", "brand": "Uton", "imgUrl": "./images/udon_noodle.png", "price": "4,500원", "status": "120 남음" },
-                { "id": "udon_02", "name": "비법 우동 육수 1L", "brand": "Uton", "imgUrl": "./images/udon_soup.png", "price": "6,000원", "status": "생산 중" },
-                { "id": "udon_03", "name": "우동 밀키트 세트 (4인분)", "brand": "Uton", "imgUrl": "./images/udon_kit.png", "price": "15,000원", "status": "생산 중" }
+                { "id": "udon_02", "name": "정통 가쓰오 우동", "brand": "Uton", "imgUrl": "./images/udon_soup.png", "price": "3,000원", "status": "생산 중" },
+                { "id": "udon_03", "name": "감칠맛 간장비빔면", "brand": "Uton", "imgUrl": "./images/udon_kit.png", "price": "3,000원", "status": "생산 중" }
             ],
             "chart": {
                 "1h": {
@@ -1876,6 +1883,7 @@ window.MockData = {
         },
         "3": {
             "title": "지갑만들기",
+            "expPage": null,
             "iconUrl": "./images/fancy_150x150.png",
             "value": 1.2,
             "change": "+0.02%",
@@ -1931,6 +1939,7 @@ window.MockData = {
         },
         "6": {
             "title": "불고기구이",
+            "expPage": null,
             "iconUrl": "./images/beef_500.png",
             "value": 1.5,
             "change": "-0.02%",
@@ -1987,6 +1996,7 @@ window.MockData = {
         },
         "7": {
             "title": "버거만들기",
+            "expPage": null,
             "iconUrl": "./images/burger_500.png",
             "value": 1.25,
             "change": "+0.01%",
@@ -2482,4 +2492,106 @@ window.MockData = {
             ]
         }
     }
+};
+
+// ==========================================
+// userWorkProgress - localStorage 복원 (새로고침 후에도 완료 상태 유지)
+// ==========================================
+(function() {
+    var saved = localStorage.getItem('userWorkProgress');
+    if (saved) {
+        try {
+            var parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                window.MockData.userWorkProgress = parsed;
+            }
+        } catch(e) {}
+    }
+})();
+
+// ==========================================
+// MockData 헬퍼 함수 - 체험 상태 조회/갱신
+// ==========================================
+window.MockData.getWorkProgress = function(userId, workId) {
+    return this.userWorkProgress.find(function(p) {
+        return p.userId == userId && p.workId == workId;
+    }) || null;
+};
+
+window.MockData.setExpCompleted = function(userId, workId) {
+    var progress = this.userWorkProgress.find(function(p) {
+        return p.userId == userId && p.workId == workId;
+    });
+    var today = new Date().toISOString().split('T')[0];
+    if (progress) {
+        progress.isExp = true;
+        progress.expCompletedAt = today;
+    } else {
+        // 항목이 없으면 신규 추가
+        this.userWorkProgress.push({
+            userId: parseInt(userId),
+            workId: parseInt(workId),
+            isExp: true,
+            expCompletedAt: today
+        });
+    }
+    // localStorage에 persist (새로고침 후에도 유지)
+    localStorage.setItem('userWorkProgress', JSON.stringify(this.userWorkProgress));
+};
+
+// ==========================================
+// 🛍️ 신규: 매장 판매 상품 및 상세 리뷰 데이터
+// ==========================================
+window.MockData.storeProducts = [
+    {
+        productId: "p1",
+        workId: 2,
+        name: "정통 가쓰오 우동",
+        price: 3000,
+        status: "매장 판매중",
+        img: "./images/udon_product.png",
+        description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.",
+        category: "패스트푸드",
+        ingredients: "우동면, 육수, 쪽파",
+        manufacturer: "Uton"
+    },
+    {
+        productId: "p2",
+        workId: 2,
+        name: "감칠맛 간장 비빔면",
+        price: 3000,
+        status: "매장 판매중",
+        img: "./images/somyeon_complete.png",
+        description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.",
+        category: "패스트푸드",
+        ingredients: "소면, 간장, 설탕, 참기름",
+        manufacturer: "Uton"
+    }
+];
+
+window.MockData.productReviews = {
+    "p1": [
+        { user: "홍길동", rating: 5, date: "2026-07-15", comment: "육수가 정말 끝내줍니다! 면발도 쫄깃하고 수타 우동 전문점 못지않아요." },
+        { user: "김영희", rating: 4, date: "2026-07-16", comment: "3천원이라는 가격 대비 퀄리티가 정말 만족스럽습니다. 매장도 아주 청결해요." },
+        { user: "이철수", rating: 5, date: "2026-07-17", comment: "가쓰오부시가 춤추는 게 시각적으로도 좋고, 국물도 개운하고 아주 뜨끈해서 좋네요." },
+        { user: "박민수", rating: 5, date: "2026-07-17", comment: "가성비 끝판왕! 아이가 너무 좋아해서 다음 체험 올 때 또 사먹으려고 합니다." },
+        { user: "최수아", rating: 4, date: "2026-07-18", comment: "우동 공정 체험을 하고 나서 직접 매장에서 먹으니까 감회가 새롭고 더 맛있어요!" }
+    ],
+    "p2": [
+        { user: "김철수", rating: 5, date: "2026-07-14", comment: "단짠 비율이 완벽합니다. 참기름 냄새가 매장에 솔솔 풍기는데 안 먹을 수가 없어요." },
+        { user: "박영희", rating: 5, date: "2026-07-16", comment: "1회용 비닐장갑 끼고 직접 무쳐낸 듯 양념이 면발 골고루 쏙 잘 배어 있네요." },
+        { user: "이민호", rating: 4, date: "2026-07-17", comment: "면이 차갑게 잘 헹궈져서 탱글탱글 살아있습니다. 3천원에 이 정도 맛이면 최고!" },
+        { user: "최지우", rating: 5, date: "2026-07-18", comment: "남녀노소 누구나 좋아할 맵지 않은 단짠 소스네요. 입맛 없을 때 강력추천합니다." },
+        { user: "홍길동", rating: 5, date: "2026-07-18", comment: "비빔면 표준 매뉴얼처럼 전분기를 빼고 치댄 쫄깃한 소면 면발 식감이 대단합니다." }
+    ]
+};
+
+window.MockData.getProductsByWorkId = function(workId) {
+    return this.storeProducts.filter(function(p) {
+        return p.workId == workId;
+    });
+};
+
+window.MockData.getReviewsByProductId = function(productId) {
+    return this.productReviews[productId] || [];
 };

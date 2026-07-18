@@ -47,8 +47,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 5. Products (Update all product list containers)
-            const productContainers = [document.getElementById('kimp-product-list-chart'), document.getElementById('kimp-product-list-stats')];
-            if(data.products) {
+            const productContainers = [document.getElementById('product-list-container'), document.getElementById('kimp-product-list-chart'), document.getElementById('kimp-product-list-stats')];
+            
+            if (String(workId) === '2') {
+                // 우동만들기 매장 상품 렌더링 (kimp_detail.html로 링크 연결)
+                if (window.MockData && window.MockData.getProductsByWorkId) {
+                    const products = window.MockData.getProductsByWorkId(2);
+                    const productHtml = products.map(p => `
+                        <a class="product-card" href="kimp_detail.html?productId=${p.productId}&workId=2" style="text-decoration: none; display: block;">
+                            <img src="${p.img}" alt="${p.name}">
+                            <div class="product-name">${p.name}</div>
+                            <div class="product-price">${p.price.toLocaleString('ko-KR')}원</div>
+                            <div class="product-status">${p.status}</div>
+                        </a>
+                    `).join('');
+                    
+                    productContainers.forEach(container => {
+                        if (container) container.innerHTML = productHtml;
+                    });
+                }
+            } else if (data.products) {
+                // 기존 김치만들기 상품 렌더링 유지
                 const productHtml = data.products.map((p, i) => {
                     const stockColor = p.status.includes('남음') ? '#ff7675' : '#7b92ff';
                     return `
@@ -172,3 +191,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// 🛍️ 상품 상세 및 리뷰 정보 모달 제어 함수
+window.openProductModal = function(productId) {
+    if (!window.MockData) return;
+    const products = window.MockData.storeProducts || [];
+    const prod = products.find(p => p.productId === productId);
+    if (!prod) return;
+
+    // 1. 기본 정보 렌더링
+    document.getElementById('modal-product-name').innerText = prod.name;
+    document.getElementById('modal-product-img').src = prod.img;
+    document.getElementById('modal-product-price').innerText = prod.price.toLocaleString('ko-KR') + "원";
+    document.getElementById('modal-product-desc').innerText = prod.description;
+    
+    // 2. 매장 위치 주소 동적 바인딩
+    // worksJSON 에서 workId=2 (우동만들기)의 region 속성을 찾아 매핑
+    let shopAddress = "서울시 스마트 팩토리 체험관 매장";
+    let shopName = "전통 우동 공방";
+    try {
+        const worksData = window.MockData.worksJSON ? JSON.parse(window.MockData.worksJSON) : [];
+        const currentWork = worksData.find(w => String(w.workId) === '2');
+        if (currentWork) {
+            if (currentWork.region) shopAddress = currentWork.region; // "서울시 강남구 역삼동"
+            if (currentWork.brandName) shopName = currentWork.brandName + " 공방";
+        }
+    } catch(e) {
+        console.error("Dynamic Address Load Error:", e);
+    }
+
+    document.getElementById('modal-shop-name').innerText = shopName;
+    document.getElementById('modal-shop-address').innerText = shopAddress;
+
+    // 3. 최근 5개 리뷰 렌더링
+    const reviews = window.MockData.getReviewsByProductId(productId);
+    const reviewsContainer = document.getElementById('modal-reviews-container');
+    
+    if (reviews.length === 0) {
+        reviewsContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px;">등록된 리뷰가 없습니다.</div>`;
+    } else {
+        reviewsContainer.innerHTML = reviews.map(r => {
+            const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
+            return `
+                <div class="review-item-card">
+                    <div class="review-meta">
+                        <span style="font-weight: bold; color: white;">${r.user}님</span>
+                        <span>${r.date}</span>
+                    </div>
+                    <div class="review-stars" style="margin-bottom: 4px;">${stars}</div>
+                    <div class="review-comment">${r.comment}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // 모달창 보이기
+    document.getElementById('product-detail-modal-overlay').style.display = 'flex';
+};
+
+window.closeProductModal = function() {
+    document.getElementById('product-detail-modal-overlay').style.display = 'none';
+};
