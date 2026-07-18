@@ -115,11 +115,12 @@
         
         .panel { background-color: var(--panel-bg); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         h2 { margin-top: 0; color: var(--accent-blue); border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
+        #step-title { color: #ffffff; text-align: center; }
 
         .step-indicator { 
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; 
-            background-color: var(--panel-bg); padding: 8px; border-radius: 14px; 
-            border: 1px solid #2d2d39;
+            background-color: rgba(0, 0, 0, 0.15); padding: 8px; border-radius: 14px; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .step { 
             text-align: center; color: #9ca3af; font-weight: 600; 
@@ -209,12 +210,21 @@
             font-size: 1.05rem; 
         }
 
-        .timer-display { font-size: 3rem; font-weight: bold; text-align: center; margin: 10px 0; color: var(--accent-orange); display: none; }
+        .control-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 180px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .timer-display { font-size: 3rem; font-weight: bold; text-align: center; margin: 5px 0; color: #97dfff; display: none; }
         .timer-display.done-text { color: var(--accent-red); font-size: 2.2rem; animation: textBlinker 1s linear infinite; }
         @keyframes textBlinker { 50% { opacity: 0; } }
 
         /* 하단 공통 버튼 스타일 */
-        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: auto !important; width: 100%; }
         button { 
             width: 100%; 
             padding: 16px; 
@@ -236,8 +246,8 @@
             transform: translateY(1px);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-        .btn-action { 
-            background: linear-gradient(135deg, #f59e0b, #d97706); 
+        .btn-action {
+            background: linear-gradient(135deg, #258143, #06614b);
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
         .btn-stop { 
@@ -245,8 +255,8 @@
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
         .btn-next { 
-            background: linear-gradient(135deg, #10b981, #059669); 
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
         .btn-test-order { 
             background: linear-gradient(135deg, #4b5563, #374151); 
@@ -266,7 +276,7 @@
             .container { display: grid; grid-template-columns: 1fr 350px; align-items: start; }
             .app-header, .status-bar, .btn-test-order, .recipe-toggle-group, .section-title { grid-column: span 2; }
             .main-title { font-size: 2.2rem; }
-            .step-indicator { grid-column: span 2; grid-template-columns: repeat(4, 1fr); }
+            .step-indicator { grid-template-columns: repeat(4, 1fr); }
             .step { flex-direction: row; font-size: 1.1rem; padding: 15px 10px; gap: 8px; }
             h2 { font-size: 1.5rem; }
             .step-image { max-height: 240px; }
@@ -274,6 +284,7 @@
             .timer-display { font-size: 4rem; }
             .timer-display.done-text { font-size: 3rem; }
             .btn-group { flex-direction: row; }
+            .control-box { min-height: 145px; }
         }
         .bi { color: white; }
         .img-icon {
@@ -408,29 +419,34 @@
         <!-- 요리 작업순서 타이틀 추가 -->
         <div class="section-title">요리 작업순서</div>
 
-        <div class="step-indicator">
-            <div class="step active" id="tab-0" onclick="goToStep(0)">1. 육수 가열</div>
-            <div class="step" id="tab-1" onclick="goToStep(1)">2. 면 삶기 <span id="tab-badge" class="tab-badge"></span></div>
-            <div class="step" id="tab-2" onclick="goToStep(2)">3. 고명 준비</div>
-            <div class="step" id="tab-3" onclick="goToStep(3)">4. 담기/완성</div>
-        </div>
-
         <div class="panel">
-            <h2 id="step-title">1. 육수 가열</h2>
+            <!-- 탭 인디케이터를 패널 내부 최상단에 배치 -->
+            <div class="step-indicator" style="margin-bottom: 20px;">
+                <div class="step active" id="tab-0" onclick="goToStep(0)">1. 육수 가열</div>
+                <div class="step" id="tab-1" onclick="goToStep(1)">2. 면 삶기 <span id="tab-badge" class="tab-badge"></span></div>
+                <div class="step" id="tab-2" onclick="goToStep(2)">3. 고명 준비</div>
+                <div class="step" id="tab-3" onclick="goToStep(3)">4. 담기/완성</div>
+            </div>
             
+            <!-- 타이머 및 제어 버튼 컨테이너 (레이아웃 높이 고정용) -->
+            <div class="control-box">
+                <div class="timer-display" id="main-timer">03:00</div>
+
+                <div class="btn-group">
+                    <button class="btn-action" id="btn-start-timer" style="display:none;" onclick="startTimer()">▶ 타이머 시작</button>
+                    <button class="btn-stop" id="btn-stop-timer" style="display:none;" onclick="stopTimer()">■ 알람 끄기 및 면 건지기</button>
+                    <button class="btn-next" onclick="nextStep()" id="btn-next">다음 단계로 ➔</button>
+                </div>
+            </div>
+
+            <!-- ⚠️ 주의사항 및 정리 박스 전용 컨테이너 (이미지 위에 배치) -->
+            <div id="step-alerts-container" style="width: 100%;"></div>
+
             <div class="image-container">
                 <img id="step-img" class="step-image" src="https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQqwqpyNU8dyOvKvOsEMqaDKaWgUjzElQUcmPiKv-5McxjlAOF341arCU5BfRkR4m7QNcGdv9A-srwYUNs" alt="조리 과정 사진">
             </div>
 
             <div class="instruction-box" id="instruction-text">지시 사항 로딩 중...</div>
-            
-            <div class="timer-display" id="main-timer">03:00</div>
-
-            <div class="btn-group">
-                <button class="btn-action" id="btn-start-timer" style="display:none;" onclick="startTimer()">▶ 3분 타이머 시작</button>
-                <button class="btn-stop" id="btn-stop-timer" style="display:none;" onclick="stopTimer()">■ 알람 끄기 및 면 건지기</button>
-                <button class="btn-next" onclick="nextStep()" id="btn-next">다음 단계로 ➔</button>
-            </div>
         </div>
 
         <div class="panel">
@@ -1011,25 +1027,29 @@
         const udonSteps = [
             { 
                 title: "1. 육수 가열", 
-                text: "가스레인지 점화.<br>냄비에 육수 500ml를 넣고 <b>강불</b>로 가열하세요.<br><br>육수가 팔팔 끓을 때까지 기다려주세요.<br>" +
-                      "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>" +
-                      "<div class='info-box'>💧 <b>정리:</b> 육수를 다 끓이고 난 후에는 물에 냄비를 깨끗하게 씻어주세요.</div>",
+                alerts: "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
+                infos: "<div class='info-box'>💧 <b>정리:</b> 육수를 다 끓이고 난 후에는 물에 냄비를 깨끗하게 씻어주세요.</div>",
+                text: "가스레인지 점화.<br>냄비에 육수 500ml를 넣고 <b>강불</b>로 가열하세요.<br><br>육수가 팔팔 끓을 때까지 기다려주세요.<br>",
                 img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQqwqpyNU8dyOvKvOsEMqaDKaWgUjzElQUcmPiKv-5McxjlAOF341arCU5BfRkR4m7QNcGdv9A-srwYUNs" 
             },
             { 
                 title: "2. 면 삶기 (타이머)", 
-                text: "물이 끓으면 우동면을 투입하세요.<br>아래 <b>타이머 시작</b>을 누르고 다른 탭으로 이동 가능합니다.<br><br>" +
-                      "<div class='alert-box'>🔥 <b>주의:</b> 면을 삶을 때 끓는 물이 튈 수 있으니 화상에 조심하세요!</div>" +
-                      "<div class='info-box'>💧 <b>정리:</b> 면을 건져낸 후에는 사용한 채(뜰채)를 물에 살짝 씻어주세요.</div>",
+                alerts: "<div class='alert-box'>🔥 <b>주의:</b> 면을 삶을 때 끓는 물이 튈 수 있으니 화상에 조심하세요!</div>",
+                infos: "<div class='info-box'>💧 <b>정리:</b> 면을 건져낸 후에는 사용한 채(뜰채)를 물에 살짝 씻어주세요.</div>",
+                text: "물이 끓으면 우동면을 투입하세요.<br>아래 <b>타이머 시작</b>을 누르고 다른 탭으로 이동 가능합니다.<br><br>",
                 img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcSxtDC-YXbt_U9wqJ_WtNPUeYshc-CwQrhRbr61FDdv67f5nlwunxHS89vjBV3Y5a409kGdZ3-VXUYrfYA" 
             },
             { 
                 title: "3. 고명 준비", 
+                alerts: "",
+                infos: "",
                 text: "면이 삶아지는 동안 세팅합니다.<br>어묵 1장, 대파, 튀김가루 1스푼, 김가루를 <b>작은 그릇에 따로 준비</b>해두세요.<br>(완성된 면 위에 마지막에 올릴 용도입니다.)",
                 img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQfilAExQYJe152JPFNBy8KLIfRrWPYsPUykEi6W9znLdEo8Eq-ICBKPJe5k67QohqubWBeAOx1ud5SON8" 
             },
             { 
                 title: "4. 담기/완성", 
+                alerts: "",
+                infos: "",
                 text: "물기를 털어 그릇에 담습니다.<br>뜨거운 육수를 붓고 준비된 고명을 위에 올려 완성하세요.",
                 img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcS1If8pDsgRf6p0m0Zqp9wRmQm8Iplx6CnTFE49qxXhYZaSGTVua5ybRvbgJZJAoaksUlbdBcTEDLbXN-Y" 
             }
@@ -1038,23 +1058,29 @@
         const bibimSteps = [
             { 
                 title: "1. 육수 가열 없음", 
+                alerts: "",
+                infos: "",
                 text: "간장 비빔면은 육수 가열 단계가 없습니다.<br>2단계 <b>면 삶기</b>로 이동하여 조리를 시작하세요.",
                 img: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23222'/><text x='50' y='55' font-size='10' fill='white' text-anchor='middle'>육수 가열 없음</text></svg>"
             },
             { 
                 title: "2. 면 삶기 (타이머)", 
-                text: "냄비의 끓는 물에 소면을 넣으세요.<br>아래 <b>타이머 시작</b>을 누르고 조리를 진행합니다.<br><br><b>면을 삶고 찬물로 채에 잘 치데어 차게해주세요.</b><br><br>" +
-                      "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
+                alerts: "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
+                infos: "",
+                text: "냄비의 끓는 물에 소면을 넣으세요.<br>아래 <b>타이머 시작</b>을 누르고 조리를 진행합니다.<br><br><b>면을 삶고 찬물로 채에 잘 치데어 차게해주세요.</b><br><br>",
                 img: "./images/somyeon_boil.png" 
             },
             { 
                 title: "3. 양념 비비기", 
-                text: "삶은 면을 찬물에 헹궈 물기를 완전히 짠 후 그릇에 넣습니다.<br><b>참기름, 간장 2스푼, 설탕 2스푼, 참기름 2스푼</b>을 넣고 맛있게 비벼줍니다.<br><br>" +
-                      "<div class='alert-box'>⚠️ <b>위생 안전 지침:</b> 면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</div>",
+                alerts: "<div class='alert-box'>⚠️ <b>위생 안전 지침:</b> 면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</div>",
+                infos: "",
+                text: "삶은 면을 찬물에 헹궈 물기를 완전히 짠 후 그릇에 넣습니다.<br><b>참기름, 간장 2스푼, 설탕 2스푼, 참기름 2스푼</b>을 넣고 맛있게 비벼줍니다.<br><br>",
                 img: "./images/somyeon_mix.png" 
             },
             { 
                 title: "4. 담기/완성", 
+                alerts: "",
+                infos: "",
                 text: "양념에 맛있게 비벼진 간장 비빔면을 완성 접시에 정갈하게 담아 배식 준비를 합니다.",
                 img: "./images/somyeon_complete.png" 
             }
@@ -1174,7 +1200,19 @@
                 else el.classList.remove('active');
             });
 
-            document.getElementById('step-title').innerText = steps[currentStep].title;
+            const stepTitleEl = document.getElementById('step-title');
+            if (stepTitleEl) {
+                stepTitleEl.innerText = steps[currentStep].title;
+            }
+            
+            // ⚠️ 주의사항 및 정리안내 데이터 추출 및 렌더링 (이미지 위에 배치)
+            const alertsHtml = steps[currentStep].alerts || "";
+            const infosHtml = steps[currentStep].infos || "";
+            const alertsContainer = document.getElementById('step-alerts-container');
+            if (alertsContainer) {
+                alertsContainer.innerHTML = alertsHtml + infosHtml;
+            }
+            
             document.getElementById('instruction-text').innerHTML = steps[currentStep].text;
             document.getElementById('step-img').src = steps[currentStep].img;
             
