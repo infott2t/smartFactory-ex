@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 버거 마스터 - HMI 프로토타입</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --text: #ffffff;
+            --primary: #00e5ff;
+            --success: #00c853;
+            --warning: #ffab00;
+            --danger: #ff3d00;
+            --rest: #b388ff;
+            --rest-bg: #221830;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Malgun Gothic', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden;
+            transition: background-color 0.5s ease;
+        }
+        body.resting { background-color: var(--rest-bg); }
+        
+        /* Navigation */
+        .sidebar { 
+            background-color: #0a0a0a; 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 8px 0; 
+            border-top: 1px solid #333; 
+            order: 2; 
+            z-index: 10;
+        }
+        .nav-btn { 
+            background-color: transparent; 
+            color: #888; 
+            border: none; 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 11px; 
+            font-weight: bold; 
+            transition: 0.3s; 
+            padding: 5px;
+            width: 55px;
+        }
+        .nav-btn.active { color: var(--primary); }
+        .nav-btn span { font-size: 20px; margin-bottom: 4px; transition: transform 0.2s; }
+        .nav-btn.active span { transform: scale(1.1); filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.5)); }
+        
+        /* Main Content */
+        .main-content { flex: 1; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; order: 1; }
+        .screen { display: none; flex-direction: column; flex: 1; animation: fadeIn 0.3s; gap: 15px; }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #333; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; flex-shrink: 0; }
+        .title { font-size: 18px; font-weight: bold; margin: 0; }
+        .order-badge { background-color: var(--warning); color: #000; padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        
+        /* Panel & Cards */
+        .panel { background-color: var(--panel); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; }
+        .panel-title { font-size: 16px; color: #aaa; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 8px; }
+        
+        .dashboard-cards { display: flex; flex-direction: column; gap: 15px; } 
+        .card { background-color: #222; padding: 15px; border-radius: 12px; display: flex; flex-direction: column; }
+        .card h3 { margin-top: 0; font-size: 16px; margin-bottom: 10px; }
+        .card-text { font-size: 16px; margin: 0 0 10px 0; word-break: keep-all; }
+        
+        /* Buttons */
+        .btn { padding: 12px; font-size: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; width: 100%; }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary { background-color: var(--primary); color: #000; }
+        .btn-secondary { background-color: #444; color: #fff; }
+        .btn-success { background-color: var(--success); color: #fff; }
+        .btn-rest { background-color: var(--rest); color: #fff; }
+        .btn-hmi { background-color: transparent; border: 2px dashed var(--primary); color: var(--primary); min-height: 70px; margin-top: 15px; }
+        
+        /* Cook Guide */
+        .qc-select { width: 100%; padding: 12px; font-size: 15px; border-radius: 8px; background-color: #333; color: white; border: 1px solid #555; margin-bottom: 10px; font-weight: bold; }
+        .guide-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+        .precook-box { background-color: rgba(255, 171, 0, 0.1); border: 1px dashed var(--warning); border-radius: 8px; padding: 12px; width: 100%; max-width: 280px; text-align: center; }
+        .precook-title { font-size: 13px; color: var(--warning); font-weight: bold; margin-bottom: 6px; }
+        .precook-list { font-size: 14px; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-weight: bold; }
+        
+        /* Burger Builder (NEW) & Stack */
+        .recipe-stack, .custom-stack-area { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; margin: 5px 0; width: 100%; }
+        .custom-stack-area { flex-direction: column-reverse; flex: 1; background: rgba(0,0,0,0.2); border: 2px dashed #444; border-radius: 12px; padding: 15px; overflow-y: auto; min-height: 200px; justify-content: flex-start; }
+        
+        .builder-layout { display: flex; flex-direction: column; gap: 15px; flex: 1; }
+        .ing-palette { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .ing-btn { background: #333; color: white; border: 1px solid #555; border-radius: 8px; padding: 10px 5px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .ing-btn span { font-size: 20px; }
+        .ing-btn:active { transform: scale(0.95); background: var(--primary); color: #000; }
+        
+        .ing-item { width: 100%; max-width: 280px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 14px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; gap: 10px; animation: fadeIn 0.2s ease-in-out; }
+        
+        /* Ingredient Colors */
+        .ing-top-bun { background: linear-gradient(145deg, #a66a2e, #855322); color: #fff; border-radius: 20px 20px 5px 5px; }
+        .ing-veggies { background: linear-gradient(145deg, #2e7a32, #1e5221); color: #fff; }
+        .ing-cheese { background: linear-gradient(145deg, #fbc02d, #f57f17); color: #000; }
+        .ing-patty { background: linear-gradient(145deg, #5d4037, #3e2723); color: #fff; }
+        .ing-sauce { background: linear-gradient(145deg, #d84315, #bf360c); color: #fff; } 
+        .ing-teri { background: linear-gradient(145deg, #4e342e, #2e1c15); color: #fff; } 
+        .ing-mayo { background: linear-gradient(145deg, #fff9c4, #f5f5f5); color: #000; } 
+        .ing-bot-bun { background: linear-gradient(145deg, #a66a2e, #855322); color: #fff; border-radius: 5px 5px 20px 20px; }
+        
+        .guide-text { font-size: 13px; color: #888; text-align: center; margin-bottom: 5px; }
+        
+        /* Camera & Timer */
+        .qc-controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .camera-view { flex: 1; min-height: 180px; border: 2px dashed #666; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 15px; color: #888; background-color: #111; transition: 0.3s; text-align: center; padding: 15px; }
+        .camera-view.scanning { border-color: var(--primary); background-color: rgba(0, 229, 255, 0.05); }
+        .camera-view.pass { border-color: var(--success); background-color: rgba(0, 200, 83, 0.1); color: var(--success); }
+        
+        .lounge-layout { display: flex; flex-direction: column; gap: 15px; height: 100%; } 
+        .timer-section { background-color: var(--panel); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .log-section { flex: 1; background-color: var(--panel); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; overflow: hidden; }
+        .timer-circle { width: 140px; height: 140px; border-radius: 50%; border: 6px solid #333; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 15px; flex-shrink: 0; transition: 0.3s; }
+        .timer-circle.work { border-color: var(--primary); }
+        .timer-circle.rest { border-color: var(--rest); box-shadow: 0 0 15px rgba(179, 136, 255, 0.3); }
+        .timer-label { font-size: 13px; color: #aaa; margin-bottom: 5px; }
+        .timer-time { font-size: 24px; font-weight: bold; }
+        .log-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        .log-list li { background-color: #2a2a2a; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-left: 3px solid var(--primary); gap: 10px; }
+        .log-list li.rest-log { border-left-color: var(--rest); background-color: #31263d; }
+        .log-list li.qc-log { border-left-color: var(--success); }
+
+        /* Desktop Media Query */
+        @media (min-width: 768px) {
+            body { flex-direction: row; }
+            .sidebar { width: 90px; flex-direction: column; justify-content: flex-start; padding-top: 20px; border-right: 1px solid #333; border-top: none; order: 0; }
+            .nav-btn { width: 70px; height: 70px; margin-bottom: 15px; border-radius: 12px; padding: 0; }
+            .main-content { padding: 30px; }
+            .dashboard-cards, .lounge-layout, .builder-layout { flex-direction: row; }
+            .card, .timer-section, .log-section { flex: 1; padding: 20px; }
+            .ing-palette { grid-template-columns: repeat(2, 1fr); align-content: start; width: 250px; }
+            .custom-stack-area { flex: 1; }
+            .timer-circle { width: 200px; height: 200px; border-width: 8px; }
+            .timer-time { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <div class="sidebar">
+        <button class="nav-btn active" onclick="switchTab('home')"><span>🏠</span>홈</button>
+        <button class="nav-btn" onclick="switchTab('cook')"><span>📖</span>조리</button>
+        <button class="nav-btn" onclick="switchTab('builder')"><span>🍔</span>빌더</button>
+        <button class="nav-btn" onclick="switchTab('qc')"><span>📸</span>검수</button>
+        <button class="nav-btn" onclick="switchTab('lounge')"><span>☕</span>라운지</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        
+        <!-- HEADER -->
+        <div class="header">
+            <h1 class="title">Burger Master</h1>
+            <div class="order-badge" id="order-counter">대기: 12건</div>
+        </div>
+
+        <!-- SCREEN: HOME -->
+        <div id="home" class="screen active">
+            <div class="panel" style="flex: none;">
+                <h2 class="panel-title">오늘의 현황</h2>
+                <div class="dashboard-cards">
+                    <div class="card">
+                        <h3 style="color:var(--primary);">진행 중인 조리</h3>
+                        <p class="card-text">불고기 버거 2건, 커스텀 버거 1건</p>
+                        <button class="btn btn-primary" onclick="switchTab('cook')">정규 메뉴 조리 ➔</button>
+                    </div>
+                    <div class="card">
+                        <h3 style="color:var(--warning);">키오스크 특수 주문</h3>
+                        <p class="card-text">"토마토 빼고 베이컨 추가해주세요"</p>
+                        <button class="btn btn-secondary" onclick="switchTab('builder')">커스텀 빌더 열기 ➔</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: COOK (HMI) -->
+        <div id="cook" class="screen">
+            <div class="panel flex-1">
+                <h2 class="panel-title">정규 메뉴 조립도</h2>
+                <select class="qc-select" id="menu-selector" onchange="renderRecipe()" style="border-color: var(--primary);">
+                    <option value="bulgogi">🍔 불고기 버거</option>
+                    <option value="bacon_cheese">🥓 베이컨 치즈버거</option>
+                </select>
+                <div class="guide-wrapper">
+                    <div class="precook-box" id="precook-container"></div>
+                    <div class="guide-text">다 구워지면 아래에서 위로 쌓아주세요 ⬇️</div>
+                    <div class="recipe-stack" id="recipe-container"></div>
+                </div>
+                <button class="btn btn-hmi" onclick="completeOrder('regular')">
+                    <span style="font-size: 20px; margin-right: 5px;">👋</span> 조립 완료 (모션)
+                </button>
+            </div>
+        </div>
+
+        <!-- SCREEN: BURGER BUILDER (NEW) -->
+        <div id="builder" class="screen">
+            <div class="panel flex-1">
+                <h2 class="panel-title">🍔 인터랙티브 버거 빌더 (커스텀 주문)</h2>
+                
+                <div class="builder-layout">
+                    <!-- 재료 선택 팔레트 -->
+                    <div class="ing-palette">
+                        <button class="ing-btn" onclick="addIngredient('bot-bun')"><span>🍞</span> 아래 빵</button>
+                        <button class="ing-btn" onclick="addIngredient('patty')"><span>🥩</span> 패티</button>
+                        <button class="ing-btn" onclick="addIngredient('cheese')"><span>🧀</span> 치즈</button>
+                        <button class="ing-btn" onclick="addIngredient('bacon')"><span>🥓</span> 베이컨</button>
+                        <button class="ing-btn" onclick="addIngredient('lettuce')"><span>🥬</span> 양상추</button>
+                        <button class="ing-btn" onclick="addIngredient('tomato')"><span>🍅</span> 토마토</button>
+                        <button class="ing-btn" onclick="addIngredient('teri')"><span>🤎</span> 데리소스</button>
+                        <button class="ing-btn" onclick="addIngredient('mayo')"><span>🥚</span> 마요네즈</button>
+                        <button class="ing-btn" onclick="addIngredient('top-bun')"><span>🍞</span> 윗 빵</button>
+                    </div>
+                    
+                    <!-- 커스텀 버거 쌓이는 영역 -->
+                    <div class="custom-stack-area" id="custom-stack-container">
+                        <div class="guide-text" style="margin: auto;">재료 버튼을 눌러 버거를 밑에서부터 쌓아보세요!</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn btn-secondary" onclick="resetBuilder()" style="flex: 1;">🗑️ 초기화</button>
+                    <button class="btn btn-success" onclick="completeOrder('custom')" style="flex: 2;">✅ 커스텀 조리 완료</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: QC -->
+        <div id="qc" class="screen">
+            <div class="panel flex-1" style="display: flex; flex-direction: column;">
+                <h2 class="panel-title">AI 비전 품질 심사</h2>
+                <div class="qc-controls">
+                    <select class="qc-select" id="qc-type">
+                        <option value="burger">🍔 완성된 버거 검사</option>
+                        <option value="lettuce">🥬 양상추 소분 상태 (Prep)</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="runQC()">📸 촬영 및 검사</button>
+                </div>
+                <div class="camera-view" id="camera-view">
+                    <span id="camera-text">대상을 중앙에 맞추세요.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: LOUNGE -->
+        <div id="lounge" class="screen">
+            <div class="lounge-layout">
+                <div class="timer-section">
+                    <div class="timer-circle work" id="timer-circle">
+                        <div class="timer-label" id="timer-label">근무 시간</div>
+                        <div class="timer-time" id="timer-display">00:00:00</div>
+                    </div>
+                    <div style="color: #aaa; margin-bottom: 15px; font-size: 13px;">
+                        잔여 휴식: <b style="color:var(--rest); font-size: 16px;" id="rest-left-display">30분 00초</b>
+                    </div>
+                    <button class="btn btn-rest" id="toggle-rest-btn" onclick="toggleRest()">☕ 휴식 시작</button>
+                </div>
+                <div class="log-section">
+                    <h2 class="panel-title">업무 로그</h2>
+                    <ul class="log-list" id="log-list"></ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Navigation ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            const targetBtn = event.currentTarget || document.querySelector(`.nav-btn[onclick="switchTab('${tabId}')"]`);
+            if(targetBtn) targetBtn.classList.add('active');
+        }
+
+        // --- Recipe Data (Regular) ---
+        const recipes = {
+            bulgogi: {
+                precook: ["🍔 빵 굽기", "🥩 불고기 패티 굽기"],
+                stack: [
+                    { icon: '🍔', name: '윗 빵 (덮기)', class: 'ing-top-bun' },
+                    { icon: '🥬', name: '양상추', class: 'ing-veggies' },
+                    { icon: '🥚', name: '마요네즈', class: 'ing-mayo' },
+                    { icon: '🤎', name: '데리소스', class: 'ing-teri' },
+                    { icon: '🥩', name: '불고기 패티', class: 'ing-patty' },
+                    { icon: '🤎', name: '데리소스', class: 'ing-teri' },
+                    { icon: '🍔', name: '구워진 아래 빵', class: 'ing-bot-bun' }
+                ]
+            },
+            bacon_cheese: {
+                precook: ["🍔 빵 굽기", "🥩 패티 굽기", "🥓 베이컨 굽기"],
+                stack: [
+                    { icon: '🍔', name: '윗 빵 (덮기)', class: 'ing-top-bun' },
+                    { icon: '🥬', name: '양상추 & 🥓 베이컨', class: 'ing-veggies' },
+                    { icon: '🧀', name: '치즈', class: 'ing-cheese' },
+                    { icon: '🥩', name: '패티', class: 'ing-patty' },
+                    { icon: '🥫', name: '스모크 소스', class: 'ing-sauce' },
+                    { icon: '🍔', name: '구워진 아래 빵', class: 'ing-bot-bun' }
+                ]
+            }
+        };
+
+        function renderRecipe() {
+            const selector = document.getElementById('menu-selector');
+            const selectedMenu = selector.value;
+            const precookContainer = document.getElementById('precook-container');
+            const stackContainer = document.getElementById('recipe-container');
+            
+            const recipeData = recipes[selectedMenu];
+            
+            let precookHTML = `<div class="precook-title">🔥 사전 조리 (먼저 구워주세요)</div><ul class="precook-list">`;
+            recipeData.precook.forEach(item => { precookHTML += `<li>${item}</li>`; });
+            precookHTML += `</ul>`;
+            precookContainer.innerHTML = precookHTML;
+
+            stackContainer.innerHTML = '';
+            recipeData.stack.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `ing-item ${item.class}`;
+                div.innerHTML = `<span>${item.icon}</span> ${item.name}`;
+                stackContainer.appendChild(div);
+            });
+        }
+        window.onload = renderRecipe;
+
+        // --- Burger Builder Logic (NEW) ---
+        let customStack = [];
+        const builderData = {
+            'bot-bun': { icon: '🍔', name: '아래 빵', class: 'ing-bot-bun' },
+            'patty': { icon: '🥩', name: '소고기 패티', class: 'ing-patty' },
+            'cheese': { icon: '🧀', name: '치즈', class: 'ing-cheese' },
+            'bacon': { icon: '🥓', name: '베이컨', class: 'ing-veggies' },
+            'lettuce': { icon: '🥬', name: '양상추', class: 'ing-veggies' },
+            'tomato': { icon: '🍅', name: '토마토', class: 'ing-veggies' },
+            'teri': { icon: '🤎', name: '데리소스', class: 'ing-teri' },
+            'mayo': { icon: '🥚', name: '마요네즈', class: 'ing-mayo' },
+            'top-bun': { icon: '🍔', name: '윗 빵', class: 'ing-top-bun' }
+        };
+
+        function addIngredient(type) {
+            customStack.push(builderData[type]);
+            renderCustomStack();
+        }
+
+        function removeIngredient(index) {
+            customStack.splice(index, 1);
+            renderCustomStack();
+        }
+
+        function renderCustomStack() {
+            const container = document.getElementById('custom-stack-container');
+            container.innerHTML = '';
+            if (customStack.length === 0) {
+                container.innerHTML = '<div class="guide-text" style="margin: auto;">재료 버튼을 눌러 버거를 밑에서부터 쌓아보세요!</div>';
+                return;
+            }
+            
+            // flex-direction: column-reverse 속성 때문에 배열 순서대로 넣으면 아래부터 위로 쌓임
+            customStack.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `ing-item ${item.class}`;
+                div.innerHTML = `
+                    <span style="width:30px;">${item.icon}</span> 
+                    <span style="flex:1;">${item.name}</span> 
+                    <span style="cursor:pointer; padding:5px;" onclick="removeIngredient(${index})">❌</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function resetBuilder() {
+            customStack = [];
+            renderCustomStack();
+        }
+
+        // --- Complete Order Action ---
+        function completeOrder(type) {
+            let logMsg = "";
+            if (type === 'custom') {
+                if (customStack.length === 0) { alert("빌더에 재료를 먼저 추가해주세요!"); return; }
+                logMsg = "커스텀 버거 조리 완료";
+                resetBuilder();
+            } else {
+                const selector = document.getElementById('menu-selector');
+                logMsg = selector.options[selector.selectedIndex].text.replace('🍔 ', '').replace('🥓 ', '') + " 완료";
+            }
+            
+            addLog(logMsg);
+            
+            let counterElement = document.getElementById('order-counter');
+            let orders = parseInt(counterElement.innerText.replace(/[^0-9]/g, ''));
+            if(orders > 0) counterElement.innerText = `대기: ${orders - 1}건`;
+            
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span>✅</span> 처리 완료!`;
+            btn.style.backgroundColor = 'var(--success)';
+            btn.style.color = '#fff';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.backgroundColor = (type === 'custom') ? 'var(--success)' : 'transparent';
+                if(type === 'regular') btn.style.color = 'var(--primary)';
+            }, 1000);
+        }
+
+        // --- QC Logic ---
+        function runQC() {
+            const cam = document.getElementById('camera-view');
+            const text = document.getElementById('camera-text');
+            cam.className = 'camera-view scanning';
+            text.innerText = "스캔 중...";
+            setTimeout(() => {
+                cam.className = 'camera-view pass';
+                text.innerHTML = `<h3 style="margin:0 0 5px 0;">✅ PASS</h3><p style="margin:0; font-size:13px;">기준 충족</p>`;
+                addLog(`[검수 승인] 완료`, 'qc-log');
+                setTimeout(() => {
+                    cam.className = 'camera-view';
+                    text.innerText = "대상을 중앙에 맞추세요.";
+                }, 2000);
+            }, 1000);
+        }
+
+        // --- Timer & Log ---
+        let workSeconds = 3600; 
+        let restSecondsLeft = 30 * 60; 
+        let isResting = false;
+        
+        function formatTime(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return (h > 0 ? `${String(h).padStart(2,'0')}:` : '') + `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        function updateTimerUI() {
+            document.getElementById('timer-display').innerText = formatTime(isResting ? restSecondsLeft : workSeconds);
+            document.getElementById('rest-left-display').innerText = formatTime(restSecondsLeft);
+        }
+
+        function toggleRest() {
+            isResting = !isResting;
+            const btn = document.getElementById('toggle-rest-btn');
+            const circle = document.getElementById('timer-circle');
+            const label = document.getElementById('timer-label');
+            
+            if (isResting) {
+                btn.innerHTML = "👨‍🍳 복귀"; btn.className = "btn btn-primary";
+                circle.className = "timer-circle rest"; label.innerText = "휴식 중";
+                document.body.classList.add('resting'); addLog("휴식 시작", "rest-log");
+            } else {
+                btn.innerHTML = "☕ 휴식 시작"; btn.className = "btn btn-rest";
+                circle.className = "timer-circle work"; label.innerText = "근무 시간";
+                document.body.classList.remove('resting'); addLog("업무 복귀", "rest-log");
+            }
+            updateTimerUI();
+        }
+
+        function addLog(msg, typeClass = '') {
+            const logList = document.getElementById('log-list');
+            const timeStr = new Date().toTimeString().substring(0,5);
+            const li = document.createElement('li');
+            if(typeClass) li.classList.add(typeClass);
+            li.innerHTML = `<span>${msg}</span> <span class="log-time" style="color:#aaa; font-family:monospace;">${timeStr}</span>`;
+            logList.insertBefore(li, logList.firstChild);
+        }
+
+        setInterval(() => {
+            if (isResting && restSecondsLeft > 0) restSecondsLeft--;
+            else if (!isResting) workSeconds++;
+            updateTimerUI();
+        }, 1000);
+
+        addLog("시스템 시작", "rest-log");
+    </script>
+</body>
+</html>

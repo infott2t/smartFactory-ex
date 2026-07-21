@@ -475,7 +475,10 @@
                     <div style="margin-bottom: 4px;">🕒 현재 시간: <span id="current-time-display">00:00:00</span></div>
                     <div style="margin-bottom: 4px;">⏱️ 남은 근무시간: <span id="work-timer-display" style="color: var(--accent-blue); font-weight: bold;">01:30:00</span></div>
                     <div style="margin-bottom: 8px;">👥 근무 인원: <span style="color: var(--accent-green); font-weight: bold;">2명 (본인 포함)</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(1명일 시 휴식 불가)</span></div>
-                    <button type="button" class="btn-test-order" style="background-color: #4b5563; width: 100%; border: 1px solid #6b7280; font-size: 0.9rem;" onclick="showLoungeLogs()">📋 나의 기록 보기</button>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button type="button" class="btn-test-order" style="background-color: #4b5563; flex: 1; border: 1px solid #6b7280; font-size: 0.9rem; margin-top: 0;" onclick="showLoungeLogs()">📋 나의 기록 보기</button>
+                        <button type="button" class="btn-test-order" style="background-color: #f59e0b; flex: 1; border: 1px solid #d97706; font-size: 0.9rem; margin-top: 0; color: white;" onclick="showLoungeRule()">📜 라운지 룰 보기</button>
+                    </div>
                 </div>
 
                 <!-- 1. 휴식 기능 섹션 -->
@@ -632,6 +635,23 @@
 
             <div class="btn-group" style="margin-top: 15px;">
                 <button type="button" class="btn-stop" style="background-color: #6b7280; width: 100%;" onclick="closeLoungeLogs()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📜 라운지 룰 모달 -->
+    <div id="lounge-rule-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 400px; border: 1px solid var(--accent-orange);">
+            <h3 style="color: white; margin-top: 0; font-size: 1.25rem;">📜 라운지 쉼터 운영 룰</h3>
+            <div style="background: #24242b; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: left; border: 1px solid #444; color: #e5e7eb; line-height: 1.6; font-size: 0.95rem; word-break: keep-all;">
+                <div style="margin-bottom: 10px;">※우동, 비빔면은 약 4분이 걸림니다. 그렇기 때문에 10분에 2건의 주문이 최대로 받아짐니다. 참조하세요. 😀👍</div>
+                <div style="border-top: 1px dashed #444; padding-top: 10px; margin-top: 10px;">
+                    ※처음 일하시는 분들은 말해주세요. 관련해서 5분정도 교육을 통해 만드는 법을 
+                    <button type="button" onclick="requestEducation()" style="display: inline-block; width: auto; padding: 4px 10px; font-size: 0.85rem; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 6px; margin: 0 0 0 5px; box-shadow: none; vertical-align: middle;">알려주세요</button>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn-next" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); width: 100%;" onclick="closeLoungeRule()">확인</button>
             </div>
         </div>
     </div>
@@ -832,6 +852,20 @@
         function toggleLoungeMap() {
             const mapArea = document.getElementById('lounge-map-area');
             mapArea.style.display = mapArea.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showLoungeRule() {
+            document.getElementById('lounge-rule-overlay').style.display = 'flex';
+        }
+
+        function closeLoungeRule() {
+            document.getElementById('lounge-rule-overlay').style.display = 'none';
+        }
+
+        function requestEducation() {
+            if (confirm("정말로 교육이 필요하나요?")) {
+                alert("관리자에게 연락을 합니다. 곧 도착하니, 기다려주세요.");
+            }
         }
 
         // 띵~ 사운드 신디사이저 (Web Audio API)
