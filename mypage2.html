@@ -446,6 +446,12 @@
                 </div>
             </div>
 
+            <!-- 🛍️ 2.5. 나의 쇼핑 -->
+            <div class="section-header" style="margin-top: 30px;">
+                <h3><i class="bi bi-bag-check-fill" style="color:var(--accent-secondary);"></i> 나의 쇼핑</h3>
+            </div>
+            <div id="shop-history-container"></div>
+
             <!-- 📅 3. 나의 일 예약 내역 -->
             <div class="section-header">
                 <h3><i class="bi bi-calendar-check-fill" style="color:#10b981;"></i> 예약 내역</h3>
@@ -622,6 +628,7 @@
         function renderAll() {
             renderEarnings();
             renderPartnerGrades();
+            renderShopHistory();
             renderReservations();
             renderHistory();
             updateSimControls();
@@ -931,6 +938,158 @@
                 `;
                 container.append(row);
             });
+        }
+
+        function renderShopHistory() {
+            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
+            const shopHistory = state.shopHistory || [];
+            const container = $('#shop-history-container');
+            container.empty();
+
+            if (shopHistory.length === 0) {
+                container.html(`
+                    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, rgba(253, 132, 237, 0.03) 0%, rgba(99, 102, 241, 0.03) 100%); border: 1px dashed rgba(253, 132, 237, 0.2); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                        <div style="font-size: 36px; margin-bottom: 4px; filter: drop-shadow(0 0 8px rgba(253, 132, 237, 0.3));">🛍️</div>
+                        <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">아직 주문한 내역이 없습니다</div>
+                        <div style="font-size: 11px; color: var(--text-sub); max-width: 260px; line-height: 1.5; margin-bottom: 6px;">라운지 쉼터에서 정성 가득한 우동과 간장 비빔면을 주문해 보세요!</div>
+                        <a href="./kimp_detail.html?productId=p1&workId=2" style="background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); color: #000; border: none; padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(253, 132, 237, 0.3); transition: all 0.2s;">
+                            <span>🍜 주문하러 바로가기</span> <i class="bi bi-chevron-right" style="font-size: 10px; font-weight: bold;"></i>
+                        </a>
+                    </div>
+                `);
+                return;
+            }
+
+            shopHistory.forEach(item => {
+                let statusTextHtml = "";
+                let btnHtml = "";
+
+                if (item.status === 'pending') {
+                    statusTextHtml = `<div class="hist-pay" style="color: var(--text-main);">₩ ${item.price.toLocaleString()}</div>`;
+                    btnHtml = `
+                    <div class="res-btn-box" style="margin-top: 10px;">
+                        <button type="button" class="res-check-in-btn" style="background: var(--accent-secondary); color: #000;" onclick="completeShopOrder('${item.id}')">🔔 알람 받기 (수령)</button>
+                        <button type="button" class="res-cancel-btn" onclick="cancelShopOrder('${item.id}')">주문 취소</button>
+                    </div>`;
+                } else if (item.status === 'cancelled') {
+                    statusTextHtml = `<div class="hist-pay" style="color: var(--text-sub); font-size: 14px; font-weight: normal;">주문 취소</div>`;
+                } else if (item.status === 'completed') {
+                    statusTextHtml = `<div class="hist-pay" style="color: var(--accent-pink);">-₩ ${item.price.toLocaleString()}</div>`;
+                    btnHtml = `
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--accent-money); font-weight: bold; text-align: right;">
+                        <i class="bi bi-check-circle-fill"></i> 알람 확인 및 수령 완료
+                    </div>`;
+                }
+
+                let row = `
+                <div class="box-partner history-item" style="border-left: 4px solid var(--accent-secondary);">
+                    <div class="hist-date">
+                        <span>${item.dateStr} 주문</span>
+                        <span style="color: var(--text-sub);">주문번호: ${item.orderNo}번</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px;">
+                        <div class="box-corp">
+                            <span style="font-size: 24px; margin-right: 8px; vertical-align: middle;">🍜</span>
+                            <div>
+                                <div style="font-size:12px; color:var(--text-sub);">${item.brandName || 'Uton'} (우동만들기)</div>
+                                <div class="hist-job-title">우동만들기 [${item.productName}] (${item.qty}그릇)</div>
+                            </div>
+                        </div>
+                        ${statusTextHtml}
+                    </div>
+                    ${btnHtml}
+                </div>
+                `;
+                container.append(row);
+            });
+        }
+
+        function cancelShopOrder(id) {
+            if (!confirm("정말로 주문을 취소하시겠습니까?")) return;
+
+            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
+            const target = state.shopHistory.find(item => item.id === id);
+            if (target) {
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: id });
+                }
+
+                // 세션 및 로컬 카운트 대기열 연동 해제
+                const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                if (activeProduct === target.productId || activeNo === target.orderNo) {
+                    try {
+                        sessionStorage.removeItem('activeOrderProduct');
+                        sessionStorage.removeItem('activeOrderNo');
+                        sessionStorage.removeItem('activeOrderQty');
+                        localStorage.removeItem('activeOrderProduct_local');
+                        localStorage.removeItem('activeOrderNo_local');
+                        localStorage.removeItem('activeOrderQty_local');
+                        localStorage.removeItem('activeOrderNo_current');
+                        
+                        let orderCount10Min = parseInt(sessionStorage.getItem('orderCount10Min') || "0");
+                        orderCount10Min -= target.qty;
+                        if (orderCount10Min < 0) orderCount10Min = 0;
+                        sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
+
+                        if (orderCount10Min < 2) {
+                            sessionStorage.removeItem('orderLimitExpireTime');
+                        }
+
+                        const isUdon = target.productName.includes("우동");
+                        if (isUdon) {
+                            let udonOrderCount = parseInt(sessionStorage.getItem('udonOrderCount') || '0');
+                            udonOrderCount -= target.qty;
+                            if (udonOrderCount < 0) udonOrderCount = 0;
+                            sessionStorage.setItem('udonOrderCount', udonOrderCount.toString());
+                        } else {
+                            let bibimOrderCount = parseInt(sessionStorage.getItem('bibimOrderCount') || '0');
+                            bibimOrderCount -= target.qty;
+                            if (bibimOrderCount < 0) bibimOrderCount = 0;
+                            sessionStorage.setItem('bibimOrderCount', bibimOrderCount.toString());
+                        }
+
+                        // 로그 기록 추가
+                        let loungeLogs = [];
+                        const savedLogs = sessionStorage.getItem('udonBibimLoungeLogs');
+                        if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+                        const now = new Date();
+                        const hh = String(now.getHours()).padStart(2, '0');
+                        const mm = String(now.getMinutes()).padStart(2, '0');
+                        loungeLogs.push(`[${hh}시 ${mm}분] 주문 ${target.qty}그릇을 취소하였습니다.`);
+                        sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
+                    } catch(e){}
+                }
+                
+                alert("주문이 성공적으로 취소되었습니다.");
+            }
+        }
+
+        function completeShopOrder(id) {
+            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
+            const target = state.shopHistory.find(item => item.id === id);
+            if (target) {
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: id });
+                }
+
+                // 수령 완료했으므로 활성화된 활성 주문 상태 제거
+                const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                if (activeProduct === target.productId || activeNo === target.orderNo) {
+                    try {
+                        sessionStorage.removeItem('activeOrderProduct');
+                        sessionStorage.removeItem('activeOrderNo');
+                        sessionStorage.removeItem('activeOrderQty');
+                        localStorage.removeItem('activeOrderProduct_local');
+                        localStorage.removeItem('activeOrderNo_local');
+                        localStorage.removeItem('activeOrderQty_local');
+                        localStorage.removeItem('activeOrderNo_current');
+                    } catch(e){}
+                }
+
+                alert("🔔 조리 완료 알림이 떴습니다!\n음식을 정상적으로 수령하였습니다. 맛있게 드세요! 😀");
+            }
         }
 
         function toggleSimPanel() {

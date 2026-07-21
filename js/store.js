@@ -561,6 +561,7 @@
         workers: {}, // { [userId]: { id, name, workedHours, udonHours, walletHours, checkInTime, accumBreakSeconds, breakRemainingSeconds, isOnBreak, helperBonus, helperBaseSalary, salary, completedOrdersCount } }
         reservations: [],
         history: [],
+        shopHistory: [],
         experienceRemainingSeconds: 180,
         productionOrders: {},
         packagingOrders: {},
@@ -661,6 +662,14 @@
             state.history = Array.isArray(parsed) ? parsed : [];
         } catch(e) {
             state.history = [];
+        }
+
+        // 3.5 Shop History
+        try {
+            let parsed = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
+            state.shopHistory = Array.isArray(parsed) ? parsed : [];
+        } catch(e) {
+            state.shopHistory = [];
         }
 
         // 4. Experience time
@@ -895,6 +904,11 @@
             localStorage.setItem("mypage_history_" + currentUserId, JSON.stringify(state.history));
         }
 
+        // 3.5 Shop History
+        if (shouldSave('shop_history')) {
+            localStorage.setItem('kimp_shop_history', JSON.stringify(state.shopHistory));
+        }
+
         // 4. Experience time
         if (shouldSave('experience_time')) {
             localStorage.setItem(getStorageKey('kimp_experience_remaining_seconds'), state.experienceRemainingSeconds);
@@ -1123,6 +1137,7 @@
                 workers: state.workers ? JSON.parse(JSON.stringify(state.workers)) : {},
                 reservations: Array.isArray(state.reservations) ? [...state.reservations] : [],
                 history: Array.isArray(state.history) ? [...state.history] : [],
+                shopHistory: state.shopHistory ? [...state.shopHistory] : [],
                 experienceRemainingSeconds: state.experienceRemainingSeconds,
                 productionOrders: state.productionOrders ? { ...state.productionOrders } : {},
                 packagingOrders: state.packagingOrders ? { ...state.packagingOrders } : {},
@@ -1289,6 +1304,28 @@
                 case 'DECREMENT_SHIFT_TIME':
                     state.remainingSeconds = Math.max(0, state.remainingSeconds - 1);
                     break;
+                case 'ADD_SHOP_ORDER':
+                    state.shopHistory.unshift(action.payload);
+                    break;
+                case 'CANCEL_SHOP_ORDER': {
+                    const orderId = action.payload;
+                    const target = state.shopHistory.find(item => item.id === orderId);
+                    if (target) {
+                        target.status = 'cancelled';
+                    }
+                    break;
+                }
+                case 'COMPLETE_SHOP_ORDER': {
+                    const orderId = action.payload;
+                    const target = state.shopHistory.find(item => item.id === orderId);
+                    if (target) {
+                        target.status = 'completed';
+                    }
+                    break;
+                }
+                case 'SET_SHOP_HISTORY':
+                    state.shopHistory = action.payload || [];
+                    break;
                 case 'SYNC_FROM_STORAGE':
                     loadFromStorage();
                     break;
@@ -1297,6 +1334,7 @@
                     state.productionOrders = {};
                     state.packagingOrders = {};
                     state.workersProgress = {};
+                    state.shopHistory = [];
                     state.remainingSeconds = 7200;
                     state.clockHour = 15;
                     state.clockMinute = 0;
@@ -1325,6 +1363,12 @@
                 try {
                     let keysToSave = null;
                     switch (action.type) {
+                        case 'ADD_SHOP_ORDER':
+                        case 'CANCEL_SHOP_ORDER':
+                        case 'COMPLETE_SHOP_ORDER':
+                        case 'SET_SHOP_HISTORY':
+                            keysToSave = ['shop_history'];
+                            break;
                         case 'SET_WORKED_HOURS':
                         case 'SET_UDON_HOURS':
                         case 'SET_WALLET_HOURS':
@@ -1400,6 +1444,9 @@
         const currentUserId = state.currentUser ? state.currentUser.id : "guest";
         const worker = state.workers[currentUserId] || {};
 
+        if (key === 'kimp_shop_history') {
+            return JSON.stringify(state.shopHistory);
+        }
         if (key === 'app_reservations_db') {
             return JSON.stringify(state.reservations);
         }
@@ -1503,6 +1550,10 @@
                 localStorage.setItem(key + "_" + userId, value);
             }
             window.dispatchEvent(new Event('storage'));
+            return;
+        }
+        if (key === 'kimp_shop_history') {
+            window.FactoryStore.dispatch({ type: 'SET_SHOP_HISTORY', payload: JSON.parse(value) });
             return;
         }
         if (key === 'app_reservations_db') {

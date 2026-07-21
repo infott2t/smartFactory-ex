@@ -485,6 +485,68 @@
         .buy-btn:active {
             transform: translateY(0);
         }
+
+        /* 커스텀 주문 모달 */
+        .order-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+        }
+        .order-modal {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 10px 30px rgba(123, 92, 245, 0.3);
+        }
+        .order-modal-content {
+            background: #191932;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: left;
+            border: 1px solid var(--card-border);
+            color: #e5e7eb;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            word-break: keep-all;
+        }
+
+        /* 커스텀 주문 모달 */
+        .order-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+        }
+        .order-modal {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 10px 30px rgba(123, 92, 245, 0.3);
+        }
+        .order-modal-content {
+            background: #191932;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: left;
+            border: 1px solid var(--card-border);
+            color: #e5e7eb;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            word-break: keep-all;
+        }
     </style>
 </head>
 <body>
@@ -503,6 +565,11 @@
 
         <!-- opacity-fade-in product-summary-card -->
         <div class="product-summary-card">
+            <!-- 주문 상태 배너 -->
+            <div id="order-status-banner" style="display: none; background: rgba(255, 0, 127, 0.1); border: 1px solid var(--accent-pink); border-radius: 10px; padding: 12px; margin-bottom: 15px; font-size: 0.9rem; color: #fff; line-height: 1.5;">
+                <i class="bi bi-bell-fill" style="color: var(--accent-pink); margin-right: 6px;"></i>
+                <span id="order-status-banner-text"></span>
+            </div>
             <div class="brand-name">AFood Kimchi</div>
             <h1 class="product-name" id="product-name">300g 맛김치 팩</h1>
             
@@ -635,6 +702,82 @@
                 <i class="bi bi-heart-fill"></i>
             </div>
             <button class="buy-btn" onclick="handleBuy()">구매하기</button>
+        </div>
+    </div>
+
+    <!-- 🍜 우동/비빔면 매장 주문 모달 -->
+    <div id="order-confirm-overlay" class="order-modal-overlay" style="display: none;">
+        <div class="order-modal">
+            <h3 style="color: var(--neon-blue); margin-top: 0; font-size: 1.25rem; font-weight: 700;">🍜 매장 주문 확인</h3>
+            <div class="order-modal-content">
+                <div style="font-weight: bold; font-size: 1.05rem; margin-bottom: 8px; color: #fff;">실제 매장인가요?</div>
+                <div>📍 주소: 서울시 강남구 역삼동 (Uton 공방)</div>
+                <div>🕒 매장 운영시간: 10:00 ~ 18:00</div>
+                
+                <hr style="border-color: var(--card-border); margin: 12px 0;">
+                
+                <!-- 주문 가능 건수 안내 -->
+                <div style="color: var(--amber-accent); font-weight: 600; font-size: 0.9rem;">
+                    ※ 터치하면, 지금 주문 1~2개까지 가능해요. 10분당 2개 주문을 받습니다.
+                </div>
+                
+                <!-- 현재 주문 건수 및 타이머 상태 표시 영역 -->
+                <div id="order-limit-status-box" style="font-weight: bold; margin-top: 8px; font-size: 0.95rem;">
+                    <span style="color: var(--neon-green);" id="modal-10min-status">⏱️ 10분에 주문 0건</span>
+                </div>
+
+                <!-- QR 코드 스캔 영역 -->
+                <div id="qr-scan-section" style="margin-top: 15px; text-align: center; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; border: 1px dashed var(--card-border);">
+                    <div id="qr-scan-instruction" style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 8px;">
+                        주문하시려면 아래 매장 QR코드를 찍어주세요.
+                    </div>
+                    <!-- 가상 QR코드 (클릭 시 스캔 완료로 넘어감) -->
+                    <div id="virtual-qr-box" onclick="scanOrderQR()" style="background: white; padding: 8px; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; border: 2px solid var(--neon-blue);" title="클릭하여 QR코드 스캔하기">
+                        <svg viewBox="0 0 100 100" style="width: 64px; height: 64px;">
+                            <rect x="5" y="5" width="25" height="25" fill="black"></rect>
+                            <rect x="10" y="10" width="15" height="15" fill="white"></rect>
+                            <rect x="13" y="13" width="9" height="9" fill="black"></rect>
+                            <rect x="70" y="5" width="25" height="25" fill="black"></rect>
+                            <rect x="75" y="10" width="15" height="15" fill="white"></rect>
+                            <rect x="78" y="13" width="9" height="9" fill="black"></rect>
+                            <rect x="5" y="70" width="25" height="25" fill="black"></rect>
+                            <rect x="10" y="75" width="15" height="15" fill="white"></rect>
+                            <rect x="13" y="78" width="9" height="9" fill="black"></rect>
+                            <rect x="40" y="40" width="10" height="10" fill="black"></rect>
+                            <rect x="55" y="45" width="10" height="5" fill="black"></rect>
+                            <rect x="45" y="60" width="15" height="10" fill="black"></rect>
+                            <rect x="80" y="45" width="5" height="15" fill="black"></rect>
+                            <rect x="80" y="80" width="10" height="10" fill="black"></rect>
+                        </svg>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--neon-blue); margin-top: 5px;">(가상 QR코드 터치 시 스캔 통과)</div>
+                </div>
+
+                <!-- 수량 선택 영역 (QR 스캔 완료 후에 활성화) -->
+                <div id="order-qty-section" style="margin-top: 15px; text-align: center; display: none;">
+                    <label for="order-qty-select" style="font-size: 0.9rem; color: #fff; margin-right: 8px; font-weight: 600;">주문 수량 선택:</label>
+                    <select id="order-qty-select" style="background: #2b2b4e; color: #fff; border: 1px solid var(--neon-blue); border-radius: 6px; padding: 6px 12px; font-size: 0.9rem; outline: none; cursor: pointer;">
+                        <!-- JS에서 옵션 동적 갱신 -->
+                    </select>
+                </div>
+
+                <!-- 최종 질문 문구 -->
+                <div id="modal-final-ask" style="margin-top: 15px; font-weight: 600; text-align: center; color: #fff; display: none;">
+                    주문하시겠어요?
+                </div>
+            </div>
+
+            <!-- 데모 버튼 구역 -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" onclick="demoSetOrder(1)" style="padding: 4px 8px; font-size: 0.75rem; background: #374151; border: 1px solid #4b5563; border-radius: 4px; width: auto; height: auto; box-shadow: none;">데모: 1건 주문 완료</button>
+                <button type="button" onclick="demoSetOrder(2)" style="padding: 4px 8px; font-size: 0.75rem; background: #374151; border: 1px solid #4b5563; border-radius: 4px; width: auto; height: auto; box-shadow: none;">데모: 2건 주문 완료</button>
+                <button type="button" onclick="demoSetOrder(0)" style="padding: 4px 8px; font-size: 0.75rem; background: #ef4444; border: 1px solid #dc2626; border-radius: 4px; width: auto; height: auto; box-shadow: none; color: white;">데모: 주문 리셋(0건)</button>
+            </div>
+
+            <div class="btn-group" style="display: flex; gap: 10px;">
+                <button type="button" id="btn-order-yes" class="buy-btn" onclick="confirmOrder()" style="background: linear-gradient(135deg, var(--neon-blue), #4720ca); margin: 0; opacity: 0.5; cursor: not-allowed;" disabled>예</button>
+                <button type="button" class="buy-btn" onclick="closeOrderModal()" style="background: #2b2b4e; margin: 0;">아니오</button>
+            </div>
         </div>
     </div>
 
@@ -820,6 +963,18 @@
                     }
                 };
             }
+
+            // 10분 제한 타이머 체크
+            checkLimitTimer();
+            // 주문 UI 상태 업데이트
+            updateOrderUI();
+
+            // 전역 스토어 상태 변경 감지 및 UI 자동 동기화
+            if (window.FactoryStore) {
+                window.FactoryStore.subscribe(function() {
+                    updateOrderUI();
+                });
+            }
         });
 
         // ── 3. 제품 정보 렌더링 ──
@@ -994,6 +1149,19 @@
                 }
             }
 
+            // 하단 버튼 텍스트 동적 변경 (우동, 비빔면인 경우 '주문하기')
+            const buyBtn = document.querySelector('.buy-btn');
+            if (buyBtn) {
+                if (isUdon || pId.includes('p2') || pName.includes('비빔면') || pId === 'p1' || pId === 'p2') {
+                    buyBtn.textContent = "주문하기";
+                } else {
+                    buyBtn.textContent = "구매하기";
+                }
+            }
+
+            // 주문 UI 상태 업데이트
+            updateOrderUI();
+
             // 리뷰 목록 렌더링
             renderReviews();
         }
@@ -1113,9 +1281,419 @@
             }
         }
 
+        let orderCount10Min = 0;
+        let limitTimerInterval = null;
+        let isQrScanned = false; // QR코드 스캔 여부
+
+        try {
+            const saved10Min = sessionStorage.getItem('orderCount10Min');
+            if (saved10Min) {
+                orderCount10Min = parseInt(saved10Min);
+            }
+        } catch(e) {}
+
+        function updateOrderUI() {
+            const banner = document.getElementById('order-status-banner');
+            const bannerText = document.getElementById('order-status-banner-text');
+            const buyBtn = document.querySelector('.buy-btn');
+            
+            const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
+            const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+            const activeQty = sessionStorage.getItem('activeOrderQty') || localStorage.getItem('activeOrderQty_local') || "1";
+            
+            // 전역 스토어에서 주문 상태가 completed/cancelled로 변했는지 확인
+            if (window.FactoryStore && activeNo) {
+                const state = window.FactoryStore.getState();
+                const matchedOrder = state.shopHistory.find(item => item.orderNo === activeNo);
+                if (matchedOrder && matchedOrder.status !== 'pending') {
+                    // 완료 또는 취소된 주문이므로 임시 상태 키 클리어
+                    sessionStorage.removeItem('activeOrderProduct');
+                    sessionStorage.removeItem('activeOrderNo');
+                    sessionStorage.removeItem('activeOrderQty');
+                    localStorage.removeItem('activeOrderProduct_local');
+                    localStorage.removeItem('activeOrderNo_local');
+                    localStorage.removeItem('activeOrderQty_local');
+                    localStorage.removeItem('activeOrderNo_current');
+                    
+                    if (banner) banner.style.display = 'none';
+                    if (buyBtn) {
+                        const pId = currentProductId;
+                        const pName = currentProductData ? currentProductData.name : "";
+                        const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
+                        if (isUdonOrBibim && String(currentWorkId) === '2') {
+                            buyBtn.textContent = "주문하기";
+                        } else {
+                            buyBtn.textContent = "구매하기";
+                        }
+                        buyBtn.style.background = "linear-gradient(135deg, var(--neon-blue), #4720ca)";
+                        buyBtn.style.boxShadow = "0 4px 15px rgba(123, 92, 245, 0.3)";
+                    }
+                    return;
+                }
+            }
+
+            const pId = currentProductId;
+            const pName = currentProductData ? currentProductData.name : "";
+            const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
+
+            if (isUdonOrBibim && String(currentWorkId) === '2' && activeProduct === pId) {
+                if (banner && bannerText) {
+                    banner.style.display = 'block';
+                    bannerText.innerHTML = `<strong>${pName}</strong>, <strong>${activeQty}그릇</strong> 주문 상태입니다. 주문번호는 <strong>${activeNo}번</strong>이니, 알림이 뜨면, 가져가 주세요.`;
+                }
+                if (buyBtn) {
+                    buyBtn.textContent = "주문 취소하기";
+                    buyBtn.style.background = "linear-gradient(135deg, var(--accent-pink), #c0005a)";
+                    buyBtn.style.boxShadow = "0 4px 15px rgba(255, 0, 127, 0.3)";
+                }
+            } else {
+                if (banner) banner.style.display = 'none';
+                if (buyBtn) {
+                    if (isUdonOrBibim && String(currentWorkId) === '2') {
+                        buyBtn.textContent = "주문하기";
+                    } else {
+                        buyBtn.textContent = "구매하기";
+                    }
+                    buyBtn.style.background = "linear-gradient(135deg, var(--neon-blue), #4720ca)";
+                    buyBtn.style.boxShadow = "0 4px 15px rgba(123, 92, 245, 0.3)";
+                }
+            }
+        }
+
+        function checkLimitTimer() {
+            try {
+                const expireTime = sessionStorage.getItem('orderLimitExpireTime');
+                if (expireTime) {
+                    const now = new Date().getTime();
+                    const diff = parseInt(expireTime) - now;
+                    if (diff > 0) {
+                        orderCount10Min = 2;
+                        sessionStorage.setItem('orderCount10Min', '2');
+                        startLimitCountdown(diff);
+                    } else {
+                        clearLimitTimer();
+                    }
+                }
+            } catch(e) {}
+        }
+
+        function startLimitCountdown(durationMs) {
+            clearInterval(limitTimerInterval);
+            updateLimitUI(true, durationMs);
+
+            limitTimerInterval = setInterval(() => {
+                const expireTime = sessionStorage.getItem('orderLimitExpireTime');
+                if (!expireTime) {
+                    clearLimitTimer();
+                    return;
+                }
+                const now = new Date().getTime();
+                const diff = parseInt(expireTime) - now;
+                if (diff <= 0) {
+                    clearLimitTimer();
+                } else {
+                    updateLimitUI(true, diff);
+                }
+            }, 1000);
+        }
+
+        function clearLimitTimer() {
+            clearInterval(limitTimerInterval);
+            orderCount10Min = 0;
+            try {
+                sessionStorage.removeItem('orderLimitExpireTime');
+                sessionStorage.setItem('orderCount10Min', '0');
+            } catch(e) {}
+            updateLimitUI(false, 0);
+        }
+
+        function updateLimitUI(isLocked, remainingMs) {
+            const statusBox = document.getElementById('modal-10min-status');
+            const yesBtn = document.getElementById('btn-order-yes');
+            const qrSection = document.getElementById('qr-scan-section');
+            const finalAsk = document.getElementById('modal-final-ask');
+            const qtySection = document.getElementById('order-qty-section');
+            const qtySelect = document.getElementById('order-qty-select');
+
+            if (!statusBox) return;
+
+            if (isLocked) {
+                const minutes = Math.floor(remainingMs / 60000);
+                const seconds = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
+                statusBox.innerHTML = `<span style="color: var(--accent-pink); font-weight: bold;">⚠️ 지금은 주문이 다찼어요. (${minutes}:${seconds})</span>`;
+                
+                yesBtn.disabled = true;
+                yesBtn.style.opacity = "0.5";
+                yesBtn.style.cursor = "not-allowed";
+                
+                qrSection.style.display = 'none';
+                if (qtySection) qtySection.style.display = 'none';
+                finalAsk.style.display = 'none';
+            } else {
+                statusBox.innerHTML = `<span style="color: var(--neon-green);">⏱️ 10분에 주문 ${orderCount10Min}건</span>`;
+                qrSection.style.display = 'block';
+
+                if (isQrScanned) {
+                    document.getElementById('qr-scan-instruction').innerHTML = `<span style="color: var(--neon-green); font-weight: bold;">✅ QR코드 스캔 완료!</span>`;
+                    document.getElementById('virtual-qr-box').style.borderColor = "var(--neon-green)";
+                    
+                    if (qtySection && qtySelect) {
+                        qtySection.style.display = 'block';
+                        let optionsHtml = "";
+                        const maxAllowed = 2 - orderCount10Min;
+                        for (let i = 1; i <= maxAllowed; i++) {
+                            optionsHtml += `<option value="${i}">${i}그릇</option>`;
+                        }
+                        qtySelect.innerHTML = optionsHtml;
+                    }
+
+                    finalAsk.style.display = 'block';
+                    yesBtn.disabled = false;
+                    yesBtn.style.opacity = "1";
+                    yesBtn.style.cursor = "pointer";
+                } else {
+                    document.getElementById('qr-scan-instruction').innerHTML = `주문하시려면 아래 매장 QR코드를 찍어주세요.`;
+                    document.getElementById('virtual-qr-box').style.borderColor = "var(--neon-blue)";
+                    if (qtySection) qtySection.style.display = 'none';
+                    finalAsk.style.display = 'none';
+                    yesBtn.disabled = true;
+                    yesBtn.style.opacity = "0.5";
+                    yesBtn.style.cursor = "not-allowed";
+                }
+            }
+        }
+
+        function scanOrderQR() {
+            if (orderCount10Min >= 2) return;
+            isQrScanned = true;
+            updateLimitUI(false, 0);
+        }
+
+        function demoSetOrder(count) {
+            isQrScanned = false;
+            if (count === 0) {
+                clearLimitTimer();
+            } else if (count === 1) {
+                clearInterval(limitTimerInterval);
+                orderCount10Min = 1;
+                try {
+                    sessionStorage.setItem('orderCount10Min', '1');
+                    sessionStorage.removeItem('orderLimitExpireTime');
+                } catch(e) {}
+                updateLimitUI(false, 0);
+            } else if (count === 2) {
+                orderCount10Min = 2;
+                const expireTime = new Date().getTime() + 600000;
+                try {
+                    sessionStorage.setItem('orderCount10Min', '2');
+                    sessionStorage.setItem('orderLimitExpireTime', expireTime.toString());
+                } catch(e) {}
+                startLimitCountdown(600000);
+            }
+        }
+
         function handleBuy() {
-            const product = productCatalog[currentProductId];
-            alert(`[AFood 공식 스토어]\n${product.name} 주문서 화면으로 이동합니다.\n결제 금액: ${product.price.toLocaleString()}원 (무료배송)`);
+            const pId = currentProductId;
+            const pName = currentProductData ? currentProductData.name : "";
+            const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
+
+            const activeProduct = sessionStorage.getItem('activeOrderProduct');
+            if (isUdonOrBibim && String(currentWorkId) === '2' && activeProduct === pId) {
+                handleCancelOrder();
+                return;
+            }
+
+            if (isUdonOrBibim && String(currentWorkId) === '2') {
+                isQrScanned = false;
+                document.getElementById('order-confirm-overlay').style.display = 'flex';
+                checkLimitTimer();
+                if (!sessionStorage.getItem('orderLimitExpireTime')) {
+                    updateLimitUI(false, 0);
+                }
+            } else {
+                const product = productCatalog[currentProductId] || currentProductData;
+                alert(`[AFood 공식 스토어]\n${product.name} 주문서 화면으로 이동합니다.\n결제 금액: ${(product.price || 3000).toLocaleString()}원 (무료배송)`);
+            }
+        }
+
+        function closeOrderModal() {
+            document.getElementById('order-confirm-overlay').style.display = 'none';
+        }
+
+        function confirmOrder() {
+            if (orderCount10Min >= 2) return;
+
+            const qtySelect = document.getElementById('order-qty-select');
+            const qty = parseInt(qtySelect ? qtySelect.value : "1") || 1;
+
+            orderCount10Min += qty;
+            try {
+                sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
+            } catch(e) {}
+
+            const orderNo = Math.floor(Math.random() * 900) + 100;
+            try {
+                sessionStorage.setItem('activeOrderProduct', currentProductId);
+                sessionStorage.setItem('activeOrderNo', orderNo.toString());
+                sessionStorage.setItem('activeOrderQty', qty.toString());
+            } catch(e) {}
+
+            if (orderCount10Min >= 2) {
+                const expireTime = new Date().getTime() + 600000;
+                try {
+                    sessionStorage.setItem('orderLimitExpireTime', expireTime.toString());
+                } catch(e) {}
+                startLimitCountdown(600000);
+            } else {
+                updateLimitUI(false, 0);
+            }
+
+            closeOrderModal();
+            updateOrderUI();
+
+            const pId = currentProductId;
+            const pName = currentProductData ? currentProductData.name : "";
+            const isUdon = pId === 'p1' || pId.includes('udon') || pName.includes('우동');
+
+            // 마이페이지 나의 쇼핑 내역을 위한 규격 데이터 생성 및 전역 저장소 전송
+            try {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const hh = String(now.getHours()).padStart(2, '0');
+                const min = String(now.getMinutes()).padStart(2, '0');
+                const ss = String(now.getSeconds()).padStart(2, '0');
+
+                const newItem = {
+                    id: 'ord_' + now.getTime(),
+                    orderNo: orderNo.toString(),
+                    orderDate: `${yyyy}-${mm}-${dd}`,
+                    orderTime: `${hh}:${min}:${ss}`,
+                    productName: isUdon ? '정통 가쓰오 우동' : '간장 비빔면',
+                    brandName: 'Uton',
+                    price: 3000 * qty,
+                    qty: qty,
+                    status: 'pending',
+                    dateStr: `${mm}월 ${dd}일 ${hh}시 ${min}분`
+                };
+
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: newItem });
+                }
+
+                // 탭 간 공유용 activeOrder 백업
+                localStorage.setItem('activeOrderProduct_local', currentProductId);
+                localStorage.setItem('activeOrderNo_local', orderNo.toString());
+                localStorage.setItem('activeOrderQty_local', qty.toString());
+                localStorage.setItem('activeOrderNo_current', orderNo.toString());
+            } catch(e){}
+
+            if (isUdon) {
+                try {
+                    let udonOrderCount = parseInt(sessionStorage.getItem('udonOrderCount') || '0');
+                    udonOrderCount += qty;
+                    sessionStorage.setItem('udonOrderCount', udonOrderCount.toString());
+                    
+                    let loungeLogs = [];
+                    const savedLogs = sessionStorage.getItem('udonBibimLoungeLogs');
+                    if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+                    const now = new Date();
+                    const hh = String(now.getHours()).padStart(2, '0');
+                    const mm = String(now.getMinutes()).padStart(2, '0');
+                    loungeLogs.push(`[${hh}시 ${mm}분] 우동 ${qty}그릇 주문이 들어왔습니다.`);
+                    sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
+                } catch(e) {}
+                
+                alert(`정통 가쓰오 우동, ${qty}그릇 주문 상태입니다. 주문번호는 ${orderNo}번이니, 알림이 뜨면, 가져가 주세요.`);
+            } else {
+                try {
+                    let bibimOrderCount = parseInt(sessionStorage.getItem('bibimOrderCount') || '0');
+                    bibimOrderCount += qty;
+                    sessionStorage.setItem('bibimOrderCount', bibimOrderCount.toString());
+                    
+                    let loungeLogs = [];
+                    const savedLogs = sessionStorage.getItem('udonBibimLoungeLogs');
+                    if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+                    const now = new Date();
+                    const hh = String(now.getHours()).padStart(2, '0');
+                    const mm = String(now.getMinutes()).padStart(2, '0');
+                    loungeLogs.push(`[${hh}시 ${mm}분] 간장 비빔면 ${qty}그릇 주문이 들어왔습니다.`);
+                    sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
+                } catch(e) {}
+
+                alert(`간장 비빔면 또는 우동, ${qty}그릇 주문 상태입니다. 주문번호는 ${orderNo}번이니, 알림이 뜨면, 가져가 주세요.`);
+            }
+        }
+
+        function handleCancelOrder() {
+            if (!confirm("정말로 주문을 취소하시겠습니까?")) return;
+
+            const pId = currentProductId;
+            const pName = currentProductData ? currentProductData.name : "";
+            const isUdon = pId === 'p1' || pId.includes('udon') || pName.includes('우동');
+            const activeQty = parseInt(sessionStorage.getItem('activeOrderQty') || "1") || 1;
+
+            if (orderCount10Min > 0) {
+                orderCount10Min -= activeQty;
+                if (orderCount10Min < 0) orderCount10Min = 0;
+                try {
+                    sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
+                } catch(e) {}
+            }
+
+            if (orderCount10Min < 2) {
+                clearLimitTimer();
+            }
+
+            if (isUdon) {
+                try {
+                    let udonOrderCount = parseInt(sessionStorage.getItem('udonOrderCount') || '0');
+                    udonOrderCount -= activeQty;
+                    if (udonOrderCount < 0) udonOrderCount = 0;
+                    sessionStorage.setItem('udonOrderCount', udonOrderCount.toString());
+                } catch(e) {}
+            } else {
+                try {
+                    let bibimOrderCount = parseInt(sessionStorage.getItem('bibimOrderCount') || '0');
+                    bibimOrderCount -= activeQty;
+                    if (bibimOrderCount < 0) bibimOrderCount = 0;
+                    sessionStorage.setItem('bibimOrderCount', bibimOrderCount.toString());
+                } catch(e) {}
+            }
+
+            try {
+                let loungeLogs = [];
+                const savedLogs = sessionStorage.getItem('udonBibimLoungeLogs');
+                if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                loungeLogs.push(`[${hh}시 ${mm}분] 주문 ${activeQty}그릇을 취소하였습니다.`);
+                sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
+            } catch(e) {}
+
+            try {
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                sessionStorage.removeItem('activeOrderProduct');
+                sessionStorage.removeItem('activeOrderNo');
+                sessionStorage.removeItem('activeOrderQty');
+                localStorage.removeItem('activeOrderProduct_local');
+                localStorage.removeItem('activeOrderNo_local');
+                localStorage.removeItem('activeOrderQty_local');
+                localStorage.removeItem('activeOrderNo_current');
+
+                if (window.FactoryStore) {
+                    const state = window.FactoryStore.getState();
+                    const targetOrder = state.shopHistory.find(item => item.orderNo === activeNo && item.status === 'pending');
+                    if (targetOrder) {
+                        window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: targetOrder.id });
+                    }
+                }
+            } catch(e) {}
+
+            updateOrderUI();
+            alert("주문이 정상적으로 취소되었습니다.");
         }
 
         // 가상 토스트 메시지 생성
