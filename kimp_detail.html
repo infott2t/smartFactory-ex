@@ -986,43 +986,56 @@
                 }
             }
 
-            // 1. window.MockData.storeProducts 에서 전체 상세 속성이 포함된 원본 디비 조회 (productId 혹은 productCode 매핑)
+            // 1. storeProducts에서 productId 또는 productCode로 조회
             let originProduct = null;
             if (prodId && window.MockData && window.MockData.storeProducts) {
-                originProduct = window.MockData.storeProducts.find(p => 
+                originProduct = window.MockData.storeProducts.find(p =>
                     String(p.productId) === String(prodId) || String(p.productCode) === String(prodId)
                 );
             }
-            
+
             if (!originProduct && prodId && productCatalog[prodId]) {
                 originProduct = {
                     productId: prodId,
+                    productCode: prodId,
                     ...productCatalog[prodId]
                 };
             }
 
-            // 2. 최적의 데이터 객체 합성
+            // 1-b. foundInDetail을 productCode로도 재시도
+            // (URL이 ?productId=20001일 때 workDetailJSON 내부는 id:"p1"이라 처음에 못 찾을 수 있음)
+            if (!foundInDetail && originProduct && originProduct.productCode && currentWorkId && window.MockData && window.MockData.workDetailJSON) {
+                try {
+                    const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                    const workData = detailMap[currentWorkId];
+                    if (workData && workData.products && Array.isArray(workData.products)) {
+                        foundInDetail = workData.products.find(p =>
+                            String(p.id) === String(originProduct.productCode) ||
+                            String(p.productId) === String(originProduct.productCode)
+                        );
+                    }
+                } catch(e) {}
+            }
+
+            // 2. 최적 데이터 합성
             if (originProduct) {
-                currentProductId = originProduct.productId; // 항상 5자리 숫자 고유 ID로 지정됨!
+                currentProductId = originProduct.productId;
                 currentProductData = {
                     ...originProduct,
-                    id: originProduct.productId, // id 필드 호환성 복원
-                    ...(foundInDetail || {}) // 라이브 가격 및 상태 정보 덮어쓰기
+                    id: originProduct.productId,
+                    // storeProducts의 description → desc 호환
+                    desc: originProduct.desc || originProduct.description || '',
+                    ...(foundInDetail || {})
                 };
-                
-                // foundInDetail의 가격 포맷 복원 ("3,000원" 형태 보존)
-                if (foundInDetail && foundInDetail.price) {
-                    currentProductData.price = foundInDetail.price; 
-                }
-                if (foundInDetail && foundInDetail.name) {
-                    currentProductData.name = foundInDetail.name;
-                }
+                // foundInDetail의 가격/이름 우선 적용
+                if (foundInDetail && foundInDetail.price) currentProductData.price = foundInDetail.price;
+                if (foundInDetail && foundInDetail.name)  currentProductData.name  = foundInDetail.name;
             } else {
-                // 완전히 없는 제품일 경우의 디폴트 처리
-                currentProductId = 10001; // 맛김치 300g
-                currentProductData = (window.MockData && window.MockData.products && window.MockData.products["p300g"]) || {
+                currentProductId = 10001;
+                currentProductData = {
                     ...productCatalog["p300g"],
                     id: 10001,
+                    productCode: "p300g",
                     category: "김치 (비살균제품)",
                     ingredients: "절임배추 70%(국산), 무(국산), 고춧가루(국산), 마늘(국산), 액젓, 생강 등",
                     storage: "냉장보관 (0~10℃)",
@@ -1067,8 +1080,9 @@
             const pName = String(product.name || "");
             const pId = String(product.id || currentProductId || "");
 
-            // 1. rating, reviews, weight 가 누적/수집되지 않은 데이터일 경우 카탈로그(productCatalog)에서 매핑하여 복원
-            const catalogItem = productCatalog[product.id || currentProductId] || productCatalog["p300g"];
+            // 1. productCode를 우선 사용해 카탈로그 조회 (숫자 PK가 아닌 코드 키로 매핑)
+            const lookupKey = product.productCode || product.id || currentProductId;
+            const catalogItem = productCatalog[lookupKey] || productCatalog[String(lookupKey)] || productCatalog["p300g"];
             
             // 2. 가격 파싱 방어 코드 (문자열 "3,000원" 형태를 숫자 3000으로 파싱)
             let priceNum = 3000;
@@ -1127,8 +1141,8 @@
             const isLeatherOrWallet = 
                 (product.category && (product.category.includes('가죽') || product.category.includes('지갑') || product.category.includes('잡화'))) ||
                 (product.name && product.name.includes('지갑')) ||
-                (product.id && product.id.includes('wallet')) ||
-                (currentProductId && currentProductId.includes('wallet'));
+                (product.id && String(product.id).includes('wallet')) ||
+                (currentProductId && String(currentProductId).includes('wallet'));
 
             const isUdon = pId.includes('udon') || pName.includes('우동');
             const isBurger = pId.includes('burger') || pName.includes('버거') || pName.includes('패티');
@@ -1471,7 +1485,7 @@
                     
                     if (banner) banner.style.display = 'none';
                     if (buyBtn) {
-                        const pId = currentProductId;
+                        const pId = String(currentProductId);
                         const pName = currentProductData ? currentProductData.name : "";
                         const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
                         if (isUdonOrBibim && String(currentWorkId) === '2') {
@@ -1486,11 +1500,11 @@
                 }
             }
 
-            const pId = currentProductId;
+            const pId = String(currentProductId);
             const pName = currentProductData ? currentProductData.name : "";
             const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
 
-            if (isUdonOrBibim && String(currentWorkId) === '2' && activeProduct === pId) {
+            if (isUdonOrBibim && String(currentWorkId) === '2' && String(activeProduct) === pId) {
                 if (banner && bannerText) {
                     banner.style.display = 'block';
                     bannerText.innerHTML = `<strong>${pName}</strong>, <strong>${activeQty}그릇</strong> 주문 상태입니다. 주문번호는 <strong>${activeNo}번</strong>이니, 알림이 뜨면, 가져가 주세요.`;
@@ -1647,7 +1661,7 @@
         }
 
         function handleBuy() {
-            const pId = currentProductId;
+            const pId = String(currentProductId);
             const pName = currentProductData ? currentProductData.name : "";
             const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
 
@@ -1705,7 +1719,7 @@
             closeOrderModal();
             updateOrderUI();
 
-            const pId = currentProductId;
+            const pId = String(currentProductId);
             const pName = currentProductData ? currentProductData.name : "";
             const isUdon = pId === 'p1' || pId.includes('udon') || pName.includes('우동');
 
@@ -1783,7 +1797,7 @@
         function handleCancelOrder() {
             if (!confirm("정말로 주문을 취소하시겠습니까?")) return;
 
-            const pId = currentProductId;
+            const pId = String(currentProductId);
             const pName = currentProductData ? currentProductData.name : "";
             const isUdon = pId === 'p1' || pId.includes('udon') || pName.includes('우동');
             const activeQty = parseInt(sessionStorage.getItem('activeOrderQty') || "1") || 1;

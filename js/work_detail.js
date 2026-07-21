@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <img src="${p.img}" alt="${p.name}">
                             <div class="product-name">${p.name}</div>
                             <div class="product-price">${p.price.toLocaleString('ko-KR')}원</div>
-                            <div class="product-status">${p.status}</div>
+                            ${p.status ? `<div class="product-status">${p.status}</div>` : ''}
                         </a>
                     `).join('');
                     
