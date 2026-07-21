@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="./css/explore2.css?v=1.0.2">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>나의 활동 내역 | 스마트팩토리</title>
-
+    <script src="./js/store.js" type="text/javascript"></script>
 </head>
 
 <body>
@@ -25,6 +25,7 @@
                 <li class="tab-item active" data-target="partner">파트너 등급</li>
                 <li class="tab-item" data-target="reservation">예약 내역</li>
                 <li class="tab-item" data-target="history">근로 이력</li>
+                <li class="tab-item" data-target="shopping">나의 쇼핑</li>
             </ul>
         </div>
     </div>
@@ -90,6 +91,24 @@
                     </div>
                 </section>
 
+                <section class="tab-content" id="tab-shopping">
+                    <div class="sort-row">
+                        <div class="sort-item sort-down" data-type="date">
+                            <span class="lspace">날짜</span>
+                            <div class="sort-arrows">
+                                <i class="bi bi-caret-up-fill"></i>
+                                <i class="bi bi-caret-down-fill"></i>
+                            </div>
+                        </div>
+                        <div class="sort-item" data-type="like" style="display: inline-flex; align-items: center; gap: 4px; justify-content: center;">
+                            <span class="lspace">좋아요</span>
+                            <i class="bi bi-heart-fill" style="color: #ff3366; font-size: 12px; vertical-align: middle;"></i>
+                        </div>
+                    </div>
+                    <div id="shopping-container" style="margin-top: 42px;">
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
@@ -104,6 +123,7 @@
             let targetIndex = 0;
             if (initialTab === 'reservation') targetIndex = 1;
             if (initialTab === 'history') targetIndex = 2;
+            if (initialTab === 'shopping') targetIndex = 3;
 
             $('.tab-item').removeClass('active');
             $('.tab-item').eq(targetIndex).addClass('active');
@@ -125,31 +145,38 @@
             });
 
             // 전역 정렬 상태
-            let currentSortType = 'date'; // 'date' or 'pay'
+            let currentSortType = initialTab === 'shopping' ? 'like' : 'date'; // 'date', 'pay', or 'like' (나의 쇼핑 탭은 기본적으로 좋아요 목록을 보여줌)
             let currentSortDir = 'desc';  // 'asc' or 'desc'
 
-            // ★ 정렬 토글 기능 (오름차순/내림차순)
+            // ★ 정렬 토글 기능 (오름차순/내림차순 / 필터)
             $(document).on('click', '.sort-item', function () {
                 let $this = $(this);
-                let selectedType = $this.data('type') || ($this.find('.lspace').text().trim() === '날짜' ? 'date' : 'pay');
+                const $parentRow = $this.closest('.sort-row');
+                $parentRow.find('.sort-item').not(this).removeClass('active sort-up sort-down');
 
-                // 다른 정렬 항목들의 화살표 초기화
-                $('.sort-item').not(this).removeClass('sort-up sort-down');
+                let selectedType = $this.attr('data-type') || ($this.find('.lspace').text().trim() === '날짜' ? 'date' : 'pay');
 
                 if (currentSortType === selectedType) {
-                    currentSortDir = currentSortDir === 'desc' ? 'asc' : 'desc';
+                    if (selectedType !== 'like') {
+                        currentSortDir = currentSortDir === 'desc' ? 'asc' : 'desc';
+                    }
                 } else {
                     currentSortType = selectedType;
                     currentSortDir = 'desc';
                 }
 
-                if (currentSortDir === 'asc') {
-                    $this.removeClass('sort-down').addClass('sort-up');
-                } else {
-                    $this.removeClass('sort-up').addClass('sort-down');
+                $this.addClass('active');
+
+                if (selectedType !== 'like') {
+                    if (currentSortDir === 'asc') {
+                        $this.removeClass('sort-down').addClass('sort-up');
+                    } else {
+                        $this.removeClass('sort-up').addClass('sort-down');
+                    }
                 }
 
-                renderCurrentTab(2);
+                const activeIndex = $('.tab-list .tab-item.active').index();
+                renderCurrentTab(activeIndex);
             });
 
             // 데이터 불러오기 유틸리티
@@ -424,6 +451,149 @@
                     });
 
                     $('#history-container').html(html);
+                } else if (index === 3) {
+                    if (window.FactoryStore) {
+                        window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+                    }
+                    const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [], isLike: [] };
+                    const container = $('#shopping-container');
+                    container.empty();
+
+                    // 정렬바 시각적 활성화 상태 동기화
+                    const $sortRow = $('#tab-shopping .sort-row');
+                    $sortRow.find('.sort-item').removeClass('active sort-up sort-down');
+                    if (currentSortType === 'like') {
+                        $sortRow.find('[data-type="like"]').addClass('active');
+                    } else {
+                        const $dateBtn = $sortRow.find('[data-type="date"]');
+                        $dateBtn.addClass('active');
+                        if (currentSortDir === 'asc') {
+                            $dateBtn.addClass('sort-up');
+                        } else {
+                            $dateBtn.addClass('sort-down');
+                        }
+                    }
+
+                    if (currentSortType === 'like') {
+                        // 좋아요(관심상품) 필터 모드인 경우
+                        const currentUserId = String(user.id);
+                        const isLikeArr = state.isLike || [];
+                        
+                        // 현재 사용자의 관심 상품 레코드 필터링
+                        const userLikes = isLikeArr.filter(r => String(r.userId) === String(currentUserId));
+
+                        if (userLikes.length === 0) {
+                            container.html(`
+                                <div class="empty-state" style="padding: 40px 20px; text-align: center; color: var(--text-sub); font-size: 14px; background: rgba(0,0,0,0.2); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                    <i class="bi bi-heart" style="font-size: 40px; margin-bottom: 6px; color: var(--text-sub); opacity: 0.7;"></i>
+                                    <div style="font-weight: bold;">관심 상품으로 등록된 상품이 없습니다</div>
+                                </div>
+                            `);
+                            return;
+                        }
+
+                        const storeProducts = (window.MockData && window.MockData.storeProducts) || [];
+
+                        let html = '';
+                        userLikes.forEach(record => {
+                            const pId = Number(record.productId);
+                            const product = storeProducts.find(p => Number(p.productId) === pId) || { name: "상품 " + pId, price: 3000, img: "./images/udon_product.png", brand: "Uton", workId: 2 };
+                            
+                            html += `
+                            <div class="task-item" onclick="location.href='./kimp_detail.html?productId=${product.productId}&workId=${product.workId}'" style="margin-bottom: 12px; cursor: pointer; padding: 14px; background: rgba(0, 0, 0, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <img src="${product.img}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" alt="product">
+                                    <div style="text-align: left;">
+                                        <div style="font-size: 11px; color: var(--text-sub);">${product.brand || 'Uton'}</div>
+                                        <div style="font-size: 13px; font-weight: bold; color: var(--text-main);">${product.name}</div>
+                                        <div style="font-size: 10px; color: #a29bfe; margin-top: 2px;">❤ 등록일: ${record.likedAt}</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span style="font-size: 13px; font-weight: bold; color: var(--text-main);">₩ ${product.price.toLocaleString()}</span>
+                                    <span style="color: #ff3366; font-size: 18px;"><i class="bi bi-heart-fill"></i></span>
+                                </div>
+                            </div>`;
+                        });
+                        container.html(html);
+                    } else {
+                        // 날짜별 주문이력 모드인 경우
+                        const shopHistory = state.shopHistory || [];
+
+                        if (shopHistory.length === 0) {
+                            container.html(`
+                                <div class="empty-state" style="padding: 40px 20px; text-align: center; color: var(--text-sub); font-size: 14px; background: rgba(0,0,0,0.2); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                    <i class="bi bi-bag-x" style="font-size: 40px; margin-bottom: 6px; color: var(--text-sub); opacity: 0.7;"></i>
+                                    <div style="font-weight: bold;">아직 주문한 내역이 없습니다</div>
+                                </div>
+                            `);
+                            return;
+                        }
+
+                        // 날짜 오름차순/내림차순 정렬 적용
+                        let sortedHistory = [...shopHistory];
+                        sortedHistory.sort((a, b) => {
+                            const dateA = new Date((a.orderDate || '') + 'T' + (a.orderTime || '00:00:00'));
+                            const dateB = new Date((b.orderDate || '') + 'T' + (b.orderTime || '00:00:00'));
+                            return currentSortDir === 'asc' ? dateA - dateB : dateB - dateA;
+                        });
+
+                        let html = '';
+                        sortedHistory.forEach(item => {
+                            let statusTextHtml = "";
+                            let btnHtml = "";
+
+                            if (item.status === 'pending') {
+                                statusTextHtml = `<div style="color: var(--text-main); font-weight: bold; font-size: 14px;">₩ ${item.price.toLocaleString()}</div>`;
+                                btnHtml = `
+                                <div style="margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button type="button" class="res-check-in-btn" style="background: var(--accent-secondary); color: #000; border: none; padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer;" onclick="completeShopOrder('${item.id}')">🔔 알람 받기 (수령)</button>
+                                    <button type="button" class="res-cancel-btn" style="background: rgba(255,255,255,0.08); color: #ccc; border: 1px solid rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 12px; font-size: 11px; cursor: pointer;" onclick="cancelShopOrder('${item.id}')">주문 취소</button>
+                                </div>`;
+                            } else if (item.status === 'cancelled') {
+                                statusTextHtml = `<div style="color: var(--text-sub); font-size: 12px;">주문 취소</div>`;
+                            } else if (item.status === 'completed') {
+                                statusTextHtml = `<div style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">-₩ ${item.price.toLocaleString()}</div>`;
+                                btnHtml = `
+                                <div style="margin-top: 8px; font-size: 11px; color: var(--accent-money); font-weight: bold; text-align: right;">
+                                    <i class="bi bi-check-circle-fill"></i> 알람 확인 및 수령 완료
+                                </div>`;
+                            }
+
+                            // 주문 상품에 따른 브랜드 이미지 아이콘 매핑
+                            let iconHtml = `<span style="font-size: 24px;">🛍️</span>`;
+                            const nameLower = (item.productName || '').toLowerCase();
+                            const brandLower = (item.brandName || '').toLowerCase();
+                            
+                            if (nameLower.includes("우동") || nameLower.includes("비빔면") || brandLower === 'uton') {
+                                iconHtml = `<img src="./images/Uton_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; object-fit: cover;" alt="Uton">`;
+                            } else if (nameLower.includes("김치") || brandLower === 'afood') {
+                                iconHtml = `<img src="./images/k-icon_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; object-fit: cover;" alt="AFood">`;
+                            } else if (nameLower.includes("지갑") || brandLower === 'persa') {
+                                iconHtml = `<img src="./images/fancy_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; object-fit: cover;" alt="Persa">`;
+                            }
+
+                            html += `
+                            <div class="task-item" style="margin-bottom: 12px; display: block; padding: 14px; border-left: 4px solid var(--accent-secondary); background: rgba(0, 0, 0, 0.2); border-radius: 12px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-sub); margin-bottom: 8px;">
+                                    <span>${item.dateStr} 주문</span>
+                                    <span>주문번호: ${item.orderNo}번</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        ${iconHtml}
+                                        <div style="text-align: left;">
+                                            <div style="font-size: 11px; color: var(--text-sub);">${item.brandName || 'Uton'} (우동만들기)</div>
+                                            <div style="font-size: 13px; font-weight: bold; color: var(--text-main);">우동만들기 [${item.productName}] (${item.qty}그릇)</div>
+                                        </div>
+                                    </div>
+                                    ${statusTextHtml}
+                                </div>
+                                ${btnHtml}
+                            </div>`;
+                        });
+                        container.html(html);
+                    }
                 }
             }
 

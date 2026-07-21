@@ -562,6 +562,7 @@
         reservations: [],
         history: [],
         shopHistory: [],
+        isLike: [], // 신규 추가: [ { userId, productId, likedAt } ]
         experienceRemainingSeconds: 180,
         productionOrders: {},
         packagingOrders: {},
@@ -866,6 +867,45 @@
         state.clockMinute = m !== null ? parseInt(m) : 0;
         const s = localStorage.getItem(getStorageKey('kimp_second_counter'));
         state.secondCounter = s !== null ? parseInt(s) : 0;
+
+        // 9. isLike Table Load
+        try {
+            const rawIsLike = localStorage.getItem('kimp_is_like_table');
+            let parsed = rawIsLike ? JSON.parse(rawIsLike) : [];
+            if (!Array.isArray(parsed)) {
+                parsed = [];
+            }
+            
+            // productId가 숫자이면 그대로 유지, NaN이면 폐기
+            // (storeProducts가 없는 타이밍에는 애칭 치환 없이 숫자 데이터만 보존)
+            const masterProducts = (window.MockData && window.MockData.storeProducts) ? window.MockData.storeProducts : [];
+            parsed.forEach(r => {
+                const numVal = Number(r.productId);
+                if (isNaN(numVal) && masterProducts.length > 0) {
+                    // 애칭 문자열("p300g" 등) → 정규 5자리 숫자로 치환
+                    const match = masterProducts.find(p => String(p.productCode) === String(r.productId));
+                    if (match) {
+                        r.productId = Number(match.productId);
+                    }
+                } else if (!isNaN(numVal)) {
+                    r.productId = numVal; // 이미 숫자이면 Number 형으로만 보정
+                }
+            });
+            
+            // productId가 유효한 숫자인 레코드만 보존
+            state.isLike = parsed.filter(r =>
+                r.productId !== undefined &&
+                r.productId !== null &&
+                !isNaN(Number(r.productId))
+            );
+        } catch(e) {
+            // 파싱 에러 시에만 초기화 (TypeError 방지됨)
+            if (!(e instanceof TypeError)) {
+                state.isLike = [];
+            } else {
+                state.isLike = state.isLike || [];
+            }
+        }
     }
 
     function saveToStorage(onlyKeys) {
@@ -892,6 +932,11 @@
                 profile.workedHours = state.workers[currentUserId].workedHours;
                 sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
             }
+        }
+
+        // 0.5 isLike Table Save
+        if (shouldSave('isLike')) {
+            localStorage.setItem('kimp_is_like_table', JSON.stringify(state.isLike));
         }
 
         // 2. Reservations
@@ -1145,7 +1190,8 @@
                 remainingSeconds: state.remainingSeconds,
                 clockHour: state.clockHour,
                 clockMinute: state.clockMinute,
-                secondCounter: state.secondCounter
+                secondCounter: state.secondCounter,
+                isLike: Array.isArray(state.isLike) ? [...state.isLike] : [] // ← isLike 누락 버그 수정!
             };
         },
         subscribe: function(listener) {
@@ -1326,6 +1372,42 @@
                 case 'SET_SHOP_HISTORY':
                     state.shopHistory = action.payload || [];
                     break;
+                case 'TOGGLE_PRODUCT_LIKE': {
+                    const { userId, productId } = action.payload;
+                    
+                    if (!state.isLike) {
+                        state.isLike = [];
+                    }
+                    
+                    const targetUserId = String(userId);
+                    const targetProductId = Number(productId);
+                    
+                    const existingIndex = state.isLike.findIndex(r => String(r.userId) === targetUserId && Number(r.productId) === targetProductId);
+                    if (existingIndex > -1) {
+                        // 존재 시 제거 (토글 오프)
+                        state.isLike.splice(existingIndex, 1);
+                    } else {
+                        // 미존재 시 삽입 (토글 온)
+                        const maxId = state.isLike.reduce((max, r) => r.id > max ? r.id : max, 10000);
+                        
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const date = String(now.getDate()).padStart(2, '0');
+                        const hours = String(now.getHours()).padStart(2, '0');
+                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                        const seconds = String(now.getSeconds()).padStart(2, '0');
+                        const dateStr = `${year}.${month}.${date} ${hours}:${minutes}:${seconds}`; // YYYY.MM.DD HH:mm:ss
+                        
+                        state.isLike.push({
+                            id: maxId + 1, // 5자리 자동증가 PK
+                            userId: targetUserId,
+                            productId: targetProductId,
+                            likedAt: dateStr
+                        });
+                    }
+                    break;
+                }
                 case 'SYNC_FROM_STORAGE':
                     loadFromStorage();
                     break;
@@ -1335,6 +1417,7 @@
                     state.packagingOrders = {};
                     state.workersProgress = {};
                     state.shopHistory = [];
+                    state.isLike = [];
                     state.remainingSeconds = 7200;
                     state.clockHour = 15;
                     state.clockMinute = 0;
@@ -1368,6 +1451,9 @@
                         case 'COMPLETE_SHOP_ORDER':
                         case 'SET_SHOP_HISTORY':
                             keysToSave = ['shop_history'];
+                            break;
+                        case 'TOGGLE_PRODUCT_LIKE':
+                            keysToSave = ['workers', 'isLike'];
                             break;
                         case 'SET_WORKED_HOURS':
                         case 'SET_UDON_HOURS':
@@ -2594,30 +2680,20 @@ window.MockData.setExpCompleted = function(userId, workId) {
 // 🛍️ 신규: 매장 판매 상품 및 상세 리뷰 데이터
 // ==========================================
 window.MockData.storeProducts = [
-    {
-        productId: "p1",
-        workId: 2,
-        name: "정통 가쓰오 우동",
-        price: 3000,
-        status: "매장 판매중",
-        img: "./images/udon_product.png",
-        description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.",
-        category: "패스트푸드",
-        ingredients: "우동면, 육수, 쪽파",
-        manufacturer: "Uton"
-    },
-    {
-        productId: "p2",
-        workId: 2,
-        name: "감칠맛 간장 비빔면",
-        price: 3000,
-        status: "매장 판매중",
-        img: "./images/somyeon_complete.png",
-        description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.",
-        category: "패스트푸드",
-        ingredients: "소면, 간장, 설탕, 참기름",
-        manufacturer: "Uton"
-    }
+    // 김치공정 (workId: 1)
+    { productId: 10001, productCode: "p300g", workId: 1, name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood", description: "1인 가구용 실속형 맛김치. 한 끼에 드시기 알맞은 깔끔한 맛김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘", manufacturer: "AFood" },
+    { productId: 10002, productCode: "p1kg", workId: 1, name: "1kg 포기김치 팩", price: 8000, img: "./images/kimchi_1kg.png", brand: "AFood", description: "가정용 표준 포장 프리미엄 김치. 전통 방식 그대로 버무린 1kg 가정용 포기김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈", manufacturer: "AFood" },
+    { productId: 10003, productCode: "p3kg", workId: 1, name: "3kg 대용량 김치 팩", price: 20000, img: "./images/kimchi_3kg.png", brand: "AFood", description: "다인가구 및 김장 보관용 실용 김치. 온 가족이 풍족하게 나누어 먹을 수 있는 3kg 대용량 김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무", manufacturer: "AFood" },
+    { productId: 10004, productCode: "p5kg", workId: 1, name: "5kg 실속 김치 팩", price: 32000, img: "./images/kimchi_1kg.png", brand: "AFood", description: "대가족 및 업소용 실속 포장. 대용량 실속 파우치에 담긴 5kg 배추김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파", manufacturer: "AFood" },
+    { productId: 10005, productCode: "p10kg", workId: 1, name: "10kg 업소용 김치", price: 60000, img: "./images/kimchi_3kg.png", brand: "AFood", description: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파, 파", manufacturer: "AFood" },
+    // 우동공정 (workId: 2)
+    { productId: 20001, productCode: "p1", workId: 2, name: "정통 가쓰오 우동", price: 3000, img: "./images/udon_product.png", brand: "Uton", description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.", category: "패스트푸드", ingredients: "우동면, 육수, 쪽파", manufacturer: "Uton" },
+    { productId: 20002, productCode: "p2", workId: 2, name: "감칠맛 간장 비빔면", price: 3000, img: "./images/somyeon_complete.png", brand: "Uton", description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.", category: "패스트푸드", ingredients: "소면, 간장, 설탕, 참기름", manufacturer: "Uton" },
+    { productId: 20003, productCode: "udon_01", workId: 2, name: "수제 쫄깃 우동면 2인분", price: 4500, img: "./images/udon_noodle.png", brand: "Uton", description: "수타 공정으로 뽑아내어 한층 더 탱글하고 쫄깃한 명품 우동 사리 면발입니다.", category: "식자재", ingredients: "우동면", manufacturer: "Uton" },
+    // 지갑공정 (workId: 3)
+    { productId: 30001, productCode: "wallet_01", workId: 3, name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa", description: "고급 소가죽 원단을 사용하여 부드러운 터치감과 뛰어난 실용성을 갖춘 명함지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
+    { productId: 30002, productCode: "wallet_02", workId: 3, name: "핸드메이드 반지갑", price: 45000, img: "./images/wallet_half.png", brand: "Persa", description: "클래식하고 실용적인 수제 반지갑입니다. 지폐 수납부 2곳과 카드 슬롯 6곳으로 수납력이 우수합니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
+    { productId: 30003, productCode: "wallet_03", workId: 3, name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa", description: "수제 가죽 명장의 바느질 기법으로 제작되어 오랜 내구성과 럭셔리한 실루엣을 자아내는 장지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" }
 ];
 
 window.MockData.productReviews = {

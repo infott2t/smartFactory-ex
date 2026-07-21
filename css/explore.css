@@ -273,6 +273,11 @@ body {
     color: #888;
     padding: 0px 10px;
     column-gap: 6px;
+    cursor: pointer;
+}
+
+.sort-item.active {
+    color: #ffffff !important;
 }
 
 /* --- 정렬(서브 탭) 메뉴 영역 스타일 보강 --- */

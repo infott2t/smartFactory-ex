@@ -449,6 +449,7 @@
             <!-- 🛍️ 2.5. 나의 쇼핑 -->
             <div class="section-header" style="margin-top: 30px;">
                 <h3><i class="bi bi-bag-check-fill" style="color:var(--accent-secondary);"></i> 나의 쇼핑</h3>
+                <a href="./explore2.html?tab=shopping">더보기 <i class="bi bi-chevron-right"></i></a>
             </div>
             <div id="shop-history-container"></div>
 
@@ -960,7 +961,8 @@
                 return;
             }
 
-            shopHistory.forEach(item => {
+            const displayHistory = shopHistory.slice(0, 2);
+            displayHistory.forEach(item => {
                 let statusTextHtml = "";
                 let btnHtml = "";
 
@@ -981,6 +983,19 @@
                     </div>`;
                 }
 
+                // 주문 상품에 따른 브랜드 이미지 아이콘 매핑
+                let iconHtml = `<span style="font-size: 24px; margin-right: 8px; vertical-align: middle;">🛍️</span>`;
+                const nameLower = (item.productName || '').toLowerCase();
+                const brandLower = (item.brandName || '').toLowerCase();
+                
+                if (nameLower.includes("우동") || nameLower.includes("비빔면") || brandLower === 'uton') {
+                    iconHtml = `<img src="./images/Uton_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; margin-right: 8px; vertical-align: middle; object-fit: cover;" alt="Uton">`;
+                } else if (nameLower.includes("김치") || brandLower === 'afood') {
+                    iconHtml = `<img src="./images/k-icon_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; margin-right: 8px; vertical-align: middle; object-fit: cover;" alt="AFood">`;
+                } else if (nameLower.includes("지갑") || brandLower === 'persa') {
+                    iconHtml = `<img src="./images/fancy_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; margin-right: 8px; vertical-align: middle; object-fit: cover;" alt="Persa">`;
+                }
+
                 let row = `
                 <div class="box-partner history-item" style="border-left: 4px solid var(--accent-secondary);">
                     <div class="hist-date">
@@ -989,7 +1004,7 @@
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px;">
                         <div class="box-corp">
-                            <span style="font-size: 24px; margin-right: 8px; vertical-align: middle;">🍜</span>
+                            ${iconHtml}
                             <div>
                                 <div style="font-size:12px; color:var(--text-sub);">${item.brandName || 'Uton'} (우동만들기)</div>
                                 <div class="hist-job-title">우동만들기 [${item.productName}] (${item.qty}그릇)</div>
