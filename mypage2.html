@@ -257,7 +257,10 @@
         }
         .box-partner.history-item {
             background: rgba(22, 24, 34, 0.75) !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-left: 4px solid var(--accent-pink) !important;
             border-radius: 14px !important;
             padding: 14px 16px;
             display: block;
@@ -1014,16 +1017,16 @@
                     isDelivery = false;
                 }
 
-                let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: var(--accent-secondary); border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
+                let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
                 let topRightHtml = isDelivery ? 
-                    `<div style="font-size: 11px; color: #ffffff; font-weight: 600; cursor: pointer;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>` : 
+                    `<div style="font-size: 11px; color: #94a3b8; font-weight: 600; cursor: pointer;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>` : 
                     `<div style="font-size: 11px; color: var(--text-sub);">주문번호: ${item.orderNo}번</div>`;
 
                 let clickAttr = isDelivery ? `onclick="window.location.href='delivery_detail.html?orderNo=${item.orderNo}&productId=${item.productId || ''}'"` : '';
                 let cursorStyle = isDelivery ? 'cursor: pointer;' : '';
 
                 let row = `
-                <div class="box-partner history-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08) !important; min-height: 105px; box-sizing: border-box;">
+                <div class="box-partner history-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border-top: 1px solid rgba(255,255,255,0.08) !important; border-right: 1px solid rgba(255,255,255,0.08) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; border-left: 4px solid #fd79a8 !important; min-height: 105px; box-sizing: border-box;">
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
                             <span>${item.dateStr || item.orderDate} ${item.orderTime ? item.orderTime + ' ' : ''}주문</span>
