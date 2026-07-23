@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주문 / 결제 - Smart Factory</title>
+    <!-- Google Fonts & Bootstrap Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #0b0c10;
+            --card-bg: #161822;
+            --card-border: #232738;
+            --accent-primary: #7b5cf5;
+            --accent-secondary: #00b894;
+            --accent-pink: #fd79a8;
+            --accent-gold: #fdcb6e;
+            --text-main: #ffffff;
+            --text-sub: #9499b1;
+            --badge-bg: rgba(123, 92, 245, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 90px;
+        }
+
+        /* 📱 Header - mypage2.html 규격 적용 */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 12, 16, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* 📦 Main Container & Sections */
+        .main-container {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        .action-link {
+            font-size: 13px;
+            color: var(--accent-primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* 📍 Shipping Address Section */
+        .shipping-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .recipient-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .badge-default-addr {
+            background: rgba(0, 184, 148, 0.15);
+            color: var(--accent-secondary);
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .addr-text {
+            font-size: 13px;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+
+        /* 🚚 Delivery Request Section */
+        .request-box {
+            font-size: 13px;
+            color: #d1d5db;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 🎁 Delivery & Product Info Section */
+        .delivery-arrival-banner {
+            background: linear-gradient(135deg, rgba(123, 92, 245, 0.15) 0%, rgba(0, 184, 148, 0.15) 100%);
+            border: 1px solid rgba(123, 92, 245, 0.3);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #a29bfe;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .product-item-card {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .product-thumb-img {
+            width: 72px;
+            height: 72px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid var(--card-border);
+            background-color: #000;
+        }
+
+        .product-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .brand-tag {
+            font-size: 11px;
+            color: var(--accent-primary);
+            font-weight: 700;
+        }
+
+        .product-name-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .product-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 4px;
+        }
+
+        .product-qty-tag {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        .product-price-val {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        /* 💳 Payment Method Section */
+        .payment-options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pay-option-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pay-option-card.selected {
+            border-color: var(--accent-primary);
+            background: rgba(123, 92, 245, 0.1);
+        }
+
+        .pay-option-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pay-option-label {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .pay-balance-sub {
+            font-size: 11px;
+            color: var(--accent-secondary);
+            margin-top: 2px;
+        }
+
+        /* 🧾 Cash Receipt Section */
+        .cash-receipt-select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 10px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .cash-receipt-select option {
+            background: var(--card-bg);
+            color: var(--text-main);
+        }
+
+        /* 💰 Price Breakdown Section */
+        .price-summary-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .price-summary-row {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-sub);
+        }
+
+        .price-summary-row.total-row {
+            margin-top: 8px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .total-price-highlight {
+            color: var(--accent-pink);
+        }
+
+        /* 📜 Terms & Agreements Section */
+        .terms-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        .terms-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .consent-checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 12px;
+            line-height: 1.5;
+            color: #d1d5db;
+        }
+
+        .consent-checkbox-row input {
+            margin-top: 2px;
+            accent-color: var(--accent-primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 🚀 Bottom Fixed Pay Button Bar */
+        .bottom-pay-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            background: rgba(11, 12, 16, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-top: 1px solid var(--card-border);
+            z-index: 100;
+        }
+
+        .btn-submit-pay {
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-primary), #4720ca);
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(123, 92, 245, 0.4);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-submit-pay:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 📱 Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <button type="button" class="back-btn" onclick="history.back()">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="header-title">주문 / 결제</span>
+        </div>
+    </header>
+
+    <main class="main-container">
+
+        <!-- 📍 1. 배송지 섹션 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-geo-alt-fill" style="color: var(--accent-secondary);"></i> 배송지</span>
+                <span class="action-link" onclick="alert('배송지 수정 화면 준비 중입니다.')">수정 <i class="bi bi-chevron-right"></i></span>
+            </div>
+            <div class="shipping-info">
+                <div class="recipient-row">
+                    <span id="recipient-name">최수아</span>
+                    <span class="badge-default-addr">기본 배송지</span>
+                    <span style="color: var(--text-sub); font-weight: normal;" id="recipient-tel">010-2222-2222</span>
+                </div>
+                <div class="addr-text" id="recipient-addr">서울특별시 서대문구 신촌동 AFood 타운 102호</div>
+            </div>
+        </section>
+
+        <!-- 🚚 2. 배송 요청사항 섹션 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-chat-left-text-fill" style="color: var(--accent-primary);"></i> 배송 요청사항</span>
+                <span class="action-link" onclick="alert('요청사항 변경 화면 준비 중입니다.')">변경 <i class="bi bi-chevron-right"></i></span>
+            </div>
+            <div class="request-box" id="delivery-request-text">부재 시 문 앞에 놓아주세요</div>
+        </section>
+
+        <!-- 🎁 3. 배송 및 상품 정보 섹션 (상품 사진 포함) -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-box-seam-fill" style="color: var(--accent-gold);"></i> 배송 및 상품 정보</span>
+            </div>
+            <div class="delivery-arrival-banner">
+                <i class="bi bi-truck"></i> <span id="arrival-date-text">토요일 7월 25일 도착 예정</span>
+            </div>
+
+            <div class="product-item-card">
+                <img id="product-img" src="./images/kimchi_300g.png" alt="상품 이미지" class="product-thumb-img">
+                <div class="product-details">
+                    <span class="brand-tag" id="product-brand">AFood</span>
+                    <span class="product-name-title" id="product-name">300g 맛김치 팩</span>
+                    <div class="product-meta-row">
+                        <span class="product-qty-tag"><span id="product-qty">1</span>개 / 무료배송</span>
+                        <span class="product-price-val">₩ <span id="product-unit-price">3,000</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 💳 4. 결제 수단 선택 섹션 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-credit-card-2-front-fill" style="color: var(--accent-pink);"></i> 결제 수단</span>
+                <span class="action-link" onclick="alert('결제 수단 관리 준비 중입니다.')">변경 <i class="bi bi-chevron-right"></i></span>
+            </div>
+
+            <div class="payment-options-group">
+                <div class="pay-option-card selected" onclick="selectPayOption(this, 'asset')">
+                    <div class="pay-option-left">
+                        <input type="radio" name="pay_method" id="pay-asset" checked style="accent-color: var(--accent-primary);">
+                        <div>
+                            <div class="pay-option-label">정산 금액으로 결제</div>
+                            <div class="pay-balance-sub">보유 자산: ₩ <span id="user-asset-display">100,000</span></div>
+                        </div>
+                    </div>
+                    <i class="bi bi-check-circle-fill" style="color: var(--accent-primary);"></i>
+                </div>
+
+                <div class="pay-option-card" onclick="selectPayOption(this, 'bank')">
+                    <div class="pay-option-left">
+                        <input type="radio" name="pay_method" id="pay-bank" style="accent-color: var(--accent-primary);">
+                        <div>
+                            <div class="pay-option-label">XX은행 (계좌 결제)</div>
+                            <div class="pay-balance-sub" style="color: var(--text-sub);">XX은행 / ****4859</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 🧾 5. 현금영수증 신청 섹션 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-receipt" style="color: var(--accent-secondary);"></i> 현금영수증</span>
+            </div>
+            <select class="cash-receipt-select">
+                <option value="phone">소득공제용 (휴대폰번호)</option>
+                <option value="biz">지출증빙용 (사업자번호)</option>
+                <option value="none">신청 안함</option>
+            </select>
+        </section>
+
+        <!-- 💰 6. 최종 결제 금액 섹션 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-calculator-fill" style="color: var(--accent-gold);"></i> 최종 결제 금액</span>
+            </div>
+            <div class="price-summary-list">
+                <div class="price-summary-row">
+                    <span>상품 가격</span>
+                    <span>₩ <span id="subtotal-price">3,000</span></span>
+                </div>
+                <div class="price-summary-row">
+                    <span>배송비</span>
+                    <span style="color: var(--accent-secondary);">무료배송 (₩ 0)</span>
+                </div>
+                <div class="price-summary-row total-row">
+                    <span>총 결제 금액</span>
+                    <span class="total-price-highlight">₩ <span id="final-price">3,000</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 📜 7. 약관 동의 영역 -->
+        <section class="section-card">
+            <div class="terms-box">
+                <div class="terms-item">
+                    <span>개인정보 제 3자 제공동의</span>
+                    <span class="action-link" onclick="alert('약관 상세 내용 준비 중입니다.')">보기 <i class="bi bi-chevron-right"></i></span>
+                </div>
+                <div class="terms-item">
+                    <span>개인정보 수집 및 이용 안내</span>
+                    <span class="action-link" onclick="alert('약관 상세 내용 준비 중입니다.')">보기 <i class="bi bi-chevron-right"></i></span>
+                </div>
+                <div class="consent-checkbox-row">
+                    <input type="checkbox" id="consent-check" checked>
+                    <label for="consent-check">위 주문 내용을 확인하였으며, 회원 본인은 개인정보 이용 및 제공 및 결제에 동의합니다.</label>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 🚀 하단 고정 결제하기 버튼 -->
+    <div class="bottom-pay-bar">
+        <button type="button" class="btn-submit-pay" onclick="processFinalPayment()">
+            <span>₩ <span id="btn-pay-amount">3,000</span> 결제하기</span>
+        </button>
+    </div>
+
+    <!-- 스크립트 모듈 연동 -->
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/store.js"></script>
+    <script src="./js/auth.js"></script>
+
+    <script>
+        let currentProduct = null;
+        let orderQty = 1;
+        let selectedPayMethod = 'asset'; // 'asset' or 'bank'
+        let currentUser = null;
+
+        $(document).ready(function() {
+            initUserSession();
+            loadOrderProductInfo();
+            updateUserAssetsDisplay();
+        });
+
+        function initUserSession() {
+            if (window.Auth && typeof window.Auth.getCurrentUser === 'function') {
+                currentUser = window.Auth.getCurrentUser();
+            } else {
+                try {
+                    currentUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+                } catch(e) {}
+            }
+
+            if (!currentUser || !currentUser.name) {
+                currentUser = { id: 2, name: "최수아", email: "capegon21@gmail.com", tel: "010-2222-2222", addr: "서울특별시 서대문구 신촌동 AFood 타운 102호" };
+            }
+
+            $('#recipient-name').text(currentUser.name || "최수아");
+            if (currentUser.tel) $('#recipient-tel').text(currentUser.tel);
+            if (currentUser.addr) $('#recipient-addr').text(currentUser.addr);
+        }
+
+        function getUserCurrentAssets() {
+            const userId = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : "2";
+
+            const initialAsset = (window.MockData && window.MockData.getUserBaseAssets) ? window.MockData.getUserBaseAssets(userId) : 100000;
+
+            let baseSum = 0;
+            if (window.FactoryStore && window.FactoryStore.getState) {
+                const history = window.FactoryStore.getState().history || [];
+                baseSum = history.reduce((sum, item) => sum + (item.pay || 0), 0);
+            }
+
+            const getPartitionedItem = window.getPartitionedItem || function(k){ return localStorage.getItem(k); };
+            const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
+            const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+
+            let completedSpent = 0;
+            if (window.FactoryStore && window.FactoryStore.getState) {
+                const shopHistory = window.FactoryStore.getState().shopHistory || [];
+                completedSpent = shopHistory.filter(item => item.status === 'completed')
+                                            .reduce((sum, item) => sum + (item.price || 0), 0);
+            }
+
+            return initialAsset + baseSum + helperBase + helperBonus - completedSpent;
+        }
+
+        function updateUserAssetsDisplay() {
+            const assets = getUserCurrentAssets();
+            $('#user-asset-display').text(assets.toLocaleString());
+        }
+
+        function loadOrderProductInfo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pId = urlParams.get('productId') || 'p300g';
+            orderQty = parseInt(urlParams.get('qty') || '1', 10);
+
+            // MockData storeProducts 탐색
+            if (window.MockData && window.MockData.storeProducts) {
+                const found = window.MockData.storeProducts.find(p => p.productCode === pId || String(p.productId) === pId);
+                if (found) {
+                    currentProduct = found;
+                }
+            }
+
+            // Fallback product Catalog
+            if (!currentProduct) {
+                const catalog = {
+                    "p300g": { name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood" },
+                    "p1kg": { name: "1kg 포기김치 팩", price: 8000, img: "./images/kimchi_1kg.png", brand: "AFood" },
+                    "p3kg": { name: "3kg 대용량 김치 팩", price: 20000, img: "./images/kimchi_3kg.png", brand: "AFood" },
+                    "p5kg": { name: "5kg 실속 김치 팩", price: 32000, img: "./images/kimchi_1kg.png", brand: "AFood" },
+                    "p10kg": { name: "10kg 업소용 김치", price: 60000, img: "./images/kimchi_3kg.png", brand: "AFood" },
+                    "udon_01": { name: "수제 쫄깃 우동면 2인분", price: 4500, img: "./images/udon_noodle.png", brand: "Uton" },
+                    "wallet_01": { name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa" },
+                    "wallet_02": { name: "핸드메이드 반지갑", price: 45000, img: "./images/wallet_half.png", brand: "Persa" },
+                    "wallet_03": { name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa" }
+                };
+                currentProduct = catalog[pId] || { name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood" };
+            }
+
+            const unitPrice = currentProduct.price || 3000;
+            const totalPrice = unitPrice * orderQty;
+
+            $('#product-img').attr('src', currentProduct.img || './images/kimchi_300g.png');
+            $('#product-brand').text(currentProduct.brand || "AFood");
+            $('#product-name').text(currentProduct.name || "300g 맛김치 팩");
+            $('#product-qty').text(orderQty);
+            $('#product-unit-price').text(totalPrice.toLocaleString());
+
+            $('#subtotal-price').text(totalPrice.toLocaleString());
+            $('#final-price').text(totalPrice.toLocaleString());
+            $('#btn-pay-amount').text(totalPrice.toLocaleString());
+        }
+
+        function selectPayOption(cardEl, method) {
+            $('.pay-option-card').removeClass('selected');
+            $('.pay-option-card input[type="radio"]').prop('checked', false);
+
+            $(cardEl).addClass('selected');
+            $(cardEl).find('input[type="radio"]').prop('checked', true);
+            selectedPayMethod = method;
+        }
+
+        function processFinalPayment() {
+            if (!$('#consent-check').is(':checked')) {
+                alert("결제 진행을 위하여 개인정보 이용 및 결제 동의에 체크해 주세요.");
+                return;
+            }
+
+            const totalPrice = (currentProduct.price || 3000) * orderQty;
+
+            if (selectedPayMethod === 'asset') {
+                const currentAssets = getUserCurrentAssets();
+                if (currentAssets < totalPrice) {
+                    alert(`보유 정산 자산(₩ ${currentAssets.toLocaleString()})이 물품 가격(₩ ${totalPrice.toLocaleString()})보다 부족하여 결제할 수 없습니다.`);
+                    return;
+                }
+            }
+
+            // 주문 완료 객체 생성 및 Store 전송
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const orderNo = Math.floor(Math.random() * 900) + 100;
+
+            const orderItem = {
+                id: 'ord_' + now.getTime(),
+                orderNo: orderNo.toString(),
+                orderDate: `${yyyy}-${mm}-${dd}`,
+                dateStr: `${yyyy}.${mm}.${dd}`,
+                productName: currentProduct.name,
+                productId: currentProduct.productCode || currentProduct.productId || 'p300g',
+                brandName: currentProduct.brand || 'AFood',
+                price: totalPrice,
+                unitPrice: currentProduct.price || 3000,
+                qty: orderQty,
+                deliveryFee: '무료배송',
+                payMethod: selectedPayMethod === 'asset' ? '정산 금액 결제' : '계좌 결제',
+                status: 'completed', // 즉시 정산 지출 완료 반영
+                createdAt: now.toISOString()
+            };
+
+            if (window.FactoryStore) {
+                window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: orderItem });
+            }
+
+            alert(`🎉 결제가 성공적으로 완료되었습니다!\n주문번호: ${orderNo}번\n마이페이지 > 나의 쇼핑에서 구매 내역을 확인하실 수 있습니다.`);
+            window.location.href = 'mypage2.html?tab=shopping';
+        }
+    </script>
+</body>
+</html>

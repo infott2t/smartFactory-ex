@@ -559,6 +559,7 @@
     let state = {
         currentUser: null,
         workers: {}, // { [userId]: { id, name, workedHours, udonHours, walletHours, checkInTime, accumBreakSeconds, breakRemainingSeconds, isOnBreak, helperBonus, helperBaseSalary, salary, completedOrdersCount } }
+        userWorkHours: {}, // 신규 추가: { [`${userId}_${workId}`]: hours }
         reservations: [],
         history: [],
         shopHistory: [],
@@ -575,6 +576,20 @@
 
     const listeners = [];
 
+    // 회원별/작업(workId)별 기본 근로시간 생성 함수 (요청 범위 반영)
+    function getDefaultUserWorkHours() {
+        return {
+            // 1: 최현일 (모든 일 50~60시간 사이 -> 매니저)
+            "1_1": 55, "1_2": 58, "1_3": 52, "1_6": 54, "1_7": 59,
+            // 2: 최수아 (모든 일 20~25시간 사이 -> 일반)
+            "2_1": 22, "2_2": 24, "2_3": 20, "2_6": 23, "2_7": 25,
+            // 3: 김수민 (모든 일 0~2시간 사이 -> 일반, 0시간 반드시 포함)
+            "3_1": 0,  "3_2": 1,  "3_3": 0,  "3_6": 2,  "3_7": 0,
+            // 4: 김영희 (모든 일 30~49시간 사이 -> 헬퍼)
+            "4_1": 45, "4_2": 38, "4_3": 32, "4_6": 40, "4_7": 47
+        };
+    }
+
     function loadFromStorage() {
         const userStr = sessionStorage.getItem("user");
         state.currentUser = userStr ? JSON.parse(userStr) : null;
@@ -584,14 +599,31 @@
             loadedWorkers = JSON.parse(localStorage.getItem('kimp_workers_state') || '{}');
         } catch(e) {}
 
+        let loadedWorkHours = {};
+        try {
+            loadedWorkHours = JSON.parse(localStorage.getItem('kimp_user_work_hours') || '{}');
+        } catch(e) {}
+
+        const defaultWorkHours = getDefaultUserWorkHours();
+        state.userWorkHours = { ...defaultWorkHours, ...loadedWorkHours };
+
         const defaultWorkers = {
-            "1": { id: 1, name: "최현일", workedHours: 133, udonHours: 0, walletHours: 0, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 },
-            "2": { id: 2, name: "최수아", workedHours: 22, udonHours: 0, walletHours: 0, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 },
-            "3": { id: 3, name: "김수민", workedHours: 0, udonHours: 0, walletHours: 0, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 },
-            "4": { id: 4, name: "김영희", workedHours: 45, udonHours: 0, walletHours: 0, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 }
+            "1": { id: 1, name: "최현일", workedHours: state.userWorkHours["1_1"] || 55, udonHours: state.userWorkHours["1_2"] || 58, walletHours: state.userWorkHours["1_3"] || 52, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 },
+            "2": { id: 2, name: "최수아", workedHours: state.userWorkHours["2_1"] || 22, udonHours: state.userWorkHours["2_2"] || 24, walletHours: state.userWorkHours["2_3"] || 20, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 },
+            "3": { id: 3, name: "김수민", workedHours: state.userWorkHours["3_1"] || 0,  udonHours: state.userWorkHours["3_2"] || 1,  walletHours: state.userWorkHours["3_3"] || 0,  checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 },
+            "4": { id: 4, name: "김영희", workedHours: state.userWorkHours["4_1"] || 45, udonHours: state.userWorkHours["4_2"] || 38, walletHours: state.userWorkHours["4_3"] || 32, checkInTime: null, accumBreakSeconds: 0, breakRemainingSeconds: 1800, isOnBreak: false, helperBonus: 0, helperBaseSalary: 0, salary: 0, completedOrdersCount: 0 }
         };
 
         state.workers = { ...defaultWorkers, ...loadedWorkers };
+        // userWorkHours와 workers 객체의 개별 workedHours / udonHours / walletHours 동기화
+        Object.keys(state.workers).forEach(uId => {
+            const kHours = state.userWorkHours[`${uId}_1`];
+            const uHours = state.userWorkHours[`${uId}_2`];
+            const wHours = state.userWorkHours[`${uId}_3`];
+            if (kHours !== undefined) state.workers[uId].workedHours = kHours;
+            if (uHours !== undefined) state.workers[uId].udonHours = uHours;
+            if (wHours !== undefined) state.workers[uId].walletHours = wHours;
+        });
 
         const mockEmails = {
             "1": "tt2t2am1118@naver.com",
@@ -1180,6 +1212,7 @@
             return {
                 currentUser: state.currentUser,
                 workers: state.workers ? JSON.parse(JSON.stringify(state.workers)) : {},
+                userWorkHours: state.userWorkHours ? { ...state.userWorkHours } : {},
                 reservations: Array.isArray(state.reservations) ? [...state.reservations] : [],
                 history: Array.isArray(state.history) ? [...state.history] : [],
                 shopHistory: state.shopHistory ? [...state.shopHistory] : [],
@@ -1194,6 +1227,66 @@
                 isLike: Array.isArray(state.isLike) ? [...state.isLike] : [] // ← isLike 누락 버그 수정!
             };
         },
+        getWorkHours: function(userId, workId) {
+            function normalizeId(u) {
+                if (!u && state.currentUser) u = state.currentUser.id || state.currentUser.name;
+                if (!u) {
+                    const sUser = sessionStorage.getItem("user");
+                    if (sUser) {
+                        try {
+                            const p = JSON.parse(sUser);
+                            u = p.id || p.name;
+                        } catch(e) {}
+                    }
+                }
+                if (!u) u = sessionStorage.getItem("user-id") || "2";
+                const s = String(u).trim();
+                if (s === "1" || s === "2" || s === "3" || s === "4") return s;
+                if (s.includes("tt2t2am1118") || s.includes("최현일")) return "1";
+                if (s.includes("capegon21") || s.includes("최수아")) return "2";
+                if (s.includes("capegon23") || s.includes("김수민")) return "3";
+                if (s.includes("younghee") || s.includes("김영희")) return "4";
+                return "2"; // 기본 fallback 최수아
+            }
+
+            const normUserId = normalizeId(userId);
+            const key = `${normUserId}_${workId}`;
+            if (state.userWorkHours && state.userWorkHours[key] !== undefined) {
+                return state.userWorkHours[key];
+            }
+            // Fallback for legacy workers object
+            if (state.workers && state.workers[normUserId]) {
+                if (String(workId) === '1') return state.workers[normUserId].workedHours || 0;
+                if (String(workId) === '2') return state.workers[normUserId].udonHours || 0;
+                if (String(workId) === '3') return state.workers[normUserId].walletHours || 0;
+            }
+            return 0;
+        },
+        setWorkHours: function(userId, workId, hours) {
+            function normalizeId(u) {
+                if (!u && state.currentUser) u = state.currentUser.id || state.currentUser.name;
+                if (!u) u = sessionStorage.getItem("user-id") || "2";
+                const s = String(u).trim();
+                if (s === "1" || s === "2" || s === "3" || s === "4") return s;
+                if (s.includes("tt2t2am1118") || s.includes("최현일")) return "1";
+                if (s.includes("capegon21") || s.includes("최수아")) return "2";
+                if (s.includes("capegon23") || s.includes("김수민")) return "3";
+                if (s.includes("younghee") || s.includes("김영희")) return "4";
+                return "2";
+            }
+
+            const normUserId = normalizeId(userId);
+            const numHours = parseInt(hours) || 0;
+            const key = `${normUserId}_${workId}`;
+            state.userWorkHours[key] = numHours;
+            if (state.workers[normUserId]) {
+                if (String(workId) === '1') state.workers[normUserId].workedHours = numHours;
+                if (String(workId) === '2') state.workers[normUserId].udonHours = numHours;
+                if (String(workId) === '3') state.workers[normUserId].walletHours = numHours;
+            }
+            saveToStorage(['userWorkHours', 'workers']);
+            notifyListeners();
+        },
         subscribe: function(listener) {
             listeners.push(listener);
             return function unsubscribe() {
@@ -1206,10 +1299,25 @@
         dispatch: function(action) {
             const currentUserId = state.currentUser ? state.currentUser.id : "guest";
             switch (action.type) {
+                case 'SET_WORK_HOURS': {
+                    const uId = action.payload.userId || currentUserId;
+                    const wId = action.payload.workId;
+                    const val = parseInt(action.payload.hours !== undefined ? action.payload.hours : action.payload.value) || 0;
+                    if (wId !== undefined) {
+                        state.userWorkHours[`${uId}_${wId}`] = val;
+                        if (state.workers[uId]) {
+                            if (String(wId) === '1') state.workers[uId].workedHours = val;
+                            if (String(wId) === '2') state.workers[uId].udonHours = val;
+                            if (String(wId) === '3') state.workers[uId].walletHours = val;
+                        }
+                    }
+                    break;
+                }
                 case 'SET_WORKED_HOURS': {
                     const uId = action.payload.userId || currentUserId;
                     const val = action.payload.value !== undefined ? action.payload.value : action.payload;
                     if (state.workers[uId]) state.workers[uId].workedHours = parseInt(val);
+                    state.userWorkHours[`${uId}_1`] = parseInt(val);
                     break;
                 }
                 case 'SET_UDON_HOURS': {
@@ -1805,6 +1913,7 @@ window.MockData = {
             id: 1,
             name: "최현일",
             email: "tt2t2am1118@naver.com",
+            baseAssets: 100000,
             picture: "",
             role: "MANAGER",          // 시스템 권한
             roleName: "매니저",         // 화면 표시용
@@ -1822,6 +1931,7 @@ window.MockData = {
             id: 2,
             name: "최수아",
             email: "capegon21@gmail.com",
+            baseAssets: 100000,
             picture: "",
             role: "USER",
             roleName: "일반",
@@ -1839,6 +1949,7 @@ window.MockData = {
             id: 3,
             name: "김수민",
             email: "capegon23@gmail.com",
+            baseAssets: 100000,
             picture: "",
             role: "USER",
             roleName: "일반",
@@ -1856,6 +1967,7 @@ window.MockData = {
             id: 4,
             name: "김영희",
             email: "younghee@naver.com",
+            baseAssets: 100000,
             picture: "",
             role: "HELPER",
             roleName: "헬퍼",
@@ -2681,19 +2793,19 @@ window.MockData.setExpCompleted = function(userId, workId) {
 // ==========================================
 window.MockData.storeProducts = [
     // 김치공정 (workId: 1)
-    { productId: 10001, productCode: "p300g", workId: 1, name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood", description: "1인 가구용 실속형 맛김치. 한 끼에 드시기 알맞은 깔끔한 맛김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘", manufacturer: "AFood" },
-    { productId: 10002, productCode: "p1kg", workId: 1, name: "1kg 포기김치 팩", price: 8000, img: "./images/kimchi_1kg.png", brand: "AFood", description: "가정용 표준 포장 프리미엄 김치. 전통 방식 그대로 버무린 1kg 가정용 포기김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈", manufacturer: "AFood" },
-    { productId: 10003, productCode: "p3kg", workId: 1, name: "3kg 대용량 김치 팩", price: 20000, img: "./images/kimchi_3kg.png", brand: "AFood", description: "다인가구 및 김장 보관용 실용 김치. 온 가족이 풍족하게 나누어 먹을 수 있는 3kg 대용량 김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무", manufacturer: "AFood" },
-    { productId: 10004, productCode: "p5kg", workId: 1, name: "5kg 실속 김치 팩", price: 32000, img: "./images/kimchi_1kg.png", brand: "AFood", description: "대가족 및 업소용 실속 포장. 대용량 실속 파우치에 담긴 5kg 배추김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파", manufacturer: "AFood" },
-    { productId: 10005, productCode: "p10kg", workId: 1, name: "10kg 업소용 김치", price: 60000, img: "./images/kimchi_3kg.png", brand: "AFood", description: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파, 파", manufacturer: "AFood" },
+    { productId: 10001, productCode: "p300g", workId: 1, name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood", isDelivery: true, description: "1인 가구용 실속형 맛김치. 한 끼에 드시기 알맞은 깔끔한 맛김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘", manufacturer: "AFood" },
+    { productId: 10002, productCode: "p1kg", workId: 1, name: "1kg 포기김치 팩", price: 8000, img: "./images/kimchi_1kg.png", brand: "AFood", isDelivery: true, description: "가정용 표준 포장 프리미엄 김치. 전통 방식 그대로 버무린 1kg 가정용 포기김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈", manufacturer: "AFood" },
+    { productId: 10003, productCode: "p3kg", workId: 1, name: "3kg 대용량 김치 팩", price: 20000, img: "./images/kimchi_3kg.png", brand: "AFood", isDelivery: true, description: "다인가구 및 김장 보관용 실용 김치. 온 가족이 풍족하게 나누어 먹을 수 있는 3kg 대용량 김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무", manufacturer: "AFood" },
+    { productId: 10004, productCode: "p5kg", workId: 1, name: "5kg 실속 김치 팩", price: 32000, img: "./images/kimchi_1kg.png", brand: "AFood", isDelivery: true, description: "대가족 및 업소용 실속 포장. 대용량 실속 파우치에 담긴 5kg 배추김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파", manufacturer: "AFood" },
+    { productId: 10005, productCode: "p10kg", workId: 1, name: "10kg 업소용 김치", price: 60000, img: "./images/kimchi_3kg.png", brand: "AFood", isDelivery: true, description: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파, 파", manufacturer: "AFood" },
     // 우동공정 (workId: 2)
-    { productId: 20001, productCode: "p1", workId: 2, name: "정통 가쓰오 우동", price: 3000, status: "생산 중", img: "./images/udon_product.png", brand: "Uton", description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.", category: "패스트푸드", ingredients: "우동면, 육수, 쪽파", manufacturer: "Uton" },
-    { productId: 20002, productCode: "p2", workId: 2, name: "감칠맛 간장 비빔면", price: 3000, status: "생산 중", img: "./images/somyeon_complete.png", brand: "Uton", description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.", category: "패스트푸드", ingredients: "소면, 간장, 설탕, 참기름", manufacturer: "Uton" },
-    { productId: 20003, productCode: "udon_01", workId: 2, name: "수제 쫄깃 우동면 2인분", price: 4500, img: "./images/udon_noodle.png", brand: "Uton", description: "수타 공정으로 뽑아내어 한층 더 탱글하고 쫄깃한 명품 우동 사리 면발입니다.", category: "식자재", ingredients: "우동면", manufacturer: "Uton" },
+    { productId: 20001, productCode: "p1", workId: 2, name: "정통 가쓰오 우동", price: 3000, status: "생산 중", img: "./images/udon_product.png", brand: "Uton", isDelivery: false, description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.", category: "패스트푸드", ingredients: "우동면, 육수, 쪽파", manufacturer: "Uton" },
+    { productId: 20002, productCode: "p2", workId: 2, name: "감칠맛 간장 비빔면", price: 3000, status: "생산 중", img: "./images/somyeon_complete.png", brand: "Uton", isDelivery: false, description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.", category: "패스트푸드", ingredients: "소면, 간장, 설탕, 참기름", manufacturer: "Uton" },
+    { productId: 20003, productCode: "udon_01", workId: 2, name: "수제 쫄깃 우동면 2인분", price: 4500, img: "./images/udon_noodle.png", brand: "Uton", isDelivery: true, description: "수타 공정으로 뽑아내어 한층 더 탱글하고 쫄깃한 명품 우동 사리 면발입니다.", category: "식자재", ingredients: "우동면", manufacturer: "Uton" },
     // 지갑공정 (workId: 3)
-    { productId: 30001, productCode: "wallet_01", workId: 3, name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa", description: "고급 소가죽 원단을 사용하여 부드러운 터치감과 뛰어난 실용성을 갖춘 명함지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
-    { productId: 30002, productCode: "wallet_02", workId: 3, name: "핸드메이드 반지갑", price: 45000, img: "./images/wallet_half.png", brand: "Persa", description: "클래식하고 실용적인 수제 반지갑입니다. 지폐 수납부 2곳과 카드 슬롯 6곳으로 수납력이 우수합니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
-    { productId: 30003, productCode: "wallet_03", workId: 3, name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa", description: "수제 가죽 명장의 바느질 기법으로 제작되어 오랜 내구성과 럭셔리한 실루엣을 자아내는 장지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" }
+    { productId: 30001, productCode: "wallet_01", workId: 3, name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa", isDelivery: true, description: "고급 소가죽 원단을 사용하여 부드러운 터치감과 뛰어난 실용성을 갖춘 명함지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
+    { productId: 30002, productCode: "wallet_02", workId: 3, name: "핸드메이드 반지갑", price: 45000, img: "./images/wallet_half.png", brand: "Persa", isDelivery: true, description: "클래식하고 실용적인 수제 반지갑입니다. 지폐 수납부 2곳과 카드 슬롯 6곳으로 수납력이 우수합니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
+    { productId: 30003, productCode: "wallet_03", workId: 3, name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa", isDelivery: true, description: "수제 가죽 명장의 바느질 기법으로 제작되어 오랜 내구성과 럭셔리한 실루엣을 자아내는 장지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" }
 ];
 
 window.MockData.productReviews = {
@@ -2722,3 +2834,91 @@ window.MockData.getProductsByWorkId = function(workId) {
 window.MockData.getReviewsByProductId = function(productId) {
     return this.productReviews[productId] || [];
 };
+
+window.MockData.getWorkHours = function(userId, workId) {
+    if (window.FactoryStore && typeof window.FactoryStore.getWorkHours === 'function') {
+        return window.FactoryStore.getWorkHours(userId, workId);
+    }
+    var saved = localStorage.getItem('kimp_user_work_hours');
+    if (saved) {
+        try {
+            var parsed = JSON.parse(saved);
+            var key = userId + '_' + workId;
+            if (parsed[key] !== undefined) return parsed[key];
+        } catch(e) {}
+    }
+    return 0;
+};
+
+window.MockData.setWorkHours = function(userId, workId, hours) {
+    if (window.FactoryStore && typeof window.FactoryStore.setWorkHours === 'function') {
+        return window.FactoryStore.setWorkHours(userId, workId, hours);
+    }
+};
+
+window.MockData.getUserBaseAssets = function(userId) {
+    var uList = (window.FactoryStore && window.FactoryStore.getState) ? window.FactoryStore.getState().users : (this.users || []);
+    if (!uList || uList.length === 0) uList = this.users || [];
+    var strId = String(userId);
+    var found = uList.find(function(u) {
+        return String(u.id) === strId || u.email === strId || u.name === strId;
+    });
+    return found ? (found.baseAssets || 100000) : 100000;
+};
+
+window.MockData.workTimeSlots = {
+    "1.5h": [
+        { slot: 0, time: "10:00 ~ 11:30", label: "오전 타임", startHour: 10, startMin: 0, endHour: 11, endMin: 30 },
+        { slot: 1, time: "13:00 ~ 14:30", label: "오후 첫 타임", startHour: 13, startMin: 0, endHour: 14, endMin: 30 },
+        { slot: 2, time: "14:30 ~ 16:00", label: "오후 둘째 타임", startHour: 14, startMin: 30, endHour: 16, endMin: 0 },
+        { slot: 3, time: "16:00 ~ 17:30", label: "오후 셋째 타임", startHour: 16, startMin: 0, endHour: 17, endMin: 30 }
+    ],
+    "2h": [
+        { slot: 0, time: "10:00 ~ 12:00", label: "오전 타임", startHour: 10, startMin: 0, endHour: 12, endMin: 0 },
+        { slot: 1, time: "13:00 ~ 15:00", label: "오후 첫 타임", startHour: 13, startMin: 0, endHour: 15, endMin: 0 },
+        { slot: 2, time: "15:00 ~ 17:00", label: "오후 둘째 타임", startHour: 15, startMin: 0, endHour: 17, endMin: 0 }
+    ],
+    "2.5h": [
+        { slot: 0, time: "10:00 ~ 12:30", label: "오전 타임", startHour: 10, startMin: 0, endHour: 12, endMin: 30 },
+        { slot: 1, time: "13:00 ~ 15:30", label: "오후 첫 타임", startHour: 13, startMin: 0, endHour: 15, endMin: 30 },
+        { slot: 2, time: "15:30 ~ 18:00", label: "오후 둘째 타임", startHour: 15, startMin: 30, endHour: 18, endMin: 0 }
+    ],
+    "3h": [
+        { slot: 0, time: "09:00 ~ 12:00", label: "오전 타임", startHour: 9, startMin: 0, endHour: 12, endMin: 0 },
+        { slot: 1, time: "13:00 ~ 16:00", label: "오후 타임", startHour: 13, startMin: 0, endHour: 16, endMin: 0 }
+    ]
+};
+
+window.MockData.getWorkTimeSlots = function(workId) {
+    const wId = String(workId);
+    let timeKey = "2h";
+    try {
+        if (window.MockData.workDetailJSON) {
+            const detailMap = JSON.parse(window.MockData.workDetailJSON);
+            const detail = detailMap[wId];
+            if (detail && detail.workTime) {
+                const wt = detail.workTime;
+                if (wt.includes("1시간 30분") || wt.includes("1.5시간")) timeKey = "1.5h";
+                else if (wt.includes("2시간 30분") || wt.includes("2.5시간")) timeKey = "2.5h";
+                else if (wt.includes("3시간")) timeKey = "3h";
+                else if (wt.includes("2시간")) timeKey = "2h";
+                return {
+                    type: timeKey,
+                    slots: this.workTimeSlots[timeKey] || this.workTimeSlots["2h"]
+                };
+            }
+        }
+    } catch(e) {}
+
+    if (wId === "2") timeKey = "1.5h";
+    else if (wId === "3") timeKey = "3h";
+    else if (wId === "7") timeKey = "2.5h";
+    else timeKey = "2h";
+
+    return {
+        type: timeKey,
+        slots: this.workTimeSlots[timeKey] || this.workTimeSlots["2h"]
+    };
+};
+
+

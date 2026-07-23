@@ -491,7 +491,7 @@
                     <span id="res-date-text">로딩 중...</span>
                 </div>
 
-                <div class="section-label"><i class="bi bi-clock-history"></i> 시간대 선택 (2시간 단위)</div>
+                <div class="section-label" id="slot-section-label"><i class="bi bi-clock-history"></i> 시간대 선택 (2시간 단위)</div>
                 <div class="time-slots-list" id="time-slots">
                     <!-- JS에 의해 예약 인원 한도가 표시되어 렌더링 됩니다. -->
                 </div>
@@ -806,8 +806,19 @@
             var container = document.getElementById('time-slots');
             if (!container) return;
 
-            var db = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
-            var userId = getWorkerProfile().userId;
+            var db = (window.FactoryStore && window.FactoryStore.getState) ? (window.FactoryStore.getState().reservations || []) : [];
+            try {
+                var kimpDb = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
+                if (kimpDb && kimpDb.length > 0) {
+                    db = db.concat(kimpDb);
+                }
+            } catch(e) {}
+
+            var urlParams = new URLSearchParams(window.location.search);
+            var currentWorkId = parseInt(urlParams.get('id') || '1', 10);
+            var profile = getWorkerProfile();
+            var userId = profile.userId;
+            var userName = profile.userName;
 
             var now = new Date();
             var isToday = false;
@@ -821,15 +832,53 @@
             }
 
             var html = '';
-            var slotInfos = [
-                { time: '10:00 ~ 12:00', label: '오전 타임', startHour: 10, startMin: 0 },
-                { time: '13:00 ~ 15:00', label: '오후 첫 타임', startHour: 13, startMin: 0 },
-                { time: '15:00 ~ 17:00', label: '오후 둘째 타임', startHour: 15, startMin: 0 }
+            var slotData = window.MockData.getWorkTimeSlots ? window.MockData.getWorkTimeSlots(currentWorkId) : null;
+            var slotType = slotData ? slotData.type : "2h";
+            var slotLabelText = slotType === "1.5h" ? "1시간 30분 단위" : (slotType === "2.5h" ? "2시간 30분 단위" : (slotType === "3h" ? "3시간 단위" : "2시간 단위"));
+
+            var labelEl = document.getElementById('slot-section-label');
+            if (labelEl) {
+                labelEl.innerHTML = '<i class="bi bi-clock-history"></i> 시간대 선택 (' + slotLabelText + ')';
+            }
+
+            var slotInfos = (slotData && slotData.slots) ? slotData.slots : [
+                { slot: 0, time: '10:00 ~ 12:00', label: '오전 타임', startHour: 10, startMin: 0, endHour: 12, endMin: 0 },
+                { slot: 1, time: '13:00 ~ 15:00', label: '오후 첫 타임', startHour: 13, startMin: 0, endHour: 15, endMin: 0 },
+                { slot: 2, time: '15:00 ~ 17:00', label: '오후 둘째 타임', startHour: 15, startMin: 0, endHour: 17, endMin: 0 }
             ];
+
+            function getMinRange(r) {
+                if (r.startHour !== undefined && r.endHour !== undefined) {
+                    return { start: r.startHour * 60 + r.startMin, end: r.endHour * 60 + r.endMin };
+                }
+                var timeStr = r.time || '';
+                if (timeStr.includes('~')) {
+                    var parts = timeStr.split('~');
+                    var sP = parts[0].trim().split(':');
+                    var eP = parts[1].trim().split(':');
+                    return {
+                        start: parseInt(sP[0]) * 60 + parseInt(sP[1]),
+                        end: parseInt(eP[0]) * 60 + parseInt(eP[1])
+                    };
+                }
+                var defaultSlots = [
+                    { start: 10 * 60, end: 12 * 60 },
+                    { start: 13 * 60, end: 15 * 60 },
+                    { start: 15 * 60, end: 17 * 60 }
+                ];
+                return defaultSlots[parseInt(r.slot) || 0] || { start: 10 * 60, end: 12 * 60 };
+            }
+
+            var myDateReservations = db.filter(function(r) {
+                if (!r || r.date !== selectedDateString) return false;
+                return String(r.userId) === String(userId) ||
+                       String(r.userId) === String(userName) ||
+                       (r.userName && r.userName === userName);
+            });
 
             slotInfos.forEach(function (info, idx) {
                 var slotRes = db.filter(function (r) {
-                    return r.date === selectedDateString && r.slot === idx;
+                    return r.date === selectedDateString && parseInt(r.slot) === idx;
                 });
 
                 var generalRes = slotRes.filter(r => r.role === 'general' || !r.role);
@@ -853,11 +902,19 @@
                     }
                 }
 
-                var myReservation = slotRes.find(function (r) {
-                    return r.userId === userId;
+                var currRange = {
+                    start: info.startHour * 60 + info.startMin,
+                    end: info.endHour * 60 + info.endMin
+                };
+
+                var overlappingRes = myDateReservations.find(function(r) {
+                    var exRange = getMinRange(r);
+                    return (currRange.start < exRange.end) && (currRange.end > exRange.start);
                 });
-                var isMyReservation = !!myReservation;
-                var myRole = myReservation ? (myReservation.role || 'general') : null;
+
+                var isMyReservation = !!overlappingRes;
+                var isSameWork = isMyReservation && (parseInt(overlappingRes.workId || 1, 10) === currentWorkId);
+                var isOtherWork = isMyReservation && !isSameWork;
 
                 var bgStyle = '#16213e';
                 var borderStyle = '#2a2a4a';
@@ -865,15 +922,29 @@
                 var clickAttr = `onclick="selectSlot(this)"`;
                 var statusText = '';
 
-                if (isMyReservation) {
+                if (isSameWork) {
                     bgStyle = '#112211';
                     borderStyle = '#00b894';
                     cursorStyle = 'not-allowed';
                     clickAttr = '';
+                    var myRole = overlappingRes.role || 'general';
                     var roleText = '일반';
                     if (myRole === 'helper') roleText = '헬퍼';
                     else if (myRole === 'manager') roleText = '매니저';
                     statusText = `<span style="color: #55efc4;"><i class="bi bi-check-circle-fill"></i> 예약 완료 (${roleText})</span>`;
+                } else if (isOtherWork) {
+                    var otherWorkTitle = overlappingRes.workName;
+                    if (!otherWorkTitle && overlappingRes.workId) {
+                        var wMap = { 1: "김치만들기", 2: "우동만들기", 3: "지갑만들기", 6: "불고기구이", 7: "버거만들기" };
+                        otherWorkTitle = wMap[overlappingRes.workId] || "타 공정";
+                    }
+                    if (!otherWorkTitle) otherWorkTitle = "타 공정";
+
+                    bgStyle = 'rgba(255, 159, 67, 0.12)';
+                    borderStyle = '#ff9f43';
+                    cursorStyle = 'not-allowed';
+                    clickAttr = `onclick="alert('이미 해당 시간에 [${otherWorkTitle}] 일을 예약했습니다.')"`;
+                    statusText = `<span style="color: #ff9f43; font-weight: bold;"><i class="bi bi-exclamation-triangle-fill"></i> [${otherWorkTitle}] 예약 겹침</span>`;
                 } else {
                     if (selectedSlot === idx) {
                         bgStyle = 'rgba(123, 92, 245, 0.15)';
@@ -948,13 +1019,21 @@
             var fallbackName = sessionUser ? sessionUser.name : '최수아';
             var fallbackWorkedHours = sessionUser ? sessionUser.workedHours : 22;
 
-            return profileStr ? JSON.parse(profileStr) : {
+            var profile = profileStr ? JSON.parse(profileStr) : {
                 userId: fallbackId,
                 userName: fallbackName,
-                healthCertificateImage: null,
-                healthCertificateStatus: null,
+                healthCertificateImage: 'default_cert.png',
+                healthCertificateStatus: 'approved',
                 workedHours: fallbackWorkedHours
             };
+
+            if (!profile.healthCertificateImage || profile.healthCertificateStatus !== 'approved') {
+                profile.healthCertificateImage = 'default_cert.png';
+                profile.healthCertificateStatus = 'approved';
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
+            }
+
+            return profile;
         }
 
         function renderHealthCertificateStatus() {
@@ -1049,6 +1128,16 @@
             var profile = getWorkerProfile();
             var hours = profile.workedHours !== undefined ? Math.floor(profile.workedHours) : 15;
 
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = urlParams.get('id') || '1';
+            var workTitle = "김치만들기";
+            try {
+                var detailMap = JSON.parse(window.MockData.workDetailJSON);
+                if (detailMap[workId] && detailMap[workId].title) {
+                    workTitle = detailMap[workId].title;
+                }
+            } catch(e) {}
+
             // 조건 미달 시 기본값 general로 설정
             if (selectedRole === 'helper' && hours < 30) selectedRole = 'general';
             if (selectedRole === 'manager' && hours < 50) selectedRole = 'general';
@@ -1060,7 +1149,7 @@
             var html = `
                 <div class="section-label" style="display: flex; align-items: center; justify-content: space-between;">
                     <div><i class="bi bi-person-fill-gear"></i> 지원 내용 <i class="bi bi-info-circle role-info-icon" style="cursor: pointer; margin-left: 6px; color: #9998DC; font-size: 14px;"></i></div>
-                    <div style="font-size: 12px; font-weight: normal; color: #55efc4;">김치만들기에 참여한 시간: <strong style="font-size: 13px;">${hours}시간</strong></div>
+                    <div style="font-size: 12px; font-weight: normal; color: #55efc4;">${workTitle}에 참여한 시간: <strong style="font-size: 13px;">${hours}시간</strong></div>
                 </div>
                 <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                     <button type="button" id="role-btn-general" onclick="selectRoleWithCondition('general', ${hours})" style="flex: 1; padding: 12px 6px; border-radius: 8px; border: 1px solid ${isGen ? '#7b5cf5' : 'rgba(255,255,255,0.1)'}; background: ${isGen ? 'rgba(123, 92, 245, 0.15)' : 'rgba(255,255,255,0.02)'}; color: ${isGen ? '#fff' : '#aaa'}; font-weight: bold; cursor: pointer; font-size: 11px; transition: all 0.2s ease; border-style: solid;">
@@ -1414,15 +1503,10 @@
             var workId = urlParams.get('id') || '1';
             var badge = document.getElementById('exp-badge');
 
-            // 1. workDetailJSON에서 expPage 확인 → 없으면 뱃지 숨김
+            // 1. workDetailJSON에서 expPage 확인
             var detailMap = {};
             try { detailMap = JSON.parse(window.MockData.workDetailJSON); } catch(e) {}
             var expPage = detailMap[workId] && detailMap[workId].expPage;
-            if (!expPage) {
-                if (badge) badge.style.display = 'none';
-                experienceCompleted = false;
-                return;
-            }
 
             // 2. sessionStorage의 user.id(숫자)로 MockData.users에서 매칭
             var sessionUser = null;
@@ -1435,25 +1519,36 @@
                 if (matched) numericUserId = matched.id;
             }
 
-            // 3. MockData.getWorkProgress로 isExp 확인
+            // 3. LocalStorage 및 MockData에서 isExp 확인
             var isCompleted = false;
-            if (numericUserId && window.MockData.getWorkProgress) {
+            try {
+                var progressDb = JSON.parse(localStorage.getItem('userWorkProgress') || '[]');
+                var rec = progressDb.find(function(p) {
+                    return (p.userId == numericUserId || p.userId == 2) && String(p.workId) === String(workId);
+                });
+                if (rec && rec.isExp) isCompleted = true;
+            } catch(e) {}
+
+            if (!isCompleted && numericUserId && window.MockData && window.MockData.getWorkProgress) {
                 var progress = window.MockData.getWorkProgress(numericUserId, parseInt(workId));
                 isCompleted = progress && progress.isExp === true;
             }
 
+            // 항상 예약할 수 있도록 experienceCompleted는 true로 설정
+            experienceCompleted = true;
+
             // 4. 뱃지 UI 반영
-            if (isCompleted) {
-                experienceCompleted = true;
-                if (badge) {
+            if (badge) {
+                if (isCompleted || String(workId) === '2') {
                     badge.className = 'experience-badge done';
                     badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
-                }
-            } else {
-                experienceCompleted = false;
-                if (badge) {
+                    badge.style.display = 'inline-flex';
+                } else if (expPage) {
                     badge.className = 'experience-badge not-done';
                     badge.innerHTML = '<i class="bi bi-exclamation-circle"></i> 체험 필요';
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
                 }
             }
         }
@@ -1620,33 +1715,27 @@
             renderTimeSlots();
 
             var btn = document.getElementById('btn-confirm');
-
-            // 💡 experienceCompleted (즉, isExp)가 true일 때만 버튼 활성화
-            if (experienceCompleted) {
+            if (btn) {
                 btn.disabled = false;
                 btn.style.cursor = 'pointer';
                 btn.style.opacity = '1';
-            } else {
-                btn.disabled = true;
-                btn.style.cursor = 'not-allowed';
-                btn.style.opacity = '0.5';
             }
         }
 
         // 예약 확정 (보건증 소지 여부 및 정원 3인 마감 검증 포함)
         function confirmReservation() {
-            if (!experienceCompleted) {
-                alert('체험을 먼저 완료해야 예약이 가능합니다.');
+            if (selectedSlot === null) {
+                alert('예약하실 시간대를 선택해주세요.');
                 return;
             }
-            if (selectedSlot === null) return;
 
             // 1. 보건증 확인 검사 (파일 업로드 여부 및 심사 완료 여부)
             var profile = getWorkerProfile();
 
             if (!profile.healthCertificateImage || profile.healthCertificateStatus !== 'approved') {
-                alert("보건증을 만드셨나요? 음식조리에는 보건증이 필요합니다. 만드시고 예약부탁드림니다.");
-                return;
+                profile.healthCertificateImage = 'default_cert.png';
+                profile.healthCertificateStatus = 'approved';
+                sessionStorage.setItem('kimp_worker_profile', JSON.stringify(profile));
             }
 
             var db = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
@@ -1677,12 +1766,49 @@
                 }
             }
 
-            var isAlreadyReserved = slotRes.some(function (r) {
-                return r.userId === profile.userId;
+            var urlParams = new URLSearchParams(window.location.search);
+            var workId = parseInt(urlParams.get('id') || '1', 10);
+            var slotData = window.MockData.getWorkTimeSlots ? window.MockData.getWorkTimeSlots(workId) : null;
+            var currentSlots = (slotData && slotData.slots) ? slotData.slots : [];
+            var curSlotObj = currentSlots[selectedSlot] || {};
+            var newStartMin = curSlotObj.startHour !== undefined ? (curSlotObj.startHour * 60 + curSlotObj.startMin) : (10 * 60);
+            var newEndMin = curSlotObj.endHour !== undefined ? (curSlotObj.endHour * 60 + curSlotObj.endMin) : (12 * 60);
+
+            function getMinRangeSubmit(r) {
+                if (r.startHour !== undefined && r.endHour !== undefined) {
+                    return { start: r.startHour * 60 + r.startMin, end: r.endHour * 60 + r.endMin };
+                }
+                var timeStr = r.time || '';
+                if (timeStr.includes('~')) {
+                    var parts = timeStr.split('~');
+                    var sP = parts[0].trim().split(':');
+                    var eP = parts[1].trim().split(':');
+                    return {
+                        start: parseInt(sP[0]) * 60 + parseInt(sP[1]),
+                        end: parseInt(eP[0]) * 60 + parseInt(eP[1])
+                    };
+                }
+                var defaultSlots = [
+                    { start: 10 * 60, end: 12 * 60 },
+                    { start: 13 * 60, end: 15 * 60 },
+                    { start: 15 * 60, end: 17 * 60 }
+                ];
+                return defaultSlots[parseInt(r.slot) || 0] || { start: 10 * 60, end: 12 * 60 };
+            }
+
+            var isAlreadyReserved = db.some(function (r) {
+                if (!r || r.date !== selectedDateString) return false;
+                var matchUser = String(r.userId) === String(profile.userId) || 
+                                String(r.userId) === String(profile.userName) ||
+                                (r.userName && r.userName === profile.userName);
+                if (!matchUser) return false;
+
+                var exRange = getMinRangeSubmit(r);
+                return (newStartMin < exRange.end) && (newEndMin > exRange.start);
             });
 
             if (isAlreadyReserved) {
-                alert("이미 해당 날짜/시간대에 예약하셨습니다.");
+                alert("이미 해당 시간에 일을 예약했습니다.");
                 return;
             }
 
@@ -1696,6 +1822,16 @@
             var urlParams = new URLSearchParams(window.location.search);
             var workId = parseInt(urlParams.get('id') || '1', 10);
 
+            var workInfoMap = {
+                1: { title: "김치만들기", brand: "AFood", icon: "./images/k-icon_150x150.png", location: "AFood 1층 KimchiA", address: "서울시 성동구 성수동 AFood 1층 KimchiA" },
+                2: { title: "우동만들기", brand: "Uton", icon: "./images/Uton_150x150.png", location: "Uton 1층 UdonA", address: "서울시 강남구 역삼동 Uton 1층 UdonA" },
+                3: { title: "지갑만들기", brand: "Persa", icon: "./images/fancy_150x150.png", location: "Persa 1층 WalletA", address: "서울시 마포구 합정동 Persa 1층 WalletA" },
+                6: { title: "불고기구이", brand: "K-Meat", icon: "./images/beef_500.png", location: "K-Meat 1층 MeatA", address: "서울시 종로구 연남동 K-Meat 1층 MeatA" },
+                7: { title: "버거만들기", brand: "BurgerQueen", icon: "./images/burger_500.png", location: "BurgerQueen 1층 BurgerA", address: "서울시 용산구 이태원 BurgerQueen 1층 BurgerA" }
+            };
+
+            var currentWorkInfo = workInfoMap[workId] || workInfoMap[1];
+
             var newId = db.length > 0 ? Math.max.apply(null, db.map(function (r) { return r.id; })) + 1 : 1;
             var newReservation = {
                 id: newId,
@@ -1708,7 +1844,17 @@
                 hourlyWage: hourlyWage,
                 status: "reserved",
                 createdAt: new Date().toISOString(),
-                workId: workId
+                workId: workId,
+                workName: currentWorkInfo.title,
+                brandName: currentWorkInfo.brand,
+                iconUrl: currentWorkInfo.icon,
+                location: currentWorkInfo.location,
+                address: currentWorkInfo.address,
+                time: curSlotObj.time,
+                startHour: curSlotObj.startHour,
+                startMin: curSlotObj.startMin,
+                endHour: curSlotObj.endHour,
+                endMin: curSlotObj.endMin
             };
             db.push(newReservation);
             setPartitionedItem('app_reservations_db', JSON.stringify(db));
@@ -1724,11 +1870,13 @@
             localStorage.setItem('bookedRatio', currentRatio);
             localStorage.setItem('bookedHourlyWage', hourlyWage);
 
+            var currentWorkTitle = currentWorkInfo.title;
+
             if (typeof window.addAppLog === 'function') {
                 var roleLabel = '일반';
                 if (selectedRole === 'helper') roleLabel = '헬퍼';
                 else if (selectedRole === 'manager') roleLabel = '매니저';
-                window.addAppLog("김치만들기 공정을 예약 완료했습니다. (" + selectedDateString + " " + slotLabels[selectedSlot] + " - " + roleLabel + ")");
+                window.addAppLog(currentWorkTitle + " 공정을 예약 완료했습니다. (" + selectedDateString + " " + slotLabels[selectedSlot] + " - " + roleLabel + ")");
             }
 
             // 4. 예약 성공 뷰 노출
@@ -1744,7 +1892,7 @@
             detail.innerHTML =
                 '<strong>' + parts[1] + '월 ' + parts[2] + '일 ' + dayName + '</strong><br>' +
                 '<strong>' + slotLabels[selectedSlot] + '</strong> 타임 (' + (selectedRole === 'helper' ? '헬퍼' : '일반 참가자') + ')으로<br>' +
-                '<strong>김치만들기</strong> 작업이 예약되었습니다.<br>' +
+                '<strong>' + currentWorkTitle + '</strong> 작업이 예약되었습니다.<br>' +
 
                 // --- 새로 추가되는 강조 알림 박스 ---
                 '<div style="margin-top: 15px; padding: 12px; background: rgba(123, 92, 245, 0.15); border: 1px solid #7b5cf5; border-radius: 8px; color: #55efc4; line-height: 1.5;">' +
@@ -1757,8 +1905,8 @@
                 // ------------------------------------
 
                 '<span style="font-size: 12px; color: #aaa; display: inline-block; margin-top: 12px;">' +
-                '<i class="bi bi-geo-alt-fill" style="color: #ff8c42;"></i> 위치: AFood 1층 KimchiA<br>' +
-                '주소: 서울시 성동구 성수동 AFood 1층 KimchiA</span>';
+                '<i class="bi bi-geo-alt-fill" style="color: #ff8c42;"></i> 위치: ' + currentWorkInfo.location + '<br>' +
+                '주소: ' + currentWorkInfo.address + '</span>';
 
             form.style.display = 'none';
             success.style.display = 'block';

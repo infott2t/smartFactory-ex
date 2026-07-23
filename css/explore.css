@@ -174,7 +174,7 @@ body {
 
 /* 4번째 탭(카테고리 탭)에만 고정된 검색창 높이만큼 추가 여백을 줍니다 */
 .tab-content:nth-child(4) {
-    padding-top: 66px; 
+    padding-top: 51px; 
 }
 
 /* 1. 탭 껍데기(.tab-content)는 애니메이션 없이 즉시 표시 (상단 메뉴 고정용) */

@@ -1046,16 +1046,10 @@
             renderProductDetails();
             renderDeliverySchedule();
 
-            // 뒤로 가기 버튼 동적 바인딩
+            // 뒤로 가기 버튼 동적 바인딩 (전 페이지로 가기)
             const backBtn = document.querySelector('.back-btn') || document.querySelector('.bi-chevron-left')?.parentElement;
             if (backBtn) {
-                backBtn.onclick = function() {
-                    if (currentWorkId) {
-                        window.location.href = 'work_detail.html?id=' + currentWorkId;
-                    } else {
-                        window.location.href = 'main.html';
-                    }
-                };
+                backBtn.onclick = goBack;
             }
 
             // 10분 제한 타이머 체크
@@ -1341,7 +1335,11 @@
 
         // ── 6. 인터랙션 기능 ──
         function goBack() {
-            if (currentWorkId) {
+            if (document.referrer && document.referrer.includes(window.location.host)) {
+                window.history.back();
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else if (currentWorkId) {
                 window.location.href = 'work_detail.html?id=' + currentWorkId;
             } else {
                 window.location.href = "main.html";
@@ -1660,18 +1658,65 @@
             }
         }
 
+        function getUserCurrentAssets() {
+            let user = null;
+            try {
+                user = JSON.parse(sessionStorage.getItem('user') || '{}');
+            } catch(e) {}
+            const userId = user ? (user.id || user.name || user.email) : "2";
+
+            const initialAsset = (window.MockData && window.MockData.getUserBaseAssets) ? window.MockData.getUserBaseAssets(userId) : 100000;
+
+            let baseSum = 0;
+            if (window.FactoryStore && window.FactoryStore.getState) {
+                const history = window.FactoryStore.getState().history || [];
+                baseSum = history.reduce((sum, item) => sum + (item.pay || 0), 0);
+            }
+
+            const getPartitionedItem = window.getPartitionedItem || function(k){ return localStorage.getItem(k); };
+            const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
+            const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
+
+            let completedSpent = 0;
+            if (window.FactoryStore && window.FactoryStore.getState) {
+                const shopHistory = window.FactoryStore.getState().shopHistory || [];
+                completedSpent = shopHistory.filter(item => item.status === 'completed')
+                                            .reduce((sum, item) => sum + (item.price || 0), 0);
+            }
+
+            return initialAsset + baseSum + helperBase + helperBonus - completedSpent;
+        }
+
+        function isDeliveryProduct(productId) {
+            let pObj = null;
+            if (window.MockData && window.MockData.storeProducts) {
+                pObj = window.MockData.storeProducts.find(p => p.productCode === productId || String(p.productId) === productId);
+            }
+            if (pObj && pObj.isDelivery !== undefined) {
+                return pObj.isDelivery;
+            }
+            const pId = String(productId);
+            if (pId === 'p1' || pId === 'p2') return false;
+            return true;
+        }
+
         function handleBuy() {
             const pId = String(currentProductId);
-            const pName = currentProductData ? currentProductData.name : "";
-            const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
+            const isDelivery = isDeliveryProduct(pId);
 
-            const activeProduct = sessionStorage.getItem('activeOrderProduct');
-            if (isUdonOrBibim && String(currentWorkId) === '2' && activeProduct === pId) {
-                handleCancelOrder();
+            const itemPrice = currentProductData ? (currentProductData.price || 3000) : 3000;
+            const currentAssets = getUserCurrentAssets();
+            if (currentAssets < itemPrice) {
+                alert("보유 정산 자산(₩ " + currentAssets.toLocaleString() + ")이 물품 가격(₩ " + itemPrice.toLocaleString() + ")보다 부족하여 상품을 구매할 수 없습니다.");
                 return;
             }
 
-            if (isUdonOrBibim && String(currentWorkId) === '2') {
+            if (!isDelivery) {
+                const activeProduct = sessionStorage.getItem('activeOrderProduct');
+                if (activeProduct === pId) {
+                    handleCancelOrder();
+                    return;
+                }
                 isQrScanned = false;
                 document.getElementById('order-confirm-overlay').style.display = 'flex';
                 checkLimitTimer();
@@ -1679,8 +1724,7 @@
                     updateLimitUI(false, 0);
                 }
             } else {
-                const product = productCatalog[currentProductId] || currentProductData;
-                alert(`[AFood 공식 스토어]\n${product.name} 주문서 화면으로 이동합니다.\n결제 금액: ${(product.price || 3000).toLocaleString()}원 (무료배송)`);
+                window.location.href = 'order_pay.html?productId=' + currentProductId + '&workId=' + currentWorkId;
             }
         }
 
@@ -1693,6 +1737,14 @@
 
             const qtySelect = document.getElementById('order-qty-select');
             const qty = parseInt(qtySelect ? qtySelect.value : "1") || 1;
+            const itemPrice = currentProductData ? (currentProductData.price || 3000) : 3000;
+            const totalOrderPrice = itemPrice * qty;
+
+            const currentAssets = getUserCurrentAssets();
+            if (currentAssets < totalOrderPrice) {
+                alert("보유 정산 자산(₩ " + currentAssets.toLocaleString() + ")이 물품 가격(₩ " + totalOrderPrice.toLocaleString() + ")보다 부족하여 상품을 구매할 수 없습니다.");
+                return;
+            }
 
             orderCount10Min += qty;
             try {

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배송 주문 관리 - Smart Factory</title>
+    <!-- Google Fonts & Bootstrap Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --bg-main: #0b0c10;
+            --card-bg: #161822;
+            --card-border: #232738;
+            --accent-primary: #7b5cf5;
+            --accent-secondary: #00b894;
+            --accent-pink: #fd79a8;
+            --accent-gold: #fdcb6e;
+            --text-main: #ffffff;
+            --text-sub: #9499b1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        /* 📱 Header - explore2 / mypage2 규격 준수 */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 12, 16, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* 📦 Main Container & Section Cards */
+        .main-container {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        /* 🎁 Product Summary Card */
+        .product-summary-box {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .product-thumb {
+            width: 72px;
+            height: 72px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid var(--card-border);
+            background-color: #000;
+        }
+
+        .product-info-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .brand-name {
+            font-size: 11px;
+            color: var(--accent-primary);
+            font-weight: 700;
+        }
+
+        .product-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .product-meta {
+            font-size: 12px;
+            color: var(--text-sub);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .product-price {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--accent-pink);
+        }
+
+        /* 🚚 Waybill & Delivery Header */
+        .waybill-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .waybill-num {
+            font-weight: 700;
+            color: var(--accent-gold);
+            letter-spacing: 0.5px;
+        }
+
+        .btn-copy-waybill {
+            background: rgba(123, 92, 245, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(123, 92, 245, 0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ⏳ Delivery Status Timeline */
+        .timeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 6px;
+            bottom: 6px;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 3px solid var(--text-sub);
+            z-index: 2;
+        }
+
+        .timeline-item.active .timeline-dot {
+            border-color: var(--accent-secondary);
+            background: var(--accent-secondary);
+            box-shadow: 0 0 10px rgba(0, 184, 148, 0.6);
+        }
+
+        .timeline-item.completed .timeline-dot {
+            border-color: var(--accent-primary);
+            background: var(--accent-primary);
+        }
+
+        .timeline-status {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-sub);
+        }
+
+        .timeline-item.active .timeline-status {
+            color: var(--accent-secondary);
+            font-size: 15px;
+        }
+
+        .timeline-item.completed .timeline-status {
+            color: var(--text-main);
+        }
+
+        .timeline-location {
+            font-size: 12px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timeline-time {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 📱 Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <button type="button" class="back-btn" onclick="history.back()">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="header-title">배송 주문 관리</span>
+        </div>
+    </header>
+
+    <main class="main-container">
+
+        <!-- 🎁 1. 상품 정보 요약 카드 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-bag-check-fill" style="color: var(--accent-primary);"></i> 주문 상품 정보</span>
+            </div>
+            <div class="product-summary-box">
+                <img id="delivery-prod-img" src="./images/kimchi_1kg.png" alt="상품 이미지" class="product-thumb">
+                <div class="product-info-details">
+                    <span class="brand-name" id="delivery-brand-name">AFood</span>
+                    <span class="product-title" id="delivery-prod-title">1kg 포기김치 팩</span>
+                    <div class="product-meta">
+                        <span><span id="delivery-qty">1</span>개 / 무료배송</span>
+                        <span class="product-price">₩ <span id="delivery-price">8,000</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 🚚 2. 배송 조회 및 실시간 송장/위치 타임라인 -->
+        <section class="section-card">
+            <div class="section-header">
+                <span class="section-title"><i class="bi bi-truck-flatbed" style="color: var(--accent-secondary);"></i> 실시간 배송 조회</span>
+            </div>
+
+            <!-- 송장 번호 안내 -->
+            <div class="waybill-box">
+                <div>
+                    <span style="color: var(--text-sub); font-size: 12px;">택배사 / 송장번호</span>
+                    <div class="waybill-num" id="waybill-code">대한통운 4028-5928-1092</div>
+                </div>
+                <button type="button" class="btn-copy-waybill" onclick="copyWaybill()">복사</button>
+            </div>
+
+            <!-- 배송 상태 타임라인 -->
+            <div class="timeline-container">
+
+                <div class="timeline-item completed">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-status">구매 완료 (결제 완료)</div>
+                    <div class="timeline-location"><i class="bi bi-building"></i> AFood 스마트팩토리 1센터</div>
+                    <div class="timeline-time" id="time-step-1">2026.07.23 14:15</div>
+                </div>
+
+                <div class="timeline-item completed">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-status">상품 출고 완료</div>
+                    <div class="timeline-location"><i class="bi bi-box-arrow-up-right"></i> 서울 서대문 물류센터</div>
+                    <div class="timeline-time" id="time-step-2">2026.07.23 15:30</div>
+                </div>
+
+                <div class="timeline-item active">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-status">🚚 배달 중</div>
+                    <div class="timeline-location"><i class="bi bi-geo-alt-fill" style="color: var(--accent-secondary);"></i> 마포 배달 캠프 (담당 기사: 김철수 010-8888-9999)</div>
+                    <div class="timeline-time" id="time-step-3">2026.07.24 09:10</div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-status">배송 완료 예정</div>
+                    <div class="timeline-location"><i class="bi bi-house-door-fill"></i> 신촌동 AFood 타운 102호</div>
+                    <div class="timeline-time" id="time-step-4">2026.07.25 14:00 (도착 예정)</div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 스크립트 모듈 연동 -->
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/store.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            loadDeliveryDetailData();
+        });
+
+        function loadDeliveryDetailData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderNo = urlParams.get('orderNo');
+            const productId = urlParams.get('productId') || 'p1kg';
+
+            let orderItem = null;
+
+            // FactoryStore 상의 shopHistory 탐색
+            if (window.FactoryStore && window.FactoryStore.getState) {
+                const shopHistory = window.FactoryStore.getState().shopHistory || [];
+                if (orderNo) {
+                    orderItem = shopHistory.find(item => item.orderNo === orderNo);
+                }
+                if (!orderItem && productId) {
+                    orderItem = shopHistory.find(item => item.productId === productId || String(item.productId) === String(productId));
+                }
+            }
+
+            let prodImg = './images/kimchi_1kg.png';
+            let brandName = 'AFood';
+            let prodTitle = '1kg 포기김치 팩';
+            let priceVal = 8000;
+            let qtyVal = 1;
+            let dateText = '2026.07.23 14:15';
+
+            if (orderItem) {
+                prodTitle = orderItem.productName || prodTitle;
+                brandName = orderItem.brandName || brandName;
+                priceVal = orderItem.price || priceVal;
+                qtyVal = orderItem.qty || 1;
+                dateText = (orderItem.dateStr || orderItem.orderDate || '2026.07.23') + ' ' + (orderItem.orderTime || '14:15');
+
+                const pIdStr = String(orderItem.productId || '');
+                if (window.MockData && window.MockData.storeProducts) {
+                    const found = window.MockData.storeProducts.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === prodTitle);
+                    if (found) {
+                        prodImg = found.img || prodImg;
+                        brandName = found.brand || brandName;
+                    }
+                }
+            } else {
+                // Fallback catalog
+                if (window.MockData && window.MockData.storeProducts) {
+                    const found = window.MockData.storeProducts.find(p => p.productCode === productId || String(p.productId) === productId);
+                    if (found) {
+                        prodTitle = found.name;
+                        brandName = found.brand;
+                        prodImg = found.img;
+                        priceVal = found.price;
+                    }
+                }
+            }
+
+            $('#delivery-prod-img').attr('src', prodImg);
+            $('#delivery-brand-name').text(brandName);
+            $('#delivery-prod-title').text(prodTitle);
+            $('#delivery-qty').text(qtyVal);
+            $('#delivery-price').text(priceVal.toLocaleString());
+
+            $('#time-step-1').text(dateText);
+        }
+
+        function copyWaybill() {
+            const code = $('#waybill-code').text();
+            navigator.clipboard.writeText(code).then(() => {
+                alert('송장번호가 클립보드에 복사되었습니다: ' + code);
+            }).catch(() => {
+                alert('송장번호: ' + code);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -30,6 +30,7 @@
             
             --accent-primary: #6366f1;   /* 인디고/보라 */
             --accent-secondary: rgb(253, 132, 237); /* 보라 */
+            --accent-pink: #fd79a8;      /* 핫핑크 강조 색상 */
             --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             --accent-money: #10b981;     /* 수입용 에메랄드 그린 */
             --border-light: rgba(255, 255, 255, 0.08);
@@ -245,7 +246,7 @@
         }
 
         /* JS 주입용 카드 (.box-partner를 공유함) */
-        .box-partner.reservation-item, .box-partner.history-item {
+        .box-partner.reservation-item {
             background: var(--bg-card);
             border: 1px solid var(--border-light);
             border-radius: 16px;
@@ -253,6 +254,14 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+        }
+        .box-partner.history-item {
+            background: rgba(22, 24, 34, 0.75) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 14px !important;
+            padding: 14px 16px;
+            display: block;
+            margin-bottom: 12px;
         }
 
         /* 예약 카드 내부 스타일 */
@@ -395,7 +404,7 @@
                     </div>
                 </div>
                 <div class="earnings-section">
-                    <span class="label">오늘 나의 수입</span>
+                    <span class="label">나의 정산 자산</span>
                     <div class="amount">₩ <span id="total-earnings-display">0</span></div>
                 </div>
             </div>
@@ -537,35 +546,22 @@
             const initials = currentUser.name ? currentUser.name.substring(0, 2) : 'US';
             $('#user-avatar-initials').text(initials);
 
-            // Fetch worker profile (Kimchi making)
+            // Sync worker profile workedHours from FactoryStore userWorkHours table
+            const currentUserId = currentUser.id || currentUser.name || "2";
+            const currentKimchiHours = FactoryStore.getWorkHours(currentUserId, 1);
+
             let profileStr = sessionStorage.getItem("kimp_worker_profile");
             if (profileStr) {
                 workerProfile = JSON.parse(profileStr);
             } else {
                 workerProfile = getDefaultProfileByName(currentUser.name);
-                sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
             }
-
-            // Sync with FactoryStore
-            FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: Number(workerProfile.workedHours) });
+            workerProfile.workedHours = currentKimchiHours;
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
 
             if (FactoryStore.getState().history.length === 0) {
                 const defaultHistory = getDefaultHistoryByName(currentUser.name);
                 FactoryStore.dispatch({ type: 'SET_HISTORY', payload: defaultHistory });
-            }
-
-            if (FactoryStore.getState().udonHours === 0) {
-                let defH = 6;
-                FactoryStore.dispatch({ type: 'SET_UDON_HOURS', payload: defH });
-            }
-
-            if (FactoryStore.getState().walletHours === 0) {
-                let defH = 0;
-                if (currentUser.name === '최현일') defH = 125;
-                else if (currentUser.name === '최수아') defH = 10;
-                else if (currentUser.name === '김수민') defH = 0;
-                else if (currentUser.name === '김영희') defH = 30;
-                FactoryStore.dispatch({ type: 'SET_WALLET_HOURS', payload: defH });
             }
 
             // Subscribe to store updates to dynamically trigger re-renders
@@ -636,26 +632,34 @@
         }
 
         function renderEarnings() {
-            const history = FactoryStore.getState().history;
-            let baseSum = history.reduce((sum, item) => sum + item.pay, 0);
+            const userId = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : "2";
+            const initialAsset = (window.MockData && window.MockData.getUserBaseAssets) ? window.MockData.getUserBaseAssets(userId) : 100000;
+
+            const history = FactoryStore.getState().history || [];
+            let baseSum = history.reduce((sum, item) => sum + (item.pay || 0), 0);
 
             const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
             const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
 
-            const totalSum = baseSum + helperBase + helperBonus;
+            const shopHistory = FactoryStore.getState().shopHistory || [];
+            const completedSpent = shopHistory.filter(item => item.status === 'completed')
+                                               .reduce((sum, item) => sum + (item.price || 0), 0);
+
+            const totalSum = initialAsset + baseSum + helperBase + helperBonus - completedSpent;
             $('#total-earnings-display').text(totalSum.toLocaleString());
         }
 
         function renderPartnerGrades() {
-            const kimchiHours = workerProfile.workedHours || 0;
-            const udonHours = FactoryStore.getState().udonHours || 0;
-            const walletHours = FactoryStore.getState().walletHours || 0;
+            const userId = currentUser ? (currentUser.id || currentUser.name) : "2";
+            const kimchiHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 1) : 0;
+            const udonHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 2) : 0;
+            const walletHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 3) : 0;
 
             function getGradeBadgeHtml(hours, isKimchi) {
                 let label = "일반";
                 let badgeClass = "badge01";
 
-                if (hours >= 120) {
+                if (hours >= 50) {
                     label = "매니저";
                     badgeClass = "badge03";
                 } else if (hours >= 30) {
@@ -697,10 +701,11 @@
                 }
             } catch (e) { }
 
-            // Deduplicate by id, date, slot
+            // Deduplicate by id or date_slot_workId_userId
             let uniqueDbMap = {};
             db.forEach(r => {
-                const key = r.date + '_' + r.slot + '_' + r.userId;
+                if (!r) return;
+                const key = r.id ? ('id_' + r.id) : (r.date + '_' + r.slot + '_' + (r.workId || 1) + '_' + (r.userId || r.userName));
                 uniqueDbMap[key] = r;
             });
             db = Object.values(uniqueDbMap);
@@ -729,18 +734,18 @@
 
                 // workId 기반으로 동적 데이터 매핑
                 const workId = r.workId || 1;
-                let workTitle = "김치만들기";
-                let brandName = "AFood";
-                let iconUrl = "./images/k-icon_150x150.png";
+                let workTitle = r.workName || "김치만들기";
+                let brandName = r.brandName || "AFood";
+                let iconUrl = r.iconUrl || "./images/k-icon_150x150.png";
                 let workHoursLabel = "2h";
 
                 try {
                     const worksList = JSON.parse(window.MockData.worksJSON);
                     const workObj = worksList.find(w => w.workId == workId);
                     if (workObj) {
-                        workTitle = workObj.workName;
-                        brandName = workObj.brandName;
-                        iconUrl = workObj.iconUrl;
+                        if (!r.workName) workTitle = workObj.workName;
+                        if (!r.brandName) brandName = workObj.brandName;
+                        if (!r.iconUrl) iconUrl = workObj.iconUrl;
                     }
 
                     const detailMap = JSON.parse(window.MockData.workDetailJSON);
@@ -976,43 +981,69 @@
                 } else if (item.status === 'cancelled') {
                     statusTextHtml = `<div class="hist-pay" style="color: var(--text-sub); font-size: 14px; font-weight: normal;">주문 취소</div>`;
                 } else if (item.status === 'completed') {
-                    statusTextHtml = `<div class="hist-pay" style="color: var(--accent-pink);">-₩ ${item.price.toLocaleString()}</div>`;
-                    btnHtml = `
-                    <div style="margin-top: 8px; font-size: 12px; color: var(--accent-money); font-weight: bold; text-align: right;">
-                        <i class="bi bi-check-circle-fill"></i> 알람 확인 및 수령 완료
-                    </div>`;
+                    statusTextHtml = `<div class="hist-pay" style="color: #ffffff; font-weight: 800;">-₩ ${item.price.toLocaleString()}</div>`;
+                    btnHtml = ``;
                 }
 
-                // 주문 상품에 따른 브랜드 이미지 아이콘 매핑
-                let iconHtml = `<span style="font-size: 24px; margin-right: 8px; vertical-align: middle;">🛍️</span>`;
-                const nameLower = (item.productName || '').toLowerCase();
-                const brandLower = (item.brandName || '').toLowerCase();
-                
-                if (nameLower.includes("우동") || nameLower.includes("비빔면") || brandLower === 'uton') {
-                    iconHtml = `<img src="./images/Uton_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; margin-right: 8px; vertical-align: middle; object-fit: cover;" alt="Uton">`;
-                } else if (nameLower.includes("김치") || brandLower === 'afood') {
-                    iconHtml = `<img src="./images/k-icon_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; margin-right: 8px; vertical-align: middle; object-fit: cover;" alt="AFood">`;
-                } else if (nameLower.includes("지갑") || brandLower === 'persa') {
-                    iconHtml = `<img src="./images/fancy_150x150.png" style="width: 24px; height: 24px; border-radius: 6px; margin-right: 8px; vertical-align: middle; object-fit: cover;" alt="Persa">`;
+                // 상품 썸네일 이미지 및 브랜드 탐색
+                let pImg = './images/kimchi_300g.png';
+                let brandName = item.brandName || 'AFood';
+                const pIdStr = String(item.productId || '');
+                const pNameStr = item.productName || '';
+
+                if (window.MockData && window.MockData.storeProducts) {
+                    const found = window.MockData.storeProducts.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
+                    if (found) {
+                        pImg = found.img || pImg;
+                        brandName = found.brand || brandName;
+                    }
                 }
+
+                const unitPriceVal = item.unitPrice || Math.floor((item.price || 3000) / (item.qty || 1));
+                const qtyText = (item.qty || 1) + '개';
+                const deliveryText = item.deliveryFee || '무료배송';
+
+                let isDelivery = true;
+                if (window.MockData && window.MockData.storeProducts) {
+                    const found = window.MockData.storeProducts.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
+                    if (found && found.isDelivery !== undefined) {
+                        isDelivery = found.isDelivery;
+                    }
+                }
+                if ((pNameStr.includes("우동") && !pNameStr.includes("수제")) || pNameStr.includes("비빔면")) {
+                    isDelivery = false;
+                }
+
+                let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: var(--accent-secondary); border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
+                let topRightHtml = isDelivery ? 
+                    `<div style="font-size: 11px; color: #ffffff; font-weight: 600; cursor: pointer;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>` : 
+                    `<div style="font-size: 11px; color: var(--text-sub);">주문번호: ${item.orderNo}번</div>`;
+
+                let clickAttr = isDelivery ? `onclick="window.location.href='delivery_detail.html?orderNo=${item.orderNo}&productId=${item.productId || ''}'"` : '';
+                let cursorStyle = isDelivery ? 'cursor: pointer;' : '';
 
                 let row = `
-                <div class="box-partner history-item" style="border-left: 4px solid var(--accent-secondary);">
-                    <div class="hist-date">
-                        <span>${item.dateStr} 주문</span>
-                        <span style="color: var(--text-sub);">주문번호: ${item.orderNo}번</span>
+                <div class="box-partner history-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08) !important; min-height: 105px; box-sizing: border-box;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
+                            <span>${item.dateStr || item.orderDate} ${item.orderTime ? item.orderTime + ' ' : ''}주문</span>
+                            ${deliveryBadgeHtml}
+                        </div>
+                        ${topRightHtml}
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 8px;">
-                        <div class="box-corp">
-                            ${iconHtml}
-                            <div>
-                                <div style="font-size:12px; color:var(--text-sub);">${item.brandName || 'Uton'} (우동만들기)</div>
-                                <div class="hist-job-title">우동만들기 [${item.productName}] (${item.qty}그릇)</div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${pImg}" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--card-border);" alt="${pNameStr}">
+                            <div style="text-align: left;">
+                                <div style="font-size: 11px; color: var(--accent-primary); font-weight: bold;">${brandName}</div>
+                                <div style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-top: 3px;">${pNameStr} (${qtyText})</div>
                             </div>
                         </div>
-                        ${statusTextHtml}
+                        <div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">
+                            -₩ ${item.price.toLocaleString()}
+                        </div>
                     </div>
-                    ${btnHtml}
                 </div>
                 `;
                 container.append(row);
@@ -1103,6 +1134,8 @@
                     } catch(e){}
                 }
 
+                renderEarnings();
+                renderShopHistory();
                 alert("🔔 조리 완료 알림이 떴습니다!\n음식을 정상적으로 수령하였습니다. 맛있게 드세요! 😀");
             }
         }
