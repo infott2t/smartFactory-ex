@@ -76,5 +76,9 @@ jobs:
 
       - name: Ensure Tailscale Serve
         run: |
-          ssh -i ~/.ssh/pi_deploy_key hyeonil@hyeonil.tail4b4a48.ts.net \
-            'sudo tailscale serve --yes --https=443 localhost:3000'
+          ssh -i ~/.ssh/pi_deploy_key hyeonil@hyeonil.tail4b4a48.ts.net 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          sudo tailscale serve reset
+          sudo tailscale serve --yes --https=443 localhost:3000
+          REMOTE
