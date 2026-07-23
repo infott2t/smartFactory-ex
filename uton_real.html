@@ -1,0 +1,2402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>주방 KDS - 주문 연동형 우동 조리</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="./js/store.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/auth-guard.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e24;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+            margin: 0; padding: 10px;
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            width: 100%; max-width: 1000px; 
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        
+        /* 💡 수정된 헤더 레이아웃 */
+        .app-header {
+            display: flex;
+            align-items: center;
+            height: 50px;
+            position: relative;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        /* 타이틀(아이콘+제목)을 헤더 아래 중앙에 배치 */
+        .header-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .main-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 2px;
+            margin: 0; 
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 9999;
+            width: auto;
+            padding: 4px;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 24px;
+            line-height: 1;
+        }
+        .back-btn:hover { color: var(--accent-blue); }
+        
+        /* 💡 가상체험중 버튼 크기 및 위치 수정 */
+        .experi {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: auto;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;      /* 세로 가운데 정렬 */
+            justify-content: center;  /* 가로 가운데 정렬 */
+            line-height: 1;           /* 폰트 기본 줄간격을 초기화하여 정확한 세로 중앙을 맞춤 */
+            gap: 6px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+        }
+        .experi:hover {
+            transform: translateY(-50%) scale(1.03);
+            filter: brightness(1.1);
+        }
+        .experi.completed {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .status-bar {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+            background-color: var(--panel-bg); padding: 15px; border-radius: 14px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4); text-align: center; font-weight: bold;
+            border: 1px solid #2d2d39;
+        }
+        .status-item { font-size: 0.95rem; display: flex; flex-direction: column; gap: 6px; }
+        .status-value { font-size: 1.4rem; color: var(--accent-green); text-shadow: 0 2px 4px rgba(16, 185, 129, 0.2); }
+        .order-highlight { color: var(--accent-orange); font-size: 1.6rem; text-shadow: 0 2px 4px rgba(245, 158, 11, 0.2); }
+
+        .order-queue-panel {
+            background: linear-gradient(145deg, #20202a, #1a1a21);
+            border: 1px solid #343442;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.32);
+        }
+        .order-queue-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .order-queue-heading h2 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            color: #fff;
+        }
+        .queue-status {
+            flex: 0 0 auto;
+            color: #c7d2fe;
+            background: rgba(59,130,246,0.16);
+            border: 1px solid rgba(96,165,250,0.35);
+            border-radius: 999px;
+            padding: 5px 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+        }
+        .current-order-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: #dbeafe;
+            background: rgba(59,130,246,0.13);
+            border: 1px solid rgba(96,165,250,0.38);
+        }
+        .current-order-banner strong { color: #fff; font-size: 1.05rem; }
+        .order-queue-list { display: grid; gap: 10px; }
+        .order-queue-empty {
+            padding: 22px 12px;
+            color: var(--text-muted);
+            text-align: center;
+            border: 1px dashed #3b3b48;
+            border-radius: 10px;
+        }
+        .kitchen-order-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            padding: 13px;
+            background: #252530;
+            border: 1px solid #383846;
+            border-left: 4px solid #64748b;
+            border-radius: 11px;
+        }
+        .kitchen-order-card.is-selected {
+            border-color: #60a5fa;
+            border-left-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.12);
+        }
+        .kitchen-order-card.is-ready { border-left-color: var(--accent-green); }
+        .kitchen-order-main { min-width: 0; }
+        .kitchen-order-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .kitchen-order-number {
+            color: #fff;
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            font-size: 1.18rem;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+        }
+        .kitchen-order-badge {
+            border-radius: 999px;
+            padding: 3px 7px;
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+        .kitchen-order-badge.queued { color: #fcd34d; background: rgba(245,158,11,0.14); }
+        .kitchen-order-badge.preparing { color: #93c5fd; background: rgba(59,130,246,0.16); }
+        .kitchen-order-badge.ready { color: #6ee7b7; background: rgba(16,185,129,0.15); }
+        .kitchen-order-product {
+            overflow: hidden;
+            color: #f3f4f6;
+            font-size: 0.94rem;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .kitchen-order-meta {
+            margin-top: 5px;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+        .kitchen-order-action {
+            width: auto;
+            min-width: 86px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-size: 0.82rem;
+            box-shadow: none;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        .kitchen-order-action.continue { background: linear-gradient(135deg, #2563eb, #4338ca); }
+        .kitchen-order-ready {
+            color: #6ee7b7;
+            font-size: 0.8rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translate(-50%, -150px);
+            background: var(--accent-orange); color: white; padding: 15px 30px;
+            border-radius: 30px; font-weight: bold; font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.6);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000; pointer-events: none;
+        }
+        .toast.show { transform: translate(-50%, 0); }
+        
+        .panel { background-color: var(--panel-bg); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2 { margin-top: 0; color: var(--accent-blue); border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 1.2rem; }
+        #step-title { color: #ffffff; text-align: center; }
+
+        .step-indicator { 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; 
+            background-color: rgba(0, 0, 0, 0.15); padding: 8px; border-radius: 14px; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .step { 
+            text-align: center; color: #9ca3af; font-weight: 600; 
+            font-size: 0.9rem; padding: 14px 8px; border-radius: 10px; cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; background-color: #252530;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+            border: 1px solid transparent;
+        }
+        .step:hover {
+            background-color: #2e2e3d;
+            color: #ffffff;
+        }
+        .step.active { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+            color: #ffffff; 
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.35); 
+            border-color: #60a5fa;
+            transform: scale(1.02);
+        }
+        
+        .tab-badge { display: none; background: rgba(0,0,0,0.5); color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; }
+        .tab-badge.active { display: inline-block; }
+        .step.alarm { background-color: var(--accent-red); color: white; animation: tabBlinker 1s infinite; }
+        .step.alarm .tab-badge { background: white; color: var(--accent-red); font-weight: bold; }
+        @keyframes tabBlinker { 50% { opacity: 0.6; box-shadow: 0 0 15px red; } }
+        
+        /* 🍜 조리 품목 선택 토글 */
+        .recipe-toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-recipe-select {
+            padding: 14px 10px !important;
+            font-size: 1rem !important;
+            font-weight: bold !important;
+            border-radius: 10px !important;
+            width: 50% !important;
+            border: 2px solid transparent !important;
+            cursor: pointer;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+            text-align: center;
+        }
+        .btn-recipe-select.active-udon {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+        }
+        .btn-recipe-select.active-bibim {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4) !important;
+        }
+        .btn-recipe-select.inactive {
+            background-color: #24242b !important;
+            color: #9ca3af !important;
+            border: 2px solid #374151 !important;
+        }
+        .btn-recipe-select:hover {
+            transform: translateY(-2px) !important;
+        }
+        .btn-recipe-select:active {
+            transform: translateY(1px) !important;
+        }
+        
+        .image-container { margin: 10px 0; text-align: center; }
+        .step-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+        .instruction-box { font-size: 1.1rem; line-height: 1.5; margin: 15px 0; word-break: keep-all; }
+        
+        .alert-box { 
+            background-color: rgba(239, 68, 68, 0.15); 
+            border-left: 4px solid var(--accent-red); 
+            padding: 12px; 
+            margin-top: 10px; 
+            margin-bottom: 10px; 
+            border-radius: 0 8px 8px 0; 
+            font-size: 1.05rem; 
+        }
+        .info-box { 
+            background-color: rgba(59, 130, 246, 0.15); 
+            border-left: 4px solid var(--accent-blue); 
+            padding: 12px; 
+            margin-top: 10px;
+            margin-bottom: 10px; 
+            border-radius: 0 8px 8px 0; 
+            font-size: 1.05rem; 
+        }
+
+        .control-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 180px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .timer-display { font-size: 3rem; font-weight: bold; text-align: center; margin: 5px 0; color: #97dfff; display: none; }
+        .timer-display.done-text { color: var(--accent-red); font-size: 2.2rem; animation: textBlinker 1s linear infinite; }
+        @keyframes textBlinker { 50% { opacity: 0; } }
+
+        /* 하단 공통 버튼 스타일 */
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: auto !important; width: 100%; }
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            color: white; 
+            touch-action: manipulation; 
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .btn-action {
+            background: linear-gradient(135deg, #258143, #06614b);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        .btn-stop { 
+            background: linear-gradient(135deg, #ef4444, #dc2626); 
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        .btn-next { 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .btn-test-order { 
+            background: linear-gradient(135deg, #4b5563, #374151); 
+            padding: 12px; 
+            font-size: 0.95rem; 
+            margin-top: 15px; 
+            border: 1px solid #4b5563;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            width: 100%;
+        }
+        
+        .recipe-manual { font-size: 0.95rem; line-height: 1.5; color: #d1d5db; }
+        .recipe-manual ul { padding-left: 20px; margin-bottom: 15px; }
+
+        @media (min-width: 768px) {
+            body { padding: 20px; }
+            .container { display: grid; grid-template-columns: 1fr 350px; align-items: start; }
+            .app-header, .status-bar, .btn-test-order, .order-queue-panel, .recipe-toggle-group, .section-title { grid-column: span 2; }
+            .main-title { font-size: 2.2rem; }
+            .step-indicator { grid-template-columns: repeat(4, 1fr); }
+            .step { flex-direction: row; font-size: 1.1rem; padding: 15px 10px; gap: 8px; }
+            h2 { font-size: 1.5rem; }
+            .step-image { max-height: 240px; }
+            .instruction-box { font-size: 1.3rem; min-height: 60px; }
+            .timer-display { font-size: 4rem; }
+            .timer-display.done-text { font-size: 3rem; }
+            .btn-group { flex-direction: row; }
+            .control-box { min-height: 145px; }
+        }
+        @media (max-width: 420px) {
+            .kitchen-order-card { grid-template-columns: 1fr; }
+            .kitchen-order-action { width: 100%; }
+            .current-order-banner { align-items: flex-start; flex-direction: column; }
+        }
+        .bi { color: white; }
+        .img-icon {
+            width: 25px;
+            height: 25px;
+        }
+        /* 로그인 뱃지 버튼 */
+        #h-open-btn {
+            position: absolute !important;
+            right: 15px !important;
+            left: auto !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 9999 !important;
+            background: transparent !important;
+            border: none !important;
+            cursor: pointer !important;
+            font-size: 24px !important;
+            color: white !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 4px !important;
+            width: auto !important;
+            height: auto !important;
+        }
+        .badge-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #cd00bb;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        .section-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #e5e7eb;
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+        /* 라운지 모달 오버레이 */
+        .lounge-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000;
+        }
+        .lounge-modal {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 380px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .rest-timer-display {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px dashed var(--accent-green);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .early-leave-section {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid #333;
+            text-align: center;
+        }
+        .early-leave-countdown {
+            margin: 16px 0;
+            padding: 14px;
+            border: 1px solid rgba(239, 68, 68, 0.6);
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+        .early-leave-summary {
+            margin: 16px 0;
+            padding: 14px;
+            border: 1px solid rgba(16, 185, 129, 0.55);
+            border-radius: 10px;
+            background: rgba(16, 185, 129, 0.1);
+            color: #e5e7eb;
+            text-align: left;
+            line-height: 1.8;
+        }
+        /* 업무 인계 모달 추가 */
+        .lounge-share-box {
+            background: #24242b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+            border: 1px solid #444;
+            color: #d1d5db;
+        }
+        .lounge-timer-display {
+            font-size: 1rem;
+            color: #fbbf24;
+            font-weight: 500;
+            margin-bottom: 8px;
+            background: rgba(251, 191, 36, 0.05);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            padding: 8px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast">🔔 신규 우동 주문이 들어왔습니다!</div>
+
+    <div class="container">
+        <!-- 💡 헤더 영역 레이아웃 조정 -->
+        <header class="app-header">
+            <button class="back-btn" type="button" aria-label="뒤로가기" onclick="window.history.back();">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <!-- 로그인 뱃지 버튼 -->
+            <button class="h-open-btn" id="h-open-btn" type="button">
+                <i class="bi bi-person-circle"></i>
+            </button>
+        </header>
+
+        <!-- 타이틀 중앙 배치 (헤더 하단으로 이동) -->
+        <div class="header-center">
+            <img class="img-icon" src="./images/Uton_150x150.png" alt="Uton" /><div class="main-title">&nbsp;&nbsp;우동만들기</div>
+        </div>
+
+        <button class="btn-test-order" onclick="receiveNewOrder()">+ 임시 주문 받기 (테스트용 버튼)</button>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span style="color: var(--text-muted);">🍜 우동 대기</span>
+                <span id="udon-order-display" class="status-value order-highlight">0건</span>
+            </div>
+            <div class="status-item">
+                <span style="color: var(--text-muted);">🥢 비빔면 대기</span>
+                <span id="bibim-order-display" class="status-value order-highlight" style="color: var(--accent-orange);">0건</span>
+            </div>
+        </div>
+
+        <section class="order-queue-panel" aria-labelledby="order-queue-title">
+            <div class="order-queue-heading">
+                <h2 id="order-queue-title"><i class="bi bi-receipt-cutoff"></i> 실시간 주문 대기</h2>
+                <span id="order-queue-status" class="queue-status">불러오는 중</span>
+            </div>
+            <div id="current-order-banner" class="current-order-banner" hidden></div>
+            <div id="order-queue-list" class="order-queue-list" aria-live="polite"></div>
+        </section>
+
+        <!-- 요리 메뉴얼 선택 타이틀 추가 -->
+        <div class="section-title">요리 메뉴얼 선택</div>
+
+        <!-- 🍜 조리 품목 선택 토글 그룹 -->
+        <div class="recipe-toggle-group">
+            <button type="button" id="btn-select-udon" onclick="switchRecipeMode('udon')" class="btn-recipe-select active-udon">🍜 우동 조리</button>
+            <button type="button" id="btn-select-bibim" onclick="switchRecipeMode('bibim')" class="btn-recipe-select inactive">🥢 비빔면 조리</button>
+        </div>
+
+        <!-- 요리 작업순서 타이틀 추가 -->
+        <div class="section-title">요리 작업순서</div>
+
+        <div class="panel">
+            <!-- 탭 인디케이터를 패널 내부 최상단에 배치 -->
+            <div class="step-indicator" style="margin-bottom: 20px;">
+                <div class="step active" id="tab-0" onclick="goToStep(0)">1. 육수 가열</div>
+                <div class="step" id="tab-1" onclick="goToStep(1)">2. 면 삶기 <span id="tab-badge" class="tab-badge"></span></div>
+                <div class="step" id="tab-2" onclick="goToStep(2)">3. 고명 준비</div>
+                <div class="step" id="tab-3" onclick="goToStep(3)">4. 담기/완성</div>
+            </div>
+            
+            <!-- 타이머 및 제어 버튼 컨테이너 (레이아웃 높이 고정용) -->
+            <div class="control-box">
+                <div class="timer-display" id="main-timer">03:00</div>
+
+                <div class="btn-group">
+                    <button class="btn-action" id="btn-start-timer" style="display:none;" onclick="startTimer()">▶ 타이머 시작</button>
+                    <button class="btn-stop" id="btn-stop-timer" style="display:none;" onclick="stopTimer()">■ 알람 끄기 및 면 건지기</button>
+                    <button class="btn-next" onclick="nextStep()" id="btn-next">다음 단계로 ➔</button>
+                </div>
+            </div>
+
+            <!-- ⚠️ 주의사항 및 정리 박스 전용 컨테이너 (이미지 위에 배치) -->
+            <div id="step-alerts-container" style="width: 100%;"></div>
+
+            <div class="image-container">
+                <img id="step-img" class="step-image" src="https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQqwqpyNU8dyOvKvOsEMqaDKaWgUjzElQUcmPiKv-5McxjlAOF341arCU5BfRkR4m7QNcGdv9A-srwYUNs" alt="조리 과정 사진">
+            </div>
+
+            <div class="instruction-box" id="instruction-text">지시 사항 로딩 중...</div>
+        </div>
+
+        <div class="panel">
+            <h2>표준 매뉴얼</h2>
+            <div class="recipe-manual" id="recipe-manual-content">
+                <h3>[재료 준비]</h3>
+                <ul>
+                    <li>냉동 우동면 1개</li>
+                    <li>멸치 다시마 육수 500ml</li>
+                    <li>고명: 어묵, 대파, 튀김가루, 김가루</li>
+                </ul>
+                <h3>[주의 사항]</h3>
+                <ul style="color: #fca5a5;">
+                    <li>면을 억지로 풀면 끊어집니다. 자연스럽게 풀리게 두세요.</li>
+                    <li>타이머가 울리면 즉시 건져내세요.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 🛋️ 라운지 쉼터 패널 -->
+        <div class="panel lounge-panel">
+            <h2>🛋️ 라운지 쉼터 (Break Lounge)</h2>
+            <div class="lounge-content">
+                <!-- 실시간 매장 정보 표시 -->
+                <div class="lounge-timer-display">
+                    <div style="margin-bottom: 4px;">🕒 현재 시간: <span id="current-time-display">00:00:00</span></div>
+                    <div style="margin-bottom: 4px;">⏱️ 남은 근무시간: <span id="work-timer-display" style="color: var(--accent-blue); font-weight: bold;">01:30:00</span></div>
+                    <div style="margin-bottom: 8px;">👥 근무 인원: <span style="color: var(--accent-green); font-weight: bold;">2명 (본인 포함)</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(1명일 시 휴식 불가)</span></div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button type="button" class="btn-test-order" style="background-color: #4b5563; flex: 1; border: 1px solid #6b7280; font-size: 0.9rem; margin-top: 0;" onclick="showLoungeLogs()">📋 나의 기록 보기</button>
+                        <button type="button" class="btn-test-order" style="background-color: #f59e0b; flex: 1; border: 1px solid #d97706; font-size: 0.9rem; margin-top: 0; color: white;" onclick="showLoungeRule()">📜 라운지 룰 보기</button>
+                    </div>
+                </div>
+
+                <!-- 1. 휴식 기능 섹션 -->
+                <div class="lounge-section text-center" style="text-align: center; margin-top: 15px;">
+                    <h3>휴식 및 휴게소 입장</h3>
+                    <div id="rest-timer-area" class="rest-timer-display" style="display: none; font-size: 2rem; color: var(--accent-green); margin: 15px 0;">
+                        🕒 휴식 시간: <span id="rest-time-counter">00:00</span>
+                    </div>
+                    <div class="btn-group" style="margin-top: 10px;">
+                        <button type="button" class="btn-action" id="btn-request-rest" onclick="requestRest()">☕ 휴식하기 (출구 QR)</button>
+                        <button type="button" class="btn-stop" id="btn-finish-rest" onclick="finishRest()" style="display: none;">🏭 업무 복귀</button>
+                    </div>
+                </div>
+
+                <div class="early-leave-section">
+                    <h3>⏳ 조퇴 신청</h3>
+                    <p style="color: var(--text-muted); font-size: 0.88rem; margin: 6px 0 12px;">신청 후 5분이 지나면 자동으로 조퇴 처리됩니다.</p>
+                    <button type="button" class="btn-stop" id="btn-early-leave" style="width: 100%; background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="openEarlyLeaveModal()">조퇴하기 (5분 대기)</button>
+                </div>
+
+                <!-- 2. 실내 지도 섹션 -->
+                <div class="lounge-section" style="margin-top: 20px;">
+                    <h3>🗺️ 매장 실내 지도</h3>
+                    <button type="button" class="btn-test-order" style="background-color: var(--accent-blue);" onclick="toggleLoungeMap()">🗺️ 실내 지도 보기/닫기</button>
+                    
+                    <div id="lounge-map-area" style="display: none; margin-top: 15px;">
+                        <!-- 3개의 구역(Zone)으로 나뉜 지도 SVG -->
+                        <img src="./images/work-map-uton.svg" alt="Uton Shop 실내 지도" style="display:block; width:100%; height:auto; border-radius:8px; background:#1a1a35; border: 1px solid #444;">
+                        <svg viewBox="0 0 400 240" style="display:none; width:100%; border-radius:8px; background:#1c1917; border: 1px solid #444;">
+                            <!-- 1구역: 조리 및 영업 구역 (우동매장 지역) -->
+                            <rect x="15" y="15" width="200" height="210" rx="6" fill="#2d2219" stroke="#ea580c" stroke-width="1.5"></rect>
+                            <text x="115" y="125" text-anchor="middle" fill="#fdba74" font-size="12" font-weight="bold">🍜 우동매장 구역</text>
+                            
+                            <!-- 2구역: 편의 구역 (화장실, 휴게소) -->
+                            <rect x="230" y="15" width="155" height="100" rx="6" fill="#1b253b" stroke="#3b82f6" stroke-width="1.5"></rect>
+                            <text x="307" y="55" text-anchor="middle" fill="#93c5fd" font-size="12" font-weight="bold">🚽 화장실 / 🛋️ 휴게소</text>
+                            <line x1="230" y1="65" x2="385" y2="65" stroke="#3b82f6" stroke-dasharray="2,2"></line>
+                            <text x="307" y="85" text-anchor="middle" fill="#93c5fd" font-size="9">위: 화장실 | 아래: 휴게소</text>
+                            
+                            <!-- 3구역: 지원 및 관리 구역 (사무실, 탈의실) -->
+                            <rect x="230" y="125" width="155" height="100" rx="6" fill="#241e3a" stroke="#a855f7" stroke-width="1.5"></rect>
+                            <text x="307" y="165" text-anchor="middle" fill="#d8b4fe" font-size="12" font-weight="bold">💼 사무실 / 👔 탈의실</text>
+                            <line x1="230" y1="175" x2="385" y2="175" stroke="#a855f7" stroke-dasharray="2,2"></line>
+                            <text x="307" y="195" text-anchor="middle" fill="#d8b4fe" font-size="9">위: 사무실 | 아래: 남녀 탈의실</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 👥 업무 인계 알림 모달 -->
+    <div id="lounge-share-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal">
+            <h3 style="color: white; margin-top: 0;">📢 업무 현황 공유 및 인계</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">휴식을 취하기 전, 동료 근무자에게 현재 진행 중인 나의 업무를 인계해주세요.</p>
+            
+            <div class="lounge-share-box">
+                <div style="font-weight: bold; color: var(--accent-orange); margin-bottom: 6px;">📢 실시간 업무 인계 메시지:</div>
+                <div id="lounge-share-msg" style="font-size: 0.95rem; line-height: 1.4;">현재 조리 대기 및 공정 현황을 계산 중입니다...</div>
+            </div>
+
+            <div class="btn-group" style="flex-direction: row; gap: 10px;">
+                <button type="button" class="btn-next" onclick="shareWorkStatus()">공유 및 완료 ➔</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeShareModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 출구 QR코드 스캔 팝업 모달 -->
+    <div id="lounge-qr-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal">
+            <h3 style="color: white; margin-top: 0;">🚪 출구 QR코드 스캔</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">휴게실 입장을 위해 출구 QR코드를 리더기에 인식해 주세요.</p>
+            
+            <!-- 가상의 QR코드 영역 (터치 시 스캔 완료 연동) -->
+            <div onclick="simulateQRScan()" style="background: white; padding: 15px; width: 160px; height: 160px; margin: 15px auto; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 3px solid var(--accent-blue);" title="터치하여 QR코드 인식하기">
+                <svg viewBox="0 0 100 100" style="width: 130px; height: 130px;">
+                    <!-- QR Borders -->
+                    <rect x="5" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="70" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="75" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="78" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="5" y="70" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="75" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="78" width="9" height="9" fill="black"></rect>
+                    
+                    <rect x="40" y="40" width="10" height="10" fill="black"></rect>
+                    <rect x="55" y="45" width="10" height="5" fill="black"></rect>
+                    <rect x="45" y="60" width="15" height="10" fill="black"></rect>
+                    <rect x="80" y="45" width="5" height="15" fill="black"></rect>
+                    <rect x="80" y="80" width="10" height="10" fill="black"></rect>
+                </svg>
+            </div>
+            
+            <div class="btn-group" style="flex-direction: row; gap: 10px;">
+                <button type="button" class="btn-next" onclick="simulateQRScan()">📷 가상 스캔 완료</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeExitQR()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🚪 입구 QR코드 스캔 팝업 모달 (업무 복귀 전용) -->
+    <div id="lounge-entry-qr-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal">
+            <h3 style="color: white; margin-top: 0;">🚪 입구 QR코드 스캔</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">매장 복귀 및 업무 재개를 위해 입구 QR코드를 리더기에 인식해 주세요.</p>
+            
+            <!-- 가상의 QR코드 영역 (터치 시 스캔 완료 연동) -->
+            <div onclick="simulateEntryQRScan()" style="background: white; padding: 15px; width: 160px; height: 160px; margin: 15px auto; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 3px solid var(--accent-green);" title="터치하여 QR코드 인식하기">
+                <svg viewBox="0 0 100 100" style="width: 130px; height: 130px;">
+                    <!-- QR Borders -->
+                    <rect x="5" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="70" y="5" width="25" height="25" fill="black"></rect>
+                    <rect x="75" y="10" width="15" height="15" fill="white"></rect>
+                    <rect x="78" y="13" width="9" height="9" fill="black"></rect>
+
+                    <rect x="5" y="70" width="25" height="25" fill="black"></rect>
+                    <rect x="10" y="75" width="15" height="15" fill="white"></rect>
+                    <rect x="13" y="78" width="9" height="9" fill="black"></rect>
+                    
+                    <!-- Inner random dots to simulate Entry QR -->
+                    <rect x="35" y="35" width="10" height="10" fill="black"></rect>
+                    <rect x="50" y="40" width="10" height="10" fill="black"></rect>
+                    <rect x="40" y="55" width="20" height="10" fill="black"></rect>
+                    <rect x="75" y="45" width="5" height="15" fill="black"></rect>
+                    <rect x="80" y="75" width="15" height="15" fill="black"></rect>
+                </svg>
+            </div>
+            
+            <div class="btn-group" style="flex-direction: row; gap: 10px;">
+                <button type="button" class="btn-next" onclick="simulateEntryQRScan()">📷 가상 스캔 완료</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeEntryQR()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📋 나의 기록 보기 모달 -->
+    <div id="early-leave-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 400px;">
+            <section id="early-leave-request-content">
+                <h3 style="color: white; margin-top: 0;">조퇴 확인</h3>
+                <p style="color: var(--text-muted); line-height: 1.6;">조퇴하시겠어요? 5분이 지나면 자동조퇴가 됩니다.</p>
+                <div class="early-leave-countdown" id="early-leave-countdown">05:00</div>
+                <p style="color: var(--text-muted); font-size: 0.82rem;">대기 중에도 계속 근무를 선택할 수 있습니다.</p>
+                <div class="btn-group" style="gap: 9px;">
+                    <button type="button" class="btn-next" style="background: linear-gradient(135deg, #f59e0b, #d97706);" onclick="forceEarlyLeave()">테스트: 즉시 조퇴</button>
+                    <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="cancelEarlyLeave()">계속 근무하기</button>
+                </div>
+            </section>
+            <section id="early-leave-complete-content" style="display: none;">
+                <h3 style="color: var(--accent-green); margin-top: 0;">이용해 주셔서 감사합니다.</h3>
+                <p style="color: var(--text-muted);">조퇴 정산이 완료되었습니다.</p>
+                <div class="early-leave-summary" id="early-leave-summary"></div>
+                <div class="btn-group" style="gap: 9px;">
+                    <button type="button" class="btn-test-order" style="background-color: #4b5563; margin-top: 0;" onclick="showEarlyLeaveRecord()">📋 나의 기록 보기</button>
+                    <button type="button" class="btn-next" onclick="goToEarlyLeaveDetail()">조퇴 완료</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="lounge-logs-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 450px;">
+            <h3 style="color: white; margin-top: 0;">📋 나의 업무 및 휴식 기록</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">오늘 수행한 주문 접수, 조리 완료 및 휴식 이력입니다.</p>
+            
+            <!-- 누적 휴식시간 배너 -->
+            <div style="background-color: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-green); padding: 8px; border-radius: 6px; font-weight: bold; color: var(--accent-green); margin-bottom: 15px; font-size: 0.95rem;">
+                ⏱️ 총 누적 휴식시간: <span id="total-rest-accumulated">0분 0초</span>
+            </div>
+
+            <!-- 타임라인 로그 영역 -->
+            <div id="lounge-logs-list" style="background: #24242b; border: 1px solid #444; border-radius: 8px; max-height: 250px; overflow-y: auto; text-align: left; padding: 12px; font-size: 0.85rem; color: #d1d5db; display: flex; flex-direction: column; gap: 8px;">
+                <!-- 기록이 채워질 자리 -->
+                <div style="text-align: center; color: var(--text-muted); padding: 15px;">기록된 업무 내역이 없습니다.</div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 15px;">
+                <button type="button" class="btn-stop" style="background-color: #6b7280; width: 100%;" onclick="closeLoungeLogs()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📜 라운지 룰 모달 -->
+    <div id="lounge-rule-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 400px; border: 1px solid var(--accent-orange);">
+            <h3 style="color: white; margin-top: 0; font-size: 1.25rem;">📜 라운지 쉼터 운영 룰</h3>
+            <div style="background: #24242b; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: left; border: 1px solid #444; color: #e5e7eb; line-height: 1.6; font-size: 0.95rem; word-break: keep-all;">
+                <div style="margin-bottom: 10px;">※우동, 비빔면은 약 4분이 걸림니다. 그렇기 때문에 10분에 2건의 주문이 최대로 받아짐니다. 참조하세요. 😀👍</div>
+                <div style="border-top: 1px dashed #444; padding-top: 10px; margin-top: 10px;">
+                    ※처음 일하시는 분들은 말해주세요. 관련해서 5분정도 교육을 통해 만드는 법을 
+                    <button type="button" onclick="requestEducation()" style="display: inline-block; width: auto; padding: 4px 10px; font-size: 0.85rem; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 6px; margin: 0 0 0 5px; box-shadow: none; vertical-align: middle;">얄려드림니다.</button>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn-next" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); width: 100%;" onclick="closeLoungeRule()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const UTON_WORK_ID = 2;
+        let activeUtonReservation = null;
+        let workCompletionPersisted = false;
+        let lastPersistedTaskSignature = "";
+        const EARLY_LEAVE_WAIT_MS = 5 * 60 * 1000;
+        let earlyLeaveTimer = null;
+        let earlyLeaveAutoAt = null;
+        let earlyLeaveCompleted = false;
+        let earlyLeaveHistoryId = null;
+        let dashboardInterval = null;
+        let utonEntryBlocked = false;
+
+        function getReservationId(reservation) {
+            if (!reservation) return null;
+            return reservation.id !== undefined && reservation.id !== null
+                ? reservation.id
+                : reservation.reservationId;
+        }
+
+        function isSameReservation(left, right) {
+            if (!left || !right) return false;
+
+            const leftId = getReservationId(left);
+            const rightId = getReservationId(right);
+            if (leftId !== undefined && leftId !== null && rightId !== undefined && rightId !== null) {
+                return String(leftId) === String(rightId);
+            }
+
+            return String(left.userId) === String(right.userId)
+                && String(left.workId) === String(right.workId)
+                && String(left.date) === String(right.date)
+                && String(left.slot) === String(right.slot);
+        }
+
+        function getCurrentSessionUser() {
+            if (window.AuthManager && typeof window.AuthManager.getCurrentUser === "function") {
+                const authUser = window.AuthManager.getCurrentUser();
+                if (authUser) return authUser;
+            }
+
+            try {
+                return JSON.parse(sessionStorage.getItem("user") || "null");
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function belongsToCurrentUser(reservation) {
+            const user = getCurrentSessionUser();
+            if (!user || !reservation) return false;
+
+            const idMatches = user.id !== undefined && user.id !== null
+                && reservation.userId !== undefined && reservation.userId !== null
+                && String(user.id) === String(reservation.userId);
+            const nameMatches = Boolean(user.name && reservation.userName && user.name === reservation.userName);
+
+            return idMatches || nameMatches;
+        }
+
+        function resolveActiveUtonReservation() {
+            if (!window.FactoryStore
+                || typeof window.FactoryStore.getState !== "function"
+                || typeof window.FactoryStore.dispatch !== "function") {
+                return null;
+            }
+
+            let selected = null;
+            try {
+                selected = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+            } catch (error) {
+                return null;
+            }
+
+            if (!selected || String(selected.workId) !== String(UTON_WORK_ID) || !belongsToCurrentUser(selected)) {
+                return null;
+            }
+
+            const reservations = window.FactoryStore.getState().reservations || [];
+            const storedReservation = reservations.find(reservation => isSameReservation(reservation, selected));
+            if (!storedReservation
+                || String(storedReservation.workId) !== String(UTON_WORK_ID)
+                || !belongsToCurrentUser(storedReservation)) {
+                return null;
+            }
+
+            return storedReservation;
+        }
+
+        function refreshActiveUtonReservation() {
+            if (!activeUtonReservation || !window.FactoryStore || typeof window.FactoryStore.getState !== "function") {
+                return activeUtonReservation;
+            }
+
+            const reservations = window.FactoryStore.getState().reservations || [];
+            const latest = reservations.find(reservation => isSameReservation(reservation, activeUtonReservation));
+            if (latest) activeUtonReservation = latest;
+            return activeUtonReservation;
+        }
+
+        function isClosedUtonWorkStatus(status) {
+            return ["completed", "early_left"].includes(String(status || ""));
+        }
+
+        function blockClosedUtonWorkEntry(reservation) {
+            utonEntryBlocked = true;
+            activeUtonReservation = reservation ? Object.assign({}, reservation) : null;
+            if (activeUtonReservation) {
+                sessionStorage.setItem("selected_reservation", JSON.stringify(activeUtonReservation));
+            }
+
+            try {
+                alert(activeUtonReservation && activeUtonReservation.workStatus === "early_left"
+                    ? "조퇴 처리가 완료된 근무입니다. 마이페이지에서 내역을 확인해주세요."
+                    : "이미 종료된 근무입니다. 마이페이지에서 내역을 확인해주세요.");
+            } catch (error) {}
+
+            window.location.replace("mypage2.html?tab=shopping");
+        }
+
+        function updateReservationWorkState(updates) {
+            if (!activeUtonReservation
+                || !window.FactoryStore
+                || typeof window.FactoryStore.dispatch !== "function") {
+                return false;
+            }
+
+            const reservationId = getReservationId(activeUtonReservation);
+            const timestampedUpdates = Object.assign({}, updates, {
+                lastActivityAt: updates.lastActivityAt || new Date().toISOString()
+            });
+
+            try {
+                window.FactoryStore.dispatch({
+                    type: "UPDATE_RESERVATION",
+                    payload: {
+                        id: reservationId,
+                        match: {
+                            userId: activeUtonReservation.userId,
+                            workId: activeUtonReservation.workId,
+                            date: activeUtonReservation.date,
+                            slot: activeUtonReservation.slot
+                        },
+                        changes: timestampedUpdates
+                    }
+                });
+
+                const latest = refreshActiveUtonReservation();
+                activeUtonReservation = latest
+                    ? Object.assign({}, latest)
+                    : Object.assign({}, activeUtonReservation, timestampedUpdates);
+                sessionStorage.setItem("selected_reservation", JSON.stringify(activeUtonReservation));
+                appendUtonWorkLogs(timestampedUpdates);
+                return true;
+            } catch (error) {
+                console.warn("Uton 예약 작업 상태를 저장하지 못했습니다.", error);
+                return false;
+            }
+        }
+
+        function appendUtonWorkLog(type, message, details) {
+            if (!activeUtonReservation || !window.FactoryStore || typeof window.FactoryStore.appendReservationLog !== "function") return;
+            window.FactoryStore.appendReservationLog(getReservationId(activeUtonReservation), Object.assign({
+                type: type,
+                status: activeUtonReservation.workStatus || "working",
+                message: message,
+                createdAt: new Date().toISOString()
+            }, details || {}), {
+                userId: activeUtonReservation.userId,
+                workId: activeUtonReservation.workId,
+                date: activeUtonReservation.date,
+                slot: activeUtonReservation.slot
+            });
+        }
+
+        function appendUtonWorkLogs(updates) {
+            if (!updates) return;
+            if (updates.workStatus) {
+                const statusMessages = {
+                    checked_in: "출근 인증 완료",
+                    ready: "작업 준비 완료",
+                    working: "작업을 시작했습니다.",
+                    early_leave_waiting: "조퇴 대기 상태로 전환했습니다.",
+                    early_left: "조퇴 처리가 완료되었습니다.",
+                    completed: "근무가 정상적으로 완료되었습니다.",
+                    absent: "예약 시간까지 출근하지 않아 결근 처리되었습니다."
+                };
+                appendUtonWorkLog("work_status", statusMessages[updates.workStatus] || `작업 상태 변경: ${updates.workStatus}`, { workStatus: updates.workStatus });
+            }
+            if (updates.currentTaskName || updates.currentTaskStep || updates.currentTaskType) {
+                appendUtonWorkLog("task", `작업 단계: ${updates.currentTaskName || updates.currentTaskStep || updates.currentTaskType}`, {
+                    taskType: updates.currentTaskType,
+                    taskStep: updates.currentTaskStep,
+                    taskName: updates.currentTaskName
+                });
+            }
+            if (updates.currentOrderNo) {
+                appendUtonWorkLog("order", `주문번호 ${updates.currentOrderNo}번 작업을 시작했습니다.`, { orderNo: updates.currentOrderNo });
+            }
+            if (updates.workCompletedAt) {
+                appendUtonWorkLog("checkout", updates.checkoutType === "조퇴" ? "조퇴 퇴근 시각이 기록되었습니다." : "퇴근 시각이 기록되었습니다.", {
+                    checkoutType: updates.checkoutType || "정상"
+                });
+            }
+        }
+
+        function getCurrentTaskSnapshot() {
+            const step = steps && steps[currentStep] ? steps[currentStep] : null;
+            const taskName = step && step.title
+                ? step.title.replace(/^\d+\.\s*/, "")
+                : null;
+            const displayStep = currentRecipeMode === "bibim"
+                ? Math.max(1, currentStep)
+                : currentStep + 1;
+
+            return {
+                currentTaskType: currentRecipeMode,
+                currentTaskStep: displayStep,
+                currentTaskName: taskName
+            };
+        }
+
+        function persistCurrentTaskState(force) {
+            if (!activeUtonReservation) return;
+
+            const task = getCurrentTaskSnapshot();
+            const signature = [task.currentTaskType, task.currentTaskStep, task.currentTaskName].join("|");
+            if (!force && signature === lastPersistedTaskSignature) return;
+
+            if (updateReservationWorkState(task)) {
+                lastPersistedTaskSignature = signature;
+            }
+        }
+
+        function initializeReservationWorkState() {
+            activeUtonReservation = resolveActiveUtonReservation();
+            if (!activeUtonReservation) return true;
+            sessionStorage.setItem("selected_reservation", JSON.stringify(activeUtonReservation));
+
+            const preWorkSteps = activeUtonReservation.checkInSteps || {};
+            const isPreWorkVerified = activeUtonReservation.preWorkStatus === "verified"
+                && activeUtonReservation.handPhotoStatus === "approved"
+                && preWorkSteps.shopEntry === true;
+            if (!isPreWorkVerified) {
+                activeUtonReservation = null;
+                window.location.href = "uton_before.html";
+                return false;
+            }
+
+            if (isClosedUtonWorkStatus(activeUtonReservation.workStatus)) {
+                blockClosedUtonWorkEntry(activeUtonReservation);
+                return false;
+            }
+
+            if (activeUtonReservation.workStatus === "early_leave_waiting") {
+                const waitingStartTime = Date.parse(activeUtonReservation.workStartedAt);
+                if (Number.isFinite(waitingStartTime)) {
+                    sessionStorage.setItem("workStartTime", String(waitingStartTime));
+                }
+                earlyLeaveAutoAt = Date.parse(activeUtonReservation.earlyLeaveAutoAt);
+                return;
+            }
+
+            const now = new Date().toISOString();
+            const storedStartTime = Date.parse(activeUtonReservation.workStartedAt);
+            const workStartedAt = Number.isFinite(storedStartTime)
+                ? activeUtonReservation.workStartedAt
+                : now;
+            const task = getCurrentTaskSnapshot();
+
+            if (updateReservationWorkState(Object.assign({}, task, {
+                workStatus: "working",
+                workStartedAt: workStartedAt
+            }))) {
+                lastPersistedTaskSignature = [
+                    task.currentTaskType,
+                    task.currentTaskStep,
+                    task.currentTaskName
+                ].join("|");
+            }
+
+            sessionStorage.setItem("workStartTime", String(Date.parse(workStartedAt)));
+            return true;
+        }
+
+        function incrementCompletedOrdersCount(completedOrder) {
+            if (!activeUtonReservation) return;
+
+            const latest = refreshActiveUtonReservation();
+            const currentCount = Number(latest && latest.completedOrdersCount);
+            const updates = {
+                completedOrdersCount: Number.isFinite(currentCount) ? currentCount + 1 : 1
+            };
+            if (completedOrder) {
+                updates.currentOrderId = null;
+                updates.currentOrderNo = null;
+                updates.currentOrderQty = null;
+                updates.lastCompletedOrderNo = String(completedOrder.orderNo || '');
+            }
+            updateReservationWorkState(updates);
+        }
+
+        function markReservationWorkCompleted() {
+            if (!activeUtonReservation || workCompletionPersisted) return;
+
+            const latest = refreshActiveUtonReservation();
+            if (latest && latest.workStatus === "completed") {
+                workCompletionPersisted = true;
+                return;
+            }
+
+            if (updateReservationWorkState({
+                workStatus: "completed",
+                workCompletedAt: latest && latest.workCompletedAt
+                    ? latest.workCompletedAt
+                    : new Date().toISOString()
+            })) {
+                workCompletionPersisted = true;
+            }
+        }
+
+        // 💡 체험 타이머 로직
+        let experiTimeLeft = 180; // 3분
+        let experiInterval = null;
+        let isExperiFinished = false;
+
+        function startExperiTimer() {
+            const experiTimerSpan = document.getElementById('experi-timer');
+            experiInterval = setInterval(() => {
+                if (isExperiFinished) return;
+                
+                experiTimeLeft--;
+                experiTimerSpan.innerText = formatTime(experiTimeLeft);
+                
+                if (experiTimeLeft <= 0) {
+                    finishExperience();
+                }
+            }, 1000);
+        }
+
+        function handleExperiBtnClick() {
+            if (!isExperiFinished) {
+                // 아직 완료되지 않은 상태라면 완료 상태로 변경
+                finishExperience();
+            } else {
+                // 이미 완료된 상태라면 이전 페이지로 복귀 이동
+                window.location.href = "work_detail.html?id=2";
+            }
+        }
+
+        function finishExperience() {
+            if (isExperiFinished) return;
+            isExperiFinished = true;
+            clearInterval(experiInterval);
+            
+            const btn = document.getElementById('btn-experi');
+            btn.classList.add('completed');
+            btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> 체험 완료';
+
+            // ★ 체험 완료 상태 저장 (uton_real.html은 항상 workId=2)
+            const workId = 2;
+            const userStr = sessionStorage.getItem('user');
+            let numericUserId = null;
+            if (userStr && window.MockData && window.MockData.users) {
+                try {
+                    const sessionUser = JSON.parse(userStr);
+                    const matched = window.MockData.users.find(u =>
+                        u.name === sessionUser.name || u.email === sessionUser.email
+                    );
+                    if (matched) numericUserId = matched.id;
+                } catch(e) {}
+            }
+
+            if (numericUserId && window.MockData && window.MockData.setExpCompleted) {
+                window.MockData.setExpCompleted(numericUserId, workId);
+            }
+
+            console.log("가상체험 3분이 완료되었습니다! 자동 페이지 리다이렉션 없이 uton_real.html 화면에 계속 머무릅니다.");
+        }
+
+        const WORK_DURATION_MS = 1.5 * 60 * 60 * 1000; // 1시간 30분
+
+        // ☕ 라운지 쉼터 휴식 기능 스크립트
+        let restTimeSeconds = 0;
+        let restInterval = null;
+        let isResting = false;
+
+        // 📋 나의 기록 로깅용 데이터 구조
+        let loungeLogs = [];
+        let totalRestSeconds = 0;
+        let loungeStorageKey = 'udonBibimLoungeLogs_guest';
+
+        function getLoungeStorageKey(reservation) {
+            if (!reservation) return 'udonBibimLoungeLogs_guest';
+            if (reservation.id !== undefined && reservation.id !== null) return `udonBibimLoungeLogs_${reservation.id}`;
+            return `udonBibimLoungeLogs_${reservation.userId || reservation.userName || 'guest'}_${reservation.workId || 2}_${reservation.date || 'unknown'}_${reservation.slot || 0}`;
+        }
+
+        function loadReservationLoungeState() {
+            loungeStorageKey = getLoungeStorageKey(activeUtonReservation);
+            loungeLogs = [];
+            totalRestSeconds = Number(activeUtonReservation && activeUtonReservation.breakSeconds) || 0;
+            try {
+                const savedLogs = sessionStorage.getItem(loungeStorageKey);
+                if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+                const savedSeconds = sessionStorage.getItem(`${loungeStorageKey}_seconds`);
+                if (savedSeconds !== null) totalRestSeconds = parseInt(savedSeconds, 10) || 0;
+            } catch(e) {
+                console.error("Lounge Logs Load Error:", e);
+            }
+        }
+
+        function addLoungeLog(message) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const logEntry = `[${hh}시 ${mm}분] ${message}`;
+            
+            loungeLogs.push(logEntry);
+            
+            try {
+                sessionStorage.setItem(loungeStorageKey, JSON.stringify(loungeLogs));
+            } catch(e) {}
+            appendUtonWorkLog('lounge', message, { loungeLog: logEntry });
+        }
+
+        function showLoungeLogs() {
+            const listEl = document.getElementById('lounge-logs-list');
+            if (!listEl) return;
+
+            // 누적 휴식 시간 연동
+            const accMin = Math.floor(totalRestSeconds / 60);
+            const accSec = totalRestSeconds % 60;
+            document.getElementById('total-rest-accumulated').innerText = `${accMin}분 ${accSec}초`;
+
+            const latestReservation = refreshActiveUtonReservation();
+            const reservationLogs = latestReservation && Array.isArray(latestReservation.workLogs)
+                ? latestReservation.workLogs
+                : [];
+            const displayLogs = reservationLogs.length > 0
+                ? reservationLogs.map(log => `[${log.createdAt ? formatEarlyLeaveClock(log.createdAt) : ''}] ${log.message || log.type || '작업 기록'}`)
+                : loungeLogs;
+
+            if (displayLogs.length === 0) {
+                listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px;">기록된 업무 내역이 없습니다.</div>`;
+            } else {
+                // 가장 최근 로그가 아래에 쌓이도록 렌더링
+                listEl.innerHTML = displayLogs.map(log => `
+                    <div style="border-bottom: 1px solid #333; padding-bottom: 4px; line-height: 1.4;">
+                        🟢 ${log}
+                    </div>
+                `).join('');
+                
+                // 스크롤 맨 아래로 이동
+                setTimeout(() => { listEl.scrollTop = listEl.scrollHeight; }, 50);
+            }
+
+            document.getElementById('lounge-logs-overlay').style.display = 'flex';
+        }
+
+        function closeLoungeLogs() {
+            document.getElementById('lounge-logs-overlay').style.display = 'none';
+        }
+
+        function formatEarlyLeaveClock(value) {
+            const date = value instanceof Date ? value : new Date(value);
+            if (Number.isNaN(date.getTime())) return '--:--:--';
+            return [date.getHours(), date.getMinutes(), date.getSeconds()]
+                .map(unit => String(unit).padStart(2, '0'))
+                .join(':');
+        }
+
+        function formatEarlyLeaveDuration(seconds) {
+            const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+            const hours = Math.floor(safeSeconds / 3600);
+            const minutes = Math.floor((safeSeconds % 3600) / 60);
+            const remainSeconds = safeSeconds % 60;
+            return `${hours}시간 ${minutes}분 ${remainSeconds}초`;
+        }
+
+        function renderEarlyLeaveCountdown() {
+            const countdownEl = document.getElementById('early-leave-countdown');
+            if (!countdownEl || !earlyLeaveAutoAt) return;
+            const remainingSeconds = Math.max(0, Math.ceil((earlyLeaveAutoAt - Date.now()) / 1000));
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            countdownEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            if (remainingSeconds === 0) finalizeEarlyLeave(false);
+        }
+
+        function startEarlyLeaveCountdown() {
+            if (earlyLeaveTimer) clearInterval(earlyLeaveTimer);
+            renderEarlyLeaveCountdown();
+            earlyLeaveTimer = setInterval(renderEarlyLeaveCountdown, 1000);
+        }
+
+        function updateEarlyLeaveButton() {
+            const button = document.getElementById('btn-early-leave');
+            if (!button) return;
+            if (earlyLeaveCompleted) {
+                button.disabled = true;
+                button.textContent = '조퇴 처리 완료';
+                button.style.opacity = '0.55';
+            } else if (activeUtonReservation && activeUtonReservation.workStatus === 'early_leave_waiting') {
+                button.textContent = '조퇴 대기 중';
+            }
+        }
+
+        function openEarlyLeaveModal() {
+            if (!activeUtonReservation) return;
+            const overlay = document.getElementById('early-leave-overlay');
+            if (earlyLeaveCompleted) {
+                showEarlyLeaveCompleteView();
+                overlay.style.display = 'flex';
+                return;
+            }
+
+            const storedAutoAt = Date.parse(activeUtonReservation.earlyLeaveAutoAt);
+            if (activeUtonReservation.workStatus === 'early_leave_waiting' && Number.isFinite(storedAutoAt)) {
+                earlyLeaveAutoAt = storedAutoAt;
+            } else {
+                const requestedAt = new Date();
+                earlyLeaveAutoAt = requestedAt.getTime() + EARLY_LEAVE_WAIT_MS;
+                updateReservationWorkState({
+                    workStatus: 'early_leave_waiting',
+                    earlyLeaveRequestedAt: requestedAt.toISOString(),
+                    earlyLeaveAutoAt: new Date(earlyLeaveAutoAt).toISOString()
+                });
+                addLoungeLog('조퇴를 신청했습니다. 5분 후 자동으로 조퇴 처리됩니다.');
+            }
+
+            document.getElementById('early-leave-request-content').style.display = 'block';
+            document.getElementById('early-leave-complete-content').style.display = 'none';
+            overlay.style.display = 'flex';
+            updateEarlyLeaveButton();
+            startEarlyLeaveCountdown();
+        }
+
+        function cancelEarlyLeave() {
+            if (earlyLeaveTimer) clearInterval(earlyLeaveTimer);
+            earlyLeaveTimer = null;
+            earlyLeaveAutoAt = null;
+            updateReservationWorkState({
+                workStatus: 'working',
+                earlyLeaveRequestedAt: null,
+                earlyLeaveAutoAt: null
+            });
+            document.getElementById('early-leave-overlay').style.display = 'none';
+            const button = document.getElementById('btn-early-leave');
+            if (button) button.textContent = '조퇴하기 (5분 대기)';
+            addLoungeLog('조퇴 신청을 취소하고 근무를 계속합니다.');
+        }
+
+        function finalizeActiveRestForEarlyLeave() {
+            if (!isResting) return;
+            clearInterval(restInterval);
+            totalRestSeconds += restTimeSeconds;
+            isResting = false;
+            try { sessionStorage.setItem(`${loungeStorageKey}_seconds`, String(totalRestSeconds)); } catch (e) {}
+            const restArea = document.getElementById('rest-timer-area');
+            const requestButton = document.getElementById('btn-request-rest');
+            const finishButton = document.getElementById('btn-finish-rest');
+            if (restArea) restArea.style.display = 'none';
+            if (requestButton) requestButton.style.display = 'block';
+            if (finishButton) finishButton.style.display = 'none';
+            addLoungeLog(`조퇴 정산을 위해 진행 중인 휴식을 ${formatEarlyLeaveDuration(restTimeSeconds)}으로 마감했습니다.`);
+        }
+
+        function getEarlyLeaveSummary() {
+            const reservation = refreshActiveUtonReservation() || activeUtonReservation || {};
+            const checkoutAt = new Date();
+            const checkInAt = new Date(reservation.checkInAt || reservation.workStartedAt || checkoutAt);
+            const elapsedSeconds = Math.max(0, Math.floor((checkoutAt.getTime() - checkInAt.getTime()) / 1000));
+            const breakSeconds = Math.max(0, Number(totalRestSeconds) || 0);
+            const actualWorkSeconds = Math.max(0, elapsedSeconds - breakSeconds);
+            const ratio = Number(reservation.ratio || reservation.salary || 1.1) || 1.1;
+            const earnedPay = Math.floor(actualWorkSeconds * ((10320 * ratio) / 3600));
+            return { reservation, checkoutAt, checkInAt, breakSeconds, actualWorkSeconds, ratio, earnedPay };
+        }
+
+        function showEarlyLeaveCompleteView(summary) {
+            const reservation = refreshActiveUtonReservation() || activeUtonReservation || {};
+            const saved = summary || {
+                checkInAt: new Date(reservation.checkInAt || reservation.workStartedAt || Date.now()),
+                checkoutAt: new Date(reservation.earlyLeaveCompletedAt || reservation.workCompletedAt || Date.now()),
+                breakSeconds: Number(reservation.breakSeconds) || 0,
+                actualWorkSeconds: Number(reservation.actualWorkSeconds) || 0,
+                earnedPay: Number(reservation.earnedPay) || 0
+            };
+            document.getElementById('early-leave-request-content').style.display = 'none';
+            document.getElementById('early-leave-complete-content').style.display = 'block';
+            document.getElementById('early-leave-summary').innerHTML = [
+                `출근 시각 <strong>${formatEarlyLeaveClock(saved.checkInAt)}</strong>`,
+                `퇴근 시각 <strong>${formatEarlyLeaveClock(saved.checkoutAt)}</strong>`,
+                `휴식 시간 <strong>${formatEarlyLeaveDuration(saved.breakSeconds)}</strong>`,
+                `실근무 시간 <strong>${formatEarlyLeaveDuration(saved.actualWorkSeconds)}</strong>`,
+                `급여 <strong style="color: var(--accent-green);">₩${Math.floor(saved.earnedPay).toLocaleString()}</strong>`
+            ].map(line => `<div>${line}</div>`).join('');
+        }
+
+        function finalizeEarlyLeave(isTestBypass) {
+            if (earlyLeaveCompleted) return;
+            if (earlyLeaveTimer) clearInterval(earlyLeaveTimer);
+            earlyLeaveTimer = null;
+            finalizeActiveRestForEarlyLeave();
+            const summary = getEarlyLeaveSummary();
+            const historyId = Date.now();
+            const locker = summary.reservation.lockerNumber
+                ? `${summary.reservation.lockerGender || summary.reservation.userGender || '선택'} 사물함 ${summary.reservation.lockerNumber}번`
+                : '사물함 정보 없음';
+            addLoungeLog(isTestBypass ? '테스트 즉시 조퇴로 정산을 완료했습니다.' : '5분 대기 후 자동 조퇴 처리가 완료되었습니다.');
+            const historyItem = {
+                id: historyId,
+                workId: UTON_WORK_ID,
+                job: 'Uton 우동만들기',
+                date: summary.checkoutAt.toISOString().slice(0, 10),
+                time: `${formatEarlyLeaveClock(summary.checkInAt)} ~ ${formatEarlyLeaveClock(summary.checkoutAt)}`,
+                checkInTime: formatEarlyLeaveClock(summary.checkInAt),
+                checkOutTime: formatEarlyLeaveClock(summary.checkoutAt),
+                breakSeconds: summary.breakSeconds,
+                breakTimeMin: Math.floor(summary.breakSeconds / 60),
+                actualWorkSeconds: summary.actualWorkSeconds,
+                actualWorkMin: summary.actualWorkSeconds / 60,
+                ratio: summary.ratio,
+                pay: summary.earnedPay,
+                role: summary.reservation.role || '일반',
+                locker: locker,
+                isEarlyLeave: true,
+                checkoutType: '조퇴',
+                completedOrdersCount: Number(summary.reservation.completedOrdersCount) || 0,
+                logs: loungeLogs.slice()
+            };
+            if (window.FactoryStore) window.FactoryStore.dispatch({ type: 'ADD_HISTORY_ITEM', payload: historyItem });
+            earlyLeaveCompleted = true;
+            earlyLeaveHistoryId = historyId;
+            updateReservationWorkState({
+                workStatus: 'early_left',
+                workCompletedAt: summary.checkoutAt.toISOString(),
+                earlyLeaveCompletedAt: summary.checkoutAt.toISOString(),
+                checkoutType: '조퇴',
+                breakSeconds: summary.breakSeconds,
+                actualWorkSeconds: summary.actualWorkSeconds,
+                earnedPay: summary.earnedPay,
+                attendanceHistoryId: historyId
+            });
+            try {
+                sessionStorage.setItem('uton_early_leave_history_id', String(historyId));
+            } catch (e) {}
+            workCompletionPersisted = true;
+            if (dashboardInterval) clearInterval(dashboardInterval);
+            showEarlyLeaveCompleteView(summary);
+            document.getElementById('early-leave-overlay').style.display = 'flex';
+            updateEarlyLeaveButton();
+        }
+
+        function forceEarlyLeave() {
+            finalizeEarlyLeave(true);
+        }
+
+        function showEarlyLeaveRecord() {
+            showLoungeLogs();
+        }
+
+        function goToEarlyLeaveDetail() {
+            const historyId = earlyLeaveHistoryId || (activeUtonReservation && activeUtonReservation.attendanceHistoryId) || sessionStorage.getItem('uton_early_leave_history_id');
+            window.location.href = `explore_detail.html?id=${encodeURIComponent(historyId || '')}`;
+        }
+
+        function showExitQR() {
+            document.getElementById('lounge-qr-overlay').style.display = 'flex';
+        }
+
+        function closeExitQR() {
+            document.getElementById('lounge-qr-overlay').style.display = 'none';
+        }
+
+        function simulateQRScan() {
+            closeExitQR();
+            isResting = true;
+            restTimeSeconds = 0;
+            document.getElementById('rest-time-counter').innerText = "00:00";
+            document.getElementById('rest-timer-area').style.display = 'block';
+            document.getElementById('btn-request-rest').style.display = 'none';
+            document.getElementById('btn-finish-rest').style.display = 'block';
+
+            // 휴식 타이머 시작 (+1초)
+            restInterval = setInterval(() => {
+                restTimeSeconds++;
+                const m = Math.floor(restTimeSeconds / 60).toString().padStart(2, '0');
+                const s = (restTimeSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-time-counter').innerText = `${m}:${s}`;
+            }, 1000);
+
+            // 📋 휴식 시작 로그 등록
+            addLoungeLog("휴식을 시작했습니다.");
+            
+            alert("출구 QR 스캔이 완료되었습니다! 휴게실로 이동하며, 휴식 타이머가 작동합니다.");
+        }
+
+        function finishRest() {
+            // 휴식 종료 시 입구 QR코드를 먼저 찍도록 모달창 표시
+            showEntryQR();
+        }
+
+        function showEntryQR() {
+            document.getElementById('lounge-entry-qr-overlay').style.display = 'flex';
+        }
+
+        function closeEntryQR() {
+            document.getElementById('lounge-entry-qr-overlay').style.display = 'none';
+        }
+
+        function simulateEntryQRScan() {
+            closeEntryQR();
+            isResting = false;
+            clearInterval(restInterval);
+            
+            // 📋 누적 휴식시간 합산 및 세션 저장
+            totalRestSeconds += restTimeSeconds;
+            try {
+                sessionStorage.setItem(`${loungeStorageKey}_seconds`, totalRestSeconds.toString());
+            } catch(e) {}
+
+            document.getElementById('rest-timer-area').style.display = 'none';
+            document.getElementById('btn-request-rest').style.display = 'block';
+            document.getElementById('btn-finish-rest').style.display = 'none';
+
+            // 📋 휴식 종료 및 누적 시간 로그 등록
+            addLoungeLog("휴식을 마쳤습니다.");
+            
+            const accMin = Math.floor(totalRestSeconds / 60);
+            const accSec = totalRestSeconds % 60;
+            addLoungeLog(`누적 휴식시간: ${accMin}분 ${accSec}초`);
+            
+            alert(`입구 QR 스캔이 완료되었습니다! 총 휴식 시간: ${Math.floor(restTimeSeconds / 60)}분 ${restTimeSeconds % 60}초. 매장으로 입장하여 업무에 복귀합니다!`);
+        }
+
+        function toggleLoungeMap() {
+            const mapArea = document.getElementById('lounge-map-area');
+            mapArea.style.display = mapArea.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showLoungeRule() {
+            document.getElementById('lounge-rule-overlay').style.display = 'flex';
+        }
+
+        function closeLoungeRule() {
+            document.getElementById('lounge-rule-overlay').style.display = 'none';
+        }
+
+        function requestEducation() {
+            if (confirm("정말로 교육이 필요하나요?")) {
+                alert("관리자에게 연락을 합니다. 곧 도착하니, 기다려주세요.");
+            }
+        }
+
+        // 띵~ 사운드 신디사이저 (Web Audio API)
+        function playDingSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                // 띵 소리를 위한 주파수 880Hz -> 1200Hz
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                
+                // 볼륨 페이드 아웃
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e) {
+                console.error("Audio Play Error:", e);
+            }
+        }
+
+        // 라운지 휴식 플로우 제어 스크립트
+        function requestRest() {
+            // 현재 내 진행 상태 구성 (대기 주문 상태 및 현재 조리상태를 기반으로 동적 작성)
+            let currentWorkMsg = "";
+            if (udonOrderCount === 0 && bibimOrderCount === 0) {
+                currentWorkMsg = "현재 모든 조리 대기 주문(0건)이 완료되어 대기 중인 상태입니다.";
+            } else {
+                currentWorkMsg = `현재 우동 대기 ${udonOrderCount}건, 비빔면 대기 ${bibimOrderCount}건인 상황입니다. `;
+                if (currentRecipeMode === "udon") {
+                    currentWorkMsg += `저는 지금 우동 조리 공정(${currentStep + 1}단계)을 진행하고 있었습니다.`;
+                } else {
+                    currentWorkMsg += `저는 지금 비빔면 조리 공정(단계)을 준비/진행하고 있었습니다.`;
+                }
+            }
+            
+            document.getElementById('lounge-share-msg').innerText = currentWorkMsg;
+            document.getElementById('lounge-share-overlay').style.display = 'flex';
+        }
+
+        function closeShareModal() {
+            document.getElementById('lounge-share-overlay').style.display = 'none';
+        }
+
+        function shareWorkStatus() {
+            closeShareModal();
+            // 공유 완료 후 출구 QR 띄우기
+            showExitQR();
+        }
+
+        let udonOrderCount = 0;
+        let bibimOrderCount = 0;
+        let selectedKitchenOrderId = null;
+        let orderQueueInitialized = false;
+        let knownUtonOrderIds = new Set();
+        let unsubscribeOrderQueue = null;
+        let orderQueueClickBound = false;
+
+        function escapeKitchenHtml(value) {
+            return String(value === undefined || value === null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getKitchenMenuType(order) {
+            if (order && (order.menuType === 'udon' || order.menuType === 'bibim')) {
+                return order.menuType;
+            }
+            const productId = String(order && (order.productId || order.productCode) || '').toLowerCase();
+            const productName = String(order && order.productName || '');
+            if (productId === '20002' || productId === 'p2' || productName.includes('비빔')) return 'bibim';
+            return 'udon';
+        }
+
+        function isUtonKitchenOrder(order) {
+            if (!order) return false;
+            if (String(order.workId || '') === String(UTON_WORK_ID)) return true;
+
+            const productId = String(order.productId || order.productCode || '').toLowerCase();
+            const productName = String(order.productName || '');
+            return productId === '20001'
+                || productId === '20002'
+                || productId === 'p1'
+                || productId === 'p2'
+                || productName.includes('우동')
+                || productName.includes('비빔면');
+        }
+
+        function getKitchenOrderStatus(order) {
+            if (order && order.kitchenStatus) return order.kitchenStatus;
+            return order && order.status === 'pending' ? 'queued' : '';
+        }
+
+        function getUtonKitchenOrders() {
+            if (!window.FactoryStore) return [];
+
+            let orders = [];
+            if (typeof window.FactoryStore.getShopOrders === 'function') {
+                orders = window.FactoryStore.getShopOrders({ workId: UTON_WORK_ID });
+            } else {
+                const state = window.FactoryStore.getState();
+                orders = (state.shopHistory || []).filter(isUtonKitchenOrder);
+            }
+
+            return orders
+                .filter(order => order && order.status === 'pending')
+                .filter(order => ['queued', 'preparing', 'ready'].includes(getKitchenOrderStatus(order)))
+                .sort((a, b) => {
+                    const aTime = Date.parse(a.orderedAt || a.createdAt || '') || 0;
+                    const bTime = Date.parse(b.orderedAt || b.createdAt || '') || 0;
+                    return aTime - bTime;
+                });
+        }
+
+        function formatKitchenOrderTime(order) {
+            const parsed = Date.parse(order.orderedAt || order.createdAt || '');
+            if (Number.isFinite(parsed)) {
+                return new Date(parsed).toLocaleTimeString('ko-KR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+            return order.orderTime || '시간 미상';
+        }
+
+        function showKitchenToast(message) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function renderUtonOrderQueue() {
+            const orders = getUtonKitchenOrders();
+            const list = document.getElementById('order-queue-list');
+            const queueStatus = document.getElementById('order-queue-status');
+            const currentBanner = document.getElementById('current-order-banner');
+            if (!list || !queueStatus || !currentBanner) return;
+
+            const cookingOrders = orders.filter(order => getKitchenOrderStatus(order) !== 'ready');
+            const readyOrders = orders.filter(order => getKitchenOrderStatus(order) === 'ready');
+            udonOrderCount = cookingOrders
+                .filter(order => getKitchenMenuType(order) === 'udon')
+                .reduce((sum, order) => sum + Math.max(1, Number(order.qty) || 1), 0);
+            bibimOrderCount = cookingOrders
+                .filter(order => getKitchenMenuType(order) === 'bibim')
+                .reduce((sum, order) => sum + Math.max(1, Number(order.qty) || 1), 0);
+            sessionStorage.setItem('udonOrderCount', String(udonOrderCount));
+            sessionStorage.setItem('bibimOrderCount', String(bibimOrderCount));
+            updateOrderCountDisplays();
+
+            const currentIds = new Set(orders.map(order => String(order.id)));
+            if (orderQueueInitialized) {
+                const newOrders = orders.filter(order =>
+                    getKitchenOrderStatus(order) === 'queued'
+                    && !knownUtonOrderIds.has(String(order.id))
+                );
+                if (newOrders.length > 0) {
+                    playDingSound();
+                    showKitchenToast(`🔔 신규 주문 ${newOrders.length}건이 들어왔습니다.`);
+                }
+            }
+            knownUtonOrderIds = currentIds;
+            orderQueueInitialized = true;
+
+            const selectedOrder = orders.find(order =>
+                String(order.id) === String(selectedKitchenOrderId)
+                && getKitchenOrderStatus(order) !== 'ready'
+            );
+            if (!selectedOrder) selectedKitchenOrderId = null;
+
+            if (selectedOrder) {
+                currentBanner.hidden = false;
+                currentBanner.innerHTML = `
+                    <span>현재 조리 중</span>
+                    <strong>주문번호 #${escapeKitchenHtml(selectedOrder.orderNo || '-')}</strong>
+                    <span>${escapeKitchenHtml(selectedOrder.productName || 'Uton 메뉴')} · ${Math.max(1, Number(selectedOrder.qty) || 1)}그릇</span>
+                `;
+            } else {
+                currentBanner.hidden = true;
+                currentBanner.innerHTML = '';
+            }
+
+            queueStatus.textContent = `조리 ${cookingOrders.length}건 · 수령 ${readyOrders.length}건`;
+            if (orders.length === 0) {
+                list.innerHTML = '<div class="order-queue-empty">현재 대기 중인 Uton 주문이 없습니다.</div>';
+                return;
+            }
+
+            const statusLabels = {
+                queued: '조리 대기',
+                preparing: '조리 중',
+                ready: '수령 대기'
+            };
+            list.innerHTML = orders.map(order => {
+                const kitchenStatus = getKitchenOrderStatus(order);
+                const isSelected = String(order.id) === String(selectedKitchenOrderId);
+                const qty = Math.max(1, Number(order.qty) || 1);
+                const customer = order.userName ? ` · ${escapeKitchenHtml(order.userName)}` : '';
+                let actionHtml = '<span class="kitchen-order-ready">고객 수령 대기</span>';
+                if (kitchenStatus === 'queued') {
+                    actionHtml = `<button type="button" class="kitchen-order-action" data-order-action="start" data-order-id="${escapeKitchenHtml(order.id)}">조리 시작</button>`;
+                } else if (kitchenStatus === 'preparing') {
+                    actionHtml = `<button type="button" class="kitchen-order-action continue" data-order-action="start" data-order-id="${escapeKitchenHtml(order.id)}">${isSelected ? '조리 중' : '조리 계속'}</button>`;
+                }
+
+                return `
+                    <article class="kitchen-order-card${isSelected ? ' is-selected' : ''}${kitchenStatus === 'ready' ? ' is-ready' : ''}">
+                        <div class="kitchen-order-main">
+                            <div class="kitchen-order-top">
+                                <span class="kitchen-order-number">#${escapeKitchenHtml(order.orderNo || '-')}</span>
+                                <span class="kitchen-order-badge ${escapeKitchenHtml(kitchenStatus)}">${statusLabels[kitchenStatus] || '확인 중'}</span>
+                            </div>
+                            <div class="kitchen-order-product">${escapeKitchenHtml(order.productName || 'Uton 메뉴')} · ${qty}그릇</div>
+                            <div class="kitchen-order-meta">${escapeKitchenHtml(formatKitchenOrderTime(order))}${customer}</div>
+                        </div>
+                        ${actionHtml}
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function bindOrderQueueActions() {
+            const list = document.getElementById('order-queue-list');
+            if (!list || orderQueueClickBound) return;
+            orderQueueClickBound = true;
+            list.addEventListener('click', function(event) {
+                const button = event.target.closest('[data-order-action="start"]');
+                if (!button) return;
+                startKitchenOrder(button.dataset.orderId);
+            });
+        }
+
+        function startKitchenOrder(orderId) {
+            const order = getUtonKitchenOrders().find(item => String(item.id) === String(orderId));
+            if (!order || getKitchenOrderStatus(order) === 'ready') {
+                showKitchenToast('이미 처리되었거나 찾을 수 없는 주문입니다.');
+                renderUtonOrderQueue();
+                return;
+            }
+
+            selectedKitchenOrderId = String(order.id);
+            if (getKitchenOrderStatus(order) === 'queued') {
+                window.FactoryStore.dispatch({
+                    type: 'UPDATE_SHOP_ORDER',
+                    payload: {
+                        id: order.id,
+                        changes: {
+                            kitchenStatus: 'preparing',
+                            preparingAt: order.preparingAt || new Date().toISOString()
+                        }
+                    }
+                });
+                addLoungeLog(`주문번호 ${order.orderNo}번 조리를 시작했습니다.`);
+            }
+
+            switchRecipeMode(getKitchenMenuType(order));
+            updateReservationWorkState({
+                currentOrderId: order.id,
+                currentOrderNo: String(order.orderNo || ''),
+                currentOrderQty: Math.max(1, Number(order.qty) || 1)
+            });
+            renderUtonOrderQueue();
+        }
+
+        function initDashboard() {
+            if (initializeReservationWorkState() === false || utonEntryBlocked) return;
+            loadReservationLoungeState();
+
+            if (activeUtonReservation && activeUtonReservation.currentOrderId) {
+                selectedKitchenOrderId = String(activeUtonReservation.currentOrderId);
+            }
+            bindOrderQueueActions();
+            renderUtonOrderQueue();
+            if (window.FactoryStore && typeof window.FactoryStore.subscribe === 'function') {
+                unsubscribeOrderQueue = window.FactoryStore.subscribe(renderUtonOrderQueue);
+                window.addEventListener('beforeunload', function() {
+                    if (unsubscribeOrderQueue) unsubscribeOrderQueue();
+                }, { once: true });
+            }
+
+            if(!sessionStorage.getItem('workStartTime')) {
+                sessionStorage.setItem('workStartTime', new Date().getTime().toString());
+            }
+
+            dashboardInterval = setInterval(updateDashboardTime, 1000);
+            updateDashboardTime(); 
+
+            if (activeUtonReservation && activeUtonReservation.workStatus === 'early_leave_waiting') {
+                const storedAutoAt = Date.parse(activeUtonReservation.earlyLeaveAutoAt);
+                if (Number.isFinite(storedAutoAt)) {
+                    earlyLeaveAutoAt = storedAutoAt;
+                    if (earlyLeaveAutoAt <= Date.now()) {
+                        finalizeEarlyLeave(false);
+                    } else {
+                        startEarlyLeaveCountdown();
+                    }
+                }
+            }
+            updateEarlyLeaveButton();
+            
+            // ★ 로그인 뱃지 렌더링 (sessionStorage에서 직접 읽기)
+            renderLoginBadge();
+        }
+
+        function updateOrderCountDisplays() {
+            document.getElementById('udon-order-display').innerText = `${udonOrderCount}건`;
+            document.getElementById('bibim-order-display').innerText = `${bibimOrderCount}건`;
+        }
+
+        function renderLoginBadge() {
+            const btn = document.getElementById('h-open-btn');
+            if (!btn) return;
+
+            let user = null;
+            try {
+                const userStr = sessionStorage.getItem('user');
+                if (userStr) user = JSON.parse(userStr);
+            } catch(e) {}
+
+            if (user) {
+                if (user.picture) {
+                    btn.innerHTML = '<img src="' + user.picture + '" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; vertical-align: middle;" alt="' + (user.name || '') + '" />';
+                } else if (user.name) {
+                    btn.innerHTML = '<span class="badge-name">' + user.name + '</span>';
+                } else {
+                    btn.innerHTML = '<i class="bi bi-person-circle"></i>';
+                }
+            } else {
+                btn.innerHTML = '<i class="bi bi-person-circle"></i>';
+            }
+
+            btn.onclick = function(e) {
+                e.stopPropagation();
+                location.href = sessionStorage.getItem('user') ? './mypage2.html' : './login.html';
+            };
+        }
+
+        function updateDashboardTime() {
+            const now = new Date();
+            const timeDisplays = document.querySelectorAll('#current-time-display');
+            const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false });
+            timeDisplays.forEach(el => el.innerText = timeStr);
+
+            if (earlyLeaveCompleted || (activeUtonReservation && activeUtonReservation.workStatus === 'early_left')) {
+                document.querySelectorAll('#work-timer-display').forEach(el => {
+                    el.innerText = '조퇴 완료';
+                    el.style.color = 'var(--accent-green)';
+                });
+                return;
+            }
+
+            const startTime = parseInt(sessionStorage.getItem('workStartTime'));
+            const elapsed = now.getTime() - startTime;
+            let remaining = WORK_DURATION_MS - elapsed;
+
+            if (remaining < 0) remaining = 0; 
+
+            const rHours = Math.floor(remaining / (1000 * 60 * 60));
+            const rMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            const rSeconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+            const timerStr = `${String(rHours).padStart(2,'0')}:${String(rMinutes).padStart(2,'0')}:${String(rSeconds).padStart(2,'0')}`;
+            const timerDisplays = document.querySelectorAll('#work-timer-display');
+            
+            timerDisplays.forEach(el => {
+                el.innerText = remaining === 0 ? "근무 종료" : timerStr;
+                if (remaining <= 10 * 60 * 1000) {
+                    el.style.color = "var(--accent-red)";
+                } else {
+                    el.style.color = "var(--accent-blue)";
+                }
+            });
+
+            if (remaining === 0) {
+                markReservationWorkCompleted();
+            }
+        }
+
+        function receiveNewOrder() {
+            if (!window.FactoryStore) return;
+            const usedNumbers = new Set(
+                (window.FactoryStore.getState().shopHistory || [])
+                    .map(order => String(order.orderNo || ''))
+            );
+            let orderNo = null;
+            for (let number = 100; number <= 999; number++) {
+                const candidate = String(number);
+                if (!usedNumbers.has(candidate)) {
+                    orderNo = candidate;
+                    break;
+                }
+            }
+            if (!orderNo) {
+                showKitchenToast('사용 가능한 테스트 주문번호가 없습니다.');
+                return;
+            }
+
+            const isUdon = Math.random() < 0.5;
+            const now = new Date();
+            let currentUser = {};
+            try {
+                currentUser = JSON.parse(sessionStorage.getItem('user') || '{}') || {};
+            } catch (error) {}
+            const order = {
+                id: `demo_order_${now.getTime()}`,
+                orderNo: orderNo,
+                userId: currentUser.id || sessionStorage.getItem('user-id') || 'demo-customer',
+                userName: currentUser.name || '테스트 고객',
+                workId: UTON_WORK_ID,
+                productId: isUdon ? 20001 : 20002,
+                productCode: isUdon ? 'p1' : 'p2',
+                menuType: isUdon ? 'udon' : 'bibim',
+                productName: isUdon ? '정통 가쓰오 우동' : '감칠맛 간장 비빔면',
+                brandName: 'Uton',
+                orderType: 'dine_in',
+                fulfillmentType: 'pickup',
+                qty: 1,
+                unitPrice: 3000,
+                price: 3000,
+                status: 'pending',
+                kitchenStatus: 'queued',
+                orderedAt: now.toISOString(),
+                orderDate: now.toLocaleDateString('ko-KR'),
+                orderTime: formatKitchenOrderTime({ orderedAt: now.toISOString() })
+            };
+            window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: order });
+            addLoungeLog(`${order.productName} 테스트 주문(${orderNo}번)이 들어왔습니다.`);
+        }
+
+        function completeOrder() {
+            const orders = getUtonKitchenOrders();
+            let order = orders.find(item =>
+                String(item.id) === String(selectedKitchenOrderId)
+                && getKitchenOrderStatus(item) === 'preparing'
+            );
+            if (!order) {
+                const preparingForMode = orders.filter(item =>
+                    getKitchenOrderStatus(item) === 'preparing'
+                    && getKitchenMenuType(item) === currentRecipeMode
+                );
+                if (preparingForMode.length === 1) {
+                    order = preparingForMode[0];
+                    selectedKitchenOrderId = String(order.id);
+                }
+            }
+
+            if (!order) {
+                showKitchenToast('먼저 주문 카드에서 조리 시작을 눌러주세요.');
+                return false;
+            }
+            if (getKitchenMenuType(order) !== currentRecipeMode) {
+                showKitchenToast(`주문번호 #${order.orderNo}의 메뉴와 조리 모드가 다릅니다.`);
+                return false;
+            }
+
+            selectedKitchenOrderId = null;
+            window.FactoryStore.dispatch({
+                type: 'UPDATE_SHOP_ORDER',
+                payload: {
+                    id: order.id,
+                    changes: {
+                        kitchenStatus: 'ready',
+                        readyAt: new Date().toISOString()
+                    }
+                }
+            });
+            addLoungeLog(`주문번호 ${order.orderNo}번 ${order.productName || '메뉴'} 조리를 완료했습니다.`);
+            incrementCompletedOrdersCount(order);
+            showKitchenToast(`✅ 주문번호 #${order.orderNo} 조리 완료 · 수령 알림 전송`);
+            renderUtonOrderQueue();
+            return true;
+        }
+
+        // 🍜 레시피 단계 정의
+        let currentRecipeMode = "udon"; // "udon" 또는 "bibim"
+
+        const udonSteps = [
+            { 
+                title: "1. 육수 가열", 
+                alerts: "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
+                infos: "<div class='info-box'>💧 <b>정리:</b> 육수를 다 끓이고 난 후에는 물에 냄비를 깨끗하게 씻어주세요.</div>",
+                text: "가스레인지 점화.<br>냄비에 육수 500ml를 넣고 <b>강불</b>로 가열하세요.<br><br>육수가 팔팔 끓을 때까지 기다려주세요.<br>",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQqwqpyNU8dyOvKvOsEMqaDKaWgUjzElQUcmPiKv-5McxjlAOF341arCU5BfRkR4m7QNcGdv9A-srwYUNs" 
+            },
+            { 
+                title: "2. 면 삶기 (타이머)", 
+                alerts: "<div class='alert-box'>🔥 <b>주의:</b> 면을 삶을 때 끓는 물이 튈 수 있으니 화상에 조심하세요!</div>",
+                infos: "<div class='info-box'>💧 <b>정리:</b> 면을 건져낸 후에는 사용한 채(뜰채)를 물에 살짝 씻어주세요.</div>",
+                text: "물이 끓으면 우동면을 투입하세요.<br>아래 <b>타이머 시작</b>을 누르고 다른 탭으로 이동 가능합니다.<br><br>",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcSxtDC-YXbt_U9wqJ_WtNPUeYshc-CwQrhRbr61FDdv67f5nlwunxHS89vjBV3Y5a409kGdZ3-VXUYrfYA" 
+            },
+            { 
+                title: "3. 고명 준비", 
+                alerts: "",
+                infos: "",
+                text: "면이 삶아지는 동안 세팅합니다.<br>어묵 1장, 대파, 튀김가루 1스푼, 김가루를 <b>작은 그릇에 따로 준비</b>해두세요.<br>(완성된 면 위에 마지막에 올릴 용도입니다.)",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcQfilAExQYJe152JPFNBy8KLIfRrWPYsPUykEi6W9znLdEo8Eq-ICBKPJe5k67QohqubWBeAOx1ud5SON8" 
+            },
+            { 
+                title: "4. 담기/완성", 
+                alerts: "",
+                infos: "",
+                text: "물기를 털어 그릇에 담습니다.<br>뜨거운 육수를 붓고 준비된 고명을 위에 올려 완성하세요.",
+                img: "https://encrypted-tbn3.gstatic.com/licensed-image?q=tbn:ANd9GcS1If8pDsgRf6p0m0Zqp9wRmQm8Iplx6CnTFE49qxXhYZaSGTVua5ybRvbgJZJAoaksUlbdBcTEDLbXN-Y" 
+            }
+        ];
+
+        const bibimSteps = [
+            { 
+                title: "1. 육수 가열 없음", 
+                alerts: "",
+                infos: "",
+                text: "간장 비빔면은 육수 가열 단계가 없습니다.<br>2단계 <b>면 삶기</b>로 이동하여 조리를 시작하세요.",
+                img: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23222'/><text x='50' y='55' font-size='10' fill='white' text-anchor='middle'>육수 가열 없음</text></svg>"
+            },
+            { 
+                title: "2. 면 삶기 (타이머)", 
+                alerts: "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
+                infos: "",
+                text: "냄비의 끓는 물에 소면을 넣으세요.<br>아래 <b>타이머 시작</b>을 누르고 조리를 진행합니다.<br><br><b>면을 삶고 찬물로 채에 잘 치데어 차게해주세요.</b><br><br>",
+                img: "./images/somyeon_boil.png" 
+            },
+            { 
+                title: "3. 양념 비비기", 
+                alerts: "<div class='alert-box'>⚠️ <b>위생 안전 지침:</b> 면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</div>",
+                infos: "",
+                text: "삶은 면을 찬물에 헹궈 물기를 완전히 짠 후 그릇에 넣습니다.<br><b>참기름, 간장 2스푼, 설탕 2스푼, 참기름 2스푼</b>을 넣고 맛있게 비벼줍니다.<br><br>",
+                img: "./images/somyeon_mix.png" 
+            },
+            { 
+                title: "4. 담기/완성", 
+                alerts: "",
+                infos: "",
+                text: "양념에 맛있게 비벼진 간장 비빔면을 완성 접시에 정갈하게 담아 배식 준비를 합니다.",
+                img: "./images/somyeon_complete.png" 
+            }
+        ];
+
+        let steps = udonSteps;
+        let currentStep = 0;
+        let noodleTimeLeft = 180;
+        let timerInterval = null;
+        let timerState = 'idle';
+
+        function switchRecipeMode(mode) {
+            currentRecipeMode = mode;
+            const btnUdon = document.getElementById('btn-select-udon');
+            const btnBibim = document.getElementById('btn-select-bibim');
+            
+            if (mode === "udon") {
+                steps = udonSteps;
+                currentStep = 0;
+                btnUdon.className = "btn-recipe-select active-udon";
+                btnBibim.className = "btn-recipe-select inactive";
+            } else {
+                steps = bibimSteps;
+                currentStep = 1; // 비빔면은 1단계(육수 없음) 건너뛰고 2단계(면 삶기)로 바로 진입
+                btnUdon.className = "btn-recipe-select inactive";
+                btnBibim.className = "btn-recipe-select active-bibim";
+            }
+            // 알람 타이머 리셋
+            clearInterval(timerInterval);
+            timerState = 'idle';
+            
+            updateUI();
+        }
+
+        function goToStep(index) {
+            if (currentRecipeMode === "bibim" && index === 0) {
+                alert("간장 비빔면 조리 시에는 육수 가열 단계가 없습니다. '2. 면 삶기' 단계부터 조리해 주세요.");
+                return;
+            }
+            currentStep = index;
+            updateUI();
+        }
+
+        function nextStep() {
+            if(currentStep === 3) {
+                if (!completeOrder()) return;
+            }
+            
+            if (currentRecipeMode === "bibim" && currentStep === 3) {
+                // 비빔면 조리 완료 시 루프 돌 때 0단계(육수 가열 없음) 건너뛰고 1단계로 순환
+                currentStep = 1;
+            } else {
+                currentStep = (currentStep + 1) % steps.length;
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            // 탭 제목 텍스트 및 활성화 상태 동적 갱신
+            const tab0 = document.getElementById('tab-0');
+            const tab1 = document.getElementById('tab-1');
+            const tab2 = document.getElementById('tab-2');
+            const tab3 = document.getElementById('tab-3');
+
+            if (currentRecipeMode === "udon") {
+                tab0.innerHTML = "1. 육수 가열";
+                tab1.innerHTML = '2. 면 삶기 <span id="tab-badge" class="tab-badge"></span>';
+                tab2.innerHTML = "3. 고명 준비";
+                tab3.innerHTML = "4. 담기/완성";
+                tab0.style.opacity = "1";
+                tab0.style.cursor = "pointer";
+            } else {
+                tab0.innerHTML = "❌ 육수 가열 없음";
+                tab1.innerHTML = '1. 면 삶기 <span id="tab-badge" class="tab-badge"></span>';
+                tab2.innerHTML = "2. 양념 비비기";
+                tab3.innerHTML = "3. 담기/완성";
+                tab0.style.opacity = "0.4";
+                tab0.style.cursor = "not-allowed";
+            }
+
+            // 💡 표준 매뉴얼 동적 업데이트
+            const manualContent = document.getElementById('recipe-manual-content');
+            if (manualContent) {
+                if (currentRecipeMode === "udon") {
+                    manualContent.innerHTML = `
+                        <h3>[재료 준비]</h3>
+                        <ul>
+                            <li>냉동 우동면 1개</li>
+                            <li>멸치 다시마 육수 500ml</li>
+                            <li>고명: 어묵, 대파, 튀김가루, 김가루</li>
+                        </ul>
+                        <h3>[주의 사항]</h3>
+                        <ul style="color: #fca5a5;">
+                            <li>면을 억지로 풀면 끊어집니다. 자연스럽게 풀리게 두세요.</li>
+                            <li>타이머가 울리면 즉시 건져내세요.</li>
+                        </ul>
+                    `;
+                } else {
+                    manualContent.innerHTML = `
+                        <h3>[재료 준비]</h3>
+                        <ul>
+                            <li>소면 1인분</li>
+                            <li>양념: 간장 2스푼, 설탕 2스푼, 참기름 2스푼</li>
+                            <li>기타: 1회용 비닐장갑</li>
+                        </ul>
+                        <h3>[주의 사항]</h3>
+                        <ul style="color: #fca5a5;">
+                            <li>면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</li>
+                            <li>면이 삶아진 후 찬물에 충분히 치대어 전분기를 빼야 면발이 쫄깃해집니다.</li>
+                        </ul>
+                    `;
+                }
+            }
+
+            document.querySelectorAll('.step').forEach((el, idx) => {
+                if (idx === currentStep) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+
+            const stepTitleEl = document.getElementById('step-title');
+            if (stepTitleEl) {
+                stepTitleEl.innerText = steps[currentStep].title;
+            }
+            
+            // ⚠️ 주의사항 및 정리안내 데이터 추출 및 렌더링 (이미지 위에 배치)
+            const alertsHtml = steps[currentStep].alerts || "";
+            const infosHtml = steps[currentStep].infos || "";
+            const alertsContainer = document.getElementById('step-alerts-container');
+            if (alertsContainer) {
+                alertsContainer.innerHTML = alertsHtml + infosHtml;
+            }
+            
+            document.getElementById('instruction-text').innerHTML = steps[currentStep].text;
+            document.getElementById('step-img').src = steps[currentStep].img;
+            
+            if (currentStep === 3) {
+                document.getElementById('btn-next').innerText = "조리 완료 및 배식 ➔";
+            } else {
+                document.getElementById('btn-next').innerText = "다음 단계로 ➔";
+            }
+
+            const mainTimer = document.getElementById('main-timer');
+            const btnStart = document.getElementById('btn-start-timer');
+            const btnStop = document.getElementById('btn-stop-timer');
+
+            if (currentStep === 1) {
+                mainTimer.style.display = 'block';
+                if (timerState === 'idle') {
+                    btnStart.style.display = 'block';
+                    btnStop.style.display = 'none';
+                    mainTimer.innerText = (currentRecipeMode === "udon") ? "03:00" : "04:00";
+                    mainTimer.classList.remove('done-text');
+                } else if (timerState === 'running') {
+                    btnStart.style.display = 'none';
+                    btnStop.style.display = 'none';
+                } else if (timerState === 'done') {
+                    btnStart.style.display = 'none';
+                    btnStop.style.display = 'block';
+                }
+            } else {
+                mainTimer.style.display = 'none';
+                btnStart.style.display = 'none';
+                btnStop.style.display = 'none';
+            }
+            updateTimerVisuals();
+            persistCurrentTaskState(false);
+        }
+
+        function startTimer() {
+            if (timerState !== 'idle') return;
+            timerState = 'running';
+            noodleTimeLeft = (currentRecipeMode === "udon") ? 180 : 240;
+            updateUI(); 
+
+            timerInterval = setInterval(() => {
+                noodleTimeLeft--;
+                updateTimerVisuals();
+                if (noodleTimeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerState = 'done';
+                    updateUI();
+                    updateTimerVisuals();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerState = 'idle';
+            updateUI();
+        }
+
+        function updateTimerVisuals() {
+            const timeStr = formatTime(noodleTimeLeft);
+            const tabBadge = document.getElementById('tab-badge');
+            const tabEl = document.getElementById('tab-1');
+            const mainTimer = document.getElementById('main-timer');
+
+            if (timerState === 'idle') {
+                tabBadge.classList.remove('active');
+                tabEl.classList.remove('alarm');
+            } else if (timerState === 'running') {
+                tabBadge.classList.add('active');
+                tabBadge.innerText = timeStr;
+                tabEl.classList.remove('alarm');
+                if (currentStep === 1) mainTimer.innerText = timeStr;
+            } else if (timerState === 'done') {
+                tabBadge.classList.add('active');
+                tabBadge.innerText = "완료!";
+                tabEl.classList.add('alarm'); 
+                if (currentStep === 1) {
+                    mainTimer.innerText = "TIME OUT";
+                    mainTimer.classList.add('done-text');
+                }
+            }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        initDashboard();
+        updateUI();
+
+
+    </script>
+</body>
+</html>

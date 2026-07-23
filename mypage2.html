@@ -302,6 +302,7 @@
         }
         .res-check-in-btn { background: var(--accent-primary); color: white; }
         .res-check-in-btn:hover { background: #4f46e5; }
+        .res-check-in-btn:disabled { opacity: 0.55; cursor: not-allowed; background: #475569; }
         .res-cancel-btn { background: transparent; border: 1px solid var(--border-light); color: var(--text-sub); }
         .res-cancel-btn:hover { background: rgba(255,255,255,0.05); color: white;}
 
@@ -515,6 +516,7 @@
     <script>
         let currentUser = null;
         let workerProfile = null;
+        let isReconcilingReservationStatus = false;
 
         // Load initial user session
         $(document).ready(function () {
@@ -634,6 +636,28 @@
             updateSimControls();
         }
 
+        function getCurrentUserShopHistory() {
+            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
+            const shopHistory = Array.isArray(state.shopHistory) ? state.shopHistory : [];
+            const currentUserId = currentUser && currentUser.id !== undefined && currentUser.id !== null
+                ? String(currentUser.id)
+                : null;
+
+            return shopHistory.filter(item => {
+                if (!item) return false;
+
+                const hasOrderUserId = item.userId !== undefined &&
+                    item.userId !== null &&
+                    String(item.userId).trim() !== '';
+
+                // userId가 없던 기존 주문은 이전처럼 표시한다.
+                if (!hasOrderUserId) return true;
+                if (currentUserId === null) return false;
+
+                return String(item.userId) === currentUserId;
+            });
+        }
+
         function renderEarnings() {
             const userId = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : "2";
             const initialAsset = (window.MockData && window.MockData.getUserBaseAssets) ? window.MockData.getUserBaseAssets(userId) : 100000;
@@ -644,9 +668,9 @@
             const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
             const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
 
-            const shopHistory = FactoryStore.getState().shopHistory || [];
+            const shopHistory = getCurrentUserShopHistory();
             const completedSpent = shopHistory.filter(item => item.status === 'completed')
-                                               .reduce((sum, item) => sum + (item.price || 0), 0);
+                                               .reduce((sum, item) => sum + (Number(item.price) || 0), 0);
 
             const totalSum = initialAsset + baseSum + helperBase + helperBonus - completedSpent;
             $('#total-earnings-display').text(totalSum.toLocaleString());
@@ -692,28 +716,77 @@
             }
         }
 
+        function getReservationIdentityKey(reservation) {
+            if (!reservation) return null;
+            const user = reservation.userId !== undefined && reservation.userId !== null
+                ? reservation.userId
+                : reservation.userName;
+            const hasComposite = reservation.date && reservation.slot !== undefined && reservation.slot !== null &&
+                reservation.workId !== undefined && reservation.workId !== null && user;
+            if (hasComposite) {
+                return ['reservation', user, reservation.workId, reservation.date, reservation.slot]
+                    .map(value => String(value).trim().toLowerCase()).join('|');
+            }
+            if (reservation.id !== undefined && reservation.id !== null && reservation.id !== '') {
+                return 'id|' + String(reservation.id).trim().toLowerCase();
+            }
+            return null;
+        }
+
+        function mergeReservationRecords(records) {
+            const merged = new Map();
+            (records || []).forEach(record => {
+                if (!record) return;
+                const key = getReservationIdentityKey(record) || ('anonymous|' + JSON.stringify(record));
+                const existing = merged.get(key);
+                if (!existing) {
+                    merged.set(key, record);
+                    return;
+                }
+                const existingLogs = Array.isArray(existing.workLogs) ? existing.workLogs.length : 0;
+                const currentLogs = Array.isArray(record.workLogs) ? record.workLogs.length : 0;
+                const existingScore = (existing.checkInAt ? 4 : 0) + (existing.workStatus && existing.workStatus !== 'reserved' ? 3 : 0) + existingLogs;
+                const currentScore = (record.checkInAt ? 4 : 0) + (record.workStatus && record.workStatus !== 'reserved' ? 3 : 0) + currentLogs;
+                if (currentScore >= existingScore) merged.set(key, record);
+            });
+            return Array.from(merged.values());
+        }
+
+        function getWorkEntryPage(reservation) {
+            const workId = String((reservation && reservation.workId) || '1');
+            if (workId === '2') return 'uton_real.html';
+
+            try {
+                const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                    ? window.FactoryStore.getWorkDetails()
+                    : JSON.parse(window.MockData.workDetailJSON);
+                const detail = detailMap[workId] || {};
+                return detail.workPage || detail.realPage || detail.expPage || 'work_detail.html?id=' + encodeURIComponent(workId);
+            } catch (e) {
+                return 'work_detail.html?id=' + encodeURIComponent(workId);
+            }
+        }
+
         function renderReservations() {
             const container = $('#reservations-container');
             container.empty();
 
-            let db = FactoryStore.getState().reservations || [];
-            try {
-                let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
-                if (kimpDb && kimpDb.length > 0) {
-                    db = db.concat(kimpDb);
+            if (!isReconcilingReservationStatus && FactoryStore && typeof FactoryStore.markExpiredReservationsAbsent === 'function') {
+                isReconcilingReservationStatus = true;
+                try {
+                    FactoryStore.markExpiredReservationsAbsent(new Date());
+                } finally {
+                    isReconcilingReservationStatus = false;
                 }
-            } catch (e) { }
+            }
 
-            // Deduplicate by id or date_slot_workId_userId
-            let uniqueDbMap = {};
-            db.forEach(r => {
-                if (!r) return;
-                const key = r.id ? ('id_' + r.id) : (r.date + '_' + r.slot + '_' + (r.workId || 1) + '_' + (r.userId || r.userName));
-                uniqueDbMap[key] = r;
-            });
-            db = Object.values(uniqueDbMap);
+            // FactoryStore가 app_reservations_db를 이미 로드하므로 화면에서는 Store 목록만 사용합니다.
+            let db = mergeReservationRecords(FactoryStore.getState().reservations || []);
 
-            const myReservations = db.filter(r => String(r.userId) === String(currentUser.id) || r.userName === currentUser.name);
+            const myReservations = db.filter(r =>
+                (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name) &&
+                !['early_left', 'completed', 'absent'].includes(String(r.workStatus || 'reserved'))
+            );
 
             if (myReservations.length === 0) {
                 container.html('<div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 14px; background: rgba(0,0,0,0.2); border-radius: 12px;">예약된 일정이 없습니다.</div>');
@@ -734,6 +807,17 @@
                 const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
                 const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
                 const displayRatio = r.ratio ? Number(r.ratio).toFixed(1) : '1.2';
+                const reservationStatus = String(r.workStatus || 'reserved');
+                const canCheckIn = reservationStatus === 'reserved';
+                const canEnterWork = ['ready', 'working'].includes(reservationStatus);
+                const statusLabel = reservationStatus === 'checked_in'
+                    ? '출근 완료'
+                    : (reservationStatus === 'ready' || reservationStatus === 'working'
+                        ? '근무 진행 중'
+                        : (reservationStatus === 'early_leave_waiting' ? '조퇴 대기 중' : '출근하기'));
+                const primaryButtonAttr = canCheckIn
+                    ? `onclick="goToCheckIn(${r.id})"`
+                    : (canEnterWork ? `onclick="goToWorkPage(${r.id})"` : 'disabled');
 
                 // workId 기반으로 동적 데이터 매핑
                 const workId = r.workId || 1;
@@ -743,7 +827,9 @@
                 let workHoursLabel = "2h";
 
                 try {
-                    const worksList = JSON.parse(window.MockData.worksJSON);
+                    const worksList = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                        ? window.FactoryStore.getWorks()
+                        : JSON.parse(window.MockData.worksJSON);
                     const workObj = worksList.find(w => w.workId == workId);
                     if (workObj) {
                         if (!r.workName) workTitle = workObj.workName;
@@ -751,7 +837,9 @@
                         if (!r.iconUrl) iconUrl = workObj.iconUrl;
                     }
 
-                    const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                    const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                        ? window.FactoryStore.getWorkDetails()
+                        : JSON.parse(window.MockData.workDetailJSON);
                     const detail = detailMap[String(workId)];
                     if (detail && detail.workTime) {
                         const workTime = detail.workTime;
@@ -787,7 +875,7 @@
                         </div>
                     </div>
                     <div class="res-btn-box">
-                        <button type="button" class="res-check-in-btn" onclick="goToCheckIn(${r.id})">출근하기</button>
+                        <button type="button" class="res-check-in-btn" ${primaryButtonAttr}>${statusLabel}</button>
                         <button type="button" class="res-cancel-btn" onclick="cancelReservation(${r.id})">취소</button>
                     </div>
                 </div>
@@ -797,26 +885,32 @@
         }
 
         function goToCheckIn(id) {
-            let db = FactoryStore.getState().reservations || [];
-            try {
-                let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
-                if (kimpDb && kimpDb.length > 0) {
-                    db = db.concat(kimpDb);
-                }
-            } catch (e) { }
-
-            let uniqueDbMap = {};
-            db.forEach(r => {
-                const key = r.date + '_' + r.slot + '_' + r.userId;
-                uniqueDbMap[key] = r;
-            });
-            db = Object.values(uniqueDbMap);
+            let db = mergeReservationRecords(FactoryStore.getState().reservations || []);
 
             const selected = db.find(r => r.id === id);
             if (selected) {
+                if (['checked_in', 'ready', 'working', 'early_leave_waiting', 'early_left', 'completed', 'absent'].includes(String(selected.workStatus || 'reserved'))) {
+                    alert('이미 출근했거나 종료된 예약은 다시 출근할 수 없습니다.');
+                    return;
+                }
                 sessionStorage.setItem('selected_reservation', JSON.stringify(selected));
             }
             window.location.href = 'check-in-announce.html';
+        }
+
+        function goToWorkPage(id) {
+            let db = mergeReservationRecords(FactoryStore.getState().reservations || []);
+            const selected = db.find(r => String(r.id) === String(id));
+            if (!selected) return;
+
+            const status = String(selected.workStatus || 'reserved');
+            if (!['ready', 'working'].includes(status)) {
+                goToCheckIn(id);
+                return;
+            }
+
+            sessionStorage.setItem('selected_reservation', JSON.stringify(selected));
+            window.location.href = getWorkEntryPage(selected);
         }
 
         function cancelReservation(id) {
@@ -834,7 +928,9 @@
                 
                 let workTitle = "김치만들기";
                 try {
-                    const worksList = JSON.parse(window.MockData.worksJSON);
+                    const worksList = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                        ? window.FactoryStore.getWorks()
+                        : JSON.parse(window.MockData.worksJSON);
                     const workObj = worksList.find(w => w.workId == (targetRes.workId || 1));
                     if (workObj) workTitle = workObj.workName;
                 } catch(e) {}
@@ -913,6 +1009,14 @@
                 return rangeStr.split('~').map(t => roundTimeStr(t, method)).join(' ~ ');
             }
 
+            const formatRoleLabel = role => {
+                const normalized = String(role || '').toLowerCase();
+                if (normalized === 'general' || normalized === 'role_general') return '일반';
+                if (normalized === 'helper' || normalized === 'role_helper') return '헬퍼';
+                if (normalized === 'manager' || normalized === 'role_manager') return '매니저';
+                return role || '일반';
+            };
+
             history.forEach(item => {
                 let brandLogo = './images/k-icon_150x150.png';
                 let brandName = 'AFood';
@@ -938,7 +1042,7 @@
                             <img src="${brandLogo}">
                             <div>
                                 <div style="font-size:12px; color:var(--text-sub);">${brandName}</div>
-                                <div class="hist-job-title">${item.job || ''} (${item.role || '일반'})</div>
+                                <div class="hist-job-title">${item.job || ''} (${formatRoleLabel(item.role)})</div>
                             </div>
                         </div>
                         <div class="hist-pay">+₩ ${(item.pay || 0).toLocaleString()}</div>
@@ -950,8 +1054,7 @@
         }
 
         function renderShopHistory() {
-            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
-            const shopHistory = state.shopHistory || [];
+            const shopHistory = getCurrentUserShopHistory();
             const container = $('#shop-history-container');
             container.empty();
 
@@ -971,44 +1074,83 @@
 
             const displayHistory = shopHistory.slice(0, 2);
             displayHistory.forEach(item => {
-                let statusTextHtml = "";
+                const orderStatus = item.status || 'pending';
+                const allowedKitchenStatuses = ['queued', 'preparing', 'ready'];
+                const kitchenStatus = allowedKitchenStatuses.includes(item.kitchenStatus)
+                    ? item.kitchenStatus
+                    : 'queued';
+                const priceValue = Number.isFinite(Number(item.price)) ? Number(item.price) : 0;
+                const quantityValue = Math.max(1, Number.parseInt(item.qty, 10) || 1);
+                const orderNumber = item.orderNo !== undefined &&
+                    item.orderNo !== null &&
+                    String(item.orderNo).trim() !== ''
+                    ? String(item.orderNo)
+                    : '확인 중';
+                const itemId = item.id !== undefined && item.id !== null ? String(item.id) : '';
+                let statusBadgeHtml = "";
                 let btnHtml = "";
 
-                if (item.status === 'pending') {
-                    statusTextHtml = `<div class="hist-pay" style="color: var(--text-main);">₩ ${item.price.toLocaleString()}</div>`;
-                    btnHtml = `
-                    <div class="res-btn-box" style="margin-top: 10px;">
-                        <button type="button" class="res-check-in-btn" style="background: var(--accent-secondary); color: #000;" onclick="completeShopOrder('${item.id}')">🔔 알람 받기 (수령)</button>
-                        <button type="button" class="res-cancel-btn" onclick="cancelShopOrder('${item.id}')">주문 취소</button>
-                    </div>`;
-                } else if (item.status === 'cancelled') {
-                    statusTextHtml = `<div class="hist-pay" style="color: var(--text-sub); font-size: 14px; font-weight: normal;">주문 취소</div>`;
-                } else if (item.status === 'completed') {
-                    statusTextHtml = `<div class="hist-pay" style="color: #ffffff; font-weight: 800;">-₩ ${item.price.toLocaleString()}</div>`;
-                    btnHtml = ``;
+                if (orderStatus === 'pending') {
+                    if (kitchenStatus === 'ready') {
+                        statusBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">준비 완료</span>`;
+                        btnHtml = `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-check-in-btn" style="background: var(--accent-money); color: #07130f;" onclick="event.stopPropagation(); completeShopOrder('${itemId}')">🔔 알림 확인 · 수령하기</button>
+                        </div>`;
+                    } else {
+                        const isPreparing = kitchenStatus === 'preparing';
+                        statusBadgeHtml = isPreparing
+                            ? `<span style="background: rgba(99, 102, 241, 0.16); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 중</span>`
+                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 대기</span>`;
+                        btnHtml = `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-cancel-btn" onclick="event.stopPropagation(); cancelShopOrder('${itemId}')">주문 취소</button>
+                        </div>`;
+                    }
+                } else if (orderStatus === 'cancelled') {
+                    statusBadgeHtml = `<span style="background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">주문 취소</span>`;
+                } else if (orderStatus === 'completed') {
+                    statusBadgeHtml = `<span style="background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.16); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">수령 완료</span>`;
+                } else {
+                    statusBadgeHtml = `<span style="background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">상태 확인 중</span>`;
                 }
 
                 // 상품 썸네일 이미지 및 브랜드 탐색
                 let pImg = './images/kimchi_300g.png';
                 let brandName = item.brandName || 'AFood';
                 const pIdStr = String(item.productId || '');
-                const pNameStr = item.productName || '';
+                const pNameStr = item.productName || '상품명 확인 중';
 
-                if (window.MockData && window.MockData.storeProducts) {
-                    const found = window.MockData.storeProducts.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
+                // Uton 간장비빔면(상품번호 20002)은 주문 이력에서도 완성 제품 사진을 사용합니다.
+                if (pIdStr === '20002' || pIdStr === 'p2' || pNameStr.includes('간장') && pNameStr.includes('비빔면')) {
+                    pImg = './images/somyeon_complete.png';
+                    brandName = 'Uton';
+                }
+
+                const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                    ? window.FactoryStore.getProducts()
+                    : ((window.MockData && window.MockData.storeProducts) || []);
+                if (products.length) {
+                    const found = products.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
                     if (found) {
                         pImg = found.img || pImg;
                         brandName = found.brand || brandName;
                     }
                 }
+                // 상품 마스터가 늦게 로드되거나 과거 주문 데이터인 경우에도 이미지가 흔들리지 않게 고정합니다.
+                if (pIdStr === '20002' || pIdStr === 'p2' || pNameStr.includes('간장') && pNameStr.includes('비빔면')) {
+                    pImg = './images/somyeon_complete.png';
+                    brandName = 'Uton';
+                }
 
-                const unitPriceVal = item.unitPrice || Math.floor((item.price || 3000) / (item.qty || 1));
-                const qtyText = (item.qty || 1) + '개';
-                const deliveryText = item.deliveryFee || '무료배송';
+                const qtyText = quantityValue + '개';
+                const orderDateText = item.dateStr ||
+                    [item.orderDate, item.orderTime].filter(Boolean).join(' ') ||
+                    '주문 시각 확인 중';
 
                 let isDelivery = true;
-                if (window.MockData && window.MockData.storeProducts) {
-                    const found = window.MockData.storeProducts.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
+                if (products.length) {
+                    const found = products.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
                     if (found && found.isDelivery !== undefined) {
                         isDelivery = found.isDelivery;
                     }
@@ -1017,20 +1159,38 @@
                     isDelivery = false;
                 }
 
-                let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
-                let topRightHtml = isDelivery ? 
-                    `<div style="font-size: 11px; color: #94a3b8; font-weight: 600; cursor: pointer;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>` : 
-                    `<div style="font-size: 11px; color: var(--text-sub);">주문번호: ${item.orderNo}번</div>`;
+                if (orderStatus === 'completed' && isDelivery) {
+                    const deliveryStatus = item.deliveryStatus || item.shippingStatus || 'ordered';
+                    if (!['delivered', 'received', 'completed'].includes(deliveryStatus)) {
+                        const isShipping = deliveryStatus === 'shipping' || deliveryStatus === 'in_transit';
+                        statusBadgeHtml = isShipping
+                            ? `<span style="background: rgba(59, 130, 246, 0.14); color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송중</span>`
+                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송 준비중</span>`;
+                    }
+                }
 
-                let clickAttr = isDelivery ? `onclick="window.location.href='delivery_detail.html?orderNo=${item.orderNo}&productId=${item.productId || ''}'"` : '';
+                let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
+                const deliveryLinkHtml = isDelivery
+                    ? `<div style="font-size: 10px; color: #94a3b8; font-weight: 600; cursor: pointer; margin-top: 3px;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>`
+                    : '';
+                const topRightHtml = `
+                    <div style="text-align: right; flex-shrink: 0;">
+                        <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(253, 132, 237, 0.12); border: 1px solid rgba(253, 132, 237, 0.3); color: var(--accent-secondary); padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 800;">
+                            주문번호 <span style="font-family: 'Outfit', sans-serif; font-size: 13px;">#${orderNumber}</span>
+                        </div>
+                        ${deliveryLinkHtml}
+                    </div>`;
+
+                let clickAttr = isDelivery ? `onclick="window.location.href='delivery_detail.html?orderNo=${item.orderNo || ''}&productId=${item.productId || ''}'"` : '';
                 let cursorStyle = isDelivery ? 'cursor: pointer;' : '';
 
                 let row = `
                 <div class="box-partner history-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border-top: 1px solid rgba(255,255,255,0.08) !important; border-right: 1px solid rgba(255,255,255,0.08) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; border-left: 4px solid #fd79a8 !important; min-height: 105px; box-sizing: border-box;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
-                            <span>${item.dateStr || item.orderDate} ${item.orderTime ? item.orderTime + ' ' : ''}주문</span>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; font-size: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--text-sub);">
+                            <span>${orderDateText} 주문</span>
                             ${deliveryBadgeHtml}
+                            ${statusBadgeHtml}
                         </div>
                         ${topRightHtml}
                     </div>
@@ -1044,9 +1204,10 @@
                             </div>
                         </div>
                         <div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">
-                            -₩ ${item.price.toLocaleString()}
+                            -₩ ${priceValue.toLocaleString()}
                         </div>
                     </div>
+                    ${btnHtml}
                 </div>
                 `;
                 container.append(row);
@@ -1056,17 +1217,24 @@
         function cancelShopOrder(id) {
             if (!confirm("정말로 주문을 취소하시겠습니까?")) return;
 
-            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
-            const target = state.shopHistory.find(item => item.id === id);
+            const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
             if (target) {
                 if (window.FactoryStore) {
-                    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: id });
+                    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: target.id });
                 }
 
                 // 세션 및 로컬 카운트 대기열 연동 해제
                 const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
                 const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
-                if (activeProduct === target.productId || activeNo === target.orderNo) {
+                const matchesActiveProduct = activeProduct !== null &&
+                    target.productId !== undefined &&
+                    target.productId !== null &&
+                    String(activeProduct) === String(target.productId);
+                const matchesActiveOrder = activeNo !== null &&
+                    target.orderNo !== undefined &&
+                    target.orderNo !== null &&
+                    String(activeNo) === String(target.orderNo);
+                if (matchesActiveProduct || matchesActiveOrder) {
                     try {
                         sessionStorage.removeItem('activeOrderProduct');
                         sessionStorage.removeItem('activeOrderNo');
@@ -1077,7 +1245,7 @@
                         localStorage.removeItem('activeOrderNo_current');
                         
                         let orderCount10Min = parseInt(sessionStorage.getItem('orderCount10Min') || "0");
-                        orderCount10Min -= target.qty;
+                        orderCount10Min -= Math.max(1, Number.parseInt(target.qty, 10) || 1);
                         if (orderCount10Min < 0) orderCount10Min = 0;
                         sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
 
@@ -1085,15 +1253,15 @@
                             sessionStorage.removeItem('orderLimitExpireTime');
                         }
 
-                        const isUdon = target.productName.includes("우동");
+                        const isUdon = String(target.productName || '').includes("우동");
                         if (isUdon) {
                             let udonOrderCount = parseInt(sessionStorage.getItem('udonOrderCount') || '0');
-                            udonOrderCount -= target.qty;
+                            udonOrderCount -= Math.max(1, Number.parseInt(target.qty, 10) || 1);
                             if (udonOrderCount < 0) udonOrderCount = 0;
                             sessionStorage.setItem('udonOrderCount', udonOrderCount.toString());
                         } else {
                             let bibimOrderCount = parseInt(sessionStorage.getItem('bibimOrderCount') || '0');
-                            bibimOrderCount -= target.qty;
+                            bibimOrderCount -= Math.max(1, Number.parseInt(target.qty, 10) || 1);
                             if (bibimOrderCount < 0) bibimOrderCount = 0;
                             sessionStorage.setItem('bibimOrderCount', bibimOrderCount.toString());
                         }
@@ -1105,7 +1273,7 @@
                         const now = new Date();
                         const hh = String(now.getHours()).padStart(2, '0');
                         const mm = String(now.getMinutes()).padStart(2, '0');
-                        loungeLogs.push(`[${hh}시 ${mm}분] 주문 ${target.qty}그릇을 취소하였습니다.`);
+                        loungeLogs.push(`[${hh}시 ${mm}분] 주문 ${Math.max(1, Number.parseInt(target.qty, 10) || 1)}그릇을 취소하였습니다.`);
                         sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
                     } catch(e){}
                 }
@@ -1115,17 +1283,27 @@
         }
 
         function completeShopOrder(id) {
-            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
-            const target = state.shopHistory.find(item => item.id === id);
+            const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
             if (target) {
+                const kitchenStatus = target.kitchenStatus || 'queued';
+                if (target.status !== 'pending' || kitchenStatus !== 'ready') return;
+
                 if (window.FactoryStore) {
-                    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: id });
+                    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: target.id });
                 }
 
                 // 수령 완료했으므로 활성화된 활성 주문 상태 제거
                 const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
                 const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
-                if (activeProduct === target.productId || activeNo === target.orderNo) {
+                const matchesActiveProduct = activeProduct !== null &&
+                    target.productId !== undefined &&
+                    target.productId !== null &&
+                    String(activeProduct) === String(target.productId);
+                const matchesActiveOrder = activeNo !== null &&
+                    target.orderNo !== undefined &&
+                    target.orderNo !== null &&
+                    String(activeNo) === String(target.orderNo);
+                if (matchesActiveProduct || matchesActiveOrder) {
                     try {
                         sessionStorage.removeItem('activeOrderProduct');
                         sessionStorage.removeItem('activeOrderNo');
@@ -1139,7 +1317,7 @@
 
                 renderEarnings();
                 renderShopHistory();
-                alert("🔔 조리 완료 알림이 떴습니다!\n음식을 정상적으로 수령하였습니다. 맛있게 드세요! 😀");
+                alert(`🔔 주문번호 #${target.orderNo || '-'} 수령 완료\n음식을 정상적으로 수령하였습니다. 맛있게 드세요! 😀`);
             }
         }
 

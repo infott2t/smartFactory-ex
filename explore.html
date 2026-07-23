@@ -288,12 +288,14 @@
             // -------------------------
 
             async function fetchWorksData() {
-                if (!localStorage.getItem('kimp_works_db')) {
-                    localStorage.setItem('kimp_works_db', window.MockData.worksJSON);
+                if (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function') {
+                    return window.FactoryStore.getWorks();
                 }
 
                 // 속도 지연(setTimeout) 없이 즉시 데이터 반환
-                return JSON.parse(localStorage.getItem('kimp_works_db'));
+                return window.MockData && window.MockData.worksJSON
+                    ? JSON.parse(window.MockData.worksJSON)
+                    : [];
             }
 
             let dbData = [];
@@ -327,7 +329,6 @@
             // 2. 초기화 및 렌더링 영역
             // -------------------------
             async function init() {
-                localStorage.removeItem('kimp_works_db'); // 실행할 때마다 DB 삭제
                 let $firstTab = $('.tab-content').eq(0);
 
                 showLoading($firstTab);

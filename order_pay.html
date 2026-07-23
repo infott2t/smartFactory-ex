@@ -611,8 +611,11 @@
             orderQty = parseInt(urlParams.get('qty') || '1', 10);
 
             // MockData storeProducts 탐색
-            if (window.MockData && window.MockData.storeProducts) {
-                const found = window.MockData.storeProducts.find(p => p.productCode === pId || String(p.productId) === pId);
+            const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                ? window.FactoryStore.getProducts()
+                : ((window.MockData && window.MockData.storeProducts) || []);
+            if (products.length) {
+                const found = products.find(p => p.productCode === pId || String(p.productId) === pId);
                 if (found) {
                     currentProduct = found;
                 }
@@ -694,6 +697,8 @@
                 deliveryFee: '무료배송',
                 payMethod: selectedPayMethod === 'asset' ? '정산 금액 결제' : '계좌 결제',
                 status: 'completed', // 즉시 정산 지출 완료 반영
+                fulfillmentType: currentProduct.isDelivery ? 'delivery' : 'pickup',
+                deliveryStatus: currentProduct.isDelivery ? 'ordered' : null,
                 createdAt: now.toISOString()
             };
 

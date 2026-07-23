@@ -857,11 +857,13 @@
             // --- 이 부분을 찾아서 아래 내용으로 교체하세요 ---
             let checkInTime = currentItem.checkInTime || "09:55:12";
             let checkOutTime = currentItem.checkOutTime || "12:03:32";
-            let actualWorkSec = 0; // 💡 분(Min) 단위 변수를 초(Sec) 단위로 변경
+            const hasStoredWorkSeconds = currentItem.actualWorkSeconds !== undefined && currentItem.actualWorkSeconds !== null;
+            let actualWorkSec = hasStoredWorkSeconds ? Math.max(0, Number(currentItem.actualWorkSeconds) || 0) : 0;
             let breakTimeMin = currentItem.breakTimeMin !== undefined ? currentItem.breakTimeMin : 0;
 
             // 💡 [핵심 로직 수정] 출근시간과 퇴근시간을 직접 파싱하여 완벽하게 총 근무 분(Minute) 계산
             try {
+                if (hasStoredWorkSeconds) throw new Error('stored work seconds');
                 // "HH:MM:SS" 또는 "HH:MM" 형식에서 시, 분, 초 추출
                 const inParts = checkInTime.split(':');
                 const outParts = checkOutTime.split(':');
@@ -884,8 +886,10 @@
                     actualWorkSec = diffSec;
                 }
             } catch (e) {
-                console.error("근무시간 자동 계산 실패, 기본값으로 대체합니다.", e);
-                actualWorkSec = currentItem.actualWorkMin !== undefined ? currentItem.actualWorkMin * 60 : 7200;
+                if (!hasStoredWorkSeconds) {
+                    console.error("근무시간 자동 계산 실패, 기본값으로 대체합니다.", e);
+                    actualWorkSec = currentItem.actualWorkMin !== undefined ? currentItem.actualWorkMin * 60 : 7200;
+                }
             }
 
             // 만약 넘어온 실제 근무시간(actualWorkMin) 데이터가 유효하다면 그 값을 최종 사용
@@ -910,7 +914,10 @@
             $('#val-checkin').text(checkInTime);
             $('#val-checkout').text(checkOutTime);
             $('#val-worktime').text(workTimeStr);
-            $('#val-breaktime').text(breakTimeMin + '분');
+            const storedBreakSeconds = Number(currentItem.breakSeconds);
+            $('#val-breaktime').text(Number.isFinite(storedBreakSeconds)
+                ? `${Math.floor(storedBreakSeconds / 60)}분 ${Math.floor(storedBreakSeconds % 60)}초`
+                : breakTimeMin + '분');
             // --- 교체 구역 끝 ---
 
             // 조퇴인 경우 화면 배지 추가
@@ -997,7 +1004,16 @@
 
             const prevHours = Math.max(0, userBaseHours - Number(workHoursFloat)).toFixed(1);
             $('#val-cumulative').html(`${prevHours}h<span class="added">+${workHoursFloat}h</span>=${userBaseHours}h`);
-            $('#val-grade').text(currentItem.role);
+            const roleLabelMap = {
+                general: '일반',
+                role_general: '일반',
+                helper: '헬퍼',
+                role_helper: '헬퍼',
+                manager: '매니저',
+                role_manager: '매니저'
+            };
+            const roleKey = String(currentItem.role || user.role || 'general').toLowerCase();
+            $('#val-grade').text(roleLabelMap[roleKey] || currentItem.role || '일반');
 
 
             // ✅ 지운 자리에 이 코드를 붙여넣어 주세요.

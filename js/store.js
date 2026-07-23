@@ -556,6 +556,191 @@
         };
     }
 
+    // 예약 출근/위생/작업 상태의 공통 기본값
+    const reservationStepDefaults = {
+        qr: false,
+        lockerRoom: false,
+        lockerNumber: false,
+        clothes: false,
+        uniform: false,
+        handWash: false,
+        sanitizer: false,
+        handPhoto: false,
+        shopEntry: false
+    };
+
+    const reservationAttendanceDefaults = {
+        userGender: null,
+        checkInAt: null,
+        lockerGender: null,
+        lockerNumber: null,
+        preWorkStatus: 'not_started',
+        handWashSkipped: false,
+        handPhotoStatus: 'not_submitted',
+        handPhotoCapturedAt: null,
+        handPhotoVerifiedAt: null,
+        handPhotoVerificationMode: null,
+        workStatus: 'reserved',
+        workStartedAt: null,
+        workCompletedAt: null,
+        absenceAt: null,
+        earlyLeaveRequestedAt: null,
+        earlyLeaveAutoAt: null,
+        earlyLeaveCompletedAt: null,
+        checkoutType: null,
+        breakSeconds: 0,
+        actualWorkSeconds: 0,
+        earnedPay: 0,
+        attendanceHistoryId: null,
+        workLogs: [],
+        currentTaskType: null,
+        currentTaskStep: null,
+        currentTaskName: null,
+        completedOrdersCount: 0,
+        lastActivityAt: null
+    };
+
+    function normalizeReservation(reservation) {
+        if (!reservation || typeof reservation !== 'object' || Array.isArray(reservation)) {
+            return reservation;
+        }
+
+        const normalized = {
+            ...reservationAttendanceDefaults,
+            ...reservation,
+            checkInSteps: {
+                ...reservationStepDefaults,
+                ...(reservation.checkInSteps && typeof reservation.checkInSteps === 'object'
+                    ? reservation.checkInSteps
+                : {})
+            }
+        };
+        normalized.workLogs = Array.isArray(reservation.workLogs)
+            ? reservation.workLogs.map(log => ({ ...log }))
+            : [];
+        return normalized;
+    }
+
+    function hasReservationIdentityValue(value) {
+        return value !== undefined && value !== null && value !== '';
+    }
+
+    function getReservationIdentityKey(reservation) {
+        if (!reservation) return null;
+        const user = hasReservationIdentityValue(reservation.userId)
+            ? reservation.userId
+            : reservation.userName;
+        if (hasReservationIdentityValue(user) && hasReservationIdentityValue(reservation.workId)
+            && hasReservationIdentityValue(reservation.date) && hasReservationIdentityValue(reservation.slot)) {
+            return ['reservation', user, reservation.workId, reservation.date, reservation.slot]
+                .map(value => String(value).trim().toLowerCase()).join('|');
+        }
+        if (hasReservationIdentityValue(reservation.id)) return 'id|' + String(reservation.id).trim().toLowerCase();
+        return null;
+    }
+
+    function dedupeReservations(reservations) {
+        const map = new Map();
+        (Array.isArray(reservations) ? reservations : []).forEach(item => {
+            const reservation = normalizeReservation(item);
+            if (!reservation) return;
+            const key = getReservationIdentityKey(reservation) || ('anonymous|' + JSON.stringify(reservation));
+            const existing = map.get(key);
+            if (!existing) {
+                map.set(key, reservation);
+                return;
+            }
+            const score = value => (value.checkInAt ? 4 : 0)
+                + (value.workStatus && value.workStatus !== 'reserved' ? 3 : 0)
+                + (Array.isArray(value.workLogs) ? value.workLogs.length : 0);
+            if (score(reservation) >= score(existing)) {
+                const merged = { ...existing, ...reservation, id: existing.id || reservation.id };
+                const logs = [];
+                [...(existing.workLogs || []), ...(reservation.workLogs || [])].forEach(log => {
+                    const logKey = log && (log.id || `${log.type}|${log.createdAt}|${log.message}`);
+                    if (logKey && !logs.some(item => (item.id || `${item.type}|${item.createdAt}|${item.message}`) === logKey)) {
+                        logs.push(log);
+                    }
+                });
+                merged.workLogs = logs;
+                map.set(key, normalizeReservation(merged));
+            }
+        });
+        return Array.from(map.values());
+    }
+
+    function matchesReservationFallback(reservation, match) {
+        if (!reservation || !match) return false;
+        const fields = ['userId', 'workId', 'date', 'slot'];
+        return fields.every(field =>
+            hasReservationIdentityValue(match[field]) &&
+            String(reservation[field]) === String(match[field])
+        );
+    }
+
+    function syncSelectedReservation(updatedReservation) {
+        const selectedRaw = sessionStorage.getItem('selected_reservation');
+        if (!selectedRaw || !updatedReservation) return;
+
+        try {
+            const selected = JSON.parse(selectedRaw);
+            const hasBothIds = hasReservationIdentityValue(selected && selected.id) &&
+                hasReservationIdentityValue(updatedReservation.id);
+            const isSameReservation = hasBothIds
+                ? String(selected.id) === String(updatedReservation.id)
+                : matchesReservationFallback(updatedReservation, selected);
+
+            if (isSameReservation) {
+                sessionStorage.setItem('selected_reservation', JSON.stringify(updatedReservation));
+            }
+        } catch (e) {
+            console.warn('선택된 예약 정보를 동기화하지 못했습니다.', e);
+        }
+    }
+
+    function inferShopOrderMenuType(order) {
+        if (!order || typeof order !== 'object') return null;
+        if (order.menuType === 'udon' || order.menuType === 'bibim') return order.menuType;
+
+        const productId = String(order.productId || order.productCode || '').toLowerCase();
+        const productName = String(order.productName || '').toLowerCase();
+        if (productId === '20002' || productId === 'p2' || productName.includes('비빔')) return 'bibim';
+        if (productId === '20001' || productId === 'p1' || productName.includes('우동')) return 'udon';
+        return null;
+    }
+
+    function inferShopOrderWorkId(order) {
+        if (!order || typeof order !== 'object') return null;
+        if (hasReservationIdentityValue(order.workId)) return order.workId;
+
+        const menuType = inferShopOrderMenuType(order);
+        const brandName = String(order.brandName || '').toLowerCase();
+        return menuType || brandName === 'uton' ? 2 : null;
+    }
+
+    function normalizeShopOrder(order) {
+        if (!order || typeof order !== 'object' || Array.isArray(order)) return order;
+
+        const normalized = { ...order };
+        const workId = inferShopOrderWorkId(normalized);
+        const menuType = inferShopOrderMenuType(normalized);
+        if (!hasReservationIdentityValue(normalized.workId) && workId !== null) normalized.workId = workId;
+        if (!normalized.menuType && menuType) normalized.menuType = menuType;
+        if (hasReservationIdentityValue(normalized.orderNo)) normalized.orderNo = String(normalized.orderNo);
+
+        if (String(workId) === '2' && menuType) {
+            normalized.orderType = normalized.orderType || 'dine_in';
+            normalized.fulfillmentType = normalized.fulfillmentType || 'pickup';
+            if (!normalized.kitchenStatus) {
+                if (normalized.status === 'completed') normalized.kitchenStatus = 'received';
+                else if (normalized.status === 'cancelled') normalized.kitchenStatus = 'cancelled';
+                else normalized.kitchenStatus = 'queued';
+            }
+        }
+
+        return normalized;
+    }
+
     let state = {
         currentUser: null,
         workers: {}, // { [userId]: { id, name, workedHours, udonHours, walletHours, checkInTime, accumBreakSeconds, breakRemainingSeconds, isOnBreak, helperBonus, helperBaseSalary, salary, completedOrdersCount } }
@@ -575,6 +760,99 @@
     };
 
     const listeners = [];
+
+    const TABLE_NAMES = {
+        USERS: 'users',
+        WORKER_RUNTIME_STATE: 'workerRuntimeState',
+        USER_WORK_HOURS: 'userWorkHours',
+        WORKS: 'works',
+        WORK_DETAILS: 'workDetails',
+        WORK_RESERVATIONS: 'workReservations',
+        WORK_HISTORIES: 'workHistories',
+        SHOP_ORDERS: 'shopOrders',
+        PRODUCTS: 'products',
+        PRODUCT_REVIEWS: 'productReviews',
+        USER_WORK_EXPERIENCES: 'userWorkExperiences',
+        PRODUCTION_ORDERS: 'productionOrders',
+        PACKAGING_ORDERS: 'packagingOrders',
+        WORKERS_PROGRESS: 'workersProgress',
+        LIKES: 'likes'
+    };
+
+    const TABLE_SOURCES = {
+        users: 'MockData.users',
+        workerRuntimeState: 'FactoryStore.state.workers',
+        userWorkHours: 'FactoryStore.state.userWorkHours',
+        works: 'MockData.worksJSON',
+        workDetails: 'MockData.workDetailJSON',
+        workReservations: 'FactoryStore.state.reservations / app_reservations_db',
+        workHistories: 'FactoryStore.state.history / mypage_history_{userId}',
+        shopOrders: 'FactoryStore.state.shopHistory / kimp_shop_history',
+        products: 'MockData.storeProducts',
+        productReviews: 'MockData.productReviews',
+        userWorkExperiences: 'MockData.userWorkProgress / userWorkProgress',
+        productionOrders: 'FactoryStore.state.productionOrders / kimp_production_orders',
+        packagingOrders: 'FactoryStore.state.packagingOrders / kimp_packaging_orders',
+        workersProgress: 'FactoryStore.state.workersProgress / kimp_workers_progress',
+        likes: 'FactoryStore.state.isLike'
+    };
+
+    function cloneData(value) {
+        if (value === undefined || value === null) return value;
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    function parseMockJson(json, fallback) {
+        try {
+            return JSON.parse(json || '');
+        } catch(e) {
+            return fallback;
+        }
+    }
+
+    function getMockUsers() {
+        return cloneData((window.MockData && Array.isArray(window.MockData.users)) ? window.MockData.users : []);
+    }
+
+    function getMockWorks() {
+        return parseMockJson(window.MockData && window.MockData.worksJSON, []);
+    }
+
+    function getMockWorkDetails() {
+        return parseMockJson(window.MockData && window.MockData.workDetailJSON, {});
+    }
+
+    function getMockProducts() {
+        return cloneData((window.MockData && Array.isArray(window.MockData.storeProducts)) ? window.MockData.storeProducts : []);
+    }
+
+    function getMockProductReviews() {
+        return cloneData((window.MockData && window.MockData.productReviews) ? window.MockData.productReviews : {});
+    }
+
+    function getMockUserWorkExperiences() {
+        return cloneData((window.MockData && Array.isArray(window.MockData.userWorkProgress)) ? window.MockData.userWorkProgress : []);
+    }
+
+    function getDomainTables() {
+        return {
+            users: getMockUsers(),
+            workerRuntimeState: cloneData(state.workers || {}),
+            userWorkHours: cloneData(state.userWorkHours || {}),
+            works: getMockWorks(),
+            workDetails: getMockWorkDetails(),
+            workReservations: cloneData((state.reservations || []).map(normalizeReservation)),
+            workHistories: cloneData(state.history || []),
+            shopOrders: cloneData((state.shopHistory || []).map(normalizeShopOrder)),
+            products: getMockProducts(),
+            productReviews: getMockProductReviews(),
+            userWorkExperiences: getMockUserWorkExperiences(),
+            productionOrders: cloneData(state.productionOrders || {}),
+            packagingOrders: cloneData(state.packagingOrders || {}),
+            workersProgress: cloneData(state.workersProgress || {}),
+            likes: cloneData(state.isLike || [])
+        };
+    }
 
     // 회원별/작업(workId)별 기본 근로시간 생성 함수 (요청 범위 반영)
     function getDefaultUserWorkHours() {
@@ -683,7 +961,11 @@
         // 2. Reservations
         try {
             let parsed = JSON.parse(localStorage.getItem(getStorageKey('app_reservations_db')) || '[]');
-            state.reservations = Array.isArray(parsed) ? parsed : [];
+            const storedReservations = Array.isArray(parsed) ? parsed : [];
+            state.reservations = dedupeReservations(storedReservations);
+            if (JSON.stringify(storedReservations) !== JSON.stringify(state.reservations)) {
+                localStorage.setItem(getStorageKey('app_reservations_db'), JSON.stringify(state.reservations));
+            }
         } catch(e) {
             state.reservations = [];
         }
@@ -700,7 +982,7 @@
         // 3.5 Shop History
         try {
             let parsed = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
-            state.shopHistory = Array.isArray(parsed) ? parsed : [];
+            state.shopHistory = Array.isArray(parsed) ? parsed.map(normalizeShopOrder) : [];
         } catch(e) {
             state.shopHistory = [];
         }
@@ -1208,12 +1490,21 @@
             return isSaving;
         },
         getState: function() {
+            const tables = getDomainTables();
             // Return copy to prevent direct mutations
             return {
                 currentUser: state.currentUser,
                 workers: state.workers ? JSON.parse(JSON.stringify(state.workers)) : {},
                 userWorkHours: state.userWorkHours ? { ...state.userWorkHours } : {},
-                reservations: Array.isArray(state.reservations) ? [...state.reservations] : [],
+                users: tables.users,
+                works: tables.works,
+                workDetails: tables.workDetails,
+                products: tables.products,
+                productReviews: tables.productReviews,
+                userWorkExperiences: tables.userWorkExperiences,
+                reservations: Array.isArray(state.reservations)
+                    ? JSON.parse(JSON.stringify(state.reservations.map(normalizeReservation)))
+                    : [],
                 history: Array.isArray(state.history) ? [...state.history] : [],
                 shopHistory: state.shopHistory ? [...state.shopHistory] : [],
                 experienceRemainingSeconds: state.experienceRemainingSeconds,
@@ -1224,8 +1515,180 @@
                 clockHour: state.clockHour,
                 clockMinute: state.clockMinute,
                 secondCounter: state.secondCounter,
+                tables: tables,
                 isLike: Array.isArray(state.isLike) ? [...state.isLike] : [] // ← isLike 누락 버그 수정!
             };
+        },
+        tableNames: { ...TABLE_NAMES },
+        tableSources: { ...TABLE_SOURCES },
+        getTables: function() {
+            return getDomainTables();
+        },
+        getTable: function(tableName) {
+            const tables = getDomainTables();
+            return cloneData(tables[tableName]);
+        },
+        getUsers: function() {
+            return getMockUsers();
+        },
+        getWorks: function() {
+            return getMockWorks();
+        },
+        getWorkDetails: function() {
+            return getMockWorkDetails();
+        },
+        getProducts: function(filter) {
+            const products = getMockProducts();
+            if (!filter || typeof filter !== 'object') return products;
+            return products.filter(product => {
+                if (filter.workId !== undefined && String(product.workId) !== String(filter.workId)) return false;
+                if (filter.isDelivery !== undefined && !!product.isDelivery !== !!filter.isDelivery) return false;
+                if (filter.brand !== undefined && String(product.brand) !== String(filter.brand)) return false;
+                return true;
+            });
+        },
+        getReservations: function(filter) {
+            const reservations = (state.reservations || []).map(normalizeReservation);
+            if (!filter || typeof filter !== 'object') return cloneData(reservations);
+            return cloneData(reservations.filter(reservation => {
+                if (filter.userId !== undefined && String(reservation.userId) !== String(filter.userId)) return false;
+                if (filter.workId !== undefined && String(reservation.workId) !== String(filter.workId)) return false;
+                if (filter.date !== undefined && String(reservation.date) !== String(filter.date)) return false;
+                if (filter.status !== undefined && String(reservation.workStatus || reservation.status) !== String(filter.status)) return false;
+                return true;
+            }));
+        },
+        getHistories: function(filter) {
+            const histories = state.history || [];
+            if (!filter || typeof filter !== 'object') return cloneData(histories);
+            return cloneData(histories.filter(history => {
+                if (filter.userId !== undefined && String(history.userId) !== String(filter.userId)) return false;
+                if (filter.workId !== undefined && String(history.workId) !== String(filter.workId)) return false;
+                return true;
+            }));
+        },
+        getWorkAttendance: function(workId) {
+            const reservations = Array.isArray(state.reservations) ? state.reservations : [];
+            const filtered = hasReservationIdentityValue(workId)
+                ? reservations.filter(reservation =>
+                    reservation && String(reservation.workId) === String(workId)
+                )
+                : reservations;
+            return JSON.parse(JSON.stringify(filtered.map(normalizeReservation)));
+        },
+        markExpiredReservationsAbsent: function(referenceTime) {
+            const now = referenceTime instanceof Date ? referenceTime : new Date(referenceTime || Date.now());
+            const slotEndHours = [12, 15, 17];
+            let changed = 0;
+            (state.reservations || []).forEach(reservation => {
+                const current = normalizeReservation(reservation);
+                if (!current || current.workStatus !== 'reserved' || current.checkInAt) return;
+                const date = String(current.date || '');
+                const slot = Number(current.slot);
+                const endHour = slotEndHours[slot];
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || endHour === undefined) return;
+                const endAt = new Date(`${date}T${String(endHour).padStart(2, '0')}:00:00`);
+                if (Number.isNaN(endAt.getTime()) || endAt > now) return;
+
+                const absenceAt = now.toISOString();
+                const historyId = `absent-${current.id || `${current.userId}-${current.workId}-${date}-${slot}`}`;
+                this.dispatch({
+                    type: 'UPDATE_RESERVATION',
+                    payload: {
+                        id: current.id,
+                        match: {
+                            userId: current.userId,
+                            workId: current.workId,
+                            date: current.date,
+                            slot: current.slot
+                        },
+                        changes: {
+                            workStatus: 'absent',
+                            absenceAt: absenceAt,
+                            checkoutType: '결근',
+                            attendanceHistoryId: historyId,
+                            lastActivityAt: absenceAt
+                        }
+                    }
+                });
+                this.appendReservationLog(current.id, {
+                    type: 'absent',
+                    status: 'absent',
+                    message: '예약 시간까지 출근하지 않아 결근 처리되었습니다.',
+                    createdAt: absenceAt
+                }, {
+                    userId: current.userId,
+                    workId: current.workId,
+                    date: current.date,
+                    slot: current.slot
+                });
+
+                const activeUser = state.currentUser || {};
+                if (String(activeUser.id) === String(current.userId) || activeUser.name === current.userName) {
+                    const exists = (state.history || []).some(item => String(item.id) === String(historyId));
+                    if (!exists) {
+                        this.dispatch({
+                            type: 'ADD_HISTORY_ITEM',
+                            payload: {
+                                id: historyId,
+                                workId: current.workId,
+                                job: current.workName || (String(current.workId) === '2' ? 'Uton 우동만들기' : '김치만들기'),
+                                date: current.date,
+                                time: '예약 시간 미출근',
+                                role: current.role || 'general',
+                                pay: 0,
+                                checkoutType: '결근',
+                                isAbsent: true,
+                                workStatus: 'absent',
+                                workLogs: current.workLogs || []
+                            }
+                        });
+                    }
+                }
+                changed += 1;
+            });
+            return changed;
+        },
+        appendReservationLog: function(reservationId, logEntry, match) {
+            const payload = {
+                id: reservationId,
+                match: match,
+                log: logEntry
+            };
+            this.dispatch({ type: 'APPEND_RESERVATION_LOG', payload: payload });
+            const reservations = state.reservations || [];
+            const updated = hasReservationIdentityValue(reservationId)
+                ? reservations.find(item => String(item.id) === String(reservationId))
+                : reservations.find(item => matchesReservationFallback(item, match));
+            return updated ? JSON.parse(JSON.stringify(normalizeReservation(updated).workLogs || [])) : [];
+        },
+        getShopOrders: function(filter) {
+            const criteria = filter && typeof filter === 'object' ? filter : {};
+            const matchesValue = function(actual, expected) {
+                if (Array.isArray(expected)) {
+                    return expected.some(value => String(actual) === String(value));
+                }
+                return String(actual) === String(expected);
+            };
+
+            const orders = (Array.isArray(state.shopHistory) ? state.shopHistory : [])
+                .map(normalizeShopOrder)
+                .filter(order => {
+                    if (!order) return false;
+                    if (hasReservationIdentityValue(criteria.workId)
+                        && !matchesValue(inferShopOrderWorkId(order), criteria.workId)) return false;
+                    if (hasReservationIdentityValue(criteria.userId)
+                        && !matchesValue(order.userId, criteria.userId)) return false;
+                    if (hasReservationIdentityValue(criteria.status)
+                        && !matchesValue(order.status, criteria.status)) return false;
+                    if (hasReservationIdentityValue(criteria.kitchenStatus)
+                        && !matchesValue(order.kitchenStatus, criteria.kitchenStatus)) return false;
+                    if (hasReservationIdentityValue(criteria.menuType)
+                        && !matchesValue(inferShopOrderMenuType(order), criteria.menuType)) return false;
+                    return true;
+                });
+
+            return JSON.parse(JSON.stringify(orders));
         },
         getWorkHours: function(userId, workId) {
             function normalizeId(u) {
@@ -1332,12 +1795,87 @@
                     if (state.workers[uId]) state.workers[uId].walletHours = parseInt(val);
                     break;
                 }
-                case 'ADD_RESERVATION':
-                    state.reservations.push(action.payload);
+                case 'ADD_RESERVATION': {
+                    const incoming = normalizeReservation(action.payload);
+                    state.reservations = dedupeReservations((state.reservations || []).concat(incoming));
                     break;
+                }
                 case 'SET_RESERVATIONS':
-                    state.reservations = action.payload;
+                    state.reservations = dedupeReservations(action.payload);
                     break;
+                case 'UPDATE_RESERVATION': {
+                    const payload = action.payload || {};
+                    const hasId = hasReservationIdentityValue(payload.id);
+                    let reservationIndex = -1;
+
+                    if (hasId) {
+                        reservationIndex = state.reservations.findIndex(reservation =>
+                            reservation && hasReservationIdentityValue(reservation.id) &&
+                            String(reservation.id) === String(payload.id)
+                        );
+                    } else if (payload.match) {
+                        reservationIndex = state.reservations.findIndex(reservation =>
+                            matchesReservationFallback(reservation, payload.match)
+                        );
+                    }
+
+                    if (reservationIndex < 0) {
+                        console.warn('갱신할 예약을 찾지 못했습니다.', payload);
+                        return;
+                    }
+
+                    const currentReservation = normalizeReservation(state.reservations[reservationIndex]);
+                    const changes = payload.changes && typeof payload.changes === 'object'
+                        ? payload.changes
+                        : {};
+                    const updatedReservation = normalizeReservation({
+                        ...currentReservation,
+                        ...changes,
+                        checkInSteps: {
+                            ...currentReservation.checkInSteps,
+                            ...(changes.checkInSteps && typeof changes.checkInSteps === 'object'
+                                ? changes.checkInSteps
+                                : {})
+                        }
+                    });
+
+                    state.reservations[reservationIndex] = updatedReservation;
+                    syncSelectedReservation(updatedReservation);
+                    break;
+                }
+                case 'APPEND_RESERVATION_LOG': {
+                    const payload = action.payload || {};
+                    const hasId = hasReservationIdentityValue(payload.id);
+                    const reservationIndex = hasId
+                        ? state.reservations.findIndex(reservation =>
+                            reservation && hasReservationIdentityValue(reservation.id) &&
+                            String(reservation.id) === String(payload.id))
+                        : state.reservations.findIndex(reservation =>
+                            matchesReservationFallback(reservation, payload.match));
+                    if (reservationIndex < 0) {
+                        console.warn('예약 로그를 추가할 예약을 찾지 못했습니다.', payload);
+                        return;
+                    }
+                    const reservation = normalizeReservation(state.reservations[reservationIndex]);
+                    const source = payload.log && typeof payload.log === 'object'
+                        ? payload.log
+                        : { type: 'note', message: String(payload.log || '') };
+                    const entry = {
+                        id: source.id || `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                        type: source.type || 'note',
+                        status: source.status || reservation.workStatus || 'working',
+                        message: source.message || '',
+                        createdAt: source.createdAt || new Date().toISOString(),
+                        ...source
+                    };
+                    reservation.workLogs = Array.isArray(reservation.workLogs)
+                        ? reservation.workLogs.concat(entry)
+                        : [entry];
+                    reservation.lastActivityAt = entry.createdAt;
+                    state.reservations[reservationIndex] = normalizeReservation(reservation);
+                    syncSelectedReservation(state.reservations[reservationIndex]);
+                    break;
+                }
                 case 'SET_HISTORY':
                     state.history = action.payload;
                     break;
@@ -1459,13 +1997,30 @@
                     state.remainingSeconds = Math.max(0, state.remainingSeconds - 1);
                     break;
                 case 'ADD_SHOP_ORDER':
-                    state.shopHistory.unshift(action.payload);
+                    state.shopHistory.unshift(normalizeShopOrder(action.payload));
                     break;
+                case 'UPDATE_SHOP_ORDER': {
+                    const payload = action.payload || {};
+                    const orderId = payload.id;
+                    const targetIndex = state.shopHistory.findIndex(item =>
+                        item && String(item.id) === String(orderId)
+                    );
+                    if (targetIndex > -1) {
+                        state.shopHistory[targetIndex] = normalizeShopOrder({
+                            ...state.shopHistory[targetIndex],
+                            ...(payload.changes || {}),
+                            updatedAt: (payload.changes && payload.changes.updatedAt) || new Date().toISOString()
+                        });
+                    }
+                    break;
+                }
                 case 'CANCEL_SHOP_ORDER': {
                     const orderId = action.payload;
                     const target = state.shopHistory.find(item => item.id === orderId);
                     if (target) {
                         target.status = 'cancelled';
+                        target.kitchenStatus = 'cancelled';
+                        target.cancelledAt = target.cancelledAt || new Date().toISOString();
                     }
                     break;
                 }
@@ -1474,11 +2029,15 @@
                     const target = state.shopHistory.find(item => item.id === orderId);
                     if (target) {
                         target.status = 'completed';
+                        target.kitchenStatus = 'received';
+                        target.completedAt = target.completedAt || new Date().toISOString();
                     }
                     break;
                 }
                 case 'SET_SHOP_HISTORY':
-                    state.shopHistory = action.payload || [];
+                    state.shopHistory = Array.isArray(action.payload)
+                        ? action.payload.map(normalizeShopOrder)
+                        : [];
                     break;
                 case 'TOGGLE_PRODUCT_LIKE': {
                     const { userId, productId } = action.payload;
@@ -1555,6 +2114,7 @@
                     let keysToSave = null;
                     switch (action.type) {
                         case 'ADD_SHOP_ORDER':
+                        case 'UPDATE_SHOP_ORDER':
                         case 'CANCEL_SHOP_ORDER':
                         case 'COMPLETE_SHOP_ORDER':
                         case 'SET_SHOP_HISTORY':
@@ -1572,6 +2132,8 @@
                             break;
                         case 'ADD_RESERVATION':
                         case 'SET_RESERVATIONS':
+                        case 'UPDATE_RESERVATION':
+                        case 'APPEND_RESERVATION_LOG':
                             keysToSave = ['reservations'];
                             break;
                         case 'SET_HISTORY':
@@ -1859,7 +2421,7 @@
         if (!e.key) return;
 
         const key = e.key;
-        if (key.startsWith('kimp_') || key.includes('mypage_') || key === 'kimp_worker_profile' || key.includes('hours_udon') || key.includes('hours_wallet')) {
+        if (key === 'app_reservations_db' || key.startsWith('kimp_') || key.includes('mypage_') || key === 'kimp_worker_profile' || key.includes('hours_udon') || key.includes('hours_wallet')) {
             window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
         }
     });
@@ -1995,6 +2557,48 @@ window.MockData = {
 
     // 2. 예약(Reservations) 목업 데이터 생성기
     getReservations: function(todayStr, tomorrowStr, nextDayStr) {
+        var attendanceDefaults = {
+            userGender: null,
+            checkInAt: null,
+            lockerGender: null,
+            lockerNumber: null,
+            preWorkStatus: 'not_started',
+            checkInSteps: {
+                qr: false,
+                lockerRoom: false,
+                lockerNumber: false,
+                clothes: false,
+                uniform: false,
+                handWash: false,
+                sanitizer: false,
+                handPhoto: false,
+                shopEntry: false
+            },
+            handWashSkipped: false,
+            handPhotoStatus: 'not_submitted',
+            handPhotoCapturedAt: null,
+            handPhotoVerifiedAt: null,
+            handPhotoVerificationMode: null,
+            workStatus: 'reserved',
+            workStartedAt: null,
+            workCompletedAt: null,
+            absenceAt: null,
+            earlyLeaveRequestedAt: null,
+            earlyLeaveAutoAt: null,
+            earlyLeaveCompletedAt: null,
+            checkoutType: null,
+            breakSeconds: 0,
+            actualWorkSeconds: 0,
+            earnedPay: 0,
+            attendanceHistoryId: null,
+            workLogs: [],
+            currentTaskType: null,
+            currentTaskStep: null,
+            currentTaskName: null,
+            completedOrdersCount: 0,
+            lastActivityAt: null
+        };
+
         return [
             { id: 1, userId: "leejisung", userName: "이지성", date: todayStr, slot: 0, role: "general" },
             { id: 2, userId: "choiwoobin", userName: "최우빈", date: todayStr, slot: 0, role: "general" },
@@ -2007,7 +2611,12 @@ window.MockData = {
             { id: 7, userId: "helper2", userName: "김혜수", date: tomorrowStr, slot: 1, role: "helper" },
             { id: 8, userId: "helper3", userName: "조진웅", date: tomorrowStr, slot: 1, role: "helper" },
             { id: 9, userId: "general1", userName: "이선균", date: tomorrowStr, slot: 1, role: "general" }
-        ];
+        ].map(function(reservation) {
+            return Object.assign({}, attendanceDefaults, reservation, {
+                checkInSteps: Object.assign({}, attendanceDefaults.checkInSteps),
+                workLogs: []
+            });
+        });
     },
 
     // 3. 각 작업(Work)별 세부(Detail) 목업 데이터
@@ -2920,5 +3529,3 @@ window.MockData.getWorkTimeSlots = function(workId) {
         slots: this.workTimeSlots[timeKey] || this.workTimeSlots["2h"]
     };
 };
-
-

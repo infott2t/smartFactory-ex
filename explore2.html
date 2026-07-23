@@ -255,24 +255,18 @@
 
                     $('#partner-container').html(partnerHtml);
                 } else if (index === 1) {
-                    let db = (window.FactoryStore && window.FactoryStore.getState) ? (window.FactoryStore.getState().reservations || []) : [];
-                    try {
-                        let kimpDb = JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
-                        if (kimpDb && kimpDb.length > 0) {
-                            db = db.concat(kimpDb);
-                        }
-                    } catch (e) { }
+                    // FactoryStore가 app_reservations_db를 단일 원장으로 관리하므로 Store 목록만 사용합니다.
+                    if (window.FactoryStore && typeof window.FactoryStore.markExpiredReservationsAbsent === 'function') {
+                        window.FactoryStore.markExpiredReservationsAbsent(new Date());
+                    }
+                    const db = (window.FactoryStore && window.FactoryStore.getState)
+                        ? (window.FactoryStore.getState().reservations || [])
+                        : [];
 
-                    // Deduplicate by id or date_slot_workId_userId
-                    let uniqueDbMap = {};
-                    db.forEach(r => {
-                        if (!r) return;
-                        const key = r.id ? ('id_' + r.id) : (r.date + '_' + r.slot + '_' + (r.workId || 1) + '_' + (r.userId || r.userName));
-                        uniqueDbMap[key] = r;
-                    });
-                    db = Object.values(uniqueDbMap);
-
-                    const myReservations = db.filter(r => String(r.userId) === String(user.id) || r.userName === user.name || String(r.userId) === String(user.name));
+                    const myReservations = db.filter(r =>
+                        (String(r.userId) === String(user.id) || r.userName === user.name || String(r.userId) === String(user.name)) &&
+                        !['early_left', 'completed', 'absent'].includes(String(r.workStatus || 'reserved'))
+                    );
 
                     // 전역 정렬 상태 (currentSortType, currentSortDir) 반영
                     myReservations.sort((a, b) => {
@@ -451,6 +445,14 @@
                         return dateStr;
                     }
 
+                    function formatRoleLabel(role) {
+                        const normalized = String(role || '').toLowerCase();
+                        if (normalized === 'general' || normalized === 'role_general') return '일반';
+                        if (normalized === 'helper' || normalized === 'role_helper') return '헬퍼';
+                        if (normalized === 'manager' || normalized === 'role_manager') return '매니저';
+                        return role || '일반';
+                    }
+
                     let historyData = getHistoryData(user);
 
                     historyData = [...historyData].sort((a, b) => {
@@ -478,9 +480,10 @@
                             iconSrc = './images/fancy_150x150.png';
                         }
 
+                        const roleLabel = formatRoleLabel(h.role);
                         let badgeClass = 'badge01';
-                        if (h.role === '매니저') badgeClass = 'badge03';
-                        else if (h.role === '헬퍼') badgeClass = 'badge02';
+                        if (roleLabel === '매니저') badgeClass = 'badge03';
+                        else if (roleLabel === '헬퍼') badgeClass = 'badge02';
 
                         let rawTime = h.time || h.slot || '10:00 ~ 12:00';
                         let displayTime = rawTime;
@@ -513,7 +516,7 @@
                                 <div class="task-info-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 0 5px;">
                                     <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 3px;">
                                         <span class="box-time">2h</span>
-                                        <span class="${badgeClass}">${h.role}</span>
+                                        <span class="${badgeClass}">${roleLabel}</span>
                                     </div>
                                     <span style="font-size: 11px; color: #a29bfe;">${displayTime}</span>
                                 </div>

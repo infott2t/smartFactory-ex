@@ -806,13 +806,9 @@
             var container = document.getElementById('time-slots');
             if (!container) return;
 
-            var db = (window.FactoryStore && window.FactoryStore.getState) ? (window.FactoryStore.getState().reservations || []) : [];
-            try {
-                var kimpDb = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
-                if (kimpDb && kimpDb.length > 0) {
-                    db = db.concat(kimpDb);
-                }
-            } catch(e) {}
+            var db = (window.FactoryStore && typeof window.FactoryStore.getReservations === 'function')
+                ? window.FactoryStore.getReservations()
+                : ((window.FactoryStore && window.FactoryStore.getState) ? (window.FactoryStore.getState().reservations || []) : []);
 
             var urlParams = new URLSearchParams(window.location.search);
             var currentWorkId = parseInt(urlParams.get('id') || '1', 10);
@@ -1027,6 +1023,10 @@
                 workedHours: fallbackWorkedHours
             };
 
+            // 기존 세션 프로필에 이름이 없는 경우에도 예약 사용자 스냅샷을 완성
+            if (!profile.userId) profile.userId = fallbackId;
+            if (!profile.userName) profile.userName = fallbackName;
+
             if (!profile.healthCertificateImage || profile.healthCertificateStatus !== 'approved') {
                 profile.healthCertificateImage = 'default_cert.png';
                 profile.healthCertificateStatus = 'approved';
@@ -1034,6 +1034,45 @@
             }
 
             return profile;
+        }
+
+        // 예약 생성 시점의 회원 성별을 예약 정보에 함께 저장
+        function getReservationUserGender(profile) {
+            var gender = null;
+            var sessionUser = null;
+
+            try {
+                var userInfo = JSON.parse(sessionStorage.getItem('user_info') || '{}');
+                gender = userInfo.gender || null;
+            } catch (e) {}
+
+            try {
+                sessionUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                if (!sessionUser) {
+                    sessionUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+                }
+            } catch (e) {
+                sessionUser = null;
+            }
+
+            if (!gender && profile) {
+                gender = profile.userGender || profile.gender || null;
+            }
+
+            if (!gender && window.MockData && Array.isArray(window.MockData.users)) {
+                var matchedUser = window.MockData.users.find(function(user) {
+                    return (profile && String(user.id) === String(profile.userId)) ||
+                        (sessionUser && String(user.id) === String(sessionUser.id)) ||
+                        (sessionUser && user.name === sessionUser.name) ||
+                        (sessionUser && user.email === sessionUser.email);
+                });
+                gender = matchedUser ? matchedUser.gender : null;
+            }
+
+            var normalizedGender = gender ? String(gender).toUpperCase() : null;
+            return normalizedGender === 'M' || normalizedGender === 'F'
+                ? normalizedGender
+                : null;
         }
 
         function renderHealthCertificateStatus() {
@@ -1132,7 +1171,9 @@
             var workId = urlParams.get('id') || '1';
             var workTitle = "김치만들기";
             try {
-                var detailMap = JSON.parse(window.MockData.workDetailJSON);
+                var detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                    ? window.FactoryStore.getWorkDetails()
+                    : JSON.parse(window.MockData.workDetailJSON);
                 if (detailMap[workId] && detailMap[workId].title) {
                     workTitle = detailMap[workId].title;
                 }
@@ -1490,8 +1531,11 @@
 
             // 값이 아예 없거나, 이전에 잘못 저장된 빈 배열("[]")일 경우 강제로 덮어쓰기
             if (!progressDbStr || progressDbStr === "[]" || progressDbStr === "") {
-                if (window.MockData && window.MockData.userWorkProgress) {
-                    localStorage.setItem('userWorkProgress', JSON.stringify(window.MockData.userWorkProgress));
+                var progressRows = (window.FactoryStore && typeof window.FactoryStore.getTable === 'function')
+                    ? window.FactoryStore.getTable('userWorkExperiences')
+                    : (window.MockData && window.MockData.userWorkProgress);
+                if (progressRows) {
+                    localStorage.setItem('userWorkProgress', JSON.stringify(progressRows));
                     console.log("store.js의 체험 데이터를 로컬 스토리지에 성공적으로 복사했습니다!");
                 }
             }
@@ -1505,15 +1549,22 @@
 
             // 1. workDetailJSON에서 expPage 확인
             var detailMap = {};
-            try { detailMap = JSON.parse(window.MockData.workDetailJSON); } catch(e) {}
+            try {
+                detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                    ? window.FactoryStore.getWorkDetails()
+                    : JSON.parse(window.MockData.workDetailJSON);
+            } catch(e) {}
             var expPage = detailMap[workId] && detailMap[workId].expPage;
 
             // 2. sessionStorage의 user.id(숫자)로 MockData.users에서 매칭
             var sessionUser = null;
             try { sessionUser = JSON.parse(sessionStorage.getItem('user') || '{}'); } catch(e) {}
             var numericUserId = null;
-            if (sessionUser && window.MockData && window.MockData.users) {
-                var matched = window.MockData.users.find(function(u) {
+            var users = (window.FactoryStore && typeof window.FactoryStore.getUsers === 'function')
+                ? window.FactoryStore.getUsers()
+                : ((window.MockData && window.MockData.users) || []);
+            if (sessionUser && users.length) {
+                var matched = users.find(function(u) {
                     return u.name === sessionUser.name || u.email === sessionUser.email;
                 });
                 if (matched) numericUserId = matched.id;
@@ -1833,10 +1884,12 @@
             var currentWorkInfo = workInfoMap[workId] || workInfoMap[1];
 
             var newId = db.length > 0 ? Math.max.apply(null, db.map(function (r) { return r.id; })) + 1 : 1;
+            var reservationUserGender = getReservationUserGender(profile);
             var newReservation = {
                 id: newId,
                 userId: profile.userId,
                 userName: profile.userName,
+                userGender: reservationUserGender,
                 date: selectedDateString,
                 slot: selectedSlot,
                 role: selectedRole,
@@ -1854,16 +1907,45 @@
                 startHour: curSlotObj.startHour,
                 startMin: curSlotObj.startMin,
                 endHour: curSlotObj.endHour,
-                endMin: curSlotObj.endMin
+                endMin: curSlotObj.endMin,
+                checkInAt: null,
+                lockerGender: null,
+                lockerNumber: null,
+                preWorkStatus: 'not_started',
+                checkInSteps: {
+                    qr: false,
+                    lockerRoom: false,
+                    lockerNumber: false,
+                    clothes: false,
+                    uniform: false,
+                    handWash: false,
+                    sanitizer: false,
+                    handPhoto: false,
+                    shopEntry: false
+                },
+                handWashSkipped: false,
+                handPhotoStatus: 'not_submitted',
+                handPhotoCapturedAt: null,
+                handPhotoVerifiedAt: null,
+                handPhotoVerificationMode: null,
+                workStatus: 'reserved',
+                workStartedAt: null,
+                workCompletedAt: null,
+                currentTaskType: null,
+                currentTaskStep: null,
+                currentTaskName: null,
+                completedOrdersCount: 0,
+                lastActivityAt: null
             };
-            db.push(newReservation);
-            setPartitionedItem('app_reservations_db', JSON.stringify(db));
 
             if (window.FactoryStore) {
                 window.FactoryStore.dispatch({
                     type: 'ADD_RESERVATION',
                     payload: newReservation
                 });
+            } else {
+                db.push(newReservation);
+                setPartitionedItem('app_reservations_db', JSON.stringify(db));
             }
 
             // 💡 [추가할 코드 3] 마이페이지나 임금 정산 시 쉽게 쓰기 위해 LocalStorage 단독 저장

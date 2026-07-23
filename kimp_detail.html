@@ -961,9 +961,11 @@
 
             // 💡 [추가] workDetailJSON 내의 products 리스트에서 해당 productId를 우선 매핑
             let foundInDetail = null;
-            if (currentWorkId && window.MockData && window.MockData.workDetailJSON) {
+            if (currentWorkId && ((window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function') || (window.MockData && window.MockData.workDetailJSON))) {
                 try {
-                    const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                    const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                        ? window.FactoryStore.getWorkDetails()
+                        : JSON.parse(window.MockData.workDetailJSON);
                     const workData = detailMap[currentWorkId];
                     if (workData && workData.products) {
                         if (Array.isArray(workData.products)) {
@@ -988,8 +990,11 @@
 
             // 1. storeProducts에서 productId 또는 productCode로 조회
             let originProduct = null;
-            if (prodId && window.MockData && window.MockData.storeProducts) {
-                originProduct = window.MockData.storeProducts.find(p =>
+            const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                ? window.FactoryStore.getProducts()
+                : ((window.MockData && window.MockData.storeProducts) || []);
+            if (prodId && products.length) {
+                originProduct = products.find(p =>
                     String(p.productId) === String(prodId) || String(p.productCode) === String(prodId)
                 );
             }
@@ -1004,9 +1009,11 @@
 
             // 1-b. foundInDetail을 productCode로도 재시도
             // (URL이 ?productId=20001일 때 workDetailJSON 내부는 id:"p1"이라 처음에 못 찾을 수 있음)
-            if (!foundInDetail && originProduct && originProduct.productCode && currentWorkId && window.MockData && window.MockData.workDetailJSON) {
+            if (!foundInDetail && originProduct && originProduct.productCode && currentWorkId && ((window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function') || (window.MockData && window.MockData.workDetailJSON))) {
                 try {
-                    const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                    const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                        ? window.FactoryStore.getWorkDetails()
+                        : JSON.parse(window.MockData.workDetailJSON);
                     const workData = detailMap[currentWorkId];
                     if (workData && workData.products && Array.isArray(workData.products)) {
                         foundInDetail = workData.products.find(p =>
@@ -1116,7 +1123,9 @@
                     addressItem.style.display = 'flex';
                     let shopAddress = "서울시 강남구 역삼동";
                     try {
-                        const worksData = window.MockData.worksJSON ? JSON.parse(window.MockData.worksJSON) : [];
+                        const worksData = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                            ? window.FactoryStore.getWorks()
+                            : (window.MockData.worksJSON ? JSON.parse(window.MockData.worksJSON) : []);
                         const currentWork = worksData.find(w => String(w.workId) === '2');
                         if (currentWork && currentWork.region) {
                             shopAddress = `${currentWork.region} (${currentWork.brandName || 'Uton'} 공방)`;
@@ -1689,8 +1698,11 @@
 
         function isDeliveryProduct(productId) {
             let pObj = null;
-            if (window.MockData && window.MockData.storeProducts) {
-                pObj = window.MockData.storeProducts.find(p => p.productCode === productId || String(p.productId) === productId);
+            const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                ? window.FactoryStore.getProducts()
+                : ((window.MockData && window.MockData.storeProducts) || []);
+            if (products.length) {
+                pObj = products.find(p => p.productCode === productId || String(p.productId) === productId);
             }
             if (pObj && pObj.isDelivery !== undefined) {
                 return pObj.isDelivery;
@@ -1732,11 +1744,45 @@
             document.getElementById('order-confirm-overlay').style.display = 'none';
         }
 
+        function generateUniqueOrderNo() {
+            let shopHistory = [];
+
+            try {
+                if (window.FactoryStore && typeof window.FactoryStore.getState === 'function') {
+                    shopHistory = window.FactoryStore.getState().shopHistory || [];
+                } else {
+                    shopHistory = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
+                }
+            } catch(e) {
+                shopHistory = [];
+            }
+
+            const usedOrderNumbers = new Set(
+                shopHistory
+                    .filter(item => item && item.orderNo !== undefined && item.orderNo !== null)
+                    .map(item => String(item.orderNo))
+            );
+            const randomStart = Math.floor(Math.random() * 900);
+
+            for (let offset = 0; offset < 900; offset++) {
+                const candidate = String(100 + ((randomStart + offset) % 900));
+                if (!usedOrderNumbers.has(candidate)) return candidate;
+            }
+
+            return null;
+        }
+
         function confirmOrder() {
             if (orderCount10Min >= 2) return;
 
             const qtySelect = document.getElementById('order-qty-select');
             const qty = parseInt(qtySelect ? qtySelect.value : "1") || 1;
+            if (qty > 2 - orderCount10Min) {
+                alert("주문은 10분에 최대 2그릇까지 가능합니다.");
+                updateLimitUI(orderCount10Min >= 2, 0);
+                return;
+            }
+
             const itemPrice = currentProductData ? (currentProductData.price || 3000) : 3000;
             const totalOrderPrice = itemPrice * qty;
 
@@ -1746,15 +1792,20 @@
                 return;
             }
 
+            const orderNo = generateUniqueOrderNo();
+            if (!orderNo) {
+                alert("사용 가능한 주문번호가 없습니다. 잠시 후 다시 시도해 주세요.");
+                return;
+            }
+
             orderCount10Min += qty;
             try {
                 sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
             } catch(e) {}
 
-            const orderNo = Math.floor(Math.random() * 900) + 100;
             try {
                 sessionStorage.setItem('activeOrderProduct', currentProductId);
-                sessionStorage.setItem('activeOrderNo', orderNo.toString());
+                sessionStorage.setItem('activeOrderNo', orderNo);
                 sessionStorage.setItem('activeOrderQty', qty.toString());
             } catch(e) {}
 
@@ -1784,15 +1835,53 @@
                 const hh = String(now.getHours()).padStart(2, '0');
                 const min = String(now.getMinutes()).padStart(2, '0');
                 const ss = String(now.getSeconds()).padStart(2, '0');
+                let orderUser = null;
+
+                try {
+                    if (window.AuthManager && typeof window.AuthManager.getCurrentUser === 'function') {
+                        orderUser = window.AuthManager.getCurrentUser();
+                    }
+                    if (!orderUser && window.FactoryStore && typeof window.FactoryStore.getState === 'function') {
+                        orderUser = window.FactoryStore.getState().currentUser;
+                    }
+                    if (!orderUser) {
+                        orderUser = JSON.parse(sessionStorage.getItem('user') || 'null');
+                    }
+                } catch(e) {
+                    orderUser = null;
+                }
+
+                const orderUserId = orderUser
+                    ? (orderUser.id || orderUser.userId || orderUser.email || orderUser.name || 'guest')
+                    : 'guest';
+                const orderUserName = orderUser
+                    ? (orderUser.name || orderUser.userName || orderUser.email || '사용자')
+                    : '사용자';
+                const numericWorkId = Number(currentWorkId);
+                const orderWorkId = Number.isFinite(numericWorkId) ? numericWorkId : currentWorkId;
+                const productCode = currentProductData
+                    ? (currentProductData.productCode || currentProductData.id || String(currentProductId))
+                    : String(currentProductId);
 
                 const newItem = {
                     id: 'ord_' + now.getTime(),
-                    orderNo: orderNo.toString(),
+                    orderNo: orderNo,
+                    userId: orderUserId,
+                    userName: orderUserName,
+                    workId: orderWorkId,
+                    productId: currentProductId,
+                    productCode: productCode,
+                    orderType: 'dine_in',
+                    orderedAt: now.toISOString(),
+                    kitchenStatus: 'queued',
                     orderDate: `${yyyy}-${mm}-${dd}`,
                     orderTime: `${hh}:${min}:${ss}`,
-                    productName: isUdon ? '정통 가쓰오 우동' : '간장 비빔면',
+                    productName: currentProductData && currentProductData.name
+                        ? currentProductData.name
+                        : (isUdon ? '정통 가쓰오 우동' : '간장 비빔면'),
                     brandName: 'Uton',
-                    price: 3000 * qty,
+                    unitPrice: itemPrice,
+                    price: totalOrderPrice,
                     qty: qty,
                     status: 'pending',
                     dateStr: `${mm}월 ${dd}일 ${hh}시 ${min}분`
@@ -1804,9 +1893,9 @@
 
                 // 탭 간 공유용 activeOrder 백업
                 localStorage.setItem('activeOrderProduct_local', currentProductId);
-                localStorage.setItem('activeOrderNo_local', orderNo.toString());
+                localStorage.setItem('activeOrderNo_local', orderNo);
                 localStorage.setItem('activeOrderQty_local', qty.toString());
-                localStorage.setItem('activeOrderNo_current', orderNo.toString());
+                localStorage.setItem('activeOrderNo_current', orderNo);
             } catch(e){}
 
             if (isUdon) {

@@ -396,8 +396,11 @@
                 dateText = (orderItem.dateStr || orderItem.orderDate || '2026.07.23') + ' ' + (orderItem.orderTime || '14:15');
 
                 const pIdStr = String(orderItem.productId || '');
-                if (window.MockData && window.MockData.storeProducts) {
-                    const found = window.MockData.storeProducts.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === prodTitle);
+                const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                    ? window.FactoryStore.getProducts()
+                    : ((window.MockData && window.MockData.storeProducts) || []);
+                if (products.length) {
+                    const found = products.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === prodTitle);
                     if (found) {
                         prodImg = found.img || prodImg;
                         brandName = found.brand || brandName;
@@ -405,8 +408,11 @@
                 }
             } else {
                 // Fallback catalog
-                if (window.MockData && window.MockData.storeProducts) {
-                    const found = window.MockData.storeProducts.find(p => p.productCode === productId || String(p.productId) === productId);
+                const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                    ? window.FactoryStore.getProducts()
+                    : ((window.MockData && window.MockData.storeProducts) || []);
+                if (products.length) {
+                    const found = products.find(p => p.productCode === productId || String(p.productId) === productId);
                     if (found) {
                         prodTitle = found.name;
                         brandName = found.brand;

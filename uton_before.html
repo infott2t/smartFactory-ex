@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Uton 출근 준비</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/uton_before.css">
+    <script src="./js/auth.js"></script>
+    <script src="./js/auth-guard.js"></script>
+    <script src="./js/store.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="fixed-header-wrap">
+            <div class="menu-bar">
+                <div class="header-title-wrap">
+                    <button type="button" class="back-btn" id="back-btn" aria-label="이전 화면으로">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <span class="header-title">출근 준비</span>
+                </div>
+                <div class="header-brand">
+                    <img src="./images/Uton_150x150.png" alt="">
+                    <span>UTON</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="page-content" id="page-content">
+            <section class="reservation-card" id="reservation-card" aria-label="오늘의 예약">
+                <div class="reservation-heading">
+                    <img src="./images/Uton_150x150.png" alt="Uton">
+                    <div>
+                        <div class="reservation-brand">UTON SHOP</div>
+                        <div class="reservation-title" id="reservation-title">우동만들기</div>
+                    </div>
+                </div>
+                <div class="reservation-meta">
+                    <div class="meta-chip">
+                        <span class="meta-label">예약 날짜</span>
+                        <span class="meta-value" id="reservation-date">-</span>
+                    </div>
+                    <div class="meta-chip">
+                        <span class="meta-label">예약 시간</span>
+                        <span class="meta-value" id="reservation-time">-</span>
+                    </div>
+                    <div class="meta-chip">
+                        <span class="meta-label">작업자</span>
+                        <span class="meta-value" id="worker-name">-</span>
+                    </div>
+                    <div class="meta-chip">
+                        <span class="meta-label">출근 시각</span>
+                        <span class="meta-value" id="check-in-time">미등록</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="flow-heading">Uton Shop 입장 전 확인</div>
+            <div class="steps-indicator" aria-label="출근 준비 진행률">
+                <div class="progress-line" id="progress-line"></div>
+                <div class="step-dot" data-dot="0">1<span class="step-dot-label">QR</span></div>
+                <div class="step-dot" data-dot="1">2<span class="step-dot-label">락커룸</span></div>
+                <div class="step-dot" data-dot="2">3<span class="step-dot-label">번호</span></div>
+                <div class="step-dot" data-dot="3">4<span class="step-dot-label">환복</span></div>
+                <div class="step-dot" data-dot="4">5<span class="step-dot-label">유니폼</span></div>
+                <div class="step-dot" data-dot="5">6<span class="step-dot-label">손 위생</span></div>
+                <div class="step-dot" data-dot="6">7<span class="step-dot-label">입장</span></div>
+            </div>
+
+            <section class="step-card" data-step-card="0">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-qr-code-scan"></i>입구 출근 QR 찍기</div>
+                        <p class="step-description">QR 승인 시각이 오늘의 출근 시간으로 저장됩니다.</p>
+                    </div>
+                    <span class="status-badge">대기</span>
+                </div>
+                <div class="step-content">
+                    <div class="qr-scanner" id="qr-scanner">
+                        <div class="qr-scan-line"></div>
+                        <i class="bi bi-qr-code"></i>
+                        <span class="qr-caption">입구 QR을 프레임 안에 맞춰주세요.</span>
+                    </div>
+                    <button type="button" class="primary-btn" id="scan-qr-btn">
+                        <i class="bi bi-camera"></i> QR 스캔하기
+                    </button>
+                </div>
+            </section>
+
+            <section class="step-card" data-step-card="1">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-people-fill"></i>락커룸 확인</div>
+                        <p class="step-description">회원 성별 정보에 맞는 락커룸을 안내합니다.</p>
+                    </div>
+                    <span class="status-badge">잠김</span>
+                </div>
+                <div class="step-content">
+                    <div id="gender-notice" class="info-banner" aria-live="polite"></div>
+                    <div class="room-grid" id="room-grid">
+                        <button type="button" class="room-btn" data-gender="M">
+                            <i class="bi bi-gender-male"></i>
+                            남성 락커룸
+                        </button>
+                        <button type="button" class="room-btn" data-gender="F">
+                            <i class="bi bi-gender-female"></i>
+                            여성 락커룸
+                        </button>
+                    </div>
+                    <button type="button" class="primary-btn" id="confirm-room-btn">락커룸 확인</button>
+                </div>
+            </section>
+
+            <section class="step-card" data-step-card="2">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-grid-3x3-gap-fill"></i>락커 번호 선택</div>
+                        <p class="step-description">사용할 번호를 선택하면 예약 정보에 바로 저장됩니다.</p>
+                    </div>
+                    <span class="status-badge">잠김</span>
+                </div>
+                <div class="step-content">
+                    <div class="info-banner" id="locker-room-label">락커룸을 확인해주세요.</div>
+                    <div class="locker-grid" id="locker-grid" aria-label="락커 번호"></div>
+                </div>
+            </section>
+
+            <section class="step-card" data-step-card="3">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-door-closed-fill"></i>옷 갈아입기</div>
+                        <p class="step-description">개인 소지품과 옷은 선택한 락커에 보관해주세요.</p>
+                    </div>
+                    <span class="status-badge">잠김</span>
+                </div>
+                <div class="step-content">
+                    <ul class="manual-list">
+                        <li><i class="bi bi-check-circle-fill"></i><span>개인물품을 락커 안에 넣어주세요.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i><span>개인복이 작업 구역에 노출되지 않도록 정리해주세요.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i><span>락커 문이 잠겼는지 마지막으로 확인해주세요.</span></li>
+                    </ul>
+                    <button type="button" class="primary-btn" id="confirm-clothes-btn">개인복 보관 완료</button>
+                </div>
+            </section>
+
+            <section class="step-card" data-step-card="4">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-person-check-fill"></i>유니폼 착용</div>
+                        <p class="step-description">Uton Shop 전용 유니폼을 단정하게 착용해주세요.</p>
+                    </div>
+                    <span class="status-badge">잠김</span>
+                </div>
+                <div class="step-content">
+                    <ul class="manual-list">
+                        <li><i class="bi bi-check-circle-fill"></i><span>유니폼 상·하의와 앞치마를 착용해주세요.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i><span>머리카락이 나오지 않도록 위생모를 정리해주세요.</span></li>
+                        <li><i class="bi bi-check-circle-fill"></i><span>작업화의 끈과 미끄럼 방지 상태를 확인해주세요.</span></li>
+                    </ul>
+                    <button type="button" class="primary-btn" id="confirm-uniform-btn">유니폼 착용 완료</button>
+                </div>
+            </section>
+
+            <section class="step-card" data-step-card="5">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-shield-check"></i>손 위생 및 사진 인증</div>
+                        <p class="step-description">30초 손씻기와 소독 후 손 상태를 인증합니다.</p>
+                    </div>
+                    <span class="status-badge">잠김</span>
+                </div>
+                <div class="step-content" id="hygiene-content" aria-live="polite"></div>
+            </section>
+
+            <section class="step-card" data-step-card="6">
+                <div class="step-header">
+                    <div class="step-title-wrap">
+                        <div class="step-title"><i class="bi bi-door-open-fill"></i>Uton Shop 입장</div>
+                        <p class="step-description">모든 출근 준비가 완료되었습니다.</p>
+                    </div>
+                    <span class="status-badge">잠김</span>
+                </div>
+                <div class="step-content">
+                    <div class="success-banner" id="entry-message">
+                        위생 인증이 완료되었습니다. 안전하게 작업을 시작해주세요.
+                    </div>
+                    <div class="entry-summary">
+                        <div class="entry-summary-item">
+                            <span class="label">출근 시각</span>
+                            <span class="value" id="entry-check-in">-</span>
+                        </div>
+                        <div class="entry-summary-item">
+                            <span class="label">사용 락커</span>
+                            <span class="value" id="entry-locker">-</span>
+                        </div>
+                        <div class="entry-summary-item">
+                            <span class="label">손 위생 인증</span>
+                            <span class="value" id="entry-hygiene">승인 완료</span>
+                        </div>
+                        <div class="entry-summary-item">
+                            <span class="label">작업 장소</span>
+                            <span class="value">Uton Shop</span>
+                        </div>
+                    </div>
+                    <button type="button" class="primary-btn" id="enter-shop-btn">
+                        <i class="bi bi-box-arrow-in-right"></i> Uton Shop 입장
+                    </button>
+                </div>
+            </section>
+
+            <section class="fatal-state hidden" id="fatal-state">
+                <i class="bi bi-calendar-x"></i>
+                <h2>우동 예약을 찾을 수 없습니다</h2>
+                <p>마이페이지에서 예약한 우동만들기 일정의 출근하기 버튼을 다시 눌러주세요.</p>
+                <button type="button" class="primary-btn" onclick="location.href='mypage2.html'">마이페이지로 이동</button>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            "use strict";
+
+            const STEP_KEYS = ["qr", "lockerRoom", "lockerNumber", "clothes", "uniform", "handPhoto", "shopEntry"];
+            const STEP_DEFAULTS = {
+                qr: false,
+                lockerRoom: false,
+                lockerNumber: false,
+                clothes: false,
+                uniform: false,
+                handWash: false,
+                sanitizer: false,
+                handPhoto: false,
+                shopEntry: false
+            };
+
+            let currentUser = null;
+            let reservation = null;
+            let memberGender = null;
+            let selectedGender = null;
+            let washSeconds = 30;
+            let washTimer = null;
+            let approvalTimer = null;
+            let qrScanning = false;
+
+            document.addEventListener("DOMContentLoaded", init);
+
+            function init() {
+                currentUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+                if (!currentUser) {
+                    try {
+                        currentUser = JSON.parse(sessionStorage.getItem("user") || "null");
+                    } catch (e) {
+                        currentUser = null;
+                    }
+                }
+
+                if (!currentUser) {
+                    location.href = "login.html";
+                    return;
+                }
+
+                reservation = findReservation();
+                if (!reservation || String(reservation.workId || 1) !== "2") {
+                    showFatalState();
+                    return;
+                }
+
+                reservation = normalizeReservation(reservation);
+                memberGender = resolveMemberGender();
+                selectedGender = reservation.lockerGender || memberGender || null;
+                sessionStorage.setItem("selected_reservation", JSON.stringify(reservation));
+
+                bindEvents();
+                render();
+
+                if (reservation.handPhotoStatus === "reviewing" && !reservation.checkInSteps.handPhoto) {
+                    scheduleAutomaticApproval(900);
+                }
+            }
+
+            function bindEvents() {
+                document.getElementById("back-btn").addEventListener("click", function () {
+                    location.href = "check-in-announce.html";
+                });
+                document.getElementById("scan-qr-btn").addEventListener("click", scanQr);
+                document.getElementById("confirm-room-btn").addEventListener("click", confirmLockerRoom);
+                document.getElementById("confirm-clothes-btn").addEventListener("click", function () {
+                    completeStep("clothes");
+                });
+                document.getElementById("confirm-uniform-btn").addEventListener("click", function () {
+                    completeStep("uniform");
+                });
+                document.getElementById("enter-shop-btn").addEventListener("click", enterShop);
+
+                document.querySelectorAll(".room-btn").forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        if (button.disabled) return;
+                        selectedGender = button.dataset.gender;
+                        renderGenderRoom();
+                    });
+                });
+            }
+
+            function findReservation() {
+                let selected = null;
+                try {
+                    selected = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                } catch (e) {
+                    selected = null;
+                }
+
+                const all = window.FactoryStore && typeof FactoryStore.getReservations === "function"
+                    ? FactoryStore.getReservations()
+                    : ((window.FactoryStore && FactoryStore.getState) ? (FactoryStore.getState().reservations || []) : []);
+                const belongsToUser = function (item) {
+                    return item && (
+                        String(item.userId) === String(currentUser.id) ||
+                        item.userName === currentUser.name
+                    );
+                };
+
+                if (selected && String(selected.workId || 1) === "2" && belongsToUser(selected)) {
+                    const canonical = all.find(function (item) {
+                        return sameReservation(item, selected);
+                    });
+                    return canonical || selected;
+                }
+
+                const candidates = all.filter(function (item) {
+                    return belongsToUser(item) && String(item.workId || 1) === "2";
+                });
+                candidates.sort(function (a, b) {
+                    return String(a.date || "").localeCompare(String(b.date || "")) ||
+                        Number(a.slot || 0) - Number(b.slot || 0);
+                });
+                return candidates[0] || null;
+            }
+
+            function sameReservation(a, b) {
+                if (!a || !b) return false;
+                if (a.id != null && b.id != null) return String(a.id) === String(b.id);
+                return String(a.userId) === String(b.userId) &&
+                    String(a.workId || 1) === String(b.workId || 1) &&
+                    String(a.date) === String(b.date) &&
+                    String(a.slot) === String(b.slot);
+            }
+
+            function normalizeReservation(item) {
+                return Object.assign({
+                    userGender: null,
+                    checkInAt: null,
+                    lockerGender: null,
+                    lockerNumber: null,
+                    preWorkStatus: "not_started",
+                    handWashSkipped: false,
+                    handPhotoStatus: "not_submitted",
+                    handPhotoCapturedAt: null,
+                    handPhotoVerifiedAt: null,
+                    handPhotoVerificationMode: null,
+                    workStatus: item.status === "reserved" ? "reserved" : (item.workStatus || "reserved"),
+                    workStartedAt: null,
+                    workCompletedAt: null,
+                    absenceAt: null,
+                    earlyLeaveRequestedAt: null,
+                    earlyLeaveAutoAt: null,
+                    earlyLeaveCompletedAt: null,
+                    checkoutType: null,
+                    breakSeconds: 0,
+                    actualWorkSeconds: 0,
+                    earnedPay: 0,
+                    attendanceHistoryId: null,
+                    workLogs: [],
+                    currentTaskType: null,
+                    currentTaskStep: null,
+                    currentTaskName: null,
+                    completedOrdersCount: 0,
+                    lastActivityAt: null
+                }, item, {
+                    checkInSteps: Object.assign({}, STEP_DEFAULTS, item.checkInSteps || {})
+                });
+            }
+
+            function normalizeGender(value) {
+                if (value == null) return null;
+                const normalized = String(value).trim().toUpperCase();
+                if (["M", "MALE", "남", "남성"].includes(normalized)) return "M";
+                if (["F", "FEMALE", "여", "여성"].includes(normalized)) return "F";
+                return null;
+            }
+
+            function resolveMemberGender() {
+                let userInfo = null;
+                try {
+                    userInfo = JSON.parse(sessionStorage.getItem("user_info") || "null");
+                } catch (e) {
+                    userInfo = null;
+                }
+                const infoGender = normalizeGender(userInfo && userInfo.gender);
+                if (infoGender) return infoGender;
+
+                const mockUsers = window.FactoryStore && typeof FactoryStore.getUsers === "function"
+                    ? FactoryStore.getUsers()
+                    : ((window.MockData && Array.isArray(window.MockData.users)) ? window.MockData.users : []);
+                const mockUser = mockUsers.find(function (user) {
+                    return String(user.id) === String(currentUser.id) ||
+                        user.email === currentUser.email ||
+                        user.name === currentUser.name;
+                });
+                return normalizeGender(mockUser && mockUser.gender) || normalizeGender(reservation.userGender);
+            }
+
+            function updateReservation(changes, skipRender) {
+                if (!reservation) return;
+                const payload = {
+                    id: reservation.id,
+                    match: {
+                        userId: reservation.userId,
+                        workId: reservation.workId,
+                        date: reservation.date,
+                        slot: reservation.slot
+                    },
+                    changes: changes
+                };
+
+                if (window.FactoryStore && typeof FactoryStore.dispatch === "function") {
+                    FactoryStore.dispatch({ type: "UPDATE_RESERVATION", payload: payload });
+                    const updated = (FactoryStore.getState().reservations || []).find(function (item) {
+                        return sameReservation(item, reservation);
+                    });
+                    reservation = normalizeReservation(updated || Object.assign({}, reservation, changes));
+                } else {
+                    reservation = normalizeReservation(Object.assign({}, reservation, changes));
+                    let db = [];
+                    try {
+                        db = JSON.parse(localStorage.getItem("app_reservations_db") || "[]");
+                    } catch (e) {
+                        db = [];
+                    }
+                    const index = db.findIndex(function (item) {
+                        return sameReservation(item, reservation);
+                    });
+                    if (index >= 0) db[index] = reservation;
+                    localStorage.setItem("app_reservations_db", JSON.stringify(db));
+                }
+
+                sessionStorage.setItem("selected_reservation", JSON.stringify(reservation));
+                if (!skipRender) render();
+            }
+
+            function appendWorkLog(type, message, details) {
+                if (!reservation || !window.FactoryStore || typeof FactoryStore.appendReservationLog !== "function") return;
+                FactoryStore.appendReservationLog(reservation.id, Object.assign({
+                    type: type,
+                    status: reservation.workStatus || "reserved",
+                    message: message,
+                    createdAt: new Date().toISOString()
+                }, details || {}), {
+                    userId: reservation.userId,
+                    workId: reservation.workId,
+                    date: reservation.date,
+                    slot: reservation.slot
+                });
+            }
+
+            function completeStep(key, extraChanges) {
+                const steps = Object.assign({}, STEP_DEFAULTS, reservation.checkInSteps || {});
+                steps[key] = true;
+                updateReservation(Object.assign({
+                    checkInSteps: steps,
+                    preWorkStatus: key === "shopEntry" ? "verified" : "in_progress",
+                    lastActivityAt: new Date().toISOString()
+                }, extraChanges || {}));
+                appendWorkLog("checkin_step", "출근 준비 단계 완료", { step: key });
+                focusActiveStep();
+            }
+
+            function render() {
+                renderReservation();
+                renderProgress();
+                renderGenderRoom();
+                renderLockerGrid();
+                renderHygiene();
+                renderEntry();
+            }
+
+            function renderReservation() {
+                document.getElementById("reservation-title").textContent = reservation.workName || "우동만들기";
+                document.getElementById("worker-name").textContent = reservation.userName || currentUser.name || "-";
+                document.getElementById("reservation-date").textContent = formatReservationDate(reservation.date);
+                document.getElementById("reservation-time").textContent = getReservationTime();
+                document.getElementById("check-in-time").textContent = formatDateTime(reservation.checkInAt, "미등록");
+            }
+
+            function formatReservationDate(dateString) {
+                if (!dateString) return "-";
+                const parts = String(dateString).split("-").map(Number);
+                if (parts.length !== 3 || parts.some(isNaN)) return dateString;
+                const date = new Date(parts[0], parts[1] - 1, parts[2]);
+                const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+                return parts[1] + "월 " + parts[2] + "일 (" + weekdays[date.getDay()] + ")";
+            }
+
+            function getReservationTime() {
+                if (reservation.time) return reservation.time;
+                try {
+                    const slotData = window.MockData.getWorkTimeSlots(reservation.workId);
+                    const item = slotData.slots.find(function (slot) {
+                        return Number(slot.slot) === Number(reservation.slot);
+                    });
+                    if (item) return item.time;
+                } catch (e) {
+                    // Use the legacy labels below.
+                }
+                const legacy = ["10:00 ~ 12:00", "13:00 ~ 15:00", "15:00 ~ 17:00"];
+                return legacy[Number(reservation.slot)] || "지정 시간";
+            }
+
+            function formatDateTime(value, fallback) {
+                if (!value) return fallback || "-";
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return String(value);
+                return date.toLocaleString("ko-KR", {
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: false
+                });
+            }
+
+            function getActiveStep() {
+                const steps = reservation.checkInSteps || STEP_DEFAULTS;
+                for (let index = 0; index < STEP_KEYS.length; index++) {
+                    if (!steps[STEP_KEYS[index]]) return index;
+                }
+                return STEP_KEYS.length - 1;
+            }
+
+            function renderProgress() {
+                const activeIndex = getActiveStep();
+                const steps = reservation.checkInSteps || STEP_DEFAULTS;
+                const completedCount = STEP_KEYS.filter(function (key) { return !!steps[key]; }).length;
+                const percentage = Math.min(100, (completedCount / (STEP_KEYS.length - 1)) * 100);
+                document.getElementById("progress-line").style.width = "calc(" + percentage + "% - " + (percentage === 100 ? 28 : 0) + "px)";
+
+                document.querySelectorAll(".step-dot").forEach(function (dot, index) {
+                    dot.classList.toggle("completed", !!steps[STEP_KEYS[index]]);
+                    dot.classList.toggle("active", index === activeIndex);
+                    dot.setAttribute("aria-current", index === activeIndex ? "step" : "false");
+                });
+
+                document.querySelectorAll(".step-card").forEach(function (card, index) {
+                    const done = !!steps[STEP_KEYS[index]];
+                    const active = index === activeIndex;
+                    card.classList.toggle("completed", done);
+                    card.classList.toggle("active", active);
+                    card.classList.toggle("locked", index > activeIndex);
+                    const badge = card.querySelector(".status-badge");
+                    if (badge) badge.textContent = done ? "완료" : (active ? "진행 중" : "잠김");
+                });
+            }
+
+            function scanQr() {
+                if (qrScanning || reservation.checkInSteps.qr) return;
+                qrScanning = true;
+                const scanner = document.getElementById("qr-scanner");
+                const button = document.getElementById("scan-qr-btn");
+                scanner.classList.add("scanning");
+                button.disabled = true;
+                button.innerHTML = '<i class="bi bi-hourglass-split"></i> QR 확인 중...';
+
+                setTimeout(function () {
+                    const now = new Date().toISOString();
+                    qrScanning = false;
+                    completeStep("qr", {
+                        checkInAt: reservation.checkInAt || now,
+                        userGender: memberGender || reservation.userGender || null,
+                        workStatus: "checked_in"
+                    });
+                }, 1100);
+            }
+
+            function renderGenderRoom() {
+                const notice = document.getElementById("gender-notice");
+                const confirmButton = document.getElementById("confirm-room-btn");
+                if (memberGender) {
+                    selectedGender = reservation.lockerGender || memberGender;
+                    notice.className = "info-banner";
+                    notice.innerHTML = '<i class="bi bi-person-vcard"></i> 회원정보 기준으로 <strong>' +
+                        genderLabel(memberGender) + ' 락커룸</strong>이 지정되었습니다.';
+                } else {
+                    selectedGender = reservation.lockerGender || selectedGender;
+                    notice.className = "warning-banner";
+                    notice.innerHTML = '<i class="bi bi-exclamation-circle"></i> 등록된 성별 정보가 없습니다. 이용할 락커룸을 직접 선택해주세요.';
+                }
+
+                document.querySelectorAll(".room-btn").forEach(function (button) {
+                    const gender = button.dataset.gender;
+                    const allowed = !memberGender || gender === memberGender;
+                    button.disabled = !allowed || !!reservation.checkInSteps.lockerRoom;
+                    button.classList.toggle("allowed", allowed);
+                    button.classList.toggle("selected", gender === selectedGender);
+                    button.setAttribute("aria-pressed", gender === selectedGender ? "true" : "false");
+                });
+                confirmButton.disabled = !selectedGender || !!reservation.checkInSteps.lockerRoom;
+            }
+
+            function confirmLockerRoom() {
+                if (!selectedGender) return;
+                completeStep("lockerRoom", {
+                    userGender: memberGender || reservation.userGender || null,
+                    lockerGender: selectedGender
+                });
+            }
+
+            function renderLockerGrid() {
+                const grid = document.getElementById("locker-grid");
+                const label = document.getElementById("locker-room-label");
+                const gender = reservation.lockerGender || selectedGender;
+                label.innerHTML = '<i class="bi bi-info-circle"></i> ' +
+                    (gender ? genderLabel(gender) + " 락커룸" : "락커룸") +
+                    " · 사용할 번호를 선택해주세요.";
+                grid.innerHTML = "";
+
+                for (let number = 1; number <= 20; number++) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "locker-btn";
+                    button.textContent = number;
+                    button.setAttribute("aria-label", number + "번 락커");
+                    button.classList.toggle("selected", Number(reservation.lockerNumber) === number);
+                    button.disabled = !!reservation.checkInSteps.lockerNumber;
+                    button.addEventListener("click", function () {
+                        selectLocker(number);
+                    });
+                    grid.appendChild(button);
+                }
+            }
+
+            function selectLocker(number) {
+                completeStep("lockerNumber", {
+                    lockerGender: reservation.lockerGender || selectedGender,
+                    lockerNumber: number
+                });
+            }
+
+            function genderLabel(gender) {
+                return gender === "M" ? "남성" : "여성";
+            }
+
+            function renderHygiene() {
+                const container = document.getElementById("hygiene-content");
+                const steps = reservation.checkInSteps || STEP_DEFAULTS;
+                const photoStatus = reservation.handPhotoStatus || "not_submitted";
+                const timerDone = !!steps.handWash;
+                const sanitizerDone = !!steps.sanitizer;
+                const photoDone = !!steps.handPhoto;
+
+                container.innerHTML = [
+                    '<div class="info-banner"><strong>손씻기 매뉴얼</strong><br>흐르는 물과 비누로 약 30초 동안 손을 씻어주세요. 손바닥, 손등, 손가락 사이와 손톱 밑까지 꼼꼼하게 문질러야 합니다.</div>',
+                    '<div class="hygiene-stage ' + (timerDone ? "done" : "") + '" id="wash-stage">',
+                    '  <div class="hygiene-stage-title"><span><i class="bi bi-droplet-fill"></i> 1. 30초 손씻기</span><span class="mini-status">' + (timerDone ? (reservation.handWashSkipped ? "테스트 완료" : "완료") : "대기") + '</span></div>',
+                    timerDone
+                        ? '  <div class="success-banner"><i class="bi bi-check-circle-fill"></i> 손씻기 확인이 완료되었습니다.</div>'
+                        : '  <div class="timer-display" id="wash-timer">00:' + String(washSeconds).padStart(2, "0") + '</div><div class="timer-track"><div class="timer-progress" id="timer-progress" style="width:' + ((30 - washSeconds) / 30 * 100) + '%"></div></div><div class="button-pair"><button type="button" class="primary-btn" id="start-wash-btn">30초 시작</button><button type="button" class="secondary-btn" id="skip-wash-btn">테스트용 건너뛰기</button></div>',
+                    '</div>',
+                    '<div class="hygiene-stage ' + (!timerDone ? "locked" : "") + " " + (sanitizerDone ? "done" : "") + '">',
+                    '  <div class="hygiene-stage-title"><span><i class="bi bi-hand-index-thumb-fill"></i> 2. 소독용 크림</span><span class="mini-status">' + (sanitizerDone ? "완료" : "대기") + '</span></div>',
+                    '  <p class="step-description" style="margin:0 0 10px;">물기를 완전히 말린 뒤 소독용 크림을 손바닥, 손등, 손가락 사이까지 고르게 바르고 충분히 흡수시켜주세요.</p>',
+                    sanitizerDone
+                        ? '  <div class="success-banner"><i class="bi bi-check-circle-fill"></i> 소독용 크림 도포를 확인했습니다.</div>'
+                        : '  <button type="button" class="primary-btn" id="confirm-sanitizer-btn">소독용 크림 도포 완료</button>',
+                    '</div>',
+                    '<div class="hygiene-stage ' + (!sanitizerDone ? "locked" : "") + " " + (photoDone ? "done" : "") + '">',
+                    '  <div class="hygiene-stage-title"><span><i class="bi bi-phone-fill"></i> 3. 손 사진 인증</span><span class="mini-status">' + photoStatusLabel(photoStatus) + '</span></div>',
+                    '  <div class="phone-camera" id="phone-camera"><div class="hand-guide"><i class="bi bi-hand-index"></i></div><div class="camera-message">' + cameraMessage(photoStatus) + '</div></div>',
+                    photoStatus === "reviewing"
+                        ? '  <div class="verification-spinner"></div><div class="info-banner" style="text-align:center;">손 위생 상태 확인 중 · 테스트 자동 승인</div>'
+                        : photoDone
+                            ? '  <div class="success-banner"><i class="bi bi-patch-check-fill"></i> 손 위생 사진이 자동 승인되었습니다.<br>' + formatDateTime(reservation.handPhotoVerifiedAt, "") + '</div>'
+                            : '  <button type="button" class="primary-btn" id="capture-hand-btn"><i class="bi bi-camera-fill"></i> 손 사진 촬영하기</button>',
+                    '</div>'
+                ].join("");
+
+                const startButton = document.getElementById("start-wash-btn");
+                const skipButton = document.getElementById("skip-wash-btn");
+                const sanitizerButton = document.getElementById("confirm-sanitizer-btn");
+                const captureButton = document.getElementById("capture-hand-btn");
+                if (startButton) startButton.addEventListener("click", startWashTimer);
+                if (skipButton) skipButton.addEventListener("click", skipWashTimer);
+                if (sanitizerButton) sanitizerButton.addEventListener("click", confirmSanitizer);
+                if (captureButton) captureButton.addEventListener("click", captureHandPhoto);
+            }
+
+            function photoStatusLabel(status) {
+                if (status === "reviewing") return "확인 중";
+                if (status === "approved") return "승인 완료";
+                if (status === "rejected") return "재촬영 필요";
+                return "대기";
+            }
+
+            function cameraMessage(status) {
+                if (status === "reviewing") return "촬영 완료 · 위생 상태를 확인하고 있습니다.";
+                if (status === "approved") return "촬영 이미지 확인 완료";
+                return "양손이 가이드 안에 들어오도록 스마트폰을 잡아주세요.";
+            }
+
+            function startWashTimer() {
+                if (washTimer || reservation.checkInSteps.handWash) return;
+                const startButton = document.getElementById("start-wash-btn");
+                const skipButton = document.getElementById("skip-wash-btn");
+                if (startButton) {
+                    startButton.disabled = true;
+                    startButton.textContent = "손씻기 진행 중";
+                }
+                if (skipButton) skipButton.disabled = false;
+
+                washTimer = setInterval(function () {
+                    washSeconds = Math.max(0, washSeconds - 1);
+                    const display = document.getElementById("wash-timer");
+                    const progress = document.getElementById("timer-progress");
+                    if (display) display.textContent = "00:" + String(washSeconds).padStart(2, "0");
+                    if (progress) progress.style.width = ((30 - washSeconds) / 30 * 100) + "%";
+                    if (washSeconds <= 0) {
+                        clearInterval(washTimer);
+                        washTimer = null;
+                        completeHandWash(false);
+                    }
+                }, 1000);
+            }
+
+            function skipWashTimer() {
+                if (washTimer) {
+                    clearInterval(washTimer);
+                    washTimer = null;
+                }
+                washSeconds = 0;
+                completeHandWash(true);
+            }
+
+            function completeHandWash(skipped) {
+                const steps = Object.assign({}, STEP_DEFAULTS, reservation.checkInSteps);
+                steps.handWash = true;
+                updateReservation({
+                    checkInSteps: steps,
+                    handWashSkipped: !!skipped,
+                    preWorkStatus: "in_progress",
+                    lastActivityAt: new Date().toISOString()
+                });
+                appendWorkLog("hygiene", skipped ? "손씻기 테스트 건너뛰기 완료" : "30초 손씻기 완료", { handWashSkipped: !!skipped });
+            }
+
+            function confirmSanitizer() {
+                const steps = Object.assign({}, STEP_DEFAULTS, reservation.checkInSteps);
+                if (!steps.handWash) return;
+                steps.sanitizer = true;
+                updateReservation({
+                    checkInSteps: steps,
+                    preWorkStatus: "in_progress",
+                    lastActivityAt: new Date().toISOString()
+                });
+                appendWorkLog("hygiene", "소독용 크림 도포 확인 완료");
+            }
+
+            function captureHandPhoto() {
+                if (!reservation.checkInSteps.sanitizer || reservation.handPhotoStatus === "reviewing") return;
+                const capturedAt = new Date().toISOString();
+                updateReservation({
+                    handPhotoStatus: "reviewing",
+                    handPhotoCapturedAt: capturedAt,
+                    handPhotoVerificationMode: "mock_auto",
+                    preWorkStatus: "in_progress",
+                    lastActivityAt: capturedAt
+                });
+                appendWorkLog("hand_photo", "손 사진 촬영 및 자동 인증 검토 시작", { handPhotoStatus: "reviewing" });
+                const camera = document.getElementById("phone-camera");
+                if (camera) camera.classList.add("flash");
+                scheduleAutomaticApproval(1500);
+            }
+
+            function scheduleAutomaticApproval(delay) {
+                if (approvalTimer) clearTimeout(approvalTimer);
+                approvalTimer = setTimeout(function () {
+                    const steps = Object.assign({}, STEP_DEFAULTS, reservation.checkInSteps);
+                    steps.handPhoto = true;
+                    const verifiedAt = new Date().toISOString();
+                    approvalTimer = null;
+                    updateReservation({
+                        checkInSteps: steps,
+                        handPhotoStatus: "approved",
+                        handPhotoVerifiedAt: verifiedAt,
+                        handPhotoVerificationMode: "mock_auto",
+                        lastActivityAt: verifiedAt
+                    });
+                    appendWorkLog("hand_photo", "손 사진 자동 인증 완료", { handPhotoStatus: "approved" });
+                    focusActiveStep();
+                }, delay);
+            }
+
+            function renderEntry() {
+                document.getElementById("entry-check-in").textContent = formatDateTime(reservation.checkInAt, "-");
+                document.getElementById("entry-locker").textContent =
+                    (reservation.lockerGender ? genderLabel(reservation.lockerGender) + " " : "") +
+                    (reservation.lockerNumber ? reservation.lockerNumber + "번" : "-");
+                document.getElementById("entry-hygiene").textContent =
+                    reservation.handPhotoStatus === "approved" ? "자동 승인 완료" : "승인 대기";
+
+                const completed = !!reservation.checkInSteps.shopEntry;
+                const button = document.getElementById("enter-shop-btn");
+                const message = document.getElementById("entry-message");
+                if (completed) {
+                    message.innerHTML = '<i class="bi bi-patch-check-fill"></i> 출근 준비가 이미 완료되었습니다. 저장된 정보로 다시 입장할 수 있습니다.';
+                    button.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Uton Shop 재입장';
+                } else {
+                    button.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> Uton Shop 입장';
+                }
+            }
+
+            function enterShop() {
+                if (!reservation.checkInSteps.handPhoto) return;
+                if (reservation.checkInSteps.shopEntry) {
+                    location.href = "uton_real.html";
+                    return;
+                }
+                const steps = Object.assign({}, STEP_DEFAULTS, reservation.checkInSteps);
+                steps.shopEntry = true;
+                const now = new Date().toISOString();
+                updateReservation({
+                    checkInSteps: steps,
+                    preWorkStatus: "verified",
+                    workStatus: "ready",
+                    lastActivityAt: now
+                }, true);
+                appendWorkLog("shop_entry", "Uton Shop 입장 및 출근 준비 완료", { status: "ready" });
+                location.href = "uton_real.html";
+            }
+
+            function focusActiveStep() {
+                setTimeout(function () {
+                    const active = document.querySelector(".step-card.active");
+                    if (active) active.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 80);
+            }
+
+            function showFatalState() {
+                document.getElementById("reservation-card").classList.add("hidden");
+                document.querySelector(".flow-heading").classList.add("hidden");
+                document.querySelector(".steps-indicator").classList.add("hidden");
+                document.querySelectorAll(".step-card").forEach(function (card) {
+                    card.classList.add("hidden");
+                });
+                document.getElementById("fatal-state").classList.remove("hidden");
+                document.getElementById("back-btn").addEventListener("click", function () {
+                    location.href = "mypage2.html";
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
