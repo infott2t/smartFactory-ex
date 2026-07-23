@@ -1,0 +1,80 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.PI_SSH_PRIVATE_KEY }}" > ~/.ssh/pi_deploy_key
+          chmod 600 ~/.ssh/pi_deploy_key
+          ssh-keyscan -H hyeonil.tail4b4a48.ts.net >> ~/.ssh/known_hosts
+
+      - name: Upload site files
+        run: |
+          tar \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.agents' \
+            --exclude='.codex' \
+            --exclude='scratch' \
+            -czf /tmp/smartfactory-pv.tar.gz .
+
+          scp -i ~/.ssh/pi_deploy_key /tmp/smartfactory-pv.tar.gz hyeonil@hyeonil.tail4b4a48.ts.net:/tmp/smartfactory-pv.tar.gz
+
+      - name: Deploy and reload nginx
+        run: |
+          ssh -i ~/.ssh/pi_deploy_key hyeonil@hyeonil.tail4b4a48.ts.net 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          sudo mkdir -p /var/www/smartfactory-pv
+          sudo tar -xzf /tmp/smartfactory-pv.tar.gz -C /var/www/smartfactory-pv
+          sudo chown -R www-data:www-data /var/www/smartfactory-pv
+
+          sudo tee /etc/nginx/sites-available/smartfactory-pv >/dev/null <<'NGINX'
+          server {
+              listen 3000;
+              listen [::]:3000;
+              server_name hyeonil.tail4b4a48.ts.net 100.119.142.126;
+
+              root /var/www/smartfactory-pv;
+              index index.html;
+
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+
+              location ~* \.(?:css|js|jpg|jpeg|gif|png|svg|ico|webp|woff2?|ttf|otf)$ {
+                  expires 7d;
+                  add_header Cache-Control "public";
+                  try_files $uri =404;
+              }
+          }
+          NGINX
+
+          sudo ln -sfn /etc/nginx/sites-available/smartfactory-pv /etc/nginx/sites-enabled/smartfactory-pv
+          sudo nginx -t
+          sudo systemctl reload nginx
+          rm -f /tmp/smartfactory-pv.tar.gz
+          REMOTE
+
+      - name: Ensure Tailscale Serve
+        run: |
+          ssh -i ~/.ssh/pi_deploy_key hyeonil@hyeonil.tail4b4a48.ts.net \
+            'sudo tailscale serve --yes --https=443 localhost:3000'
