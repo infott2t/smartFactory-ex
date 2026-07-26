@@ -92,6 +92,19 @@ function startServer() {
         workId: 2,
         date: '2026-07-26',
         slot: '08:00',
+        workStatus: 'working',
+        handPhotoStatus: 'reviewing',
+        handPhotoCapturedAt: now,
+        handPhotoUrl: './images/udon_product.png',
+        checkInSteps: { sanitizer: true, handPhoto: false }
+      }, {
+        id: 'completed_handwash_test',
+        userId: 'completed-user',
+        userName: '완료된손인증',
+        workId: 2,
+        date: '2026-07-26',
+        slot: '08:00',
+        workStatus: 'completed',
         handPhotoStatus: 'reviewing',
         handPhotoCapturedAt: now,
         handPhotoUrl: './images/udon_product.png',
@@ -110,6 +123,13 @@ function startServer() {
       beepCount: window.__beepCount,
       cardText: document.querySelector('#handwash-cards-container')?.innerText || ''
     }));
+
+    if (result.cardText.includes('완료된손인증')) {
+      throw new Error(`Completed worker should not appear in handwash approval list: ${result.cardText}`);
+    }
+    if (result.cardText.includes('최수아')) {
+      throw new Error(`Default sample handwash request should not appear: ${result.cardText}`);
+    }
 
     console.log(JSON.stringify({ refreshButtonText, result }, null, 2));
   } finally {

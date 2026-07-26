@@ -105,6 +105,17 @@ vm.runInContext(fs.readFileSync("js/store.js", "utf8"), context);
 
 const store = windowObject.FactoryStore;
 assert(store && typeof store.getShopOrders === "function", "주문 조회 API가 생성되지 않았습니다.");
+assert(typeof store.getUtonOrderSettings === "function", "Uton 주문 제한 조회 API가 없습니다.");
+assert(typeof store.setUtonOrderSettings === "function", "Uton 주문 제한 저장 API가 없습니다.");
+assert(store.getUtonOrderSettings().intervalMinutes === 10, "Uton 주문 제한 기본 시간이 올바르지 않습니다.");
+assert(store.getUtonOrderSettings().maxQtyPerInterval === 2, "Uton 주문 제한 기본 수량이 올바르지 않습니다.");
+store.setUtonOrderSettings({ intervalMinutes: 15, maxQtyPerInterval: 4 });
+assert(store.getUtonOrderSettings().intervalMinutes === 15, "Uton 주문 제한 시간이 저장되지 않았습니다.");
+assert(store.getUtonOrderSettings().maxQtyPerInterval === 4, "Uton 주문 제한 수량이 저장되지 않았습니다.");
+assert(
+    JSON.parse(localStorage.getItem("uton_order_settings")).maxQtyPerInterval === 4,
+    "Uton 주문 제한 설정이 localStorage에 저장되지 않았습니다."
+);
 
 let utonOrders = store.getShopOrders({ workId: 2 });
 assert(utonOrders.length === 1, "레거시 Uton 주문의 workId 추론에 실패했습니다.");
@@ -219,10 +230,14 @@ assertInlineScriptsParse("explore2.html");
 const kimpDetailHtml = fs.readFileSync("kimp_detail.html", "utf8");
 assert(kimpDetailHtml.includes("getCurrentWorkShopHistory"), "상품 상세가 workId별 주문 저장소를 조회하지 않습니다.");
 assert(kimpDetailHtml.includes("uton_shop_history"), "상품 상세에 Uton 주문 저장소 분기가 없습니다.");
+assert(kimpDetailHtml.includes("getUtonOrderLimitSettings"), "상품 상세가 Uton 주문 제한 설정을 조회하지 않습니다.");
+assert(!kimpDetailHtml.includes("주문은 10분에 최대 2그릇"), "상품 상세 주문 제한 경고가 하드코딩되어 있습니다.");
 const mypageHtml = fs.readFileSync("mypage2.html", "utf8");
 assert(mypageHtml.includes("FactoryStore.getShopOrders()"), "마이페이지가 분리된 주문 저장소를 통합 조회하지 않습니다.");
 const managerHtml = fs.readFileSync("umanager.html", "utf8");
 assert(managerHtml.includes("getShopOrders({ workId: 2 })"), "관리자 콘솔이 Uton 주문 저장소를 workId 2로 조회하지 않습니다.");
+assert(managerHtml.includes("매장 주문 제한 설정"), "관리자 콘솔에 Uton 주문 제한 설정 UI가 없습니다.");
+assert(managerHtml.includes("setUtonOrderSettings"), "관리자 콘솔이 Uton 주문 제한 설정 저장 API를 사용하지 않습니다.");
 const utonMap = fs.readFileSync("images/work-map-uton.svg", "utf8");
 assert(!utonMap.includes("Task 1") && !utonMap.includes("Task 2-3") && !utonMap.includes("Task 4-5"), "Uton 지도에 제거 대상 Task 영역이 남아 있습니다.");
 const utonRealHtml = fs.readFileSync("uton_real.html", "utf8");

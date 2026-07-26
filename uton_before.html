@@ -574,9 +574,11 @@
                 document.querySelectorAll(".step-card").forEach(function (card, index) {
                     const done = !!steps[STEP_KEYS[index]];
                     const active = index === activeIndex;
+                    const lockerEditable = index === 2 && !!steps.lockerRoom;
                     card.classList.toggle("completed", done);
                     card.classList.toggle("active", active);
                     card.classList.toggle("locked", index > activeIndex);
+                    card.classList.toggle("locker-editable", lockerEditable);
                     const badge = card.querySelector(".status-badge");
                     if (badge) badge.textContent = done ? "완료" : (active ? "진행 중" : "잠김");
                 });
@@ -639,9 +641,10 @@
                 const grid = document.getElementById("locker-grid");
                 const label = document.getElementById("locker-room-label");
                 const gender = reservation.lockerGender || selectedGender;
+                const occupiedLockers = getOccupiedLockerNumbers(gender);
                 label.innerHTML = '<i class="bi bi-info-circle"></i> ' +
                     (gender ? genderLabel(gender) + " 락커룸" : "락커룸") +
-                    " · 사용할 번호를 선택해주세요.";
+                    " · 사용할 번호를 선택해주세요. 같은 시간대에 다른 사람이 선택한 번호는 비활성화됩니다.";
                 grid.innerHTML = "";
 
                 for (let number = 1; number <= 20; number++) {
@@ -651,7 +654,11 @@
                     button.textContent = number;
                     button.setAttribute("aria-label", number + "번 락커");
                     button.classList.toggle("selected", Number(reservation.lockerNumber) === number);
-                    button.disabled = !!reservation.checkInSteps.lockerNumber;
+                    button.classList.toggle("occupied", occupiedLockers.has(number));
+                    button.disabled = occupiedLockers.has(number);
+                    if (occupiedLockers.has(number)) {
+                        button.title = "같은 시간대에 다른 근무자가 선택한 락커입니다.";
+                    }
                     button.addEventListener("click", function () {
                         selectLocker(number);
                     });
@@ -659,11 +666,47 @@
                 }
             }
 
+            function getOccupiedLockerNumbers(gender) {
+                const all = window.FactoryStore && typeof FactoryStore.getReservations === "function"
+                    ? FactoryStore.getReservations({ workId: reservation.workId })
+                    : ((window.FactoryStore && FactoryStore.getState) ? (FactoryStore.getState().reservations || []) : []);
+                return new Set((all || [])
+                    .filter(function (item) {
+                        return item &&
+                            !sameReservation(item, reservation) &&
+                            String(item.workId || 1) === String(reservation.workId || 1) &&
+                            String(item.date || "") === String(reservation.date || "") &&
+                            String(item.slot || "") === String(reservation.slot || "") &&
+                            String(item.lockerGender || gender || "") === String(gender || "") &&
+                            item.lockerNumber !== undefined &&
+                            item.lockerNumber !== null &&
+                            item.lockerNumber !== "";
+                    })
+                    .map(function (item) {
+                        return Number(item.lockerNumber);
+                    })
+                    .filter(function (number) {
+                        return Number.isFinite(number);
+                    }));
+            }
+
             function selectLocker(number) {
-                completeStep("lockerNumber", {
+                if (getOccupiedLockerNumbers(reservation.lockerGender || selectedGender).has(Number(number))) return;
+                const lockerChanges = {
                     lockerGender: reservation.lockerGender || selectedGender,
-                    lockerNumber: number
-                });
+                    lockerNumber: number,
+                    lastActivityAt: new Date().toISOString()
+                };
+                if (reservation.checkInSteps && reservation.checkInSteps.lockerNumber) {
+                    updateReservation(lockerChanges);
+                    appendWorkLog("locker_update", "락커 번호 변경", {
+                        lockerGender: lockerChanges.lockerGender,
+                        lockerNumber: number
+                    });
+                    focusActiveStep();
+                    return;
+                }
+                completeStep("lockerNumber", lockerChanges);
             }
 
             function genderLabel(gender) {

@@ -317,6 +317,15 @@
                 alert(`주문번호 #${target.orderNo || '-'} 수령 완료\n음식을 정상적으로 수령하였습니다. 맛있게 드세요!`);
             };
 
+            function formatReservationSlotTime(reservation) {
+                const fallbackSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                const fallback = reservation.time || reservation.slotLabel || fallbackSlotLabels[Number(reservation.slot)] || '지정 시간';
+                if (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function') {
+                    return window.MockData.formatWorkSlotTime(reservation.workId || 1, reservation.slot, fallback);
+                }
+                return fallback;
+            }
+
             // 렌더링 함수
             function renderCurrentTab(index) {
                 const user = getCurrentUser();
@@ -404,7 +413,6 @@
                             </div>
                         `);
                     } else {
-                        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
                         let html = '';
                         myReservations.forEach(r => {
                             const parts = r.date.split('-');
@@ -438,7 +446,7 @@
                             let expectedPay = Math.floor(minimumWage * 2 * ratioVal);
                             const displayRatio = ratioVal.toFixed(1);
                             
-                            const displaySlotTime = r.time || (slotLabels[r.slot] || '지정 시간');
+                            const displaySlotTime = formatReservationSlotTime(r);
                             let workTimeLabel = "2h";
                             if (r.workId == 3) workTimeLabel = "3h";
                             else if (r.workId == 7) workTimeLabel = "2.5h";

@@ -799,13 +799,13 @@
                 <hr style="border-color: var(--card-border); margin: 12px 0;">
                 
                 <!-- 주문 가능 건수 안내 -->
-                <div style="color: var(--amber-accent); font-weight: 600; font-size: 0.9rem;">
-                    ※ 터치하면, 지금 주문 1~2개까지 가능해요. 10분당 2개 주문을 받습니다.
+                <div id="order-limit-description" style="color: var(--amber-accent); font-weight: 600; font-size: 0.9rem;">
+                    ※ 현재 주문 가능 수량을 확인하고 있습니다.
                 </div>
                 
                 <!-- 현재 주문 건수 및 타이머 상태 표시 영역 -->
                 <div id="order-limit-status-box" style="font-weight: bold; margin-top: 8px; font-size: 0.95rem;">
-                    <span style="color: var(--neon-green);" id="modal-10min-status">⏱️ 10분에 주문 0건</span>
+                    <span style="color: var(--neon-green);" id="modal-10min-status">⏱️ 주문 0건</span>
                 </div>
 
                 <!-- QR 코드 스캔 영역 -->
@@ -852,7 +852,7 @@
             <!-- 데모 버튼 구역 -->
             <div style="display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; flex-wrap: wrap;">
                 <button type="button" onclick="demoSetOrder(1)" style="padding: 4px 8px; font-size: 0.75rem; background: #374151; border: 1px solid #4b5563; border-radius: 4px; width: auto; height: auto; box-shadow: none;">데모: 1건 주문 완료</button>
-                <button type="button" onclick="demoSetOrder(2)" style="padding: 4px 8px; font-size: 0.75rem; background: #374151; border: 1px solid #4b5563; border-radius: 4px; width: auto; height: auto; box-shadow: none;">데모: 2건 주문 완료</button>
+                <button type="button" id="demo-order-limit-full-btn" onclick="demoSetOrder(getUtonOrderLimitMaxQty())" style="padding: 4px 8px; font-size: 0.75rem; background: #374151; border: 1px solid #4b5563; border-radius: 4px; width: auto; height: auto; box-shadow: none;">데모: 최대 주문 완료</button>
                 <button type="button" onclick="demoSetOrder(0)" style="padding: 4px 8px; font-size: 0.75rem; background: #ef4444; border: 1px solid #dc2626; border-radius: 4px; width: auto; height: auto; box-shadow: none; color: white;">데모: 주문 리셋(0건)</button>
             </div>
 
@@ -955,22 +955,41 @@
 
         function getCurrentOrderWorkId() {
             const parsed = Number(currentWorkId);
-            return Number.isFinite(parsed) ? parsed : 1;
+            if (currentWorkId !== null && currentWorkId !== undefined && currentWorkId !== '' && Number.isFinite(parsed)) return parsed;
+
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const urlWorkId = Number(params.get('workId'));
+                if (Number.isFinite(urlWorkId)) return urlWorkId;
+            } catch(e) {}
+
+            const productWorkId = Number(currentProductData && currentProductData.workId);
+            return Number.isFinite(productWorkId) ? productWorkId : 1;
         }
 
         function getCurrentWorkShopHistory() {
             const workId = getCurrentOrderWorkId();
+            let storeOrders = [];
             if (window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function') {
-                return window.FactoryStore.getShopOrders({ workId: workId });
+                storeOrders = window.FactoryStore.getShopOrders({ workId: workId });
             }
 
             const storageKey = String(workId) === '2' ? 'uton_shop_history' : 'kimp_shop_history';
+            let storageOrders = [];
             try {
                 const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
-                return Array.isArray(parsed) ? parsed : [];
+                storageOrders = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
-                return [];
+                storageOrders = [];
             }
+
+            const merged = new Map();
+            storeOrders.concat(storageOrders).forEach(order => {
+                if (!order) return;
+                const key = order.id || order.orderNo || `${order.userId || 'guest'}-${order.productId || ''}-${order.orderedAt || order.orderDate || ''}`;
+                merged.set(String(key), order);
+            });
+            return Array.from(merged.values());
         }
 
         function getAllShopHistory() {
@@ -1086,7 +1105,8 @@
                 backBtn.onclick = goBack;
             }
 
-            // 10분 제한 타이머 체크
+            updateOrderLimitCopy();
+            // 매장 주문 제한 타이머 체크
             checkLimitTimer();
             // 주문 UI 상태 업데이트
             updateOrderUI();
@@ -1094,9 +1114,18 @@
             // 전역 스토어 상태 변경 감지 및 UI 자동 동기화
             if (window.FactoryStore) {
                 window.FactoryStore.subscribe(function() {
+                    updateOrderLimitCopy();
                     updateOrderUI();
                 });
             }
+
+            window.addEventListener('storage', function(event) {
+                if (event.key === 'uton_order_settings' || event.key === 'uton_shop_history') {
+                    syncOrderCount10Min();
+                    updateOrderLimitCopy();
+                    updateLimitUI(orderCount10Min >= getUtonOrderLimitMaxQty(), 0);
+                }
+            });
         });
 
 
@@ -1486,6 +1515,134 @@
         let limitTimerInterval = null;
         let isQrScanned = false; // QR코드 스캔 여부
 
+        function getUtonOrderLimitSettings() {
+            if (window.FactoryStore && typeof window.FactoryStore.getUtonOrderSettings === 'function') {
+                return window.FactoryStore.getUtonOrderSettings();
+            }
+            try {
+                const stored = JSON.parse(localStorage.getItem('uton_order_settings') || 'null');
+                if (stored && typeof stored === 'object') {
+                    return {
+                        intervalMinutes: Math.max(1, Math.floor(Number(stored.intervalMinutes) || 10)),
+                        maxQtyPerInterval: Math.max(1, Math.floor(Number(stored.maxQtyPerInterval) || 2))
+                    };
+                }
+            } catch(e) {}
+            const fallback = (window.MockData && window.MockData.utonOrderSettings) || {};
+            return {
+                intervalMinutes: Math.max(1, Math.floor(Number(fallback.intervalMinutes) || 10)),
+                maxQtyPerInterval: Math.max(1, Math.floor(Number(fallback.maxQtyPerInterval) || 2))
+            };
+        }
+
+        function getUtonOrderLimitMinutes() {
+            return getUtonOrderLimitSettings().intervalMinutes;
+        }
+
+        function getUtonOrderLimitMaxQty() {
+            return getUtonOrderLimitSettings().maxQtyPerInterval;
+        }
+
+        function getUtonOrderLimitDurationMs() {
+            return getUtonOrderLimitMinutes() * 60 * 1000;
+        }
+
+        function parseOrderLimitTimestamp(order) {
+            if (!order || typeof order !== 'object') return NaN;
+            const direct = Date.parse(order.orderedAt || order.createdAt || order.updatedAt || order.completedAt || '');
+            if (Number.isFinite(direct)) return direct;
+            if (order.orderDate && order.orderTime) {
+                const combined = `${order.orderDate}T${String(order.orderTime).split('.')[0]}`;
+                const parsed = Date.parse(combined);
+                if (Number.isFinite(parsed)) return parsed;
+            }
+            return NaN;
+        }
+
+        function isCountableOrderForLimit(order) {
+            if (!order) return false;
+            const status = String(order.status || '').toLowerCase();
+            const kitchenStatus = String(order.kitchenStatus || '').toLowerCase();
+            return status !== 'cancelled'
+                && status !== 'canceled'
+                && kitchenStatus !== 'cancelled'
+                && kitchenStatus !== 'canceled';
+        }
+
+        function getRecentOrderLimitStats() {
+            const now = Date.now();
+            const durationMs = getUtonOrderLimitDurationMs();
+            const cutoff = now - durationMs;
+            let count = 0;
+            let oldestTimestamp = null;
+
+            getCurrentWorkShopHistory()
+                .filter(isCountableOrderForLimit)
+                .forEach(order => {
+                    const timestamp = parseOrderLimitTimestamp(order);
+                    if (!Number.isFinite(timestamp) || timestamp < cutoff || timestamp > now + 60000) return;
+                    count += Math.max(1, Number(order.qty) || 1);
+                    oldestTimestamp = oldestTimestamp === null ? timestamp : Math.min(oldestTimestamp, timestamp);
+                });
+
+            return {
+                count,
+                remainingMs: oldestTimestamp === null ? 0 : Math.max(0, oldestTimestamp + durationMs - now)
+            };
+        }
+
+        function getSessionOrderLimitStats() {
+            try {
+                const expireTime = Number(sessionStorage.getItem('orderLimitExpireTime'));
+                const count = Math.max(0, Math.floor(Number(sessionStorage.getItem('orderCount10Min')) || 0));
+                const remainingMs = Number.isFinite(expireTime) ? Math.max(0, expireTime - Date.now()) : 0;
+                if (count > 0 && remainingMs > 0) {
+                    return { count, remainingMs };
+                }
+                if (remainingMs <= 0) {
+                    sessionStorage.removeItem('orderLimitExpireTime');
+                    sessionStorage.setItem('orderCount10Min', '0');
+                }
+            } catch(e) {}
+            return { count: 0, remainingMs: 0 };
+        }
+
+        function syncOrderCount10Min() {
+            const recent = getRecentOrderLimitStats();
+            const session = getSessionOrderLimitStats();
+            orderCount10Min = Math.max(recent.count, session.count);
+            try {
+                sessionStorage.setItem('orderCount10Min', String(orderCount10Min));
+            } catch(e) {}
+            return orderCount10Min;
+        }
+
+        function getOrderLimitResetRemainingMs() {
+            const recent = getRecentOrderLimitStats();
+            const session = getSessionOrderLimitStats();
+            const maxOrderQty = getUtonOrderLimitMaxQty();
+            const candidates = [];
+            if (recent.count >= maxOrderQty && recent.remainingMs > 0) candidates.push(recent.remainingMs);
+            if (session.count >= maxOrderQty && session.remainingMs > 0) candidates.push(session.remainingMs);
+            return candidates.length ? Math.max.apply(null, candidates) : 0;
+        }
+
+        function updateOrderLimitCopy() {
+            const settings = getUtonOrderLimitSettings();
+            const currentCount = syncOrderCount10Min();
+            const remainingQty = Math.max(0, settings.maxQtyPerInterval - currentCount);
+            const description = document.getElementById('order-limit-description');
+            const fullDemoBtn = document.getElementById('demo-order-limit-full-btn');
+            if (description) {
+                description.innerHTML = remainingQty > 0
+                    ? `※ 터치하면, 지금 주문 1~${remainingQty}개까지 가능해요.<br>${settings.intervalMinutes}분당 ${settings.maxQtyPerInterval}개 주문을 받습니다.`
+                    : `※ 지금은 주문 가능 수량이 모두 찼습니다.<br>${settings.intervalMinutes}분당 ${settings.maxQtyPerInterval}개 주문을 받습니다.`;
+            }
+            if (fullDemoBtn) {
+                fullDemoBtn.textContent = `데모: ${settings.maxQtyPerInterval}건 주문 완료`;
+            }
+        }
+
         try {
             const saved10Min = sessionStorage.getItem('orderCount10Min');
             if (saved10Min) {
@@ -1563,17 +1720,18 @@
 
         function checkLimitTimer() {
             try {
-                const expireTime = sessionStorage.getItem('orderLimitExpireTime');
-                if (expireTime) {
-                    const now = new Date().getTime();
-                    const diff = parseInt(expireTime) - now;
-                    if (diff > 0) {
-                        orderCount10Min = 2;
-                        sessionStorage.setItem('orderCount10Min', '2');
-                        startLimitCountdown(diff);
-                    } else {
-                        clearLimitTimer();
-                    }
+                updateOrderLimitCopy();
+                syncOrderCount10Min();
+                const maxOrderQty = getUtonOrderLimitMaxQty();
+                if (orderCount10Min >= maxOrderQty) {
+                    const remainingMs = getOrderLimitResetRemainingMs() || getUtonOrderLimitDurationMs();
+                    try {
+                        sessionStorage.setItem('orderCount10Min', String(orderCount10Min));
+                        sessionStorage.setItem('orderLimitExpireTime', String(Date.now() + remainingMs));
+                    } catch(e) {}
+                    startLimitCountdown(remainingMs);
+                } else {
+                    updateLimitUI(false, 0);
                 }
             } catch(e) {}
         }
@@ -1617,11 +1775,18 @@
             const qtySelect = document.getElementById('order-qty-select');
 
             if (!statusBox) return;
+            syncOrderCount10Min();
+            const settings = getUtonOrderLimitSettings();
+            const maxOrderQty = settings.maxQtyPerInterval;
+            const intervalMinutes = settings.intervalMinutes;
+            const locked = isLocked || orderCount10Min >= maxOrderQty;
+            const displayRemainingMs = remainingMs || getOrderLimitResetRemainingMs() || getUtonOrderLimitDurationMs();
+            updateOrderLimitCopy();
 
-            if (isLocked) {
-                const minutes = Math.floor(remainingMs / 60000);
-                const seconds = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, '0');
-                statusBox.innerHTML = `<span style="color: var(--accent-pink); font-weight: bold;">⚠️ 지금은 주문이 다찼어요. (${minutes}:${seconds})</span>`;
+            if (locked) {
+                const minutes = Math.floor(displayRemainingMs / 60000);
+                const seconds = Math.floor((displayRemainingMs % 60000) / 1000).toString().padStart(2, '0');
+                statusBox.innerHTML = `<span style="color: var(--accent-pink); font-weight: bold;">⚠️ 지금은 주문이 다 찼어요. (${minutes}:${seconds})</span>`;
                 
                 yesBtn.disabled = true;
                 yesBtn.style.opacity = "0.5";
@@ -1631,7 +1796,7 @@
                 if (qtySection) qtySection.style.display = 'none';
                 finalAsk.style.display = 'none';
             } else {
-                statusBox.innerHTML = `<span style="color: var(--neon-green);">⏱️ 10분에 주문 ${orderCount10Min}건</span>`;
+                statusBox.innerHTML = `<span style="color: var(--neon-green);">⏱️ ${intervalMinutes}분에 주문 ${orderCount10Min}건</span>`;
                 qrSection.style.display = 'block';
 
                 if (isQrScanned) {
@@ -1641,7 +1806,7 @@
                     if (qtySection && qtySelect) {
                         qtySection.style.display = 'block';
                         let optionsHtml = "";
-                        const maxAllowed = 2 - orderCount10Min;
+                        const maxAllowed = Math.max(0, maxOrderQty - orderCount10Min);
                         for (let i = 1; i <= maxAllowed; i++) {
                             optionsHtml += `<option value="${i}">${i}그릇</option>`;
                         }
@@ -1665,31 +1830,35 @@
         }
 
         function scanOrderQR() {
-            if (orderCount10Min >= 2) return;
+            syncOrderCount10Min();
+            if (orderCount10Min >= getUtonOrderLimitMaxQty()) return;
             isQrScanned = true;
             updateLimitUI(false, 0);
         }
 
         function demoSetOrder(count) {
             isQrScanned = false;
+            const maxOrderQty = getUtonOrderLimitMaxQty();
+            const durationMs = getUtonOrderLimitDurationMs();
             if (count === 0) {
                 clearLimitTimer();
-            } else if (count === 1) {
+            } else if (count < maxOrderQty) {
                 clearInterval(limitTimerInterval);
-                orderCount10Min = 1;
+                orderCount10Min = Math.max(1, Math.floor(Number(count) || 1));
+                const expireTime = new Date().getTime() + durationMs;
                 try {
-                    sessionStorage.setItem('orderCount10Min', '1');
-                    sessionStorage.removeItem('orderLimitExpireTime');
-                } catch(e) {}
-                updateLimitUI(false, 0);
-            } else if (count === 2) {
-                orderCount10Min = 2;
-                const expireTime = new Date().getTime() + 600000;
-                try {
-                    sessionStorage.setItem('orderCount10Min', '2');
+                    sessionStorage.setItem('orderCount10Min', String(orderCount10Min));
                     sessionStorage.setItem('orderLimitExpireTime', expireTime.toString());
                 } catch(e) {}
-                startLimitCountdown(600000);
+                updateLimitUI(false, 0);
+            } else {
+                orderCount10Min = maxOrderQty;
+                const expireTime = new Date().getTime() + durationMs;
+                try {
+                    sessionStorage.setItem('orderCount10Min', String(orderCount10Min));
+                    sessionStorage.setItem('orderLimitExpireTime', expireTime.toString());
+                } catch(e) {}
+                startLimitCountdown(durationMs);
             }
         }
 
@@ -1795,13 +1964,16 @@
         }
 
         function confirmOrder() {
-            if (orderCount10Min >= 2) return;
+            syncOrderCount10Min();
+            const maxOrderQty = getUtonOrderLimitMaxQty();
+            if (orderCount10Min >= maxOrderQty) return;
 
             const qtySelect = document.getElementById('order-qty-select');
             const qty = parseInt(qtySelect ? qtySelect.value : "1") || 1;
-            if (qty > 2 - orderCount10Min) {
-                alert("주문은 10분에 최대 2그릇까지 가능합니다.");
-                updateLimitUI(orderCount10Min >= 2, 0);
+            const remainingQty = Math.max(0, maxOrderQty - orderCount10Min);
+            if (qty > remainingQty) {
+                alert(`현재 남은 주문 가능 수량은 ${remainingQty}그릇입니다.`);
+                updateLimitUI(orderCount10Min >= maxOrderQty, 0);
                 return;
             }
 
@@ -1823,6 +1995,7 @@
             orderCount10Min += qty;
             try {
                 sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
+                sessionStorage.setItem('orderLimitExpireTime', String(new Date().getTime() + getUtonOrderLimitDurationMs()));
             } catch(e) {}
 
             try {
@@ -1831,12 +2004,13 @@
                 sessionStorage.setItem('activeOrderQty', qty.toString());
             } catch(e) {}
 
-            if (orderCount10Min >= 2) {
-                const expireTime = new Date().getTime() + 600000;
+            if (orderCount10Min >= maxOrderQty) {
+                const durationMs = getUtonOrderLimitDurationMs();
+                const expireTime = new Date().getTime() + durationMs;
                 try {
                     sessionStorage.setItem('orderLimitExpireTime', expireTime.toString());
                 } catch(e) {}
-                startLimitCountdown(600000);
+                startLimitCountdown(durationMs);
             } else {
                 updateLimitUI(false, 0);
             }
@@ -1973,7 +2147,7 @@
                 } catch(e) {}
             }
 
-            if (orderCount10Min < 2) {
+            if (orderCount10Min < getUtonOrderLimitMaxQty()) {
                 clearLimitTimer();
             }
 

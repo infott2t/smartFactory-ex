@@ -168,7 +168,33 @@ const reservation = {
     time: "10:00 ~ 11:30",
     checkInSteps: {}
 };
-const state = { reservations: [reservation] };
+const occupiedReservation = {
+    id: 88,
+    userId: 8,
+    userName: "다른근무자",
+    workId: 2,
+    workName: "우동만들기",
+    date: "2026-07-24",
+    slot: 0,
+    role: "general",
+    lockerGender: "F",
+    lockerNumber: 5,
+    checkInSteps: { qr: true, lockerRoom: true, lockerNumber: true }
+};
+const otherSlotReservation = {
+    id: 89,
+    userId: 9,
+    userName: "다른시간근무자",
+    workId: 2,
+    workName: "우동만들기",
+    date: "2026-07-24",
+    slot: 1,
+    role: "general",
+    lockerGender: "F",
+    lockerNumber: 6,
+    checkInSteps: { qr: true, lockerRoom: true, lockerNumber: true }
+};
+const state = { reservations: [reservation, occupiedReservation, otherSlotReservation] };
 
 sessionStorage.setItem("user", JSON.stringify(user));
 sessionStorage.setItem("user_info", JSON.stringify({ gender: "F" }));
@@ -179,6 +205,12 @@ const location = { href: "" };
 const FactoryStore = {
     getState() {
         return state;
+    },
+    getReservations(filter) {
+        const criteria = filter || {};
+        return state.reservations
+            .filter(item => criteria.workId === undefined || String(item.workId) === String(criteria.workId))
+            .map(item => JSON.parse(JSON.stringify(item)));
     },
     dispatch(action) {
         if (action.type !== "UPDATE_RESERVATION") return;
@@ -239,8 +271,16 @@ document.getElementById("confirm-room-btn").click();
 assert(state.reservations[0].lockerGender === "F", "락커 성별이 저장되지 않았습니다.");
 const lockerGrid = document.getElementById("locker-grid");
 assert(lockerGrid.children.length === 20, "락커 번호 20개가 생성되지 않았습니다.");
+assert(lockerGrid.children[4].disabled, "같은 시간대 다른 근무자가 선택한 락커가 비활성화되지 않았습니다.");
+assert(!lockerGrid.children[5].disabled, "다른 시간대의 락커 선택은 현재 시간대에 영향을 주면 안 됩니다.");
+lockerGrid.children[4].click();
+assert(state.reservations[0].lockerNumber !== 5, "점유된 락커 번호가 선택되었습니다.");
 lockerGrid.children[6].click();
 assert(state.reservations[0].lockerNumber === 7, "락커 번호가 즉시 저장되지 않았습니다.");
+assert(document.stepCards[2].classList.contains("locker-editable"), "락커 번호 단계는 완료 후에도 다시 열려 있어야 합니다.");
+assert(!lockerGrid.children[8].disabled, "락커 번호 선택 후에도 다른 번호를 다시 선택할 수 있어야 합니다.");
+lockerGrid.children[8].click();
+assert(state.reservations[0].lockerNumber === 9, "락커 번호 재선택이 저장되지 않았습니다.");
 
 document.getElementById("confirm-clothes-btn").click();
 document.getElementById("confirm-uniform-btn").click();
@@ -267,5 +307,11 @@ document.getElementById("enter-shop-btn").click();
 assert(state.reservations[0].preWorkStatus === "verified", "출근 전 인증 완료 상태가 저장되지 않았습니다.");
 assert(state.reservations[0].workStatus === "ready", "작업 준비 상태가 저장되지 않았습니다.");
 assert(location.href === "uton_real.html", "최종 목적지가 uton_real.html이 아닙니다.");
+location.href = "";
+lockerGrid.children[6].click();
+assert(state.reservations[0].lockerNumber === 7, "입장 완료 후 락커 번호 재선택이 저장되지 않았습니다.");
+assert(state.reservations[0].preWorkStatus === "verified", "락커 재선택 시 출근 전 인증 완료 상태가 깨졌습니다.");
+assert(state.reservations[0].checkInSteps.shopEntry === true, "락커 재선택 시 입장 완료 단계가 깨졌습니다.");
+assert(state.reservations[0].workStatus === "ready", "락커 재선택 시 작업 준비 상태가 깨졌습니다.");
 
 console.log("Uton 출근 준비 전체 흐름 테스트 통과");

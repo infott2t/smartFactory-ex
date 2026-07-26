@@ -556,6 +556,41 @@
         };
     }
 
+    const UTON_ORDER_SETTINGS_STORAGE_KEY = 'uton_order_settings';
+    const UTON_ORDER_SETTINGS_DEFAULTS = {
+        intervalMinutes: 10,
+        maxQtyPerInterval: 2
+    };
+
+    function normalizeUtonOrderSettings(settings) {
+        const source = settings && typeof settings === 'object' ? settings : {};
+        const intervalMinutes = Math.max(1, Math.floor(Number(source.intervalMinutes) || UTON_ORDER_SETTINGS_DEFAULTS.intervalMinutes));
+        const maxQtyPerInterval = Math.max(1, Math.floor(Number(source.maxQtyPerInterval) || UTON_ORDER_SETTINGS_DEFAULTS.maxQtyPerInterval));
+        return { intervalMinutes, maxQtyPerInterval };
+    }
+
+    function loadUtonOrderSettings() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(UTON_ORDER_SETTINGS_STORAGE_KEY) || 'null');
+            if (stored && typeof stored === 'object') {
+                return normalizeUtonOrderSettings(stored);
+            }
+        } catch (error) {}
+
+        const defaults = (window.MockData && window.MockData.utonOrderSettings)
+            || (window.MockData && window.MockData.utonFinanceAssumptions && {
+                intervalMinutes: window.MockData.utonFinanceAssumptions.maxSalesIntervalMinutes,
+                maxQtyPerInterval: window.MockData.utonFinanceAssumptions.maxSalesQtyPerMenuPerInterval
+            });
+        return normalizeUtonOrderSettings(defaults);
+    }
+
+    function saveUtonOrderSettings(settings) {
+        const normalized = normalizeUtonOrderSettings(settings);
+        localStorage.setItem(UTON_ORDER_SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
+        return normalized;
+    }
+
     // 예약 출근/위생/작업 상태의 공통 기본값
     const reservationStepDefaults = {
         qr: false,
@@ -846,6 +881,11 @@
     };
 
     const listeners = [];
+
+    function notifyListeners() {
+        const currentState = JSON.parse(JSON.stringify(state));
+        listeners.forEach(listener => listener(currentState));
+    }
 
     const TABLE_NAMES = {
         USERS: 'users',
@@ -1631,6 +1671,7 @@
                 shopHistory: state.shopHistory ? [...state.shopHistory] : [],
                 utonShopHistory: state.utonShopHistory ? [...state.utonShopHistory] : [],
                 allShopHistory: getAllShopOrders(),
+                utonOrderSettings: loadUtonOrderSettings(),
                 settlementTransactions: Array.isArray(state.settlementTransactions)
                     ? JSON.parse(JSON.stringify(state.settlementTransactions))
                     : [],
@@ -1674,6 +1715,35 @@
                 return true;
             });
         },
+        getUtonOrderSettings: function() {
+            return loadUtonOrderSettings();
+        },
+        setUtonOrderSettings: function(settings) {
+            const normalized = saveUtonOrderSettings(settings);
+            if (window.MockData) {
+                window.MockData.utonOrderSettings = Object.assign({}, normalized);
+                window.MockData.utonFinanceAssumptions = Object.assign(
+                    {},
+                    window.MockData.utonFinanceAssumptions || {},
+                    {
+                        maxSalesIntervalMinutes: normalized.intervalMinutes,
+                        maxSalesQtyPerMenuPerInterval: normalized.maxQtyPerInterval
+                    }
+                );
+            }
+            notifyListeners();
+            try {
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: UTON_ORDER_SETTINGS_STORAGE_KEY,
+                    newValue: JSON.stringify(normalized)
+                }));
+            } catch (error) {
+                try {
+                    window.dispatchEvent(new Event('uton-order-settings-changed'));
+                } catch (innerError) {}
+            }
+            return Object.assign({}, normalized);
+        },
         getReservations: function(filter) {
             const reservations = (state.reservations || []).map(normalizeReservation);
             if (!filter || typeof filter !== 'object') return cloneData(reservations);
@@ -1705,16 +1775,26 @@
         },
         markExpiredReservationsAbsent: function(referenceTime) {
             const now = referenceTime instanceof Date ? referenceTime : new Date(referenceTime || Date.now());
-            const slotEndHours = [12, 15, 17];
+            const fallbackSlots = [
+                { slot: 0, endHour: 12, endMin: 0 },
+                { slot: 1, endHour: 15, endMin: 0 },
+                { slot: 2, endHour: 17, endMin: 0 }
+            ];
             let changed = 0;
             (state.reservations || []).forEach(reservation => {
                 const current = normalizeReservation(reservation);
                 if (!current || current.workStatus !== 'reserved' || current.checkInAt) return;
                 const date = String(current.date || '');
                 const slot = Number(current.slot);
-                const endHour = slotEndHours[slot];
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || endHour === undefined) return;
-                const endAt = new Date(`${date}T${String(endHour).padStart(2, '0')}:00:00`);
+                const slotData = window.MockData && typeof window.MockData.getWorkTimeSlots === 'function'
+                    ? window.MockData.getWorkTimeSlots(current.workId || 1)
+                    : null;
+                const slots = slotData && Array.isArray(slotData.slots) ? slotData.slots : fallbackSlots;
+                const selectedSlot = slots.find(item => String(item.slot) === String(current.slot)) || fallbackSlots[slot];
+                const endHour = selectedSlot && Number(selectedSlot.endHour);
+                const endMin = selectedSlot && Number(selectedSlot.endMin || 0);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(endHour)) return;
+                const endAt = new Date(`${date}T${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}:00`);
                 if (Number.isNaN(endAt.getTime()) || endAt > now) return;
 
                 const absenceAt = now.toISOString();
@@ -3592,6 +3672,24 @@ window.MockData.storeProducts = [
     { productId: 30003, productCode: "wallet_03", workId: 3, name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa", isDelivery: true, description: "수제 가죽 명장의 바느질 기법으로 제작되어 오랜 내구성과 럭셔리한 실루엣을 자아내는 장지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" }
 ];
 
+window.MockData.utonFinanceAssumptions = {
+    foodCostRate: 0.30,
+    monthlyElectricityCost: 400000,
+    monthlyGasCost: 250000,
+    monthlyRentCost: 4000000,
+    utilityMonthDays: 30,
+    hourlyBaseWage: 10320,
+    defaultUtonSalaryRatio: 1.1,
+    fullDayLaborHeadcount: 2,
+    maxSalesIntervalMinutes: 10,
+    maxSalesQtyPerMenuPerInterval: 2
+};
+
+window.MockData.utonOrderSettings = {
+    intervalMinutes: 10,
+    maxQtyPerInterval: 2
+};
+
 window.MockData.productReviews = {
     "p1": [
         { user: "홍길동", rating: 5, date: "2026-07-15", comment: "육수가 정말 끝내줍니다! 면발도 쫄깃하고 수타 우동 전문점 못지않아요." },
@@ -3703,6 +3801,20 @@ window.MockData.getWorkTimeSlots = function(workId) {
         type: timeKey,
         slots: this.workTimeSlots[timeKey] || this.workTimeSlots["2h"]
     };
+};
+
+window.MockData.getWorkSlot = function(workId, slotValue) {
+    const slotData = this.getWorkTimeSlots(workId || 1);
+    const slots = slotData && Array.isArray(slotData.slots) ? slotData.slots : [];
+    return slots.find(function(slot) {
+        return String(slot.slot) === String(slotValue);
+    }) || null;
+};
+
+window.MockData.formatWorkSlotTime = function(workId, slotValue, fallback) {
+    const slot = this.getWorkSlot(workId || 1, slotValue);
+    if (slot && slot.time) return slot.time;
+    return fallback || '지정 시간';
 };
 
 window.MockData.inferWorkId = function(item) {

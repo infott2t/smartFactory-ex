@@ -365,6 +365,10 @@ button {
     display: block;
 }
 
+.step-card.locker-editable .step-content {
+    display: block;
+}
+
 .info-banner,
 .success-banner,
 .warning-banner {
@@ -542,6 +546,12 @@ button:disabled {
     border-color: var(--accent-primary);
     background: rgba(99, 102, 241, 0.15);
     color: #fff;
+}
+
+.locker-btn.occupied {
+    border-color: rgba(148, 163, 184, 0.24);
+    background: rgba(148, 163, 184, 0.08);
+    color: rgba(226, 232, 240, 0.42);
 }
 
 .manual-list {

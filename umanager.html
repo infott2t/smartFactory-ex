@@ -72,6 +72,21 @@
             transition: transform 0.3s ease;
         }
 
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
+            background: rgba(15, 23, 42, 0.36);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .sidebar-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .sidebar-brand {
             padding: 24px 20px;
             display: flex;
@@ -168,6 +183,8 @@
             gap: 24px;
             width: calc(100% - var(--sidebar-width));
             min-height: 100vh;
+            max-width: 100%;
+            min-width: 0;
         }
 
         /* Top Header */
@@ -180,6 +197,12 @@
             border-radius: 16px;
             border: 1px solid var(--border-color);
             box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+            width: 100%;
+            min-width: 0;
+        }
+
+        .header-title-group {
+            min-width: 0;
         }
 
         .header-title-group h1 {
@@ -188,12 +211,25 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .header-actions {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-actions .btn-action {
+            justify-content: center;
         }
 
         .btn-action {
@@ -309,10 +345,35 @@
         }
 
         /* ── 대시보드 2컬럼 레이아웃 ── */
+        .tab-view {
+            display: none;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .tab-view.active {
+            display: block;
+        }
+
+        .view-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 20px;
+            min-width: 0;
+        }
+
+        .dashboard-grid > * {
+            min-width: 0;
         }
 
         .panel-card {
@@ -323,6 +384,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            min-width: 0;
         }
 
         .panel-header {
@@ -331,6 +393,8 @@
             justify-content: space-between;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border-color);
+            gap: 12px;
+            min-width: 0;
         }
 
         .panel-header h2 {
@@ -339,16 +403,21 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         /* ── 데이터 테이블 ── */
         .table-responsive {
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
             overflow-x: auto;
         }
 
         .custom-table {
             width: 100%;
+            min-width: 640px;
             border-collapse: collapse;
             font-size: 0.88rem;
             text-align: left;
@@ -372,6 +441,120 @@
 
         .custom-table tr:hover {
             background-color: var(--bg-card-hover);
+        }
+
+        .staff-reservation-table .staff-time {
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .finance-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 14px;
+        }
+
+        .finance-summary-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .finance-summary-card strong {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.45rem;
+            line-height: 1.1;
+            overflow-wrap: anywhere;
+        }
+
+        .finance-card-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .finance-card-sub {
+            color: var(--text-secondary);
+            font-size: 0.76rem;
+            line-height: 1.45;
+        }
+
+        .finance-positive { color: #047857; }
+        .finance-negative { color: #b91c1c; }
+        .finance-neutral { color: #2563eb; }
+
+        .finance-note {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: #065f46;
+            font-size: 0.82rem;
+            line-height: 1.55;
+        }
+
+        .finance-table {
+            min-width: 600px;
+        }
+
+        .finance-daily-table {
+            min-width: 900px;
+        }
+
+        .finance-table td:last-child,
+        .finance-table th:last-child {
+            text-align: right;
+        }
+
+        .order-limit-settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .order-limit-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .order-limit-field label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+
+        .order-limit-field input {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: #ffffff;
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .order-limit-summary {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: #1d4ed8;
+            font-size: 0.84rem;
+            line-height: 1.5;
+            font-weight: 700;
         }
 
         /* 상태 뱃지 */
@@ -648,15 +831,29 @@
 
         @media (max-width: 768px) {
             .sidebar {
-                transform: translateX(-100%);
+                width: 0;
+                overflow: hidden;
+                border-right: none;
+                box-shadow: none;
+                transform: none;
             }
             .sidebar.mobile-open {
-                transform: translateX(0);
+                width: var(--sidebar-width);
+                border-right: 1px solid var(--border-color);
+                box-shadow: 8px 0 24px rgba(15, 23, 42, 0.12);
             }
             .main-content {
                 margin-left: 0;
                 width: 100%;
+                max-width: 100vw;
                 padding: 16px;
+            }
+            .header-bar {
+                position: sticky;
+                top: 12px;
+                z-index: 800;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
             }
             .menu-toggle-btn {
                 display: block;
@@ -664,12 +861,118 @@
             .kpi-grid {
                 grid-template-columns: 1fr 1fr;
             }
+            .panel-header {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+            .custom-table {
+                min-width: 560px;
+            }
+            .quick-actions .btn-action {
+                flex: 1 1 180px;
+                justify-content: center;
+            }
         }
 
         @media (max-width: 480px) {
             .kpi-grid { grid-template-columns: 1fr; }
-            .header-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .header-actions { width: 100%; justify-content: space-between; }
+            .header-bar {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+                padding: 12px 14px;
+            }
+            .header-title-group h1 {
+                font-size: 1.05rem;
+                line-height: 1.25;
+            }
+            .quick-actions {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .quick-actions .btn-action {
+                width: 100%;
+                min-height: 44px;
+            }
+            .alert-toast-container {
+                left: 12px;
+                right: 12px;
+                width: auto;
+                max-width: none;
+            }
+            .custom-table {
+                min-width: 520px;
+            }
+            .staff-table-wrap {
+                overflow-x: visible;
+            }
+            .staff-reservation-table {
+                min-width: 0;
+                border-collapse: separate;
+                border-spacing: 0 10px;
+                font-size: 0.84rem;
+            }
+            .staff-reservation-table thead {
+                display: none;
+            }
+            .staff-reservation-table,
+            .staff-reservation-table tbody,
+            .staff-reservation-table tr,
+            .staff-reservation-table td {
+                display: block;
+                width: 100%;
+            }
+            .staff-reservation-table tr {
+                padding: 12px;
+                border: 1px solid var(--border-color);
+                border-radius: 14px;
+                background: #ffffff;
+            }
+            .staff-reservation-table tr:hover {
+                background: #ffffff;
+            }
+            .staff-reservation-table td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                border-bottom: none;
+                padding: 6px 0;
+                text-align: right;
+                word-break: keep-all;
+            }
+            .staff-reservation-table td::before {
+                content: attr(data-label);
+                flex: 0 0 82px;
+                color: var(--text-secondary);
+                font-size: 0.76rem;
+                font-weight: 700;
+                text-align: left;
+            }
+            .staff-reservation-table .staff-time {
+                white-space: normal;
+                line-height: 1.35;
+            }
+            .staff-reservation-table .status-pill {
+                margin-left: auto;
+            }
+            .finance-summary-grid {
+                grid-template-columns: 1fr;
+            }
+            .finance-table {
+                min-width: 560px;
+            }
+            .finance-daily-table {
+                min-width: 840px;
+            }
+            .staff-reservation-table .staff-empty {
+                justify-content: center;
+                text-align: center;
+            }
+            .staff-reservation-table .staff-empty::before {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -704,6 +1007,10 @@
                 <i class="bi bi-list-task"></i>
                 <span>주방 KDS 주문 관리</span>
             </li>
+            <li class="menu-item" onclick="switchTab('finance')">
+                <i class="bi bi-cash-stack" style="color:#10b981;"></i>
+                <span>오늘 수익·비용</span>
+            </li>
             <li class="menu-item" onclick="switchTab('staff')">
                 <i class="bi bi-people-fill"></i>
                 <span>근무자 & 예약 현황</span>
@@ -724,6 +1031,7 @@
             </a>
         </div>
     </aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
     <!-- ── 메인 컨텐츠 영역 ── -->
     <main class="main-content">
@@ -738,19 +1046,19 @@
                     <h1 id="page-title"><i class="bi bi-grid-1x2-fill" style="color: #2563eb;"></i> Uton 주방 관제 대시보드</h1>
                 </div>
             </div>
-
-            <div class="header-actions">
-                <button class="btn-action btn-help" onclick="triggerSimulatedHelpRequest()">
-                    <i class="bi bi-megaphone-fill"></i> 모의 도움요청 발송
-                </button>
-                <button class="btn-action btn-primary" onclick="openSimulatedWashUploadModal()">
-                    <i class="bi bi-camera-fill"></i> 모의 손씻기 사진 등록
-                </button>
-            </div>
         </header>
 
+        <section class="quick-actions" id="quick-actions">
+            <button class="btn-action btn-help" onclick="triggerSimulatedHelpRequest()">
+                <i class="bi bi-megaphone-fill"></i> 모의 도움요청 발송
+            </button>
+            <button class="btn-action btn-primary" onclick="openSimulatedWashUploadModal()">
+                <i class="bi bi-camera-fill"></i> 모의 손씻기 사진 등록
+            </button>
+        </section>
+
         <!-- KPI 카운터 카드 그리드 -->
-        <section class="kpi-grid">
+        <section class="kpi-grid" id="dashboard-kpis">
             <div class="kpi-card">
                 <div class="kpi-icon kpi-blue"><i class="bi bi-bag-check-fill"></i></div>
                 <div class="kpi-info">
@@ -785,7 +1093,7 @@
         </section>
 
         <!-- 대시보드 뷰 (기본) -->
-        <div id="view-dashboard" class="tab-view">
+        <div id="view-dashboard" class="tab-view active">
             <div class="dashboard-grid">
                 
                 <!-- Left: 실시간 KDS 주문 현황 및 손씻기 승인 대기 -->
@@ -795,9 +1103,9 @@
                     <div class="panel-card" id="help-alert-panel" style="border-color: rgba(11, 117, 82, 0.4); background: rgba(11, 117, 82, 0.05);">
                         <div class="panel-header">
                             <h2 style="color: #0b7552;"><i class="bi bi-bell-fill"></i> 실시간 도움 요청 (Call Alert)</h2>
-                            <span class="status-pill pill-help" id="help-status-badge">0건 대기 중</span>
+                            <span class="status-pill pill-help help-status-badge" id="help-status-badge">0건 대기 중</span>
                         </div>
-                        <div id="help-request-list" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div id="help-request-list" class="help-request-list" style="display: flex; flex-direction: column; gap: 10px;">
                             <div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.9rem;">
                                 현재 대기 중인 긴급 도움 요청이 없습니다.
                             </div>
@@ -810,7 +1118,7 @@
                             <h2><i class="bi bi-shield-check" style="color: #06b6d4;"></i> 손씻기 위생 사진 인증 승인 관리</h2>
                         </div>
                         
-                        <div class="wash-card-grid" id="handwash-cards-container">
+                        <div class="wash-card-grid handwash-cards-container" id="handwash-cards-container">
                             <!-- JS 렌더링 -->
                         </div>
                     </div>
@@ -836,7 +1144,7 @@
                                         <th>제어 Action</th>
                                     </tr>
                                 </thead>
-                                <tbody id="kds-orders-tbody">
+                                <tbody id="kds-orders-tbody" class="kds-orders-tbody">
                                     <!-- JS 렌더링 -->
                                 </tbody>
                             </table>
@@ -868,47 +1176,336 @@
                         </div>
                     </div>
 
-                    <!-- 스마트 IoT 장비 원격 제어 -->
-                    <div class="panel-card">
-                        <div class="panel-header">
-                            <h2><i class="bi bi-sliders" style="color: #10b981;"></i> 스마트 해면기 & 육수기 제어</h2>
-                        </div>
-
-                        <div class="device-grid">
-                            <div class="device-card">
-                                <div class="device-top">
-                                    <span style="font-weight: 700; font-size: 0.9rem;">🍜 면 해면기 #1</span>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" checked onchange="toggleDevice('noodle1', this.checked)">
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">
-                                    설정 수온: <strong style="color: #059669;">98.5 °C</strong>
-                                </div>
-                            </div>
-
-                            <div class="device-card">
-                                <div class="device-top">
-                                    <span style="font-weight: 700; font-size: 0.9rem;">🫗 가쓰오 육수기</span>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" checked onchange="toggleDevice('broth', this.checked)">
-                                        <span class="slider"></span>
-                                    </label>
-                                </div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">
-                                    정량 추출: <strong style="color: #2563eb;">350 cc</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button class="btn-action btn-danger" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="triggerEmergencyStop()">
-                            <i class="bi bi-slash-circle-fill"></i> 주방 장비 긴급 비상정지
-                        </button>
-                    </div>
-
                 </div>
 
+            </div>
+        </div>
+
+        <div id="view-help-requests" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card" style="border-color: rgba(11, 117, 82, 0.4); background: rgba(11, 117, 82, 0.05);">
+                    <div class="panel-header">
+                        <h2 style="color: #0b7552;"><i class="bi bi-bell-fill"></i> 도움 요청 알림</h2>
+                        <span class="status-pill pill-help help-status-badge">0건 대기 중</span>
+                    </div>
+                    <div class="help-request-list" style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.9rem;">
+                            현재 대기 중인 긴급 도움 요청이 없습니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-handwash" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-droplet-fill" style="color: #06b6d4;"></i> 손씻기 위생 인증 사진 승인</h2>
+                    </div>
+                    <div class="wash-card-grid handwash-cards-container">
+                        <!-- JS 렌더링 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-orders" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-sliders" style="color: #2563eb;"></i> 매장 주문 제한 설정</h2>
+                        <span class="status-pill pill-cooking" id="uton-order-limit-pill">10분당 2개</span>
+                    </div>
+                    <div class="order-limit-settings-grid">
+                        <div class="order-limit-field">
+                            <label for="uton-order-interval-input">제한 시간</label>
+                            <input type="number" id="uton-order-interval-input" min="1" step="1" value="10" inputmode="numeric">
+                        </div>
+                        <div class="order-limit-field">
+                            <label for="uton-order-max-input">해당 시간 내 최대 주문 수량</label>
+                            <input type="number" id="uton-order-max-input" min="1" step="1" value="2" inputmode="numeric">
+                        </div>
+                        <button class="btn-action btn-primary" type="button" style="justify-content: center; min-height: 42px;" onclick="saveUtonOrderLimitSettings()">
+                            <i class="bi bi-check-circle"></i> 설정 저장
+                        </button>
+                    </div>
+                    <div class="order-limit-summary" id="uton-order-limit-summary">
+                        현재 매장 주문은 10분당 최대 2개까지 받을 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-list-task" style="color: #3b82f6;"></i> 주방 KDS 주문 관리</h2>
+                        <button class="btn-action btn-primary" style="font-size: 0.82rem; padding: 6px 12px;" onclick="addTestOrder()">
+                            <i class="bi bi-plus-circle"></i> 테스트 주문 추가
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>주문번호</th>
+                                    <th>메뉴명</th>
+                                    <th>수량</th>
+                                    <th>주문시각</th>
+                                    <th>상태</th>
+                                    <th>제어 Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="kds-orders-tbody">
+                                <!-- JS 렌더링 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-finance" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-cash-stack" style="color: #10b981;"></i> 오늘 수익·비용</h2>
+                        <span class="status-pill pill-ready" id="finance-today-date">오늘</span>
+                    </div>
+                    <div class="finance-summary-grid">
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-receipt-cutoff"></i> 오늘 매출</span>
+                            <strong class="finance-neutral" id="finance-sales-total">₩0</strong>
+                            <span class="finance-card-sub" id="finance-order-count">수령 완료 주문 0건</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-speedometer2"></i> 최대 가능 매출</span>
+                            <strong class="finance-neutral" id="finance-max-sales">₩0</strong>
+                            <span class="finance-card-sub" id="finance-max-sales-detail">10분당 메뉴별 2개 기준</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-graph-up-arrow"></i> 메뉴 매출총이익</span>
+                            <strong class="finance-positive" id="finance-gross-profit">₩0</strong>
+                            <span class="finance-card-sub" id="finance-food-cost">식재료 원가 ₩0</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-person-check"></i> 근무 인건비</span>
+                            <strong class="finance-negative" id="finance-labor-cost">₩0</strong>
+                            <span class="finance-card-sub" id="finance-labor-count">근무완료/조퇴 0건</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-lightning-charge"></i> 전기·가스·임대료 일할 비용</span>
+                            <strong class="finance-negative" id="finance-utility-cost">₩0</strong>
+                            <span class="finance-card-sub" id="finance-utility-detail">월평균 기준 30일 일할</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-calculator"></i> 오늘 추정 순이익</span>
+                            <strong id="finance-net-profit">₩0</strong>
+                            <span class="finance-card-sub">매출 - 식재료 - 인건비 - 고정비</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-trophy"></i> 최대 가능 이익</span>
+                            <strong id="finance-max-profit">₩0</strong>
+                            <span class="finance-card-sub" id="finance-max-profit-detail">최대 매출 - 원가 - 풀근무 - 고정비</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-calendar-range"></i> 누적 매출</span>
+                            <strong class="finance-neutral" id="finance-cumulative-sales">₩0</strong>
+                            <span class="finance-card-sub" id="finance-cumulative-days">계산 날짜 0일</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-clipboard-data"></i> 누적 비용</span>
+                            <strong class="finance-negative" id="finance-cumulative-cost">₩0</strong>
+                            <span class="finance-card-sub">식재료 + 인건비 + 전기·가스 + 임대료</span>
+                        </div>
+                        <div class="finance-summary-card">
+                            <span class="finance-card-label"><i class="bi bi-activity"></i> 누적 순이익</span>
+                            <strong id="finance-cumulative-net">₩0</strong>
+                            <span class="finance-card-sub">일별 순이익 누적 합계</span>
+                        </div>
+                    </div>
+                    <div class="finance-note" id="finance-assumption-note">
+                        식재료 원가율은 30%, 전기세 월 400,000원, 가스요금 월 250,000원, 임대료 월 4,000,000원을 30일 기준으로 일할 반영합니다.
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-basket2-fill" style="color: #3b82f6;"></i> 메뉴별 매출·이익</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table finance-table">
+                            <thead>
+                                <tr>
+                                    <th>메뉴</th>
+                                    <th>판매수량</th>
+                                    <th>매출</th>
+                                    <th>식재료 원가</th>
+                                    <th>매출총이익</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-menu-tbody">
+                                <!-- JS 렌더링 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-journal-check" style="color: #64748b;"></i> 비용 상세</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table finance-table">
+                            <thead>
+                                <tr>
+                                    <th>비용 항목</th>
+                                    <th>계산 기준</th>
+                                    <th>오늘 반영액</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-cost-tbody">
+                                <!-- JS 렌더링 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-calendar-week" style="color: #10b981;"></i> 일별 손익 게시판</h2>
+                        <span class="status-pill pill-ready">최신 날짜순</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table finance-table finance-daily-table">
+                            <thead>
+                                <tr>
+                                    <th>날짜</th>
+                                    <th>수령 주문</th>
+                                    <th>매출</th>
+                                    <th>식재료 원가</th>
+                                    <th>인건비</th>
+                                    <th>전기·가스</th>
+                                    <th>임대료</th>
+                                    <th>순이익</th>
+                                    <th>누적 순이익</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-daily-tbody">
+                                <!-- JS 렌더링 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-staff" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-people-fill" style="color: #64748b;"></i> 근무자 & 예약 현황</h2>
+                    </div>
+                    <div class="table-responsive staff-table-wrap">
+                        <table class="custom-table staff-reservation-table">
+                            <thead>
+                                <tr>
+                                    <th>근무자</th>
+                                    <th>역할</th>
+                                    <th>예약일</th>
+                                    <th>시간대</th>
+                                    <th>출근/근무 상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-reservations-tbody">
+                                <!-- JS 렌더링 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-devices" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-cpu-fill" style="color: #64748b;"></i> 스마트 주방 장비</h2>
+                    </div>
+                    <div class="device-grid">
+                        <div class="device-card">
+                            <div class="device-top">
+                                <span style="font-weight: 700; font-size: 0.9rem;">KDS 주문 표시기</span>
+                                <span class="status-pill pill-ready">정상</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">최근 동기화: 실시간</div>
+                        </div>
+                        <div class="device-card">
+                            <div class="device-top">
+                                <span style="font-weight: 700; font-size: 0.9rem;">픽업 알림 송출기</span>
+                                <span class="status-pill pill-ready">정상</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">알림 대기열: 없음</div>
+                        </div>
+                        <div class="device-card">
+                            <div class="device-top">
+                                <span style="font-weight: 700; font-size: 0.9rem;">주문 영수증 프린터</span>
+                                <span class="status-pill pill-cooking">대기</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">용지 상태: 충분</div>
+                        </div>
+                        <div class="device-card">
+                            <div class="device-top">
+                                <span style="font-weight: 700; font-size: 0.9rem;">가스레인지</span>
+                                <span class="status-pill pill-ready">2대</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">운영 가능 대수: 2대</div>
+                        </div>
+                    </div>
+                    <button class="btn-action btn-danger" style="width: 100%; justify-content: center;" onclick="triggerEmergencyStop()">
+                        <i class="bi bi-slash-circle-fill"></i> 주방 장비 긴급 비상정지
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-inventory" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-box-seam-fill" style="color: #6366f1;"></i> 원자재 & 품질 관리</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>항목</th>
+                                    <th>현재 상태</th>
+                                    <th>품질 기준</th>
+                                    <th>관리 상태</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>우동면</strong></td>
+                                    <td>재고 충분</td>
+                                    <td>냉장 보관 / 포장 훼손 없음</td>
+                                    <td><span class="status-pill pill-ready">정상</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>비빔 소스</strong></td>
+                                    <td>재고 충분</td>
+                                    <td>유통기한 및 밀봉 상태 확인</td>
+                                    <td><span class="status-pill pill-ready">정상</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>픽업 용기</strong></td>
+                                    <td>보충 필요</td>
+                                    <td>청결 포장 / 파손 없음</td>
+                                    <td><span class="status-pill pill-pending">점검</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -998,19 +1595,75 @@
         let handwashNotificationReady = false;
 
         // 인메모리 및 LocalStorage 데이터 관리
-        let handwashRequests = [
-            {
-                id: 'wash_101',
-                userName: '최수아',
-                time: new Date(Date.now() - 5 * 60 * 1000).toLocaleString('ko-KR'),
-                imgUrl: './images/hygiene_gloves_heart.png',
-                status: 'pending', // pending, approved, rejected
-                rejectReason: ''
-            }
-        ];
+        let handwashRequests = [];
         let manualHandwashRequests = handwashRequests.slice();
 
         let helpCalls = [];
+        const FINANCE_ASSUMPTIONS = {
+            foodCostRate: 0.30,
+            monthlyElectricityCost: 400000,
+            monthlyGasCost: 250000,
+            monthlyRentCost: 4000000,
+            utilityMonthDays: 30,
+            hourlyBaseWage: 10320,
+            defaultUtonSalaryRatio: 1.1,
+            fullDayLaborHeadcount: 2,
+            maxSalesIntervalMinutes: 10,
+            maxSalesQtyPerMenuPerInterval: 2,
+            ...((window.MockData && window.MockData.utonFinanceAssumptions) || {})
+        };
+
+        function getUtonOrderLimitSettings() {
+            if (window.FactoryStore && typeof window.FactoryStore.getUtonOrderSettings === 'function') {
+                return window.FactoryStore.getUtonOrderSettings();
+            }
+            try {
+                const stored = JSON.parse(localStorage.getItem('uton_order_settings') || 'null');
+                if (stored && typeof stored === 'object') {
+                    return {
+                        intervalMinutes: Math.max(1, Math.floor(Number(stored.intervalMinutes) || 10)),
+                        maxQtyPerInterval: Math.max(1, Math.floor(Number(stored.maxQtyPerInterval) || 2))
+                    };
+                }
+            } catch (error) {}
+            return {
+                intervalMinutes: Math.max(1, Math.floor(Number(FINANCE_ASSUMPTIONS.maxSalesIntervalMinutes) || 10)),
+                maxQtyPerInterval: Math.max(1, Math.floor(Number(FINANCE_ASSUMPTIONS.maxSalesQtyPerMenuPerInterval) || 2))
+            };
+        }
+
+        function renderUtonOrderLimitSettings() {
+            const settings = getUtonOrderLimitSettings();
+            const intervalInput = document.getElementById('uton-order-interval-input');
+            const maxInput = document.getElementById('uton-order-max-input');
+            const pill = document.getElementById('uton-order-limit-pill');
+            const summary = document.getElementById('uton-order-limit-summary');
+
+            if (intervalInput) intervalInput.value = String(settings.intervalMinutes);
+            if (maxInput) maxInput.value = String(settings.maxQtyPerInterval);
+            if (pill) pill.textContent = `${settings.intervalMinutes}분당 ${settings.maxQtyPerInterval}개`;
+            if (summary) {
+                summary.textContent = `현재 매장 주문은 ${settings.intervalMinutes}분당 최대 ${settings.maxQtyPerInterval}개까지 받을 수 있습니다. 상품 상세의 주문 안내와 수량 제한도 이 설정을 따릅니다.`;
+            }
+        }
+
+        function saveUtonOrderLimitSettings() {
+            const intervalInput = document.getElementById('uton-order-interval-input');
+            const maxInput = document.getElementById('uton-order-max-input');
+            const settings = {
+                intervalMinutes: Math.max(1, Math.floor(Number(intervalInput && intervalInput.value) || 10)),
+                maxQtyPerInterval: Math.max(1, Math.floor(Number(maxInput && maxInput.value) || 2))
+            };
+
+            if (window.FactoryStore && typeof window.FactoryStore.setUtonOrderSettings === 'function') {
+                window.FactoryStore.setUtonOrderSettings(settings);
+            } else {
+                localStorage.setItem('uton_order_settings', JSON.stringify(settings));
+            }
+
+            renderUtonOrderLimitSettings();
+            renderFinanceDashboard();
+        }
 
         // Web Audio API 사운드 경보음 생성기
         function playBeepSound() {
@@ -1032,8 +1685,12 @@
 
         // 초기화
         document.addEventListener('DOMContentLoaded', () => {
+            switchTab('dashboard');
             initCharts();
             loadKDSOrders();
+            renderStaffReservations();
+            renderUtonOrderLimitSettings();
+            renderFinanceDashboard();
             loadHelpRequestFromStorage();
             renderHandwashCards();
             renderHelpRequests();
@@ -1043,6 +1700,9 @@
                 unsubscribeManagerStore = window.FactoryStore.subscribe(() => {
                     loadKDSOrders();
                     renderHandwashCards();
+                    renderStaffReservations();
+                    renderUtonOrderLimitSettings();
+                    renderFinanceDashboard();
                 });
                 window.addEventListener('beforeunload', () => {
                     if (unsubscribeManagerStore) unsubscribeManagerStore();
@@ -1062,16 +1722,46 @@
             const targetMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.getAttribute('onclick')?.includes(tabName));
             if (targetMenu) targetMenu.classList.add('active');
 
+            document.querySelectorAll('.tab-view').forEach(view => view.classList.remove('active'));
+            const targetView = document.getElementById('view-' + tabName) || document.getElementById('view-dashboard');
+            if (targetView) targetView.classList.add('active');
+            const dashboardKpis = document.getElementById('dashboard-kpis');
+            if (dashboardKpis) dashboardKpis.style.display = tabName === 'dashboard' ? 'grid' : 'none';
+
             const pageTitle = document.getElementById('page-title');
             if (tabName === 'dashboard') pageTitle.innerHTML = '<i class="bi bi-grid-1x2-fill" style="color: #2563eb;"></i> Uton 주방 관제 대시보드';
             else if (tabName === 'help-requests') pageTitle.innerHTML = '<i class="bi bi-bell-fill" style="color: #0b7552;"></i> 실시간 도움 요청 알림 목록';
             else if (tabName === 'handwash') pageTitle.innerHTML = '<i class="bi bi-droplet-fill" style="color: #06b6d4;"></i> 손씻기 위생 인증 사진 승인';
             else if (tabName === 'orders') pageTitle.innerHTML = '<i class="bi bi-list-task" style="color: #3b82f6;"></i> 주방 KDS 주문 관리';
+            else if (tabName === 'finance') pageTitle.innerHTML = '<i class="bi bi-cash-stack" style="color: #10b981;"></i> 오늘 수익·비용';
+            else if (tabName === 'staff') pageTitle.innerHTML = '<i class="bi bi-people-fill" style="color: #64748b;"></i> 근무자 & 예약 현황';
+            else if (tabName === 'devices') pageTitle.innerHTML = '<i class="bi bi-cpu-fill" style="color: #64748b;"></i> 스마트 주방 장비';
+            else if (tabName === 'inventory') pageTitle.innerHTML = '<i class="bi bi-box-seam-fill" style="color: #6366f1;"></i> 원자재 & 품질 관리';
             else pageTitle.innerHTML = `<i class="bi bi-gear-fill"></i> ${tabName} 관리`;
+
+            if (tabName === 'orders') {
+                renderUtonOrderLimitSettings();
+                loadKDSOrders();
+            }
+            if (tabName === 'finance') renderFinanceDashboard();
+            if (tabName === 'staff') renderStaffReservations();
+            if (tabName === 'help-requests') renderHelpRequests();
+            if (tabName === 'handwash') renderHandwashCards();
+            closeMobileSidebar();
         }
 
         function toggleMobileSidebar() {
-            document.getElementById('sidebar').classList.toggle('mobile-open');
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const isOpen = sidebar && sidebar.classList.toggle('mobile-open');
+            if (backdrop) backdrop.classList.toggle('active', !!isOpen);
+        }
+
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
         }
 
         // ── 🚨 도움 요청 (Help Call) 처리 ──
@@ -1153,25 +1843,30 @@
         }
 
         function renderHelpRequests() {
-            const container = document.getElementById('help-request-list');
+            const containers = Array.from(document.querySelectorAll('.help-request-list'));
             const badge = document.getElementById('help-badge-count');
             const kpiCount = document.getElementById('kpi-help-count');
-            const statusBadge = document.getElementById('help-status-badge');
+            const statusBadges = Array.from(document.querySelectorAll('.help-status-badge'));
 
             const pendingCalls = helpCalls.filter(c => c.status === 'pending');
-            badge.textContent = pendingCalls.length;
-            kpiCount.textContent = `${pendingCalls.length} 건`;
-            statusBadge.textContent = `${pendingCalls.length}건 대기 중`;
+            if (badge) badge.textContent = pendingCalls.length;
+            if (kpiCount) kpiCount.textContent = `${pendingCalls.length} 건`;
+            statusBadges.forEach(statusBadge => {
+                statusBadge.textContent = `${pendingCalls.length}건 대기 중`;
+            });
 
             if (pendingCalls.length === 0) {
-                container.innerHTML = `
+                const emptyHtml = `
                     <div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.9rem;">
                         현재 대기 중인 긴급 도움 요청이 없습니다.
                     </div>`;
+                containers.forEach(container => {
+                    container.innerHTML = emptyHtml;
+                });
                 return;
             }
 
-            container.innerHTML = pendingCalls.map(call => `
+            const listHtml = pendingCalls.map(call => `
                 <div style="background: rgba(11, 117, 82, 0.12); border: 1px solid rgba(11, 117, 82, 0.3); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <i class="bi bi-exclamation-octagon-fill" style="font-size: 1.5rem; color: #0b7552;"></i>
@@ -1185,6 +1880,9 @@
                     </button>
                 </div>
             `).join('');
+            containers.forEach(container => {
+                container.innerHTML = listHtml;
+            });
         }
 
         function resolveHelpCall(callId) {
@@ -1224,13 +1922,21 @@
         }
 
         // ── 🧼 손씻기 사진 승인/반려 로직 ──
+        function isActiveHandwashWorker(reservation) {
+            const status = String(reservation && (reservation.workStatus || reservation.status || '')).toLowerCase();
+            return status === 'working' || status === 'checked_in';
+        }
+
         function syncHandwashRequestsFromReservations() {
             const sampleImg = './images/hygiene_gloves_heart.png';
             const reservations = window.FactoryStore && typeof window.FactoryStore.getReservations === 'function'
                 ? window.FactoryStore.getReservations({ workId: 2 })
                 : [];
             const reservationRequests = reservations
-                .filter(reservation => ['reviewing', 'approved', 'rejected'].includes(reservation.handPhotoStatus))
+                .filter(reservation =>
+                    isActiveHandwashWorker(reservation) &&
+                    ['reviewing', 'approved', 'rejected'].includes(reservation.handPhotoStatus)
+                )
                 .map(reservation => {
                     const submittedAt = reservation.handPhotoCapturedAt || reservation.lastActivityAt || new Date().toISOString();
                     return {
@@ -1266,18 +1972,20 @@
 
         function renderHandwashCards() {
             syncHandwashRequestsFromReservations();
-            const container = document.getElementById('handwash-cards-container');
+            const containers = Array.from(document.querySelectorAll('.handwash-cards-container'));
             const badge = document.getElementById('wash-badge-count');
             const pendingList = handwashRequests.filter(r => r.status === 'pending');
-            badge.textContent = pendingList.length;
+            if (badge) badge.textContent = pendingList.length;
             notifyNewPendingHandwashRequests(pendingList);
 
             if (handwashRequests.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-secondary); padding: 20px;">등록된 손씻기 사진이 없습니다.</div>';
+                containers.forEach(container => {
+                    container.innerHTML = '<div style="color: var(--text-secondary); padding: 20px;">등록된 손씻기 사진이 없습니다.</div>';
+                });
                 return;
             }
 
-            container.innerHTML = handwashRequests.map(req => `
+            const cardsHtml = handwashRequests.map(req => `
                 <div class="wash-card">
                     <div class="wash-card-header">
                         <div class="wash-user-info">
@@ -1309,6 +2017,9 @@
                     </div>
                 </div>
             `).join('');
+            containers.forEach(container => {
+                container.innerHTML = cardsHtml;
+            });
         }
 
         function openWashModal(id) {
@@ -1453,6 +2164,60 @@
                 .sort((a, b) => (Date.parse(b.orderedAt || b.createdAt || '') || 0) - (Date.parse(a.orderedAt || a.createdAt || '') || 0));
         }
 
+        function getReservationStatusMarkup(reservation) {
+            const status = reservation.workStatus || reservation.status || 'reserved';
+            if (status === 'working') return '<span class="status-pill pill-cooking">근무 중</span>';
+            if (status === 'completed') return '<span class="status-pill pill-ready">완료</span>';
+            if (status === 'early_left') return '<span class="status-pill pill-pending">조퇴</span>';
+            if (status === 'absent') return '<span class="status-pill pill-danger">결근</span>';
+            if (reservation.preWorkStatus === 'verified') return '<span class="status-pill pill-ready">입장 완료</span>';
+            if (reservation.handPhotoStatus === 'reviewing') return '<span class="status-pill pill-pending">사진 검수</span>';
+            return '<span class="status-pill pill-pending">예약</span>';
+        }
+
+        function formatReservationSlotTime(reservation) {
+            const fallback = reservation.time || reservation.slotLabel || (reservation.slot !== undefined ? String(reservation.slot) : '-');
+            if (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function') {
+                return window.MockData.formatWorkSlotTime(reservation.workId || 2, reservation.slot, fallback);
+            }
+            const utonSlots = ['10:00 ~ 11:30', '13:00 ~ 14:30', '14:30 ~ 16:00', '16:00 ~ 17:30'];
+            return utonSlots[Number(reservation.slot)] || fallback || '-';
+        }
+
+        function renderStaffReservations() {
+            const tbody = document.getElementById('staff-reservations-tbody');
+            if (!tbody) return;
+
+            const reservations = window.FactoryStore && typeof window.FactoryStore.getReservations === 'function'
+                ? window.FactoryStore.getReservations({ workId: 2 })
+                : [];
+            const items = reservations
+                .slice()
+                .sort((a, b) => {
+                    const left = `${a.date || ''} ${a.slot || ''}`;
+                    const right = `${b.date || ''} ${b.slot || ''}`;
+                    return right.localeCompare(left);
+                });
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td class="staff-empty" colspan="5" style="text-align:center; color: var(--text-secondary); padding: 24px;">등록된 Uton 근무자 예약이 없습니다.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map(reservation => {
+                const role = reservation.role === 'helper' ? '헬퍼' : (reservation.role === 'manager' ? '매니저' : '일반');
+                const slotTime = formatReservationSlotTime(reservation);
+                return `
+                    <tr>
+                        <td data-label="근무자"><strong>${escapeHtml(reservation.userName || 'Uton 근무자')}</strong></td>
+                        <td data-label="역할">${escapeHtml(role)}</td>
+                        <td data-label="예약일">${escapeHtml(reservation.date || '-')}</td>
+                        <td data-label="시간대" class="staff-time">${escapeHtml(slotTime)}</td>
+                        <td data-label="상태">${getReservationStatusMarkup(reservation)}</td>
+                    </tr>`;
+            }).join('');
+        }
+
         function getKdsOrderStatus(order) {
             if (order.status === 'cancelled' || order.kitchenStatus === 'cancelled') return 'cancelled';
             if (order.status === 'completed' || order.kitchenStatus === 'received') return 'completed';
@@ -1498,18 +2263,21 @@
         }
 
         function loadKDSOrders() {
-            const tbody = document.getElementById('kds-orders-tbody');
-            if (!tbody) return;
+            const tbodies = Array.from(document.querySelectorAll('.kds-orders-tbody'));
+            if (tbodies.length === 0) return;
 
             const allOrders = getUtonOrders();
             const orders = allOrders.slice(0, 20);
             if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary); padding: 24px;">현재 Uton 주문이 없습니다.</td></tr>';
+                const emptyHtml = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary); padding: 24px;">현재 Uton 주문이 없습니다.</td></tr>';
+                tbodies.forEach(tbody => {
+                    tbody.innerHTML = emptyHtml;
+                });
                 refreshOrderAnalytics(allOrders);
                 return;
             }
 
-            tbody.innerHTML = orders.map(order => {
+            const rowsHtml = orders.map(order => {
                 const status = getKdsOrderStatus(order);
                 return `
                     <tr>
@@ -1521,6 +2289,9 @@
                         <td><div style="display: flex; gap: 6px;">${getKdsActionMarkup(order, status)}</div></td>
                     </tr>`;
             }).join('');
+            tbodies.forEach(tbody => {
+                tbody.innerHTML = rowsHtml;
+            });
             refreshOrderAnalytics(allOrders);
         }
 
@@ -1579,6 +2350,456 @@
             };
             window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: item });
             showToastAlert('테스트 주문 추가', `주문 #${orderNo}이 실제 KDS 대기열에 추가되었습니다.`);
+        }
+
+        function formatFinanceMoney(value) {
+            const amount = Math.round(Number(value) || 0);
+            const sign = amount < 0 ? '-' : '';
+            return `${sign}₩${Math.abs(amount).toLocaleString('ko-KR')}`;
+        }
+
+        function getLocalDateKey(value = new Date()) {
+            if (!value) return '';
+            if (typeof value === 'string') {
+                const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (dateOnly) return `${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}`;
+            }
+            const date = value instanceof Date ? value : new Date(value);
+            if (!Number.isFinite(date.getTime())) return '';
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function getFinanceDisplayDate(value = new Date()) {
+            const date = value instanceof Date ? value : new Date(value);
+            if (!Number.isFinite(date.getTime())) return '오늘';
+            return date.toLocaleDateString('ko-KR', {
+                month: '2-digit',
+                day: '2-digit',
+                weekday: 'short'
+            });
+        }
+
+        function formatFinanceDateLabel(dateKey) {
+            const key = dateKey || getLocalDateKey();
+            const date = new Date(`${key}T00:00:00`);
+            if (!Number.isFinite(date.getTime())) return key || '날짜 미상';
+            const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+            return `${key} (${weekdays[date.getDay()]})`;
+        }
+
+        function getFinanceOrderDateKey(order) {
+            return getLocalDateKey(
+                order.completedAt ||
+                order.receivedAt ||
+                order.orderDate ||
+                order.orderedAt ||
+                order.createdAt ||
+                order.updatedAt
+            );
+        }
+
+        function getFinanceReservationDateKey(reservation) {
+            return getLocalDateKey(
+                reservation.workCompletedAt ||
+                reservation.earlyLeaveCompletedAt ||
+                reservation.checkoutAt ||
+                reservation.lastActivityAt ||
+                reservation.date
+            );
+        }
+
+        function getFinanceMenuInfo(order) {
+            const productId = String(order.productId || order.productCode || '').toLowerCase();
+            const menuType = String(order.menuType || '').toLowerCase();
+            const productName = String(order.productName || '');
+            const isBibim = menuType === 'bibim' ||
+                productId === '20002' ||
+                productId === 'p2' ||
+                productName.includes('비빔') ||
+                productName.toLowerCase().includes('bibim');
+            return isBibim
+                ? { key: 'bibim', label: '감칠맛 간장 비빔면' }
+                : { key: 'udon', label: '정통 가쓰오 우동' };
+        }
+
+        function getFinanceOrderAmount(order) {
+            const totalPrice = Number(order.price);
+            if (Number.isFinite(totalPrice) && totalPrice > 0) return totalPrice;
+            const unitPrice = Number(order.unitPrice || order.unitCost || 0);
+            const qty = Math.max(1, Number(order.qty) || 1);
+            return Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice * qty : 0;
+        }
+
+        function getReservationSlotSeconds(reservation) {
+            const actualSeconds = Number(reservation.actualWorkSeconds);
+            if (Number.isFinite(actualSeconds) && actualSeconds > 0) return Math.floor(actualSeconds);
+
+            const startedAt = Date.parse(reservation.checkInAt || reservation.workStartedAt || '');
+            const finishedAt = Date.parse(reservation.earlyLeaveCompletedAt || reservation.workCompletedAt || reservation.checkoutAt || '');
+            if (Number.isFinite(startedAt) && Number.isFinite(finishedAt) && finishedAt >= startedAt) {
+                const breakSeconds = Math.max(0, Number(reservation.breakSeconds) || 0);
+                return Math.max(0, Math.floor((finishedAt - startedAt) / 1000) - breakSeconds);
+            }
+
+            if (window.MockData && typeof window.MockData.getWorkSlot === 'function') {
+                const slot = window.MockData.getWorkSlot(reservation.workId || 2, reservation.slot);
+                if (slot) {
+                    const startMinutes = Number(slot.startHour || 0) * 60 + Number(slot.startMin || 0);
+                    const endMinutes = Number(slot.endHour || 0) * 60 + Number(slot.endMin || 0);
+                    if (endMinutes > startMinutes) {
+                        const breakSeconds = Math.max(0, Number(reservation.breakSeconds) || 0);
+                        return Math.max(0, (endMinutes - startMinutes) * 60 - breakSeconds);
+                    }
+                }
+            }
+
+            return 90 * 60;
+        }
+
+        function getFinanceReservationPay(reservation) {
+            const earnedPay = Number(reservation.earnedPay);
+            if (Number.isFinite(earnedPay) && earnedPay > 0) return Math.floor(earnedPay);
+            const recordedPay = Number(reservation.pay);
+            if (Number.isFinite(recordedPay) && recordedPay > 0) return Math.floor(recordedPay);
+
+            const ratio = Number(reservation.ratio || reservation.salary || FINANCE_ASSUMPTIONS.defaultUtonSalaryRatio)
+                || FINANCE_ASSUMPTIONS.defaultUtonSalaryRatio;
+            const seconds = getReservationSlotSeconds(reservation);
+            return Math.floor(seconds * ((FINANCE_ASSUMPTIONS.hourlyBaseWage * ratio) / 3600));
+        }
+
+        function getFullDayLaborSeconds(workId = 2) {
+            const slotData = window.MockData && typeof window.MockData.getWorkTimeSlots === 'function'
+                ? window.MockData.getWorkTimeSlots(workId)
+                : null;
+            const slots = slotData && Array.isArray(slotData.slots) ? slotData.slots : [];
+            const totalSeconds = slots.reduce((sum, slot) => {
+                const startMinutes = Number(slot.startHour || 0) * 60 + Number(slot.startMin || 0);
+                const endMinutes = Number(slot.endHour || 0) * 60 + Number(slot.endMin || 0);
+                return endMinutes > startMinutes ? sum + ((endMinutes - startMinutes) * 60) : sum;
+            }, 0);
+            return totalSeconds > 0 ? totalSeconds : 6 * 60 * 60;
+        }
+
+        function getFullDayLaborCost() {
+            const headcount = Math.max(1, Number(FINANCE_ASSUMPTIONS.fullDayLaborHeadcount) || 2);
+            const ratio = Number(FINANCE_ASSUMPTIONS.defaultUtonSalaryRatio) || 1;
+            const seconds = getFullDayLaborSeconds(2);
+            return Math.floor(seconds * headcount * ((FINANCE_ASSUMPTIONS.hourlyBaseWage * ratio) / 3600));
+        }
+
+        function getFullDayLaborLabel() {
+            const headcount = Math.max(1, Number(FINANCE_ASSUMPTIONS.fullDayLaborHeadcount) || 2);
+            return `${headcount}인 풀근무 ${formatFinanceMoney(getFullDayLaborCost())}`;
+        }
+
+        function getFinanceMenuPrice(menuKey) {
+            const products = window.MockData && Array.isArray(window.MockData.storeProducts)
+                ? window.MockData.storeProducts
+                : [];
+            const product = products.find(item => {
+                const productId = String(item.productId || item.productCode || '').toLowerCase();
+                const name = String(item.name || '');
+                if (menuKey === 'bibim') return String(item.workId) === '2' &&
+                    (productId === '20002' || productId === 'p2' || name.includes('비빔'));
+                return String(item.workId) === '2' &&
+                    (productId === '20001' || productId === 'p1' || name.includes('우동'));
+            });
+            return Math.max(0, Number(product && product.price) || 3000);
+        }
+
+        function calculateMaxFinancePotential() {
+            const orderSettings = getUtonOrderLimitSettings();
+            const intervalMinutes = Math.max(1, Number(orderSettings.intervalMinutes) || 10);
+            const qtyPerMenuPerInterval = Math.max(1, Number(orderSettings.maxQtyPerInterval) || 2);
+            const fullDaySeconds = getFullDayLaborSeconds(2);
+            const intervals = Math.floor(fullDaySeconds / (intervalMinutes * 60));
+            const qtyPerMenu = intervals * qtyPerMenuPerInterval;
+            const udonQty = qtyPerMenu;
+            const bibimQty = qtyPerMenu;
+            const udonRevenue = udonQty * getFinanceMenuPrice('udon');
+            const bibimRevenue = bibimQty * getFinanceMenuPrice('bibim');
+            const salesTotal = udonRevenue + bibimRevenue;
+            const foodCostTotal = salesTotal * FINANCE_ASSUMPTIONS.foodCostRate;
+            const laborCostTotal = getFullDayLaborCost();
+            const dailyElectricityCost = FINANCE_ASSUMPTIONS.monthlyElectricityCost / FINANCE_ASSUMPTIONS.utilityMonthDays;
+            const dailyGasCost = FINANCE_ASSUMPTIONS.monthlyGasCost / FINANCE_ASSUMPTIONS.utilityMonthDays;
+            const dailyRentCost = FINANCE_ASSUMPTIONS.monthlyRentCost / FINANCE_ASSUMPTIONS.utilityMonthDays;
+            const fixedCostTotal = dailyElectricityCost + dailyGasCost + dailyRentCost;
+            const maxProfit = salesTotal - foodCostTotal - laborCostTotal - fixedCostTotal;
+            return {
+                intervalMinutes,
+                qtyPerMenuPerInterval,
+                intervals,
+                udonQty,
+                bibimQty,
+                totalQty: udonQty + bibimQty,
+                salesTotal,
+                foodCostTotal,
+                laborCostTotal,
+                fixedCostTotal,
+                maxProfit
+            };
+        }
+
+        function isFinanceCompletedOrder(order) {
+            return getKdsOrderStatus(order) === 'completed';
+        }
+
+        function isFinancePayableReservation(reservation) {
+            const status = reservation.workStatus || reservation.status;
+            return ['completed', 'early_left'].includes(status);
+        }
+
+        function getFinanceDateKeys() {
+            const dateKeys = new Set([getLocalDateKey()]);
+            getUtonOrders()
+                .filter(isFinanceCompletedOrder)
+                .forEach(order => {
+                    const dateKey = getFinanceOrderDateKey(order);
+                    if (dateKey) dateKeys.add(dateKey);
+                });
+
+            const reservations = window.FactoryStore && typeof window.FactoryStore.getReservations === 'function'
+                ? window.FactoryStore.getReservations({ workId: 2 })
+                : [];
+            reservations
+                .filter(isFinancePayableReservation)
+                .forEach(reservation => {
+                    const dateKey = getFinanceReservationDateKey(reservation);
+                    if (dateKey) dateKeys.add(dateKey);
+                });
+
+            return Array.from(dateKeys).sort();
+        }
+
+        function calculateFinanceSummary(dateKey = getLocalDateKey(), options = {}) {
+            const targetDateKey = dateKey || getLocalDateKey();
+            const baseMenuRows = {
+                udon: { key: 'udon', label: '정통 가쓰오 우동', qty: 0, revenue: 0 },
+                bibim: { key: 'bibim', label: '감칠맛 간장 비빔면', qty: 0, revenue: 0 }
+            };
+            const completedOrders = getUtonOrders().filter(order =>
+                isFinanceCompletedOrder(order) &&
+                getFinanceOrderDateKey(order) === targetDateKey
+            );
+
+            completedOrders.forEach(order => {
+                const menu = getFinanceMenuInfo(order);
+                if (!baseMenuRows[menu.key]) {
+                    baseMenuRows[menu.key] = { key: menu.key, label: menu.label, qty: 0, revenue: 0 };
+                }
+                baseMenuRows[menu.key].qty += Math.max(1, Number(order.qty) || 1);
+                baseMenuRows[menu.key].revenue += getFinanceOrderAmount(order);
+            });
+
+            const reservations = window.FactoryStore && typeof window.FactoryStore.getReservations === 'function'
+                ? window.FactoryStore.getReservations({ workId: 2 })
+                : [];
+            const payableReservations = reservations.filter(reservation =>
+                isFinancePayableReservation(reservation) &&
+                getFinanceReservationDateKey(reservation) === targetDateKey
+            );
+
+            const menuRows = Object.values(baseMenuRows).map(row => {
+                const foodCost = row.revenue * FINANCE_ASSUMPTIONS.foodCostRate;
+                return {
+                    ...row,
+                    foodCost: foodCost,
+                    grossProfit: row.revenue - foodCost
+                };
+            });
+
+            const salesTotal = menuRows.reduce((sum, row) => sum + row.revenue, 0);
+            const foodCostTotal = menuRows.reduce((sum, row) => sum + row.foodCost, 0);
+            const grossProfitTotal = salesTotal - foodCostTotal;
+            const laborCostTotal = payableReservations.reduce((sum, reservation) =>
+                sum + getFinanceReservationPay(reservation), 0);
+            const dailyElectricityCost = FINANCE_ASSUMPTIONS.monthlyElectricityCost / FINANCE_ASSUMPTIONS.utilityMonthDays;
+            const dailyGasCost = FINANCE_ASSUMPTIONS.monthlyGasCost / FINANCE_ASSUMPTIONS.utilityMonthDays;
+            const dailyRentCost = FINANCE_ASSUMPTIONS.monthlyRentCost / FINANCE_ASSUMPTIONS.utilityMonthDays;
+            const hasActivity = completedOrders.length > 0 || payableReservations.length > 0;
+            const shouldApplyUtility = options.forceUtility === true || hasActivity;
+            const utilityCostTotal = shouldApplyUtility ? dailyElectricityCost + dailyGasCost : 0;
+            const rentCostTotal = shouldApplyUtility ? dailyRentCost : 0;
+            const fixedCostTotal = utilityCostTotal + rentCostTotal;
+            const netProfit = salesTotal - foodCostTotal - laborCostTotal - fixedCostTotal;
+
+            return {
+                dateKey: targetDateKey,
+                orderCount: completedOrders.length,
+                laborCount: payableReservations.length,
+                menuRows,
+                salesTotal,
+                foodCostTotal,
+                grossProfitTotal,
+                laborCostTotal,
+                dailyElectricityCost,
+                dailyGasCost,
+                dailyRentCost,
+                utilityCostTotal,
+                rentCostTotal,
+                fixedCostTotal,
+                totalCost: foodCostTotal + laborCostTotal + fixedCostTotal,
+                netProfit
+            };
+        }
+
+        function calculateFinanceTimeline() {
+            let cumulativeNetProfit = 0;
+            return getFinanceDateKeys()
+                .map(dateKey => calculateFinanceSummary(dateKey, { forceUtility: true }))
+                .map(summary => {
+                    cumulativeNetProfit += summary.netProfit;
+                    return { ...summary, cumulativeNetProfit };
+                })
+                .sort((a, b) => String(b.dateKey).localeCompare(String(a.dateKey)));
+        }
+
+        function calculateFinanceTotals(timeline) {
+            return (Array.isArray(timeline) ? timeline : []).reduce((totals, row) => {
+                totals.salesTotal += row.salesTotal;
+                totals.foodCostTotal += row.foodCostTotal;
+                totals.laborCostTotal += row.laborCostTotal;
+                totals.utilityCostTotal += row.utilityCostTotal;
+                totals.rentCostTotal += row.rentCostTotal;
+                totals.fixedCostTotal += row.fixedCostTotal;
+                totals.totalCost += row.totalCost;
+                totals.netProfit += row.netProfit;
+                totals.dayCount += 1;
+                return totals;
+            }, {
+                salesTotal: 0,
+                foodCostTotal: 0,
+                laborCostTotal: 0,
+                utilityCostTotal: 0,
+                rentCostTotal: 0,
+                fixedCostTotal: 0,
+                totalCost: 0,
+                netProfit: 0,
+                dayCount: 0
+            });
+        }
+
+        function renderFinanceDashboard() {
+            const root = document.getElementById('view-finance');
+            if (!root) return;
+
+            const todayKey = getLocalDateKey();
+            const timeline = calculateFinanceTimeline();
+            const totals = calculateFinanceTotals(timeline);
+            const summary = timeline.find(row => row.dateKey === todayKey)
+                || calculateFinanceSummary(todayKey, { forceUtility: true });
+            const fullDayLaborLabel = getFullDayLaborLabel();
+            const maxPotential = calculateMaxFinancePotential();
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+
+            setText('finance-today-date', `${formatFinanceDateLabel(summary.dateKey)} 기준`);
+            setText('finance-sales-total', formatFinanceMoney(summary.salesTotal));
+            setText('finance-order-count', `수령 완료 주문 ${summary.orderCount}건`);
+            setText('finance-max-sales', formatFinanceMoney(maxPotential.salesTotal));
+            setText('finance-max-sales-detail',
+                `${maxPotential.intervalMinutes}분마다 우동 ${maxPotential.qtyPerMenuPerInterval}개 + 비빔면 ${maxPotential.qtyPerMenuPerInterval}개, 총 ${maxPotential.totalQty}개`
+            );
+            setText('finance-gross-profit', formatFinanceMoney(summary.grossProfitTotal));
+            setText('finance-food-cost', `식재료 원가 ${formatFinanceMoney(summary.foodCostTotal)}`);
+            setText('finance-labor-cost', formatFinanceMoney(summary.laborCostTotal));
+            setText('finance-labor-count', `근무완료/조퇴 ${summary.laborCount}건 (${fullDayLaborLabel})`);
+            setText('finance-utility-cost', formatFinanceMoney(summary.fixedCostTotal));
+            setText('finance-utility-detail', `전기 ${formatFinanceMoney(summary.dailyElectricityCost)} · 가스 ${formatFinanceMoney(summary.dailyGasCost)} · 임대 ${formatFinanceMoney(summary.dailyRentCost)}`);
+            setText('finance-cumulative-sales', formatFinanceMoney(totals.salesTotal));
+            setText('finance-cumulative-days', `계산 날짜 ${totals.dayCount}일`);
+            setText('finance-cumulative-cost', formatFinanceMoney(totals.totalCost));
+            setText('finance-max-profit-detail',
+                `원가 ${formatFinanceMoney(maxPotential.foodCostTotal)} · 풀근무 ${formatFinanceMoney(maxPotential.laborCostTotal)} · 고정비 ${formatFinanceMoney(maxPotential.fixedCostTotal)}`
+            );
+            setText('finance-assumption-note',
+                `식재료 원가율은 ${(FINANCE_ASSUMPTIONS.foodCostRate * 100).toFixed(0)}%, ` +
+                `전기세 월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyElectricityCost)}와 ` +
+                `가스요금 월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyGasCost)}, ` +
+                `임대료 월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyRentCost)}를 ` +
+                `${FINANCE_ASSUMPTIONS.utilityMonthDays}일 기준으로 일할 반영합니다. ` +
+                `최대값은 ${maxPotential.intervalMinutes}분마다 메뉴별 ${maxPotential.qtyPerMenuPerInterval}개 판매 기준입니다.`
+            );
+
+            const netProfitEl = document.getElementById('finance-net-profit');
+            if (netProfitEl) {
+                netProfitEl.textContent = formatFinanceMoney(summary.netProfit);
+                netProfitEl.classList.remove('finance-positive', 'finance-negative');
+                netProfitEl.classList.add(summary.netProfit >= 0 ? 'finance-positive' : 'finance-negative');
+            }
+
+            const cumulativeNetEl = document.getElementById('finance-cumulative-net');
+            if (cumulativeNetEl) {
+                cumulativeNetEl.textContent = formatFinanceMoney(totals.netProfit);
+                cumulativeNetEl.classList.remove('finance-positive', 'finance-negative');
+                cumulativeNetEl.classList.add(totals.netProfit >= 0 ? 'finance-positive' : 'finance-negative');
+            }
+
+            const maxProfitEl = document.getElementById('finance-max-profit');
+            if (maxProfitEl) {
+                maxProfitEl.textContent = formatFinanceMoney(maxPotential.maxProfit);
+                maxProfitEl.classList.remove('finance-positive', 'finance-negative');
+                maxProfitEl.classList.add(maxPotential.maxProfit >= 0 ? 'finance-positive' : 'finance-negative');
+            }
+
+            const menuTbody = document.getElementById('finance-menu-tbody');
+            if (menuTbody) {
+                menuTbody.innerHTML = summary.menuRows.map(row => `
+                    <tr>
+                        <td><strong>${escapeHtml(row.label)}</strong></td>
+                        <td>${row.qty.toLocaleString('ko-KR')}개</td>
+                        <td>${formatFinanceMoney(row.revenue)}</td>
+                        <td>${formatFinanceMoney(row.foodCost)}</td>
+                        <td><strong class="finance-positive">${formatFinanceMoney(row.grossProfit)}</strong></td>
+                    </tr>
+                `).join('');
+            }
+
+            const costTbody = document.getElementById('finance-cost-tbody');
+            if (costTbody) {
+                const costRows = [
+                    ['식재료 원가', `오늘 매출 × ${(FINANCE_ASSUMPTIONS.foodCostRate * 100).toFixed(0)}%`, summary.foodCostTotal],
+                    ['근무 인건비', `오늘 근무완료/조퇴 ${summary.laborCount}건 (${fullDayLaborLabel})`, summary.laborCostTotal],
+                    ['전기세', `월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyElectricityCost)} ÷ ${FINANCE_ASSUMPTIONS.utilityMonthDays}일`, summary.dailyElectricityCost],
+                    ['가스요금', `월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyGasCost)} ÷ ${FINANCE_ASSUMPTIONS.utilityMonthDays}일`, summary.dailyGasCost],
+                    ['임대료', `월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyRentCost)} ÷ ${FINANCE_ASSUMPTIONS.utilityMonthDays}일`, summary.dailyRentCost]
+                ];
+                costTbody.innerHTML = costRows.map(([label, basis, amount]) => `
+                    <tr>
+                        <td><strong>${escapeHtml(label)}</strong></td>
+                        <td>${escapeHtml(basis)}</td>
+                        <td><strong class="finance-negative">${formatFinanceMoney(amount)}</strong></td>
+                    </tr>
+                `).join('');
+            }
+
+            const dailyTbody = document.getElementById('finance-daily-tbody');
+            if (dailyTbody) {
+                dailyTbody.innerHTML = timeline.map(row => {
+                    const netClass = row.netProfit >= 0 ? 'finance-positive' : 'finance-negative';
+                    const cumulativeClass = row.cumulativeNetProfit >= 0 ? 'finance-positive' : 'finance-negative';
+                    return `
+                        <tr>
+                            <td><strong>${escapeHtml(formatFinanceDateLabel(row.dateKey))}</strong></td>
+                            <td>${row.orderCount.toLocaleString('ko-KR')}건</td>
+                            <td>${formatFinanceMoney(row.salesTotal)}</td>
+                            <td>${formatFinanceMoney(row.foodCostTotal)}</td>
+                            <td>${formatFinanceMoney(row.laborCostTotal)}</td>
+                            <td>${formatFinanceMoney(row.utilityCostTotal)}</td>
+                            <td>${formatFinanceMoney(row.rentCostTotal)}</td>
+                            <td><strong class="${netClass}">${formatFinanceMoney(row.netProfit)}</strong></td>
+                            <td><strong class="${cumulativeClass}">${formatFinanceMoney(row.cumulativeNetProfit)}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
 
         // ── 장비 제어 & 긴급 정지 ──
@@ -1725,6 +2946,16 @@
                 }
                 if (!e.key || e.key === 'app_reservations_db') {
                     renderHandwashCards();
+                    renderStaffReservations();
+                    renderFinanceDashboard();
+                }
+                if (e.key === 'uton_shop_history') {
+                    loadKDSOrders();
+                    renderFinanceDashboard();
+                }
+                if (e.key === 'uton_order_settings') {
+                    renderUtonOrderLimitSettings();
+                    renderFinanceDashboard();
                 }
             });
         }
@@ -1736,6 +2967,8 @@
             loadHelpRequestFromStorage();
             loadKDSOrders();
             renderHandwashCards();
+            renderStaffReservations();
+            renderFinanceDashboard();
         }
     </script>
 </body>

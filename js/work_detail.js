@@ -1,3 +1,42 @@
+function renderOfflineOrderSections(workId, data) {
+    document.querySelectorAll('.offline-order-section').forEach(section => section.remove());
+
+    if (String(workId) !== '6') return;
+
+    const productContainers = [
+        document.getElementById('product-list-container'),
+        document.getElementById('kimp-product-list-stats')
+    ];
+    const sectionHtml = `
+        <div class="offline-order-title">
+            <span><i class="bi bi-shop"></i> 오프라인 주문하기</span>
+            <span class="offline-order-badge">SHOP</span>
+        </div>
+        <div class="offline-order-desc">
+            고기 구이. 와서 드셔보세요. 맛있습니다.
+        </div>
+        <div class="offline-order-actions">
+            <button type="button" class="offline-order-btn" onclick="openBulgogiOfflineOrder()">
+                <i class="bi bi-bag-check-fill"></i>
+                <span>주문하기</span>
+            </button>
+        </div>
+    `;
+
+    productContainers.forEach(container => {
+        if (!container) return;
+        const section = document.createElement('div');
+        section.className = 'offline-order-section';
+        section.innerHTML = sectionHtml;
+        container.innerHTML = '';
+        container.appendChild(section);
+    });
+}
+
+window.openBulgogiOfflineOrder = function() {
+    window.location.href = 'bulgogi_order.html?workId=6';
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const workId = urlParams.get('id') || '1';
@@ -93,6 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (container) container.innerHTML = productHtml;
                 });
             }
+
+            renderOfflineOrderSections(workId, data);
 
             // 6. Workflows
             const taskList = document.querySelector('.task-list');

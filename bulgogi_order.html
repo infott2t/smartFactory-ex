@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>불고기구이 K-Meat 오프라인 주문</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #070320;
+            color: #fff;
+            font-family: "Noto Sans KR", Arial, sans-serif;
+        }
+
+        .page {
+            width: min(720px, 100%);
+            min-height: 100vh;
+            margin: 0 auto;
+            background: #0d0627;
+            padding: 18px 16px 110px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .brand-title {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            border: 1px solid rgba(123, 92, 245, 0.35);
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .brand-title strong {
+            font-size: 19px;
+            line-height: 1.2;
+        }
+
+        .brand-title span {
+            color: #b8b8cf;
+            font-size: 12px;
+        }
+
+        .hero {
+            overflow: hidden;
+            border: 1px solid rgba(123, 92, 245, 0.35);
+            border-radius: 8px;
+            background: #171331;
+            margin-bottom: 14px;
+        }
+
+        .hero img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .hero-copy {
+            padding: 14px;
+        }
+
+        .hero-copy h1 {
+            margin: 0 0 7px;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .hero-copy p {
+            margin: 0;
+            color: #d7d4eb;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 18px 0 10px;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .section-title span {
+            color: #9f92ff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .menu-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .menu-card {
+            display: grid;
+            grid-template-columns: 92px minmax(0, 1fr);
+            gap: 12px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            background: #1a1837;
+        }
+
+        .menu-card.selected {
+            border-color: #7b5cf5;
+            background: #21194b;
+        }
+
+        .menu-card img {
+            width: 92px;
+            height: 92px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .menu-body {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-top {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .menu-check {
+            width: 18px;
+            height: 18px;
+            margin: 2px 0 0;
+            accent-color: #7b5cf5;
+            flex-shrink: 0;
+        }
+
+        .menu-name {
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+
+        .menu-desc {
+            color: #aaa6c7;
+            font-size: 12px;
+            line-height: 1.45;
+            word-break: keep-all;
+        }
+
+        .menu-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .menu-chip {
+            padding: 3px 7px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 999px;
+            color: #d7d4eb;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .menu-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .price {
+            color: #a29bfe;
+            font-size: 15px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .qty-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .qty-control button {
+            width: 28px;
+            height: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .qty-control span {
+            min-width: 42px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .summary-bar {
+            position: fixed;
+            left: 50%;
+            bottom: 0;
+            width: min(720px, 100%);
+            transform: translateX(-50%);
+            padding: 12px 16px 16px;
+            border-top: 1px solid rgba(123, 92, 245, 0.35);
+            background: rgba(7, 3, 32, 0.96);
+            box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .summary-label {
+            color: #b8b8cf;
+            font-size: 12px;
+        }
+
+        .summary-price {
+            color: #55efc4;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .order-btn {
+            width: 100%;
+            height: 46px;
+            border: 0;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #7b5cf5, #ff7a1a);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .order-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .order-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(0, 0, 0, 0.68);
+        }
+
+        .order-modal-overlay.show {
+            display: flex;
+        }
+
+        .order-modal {
+            width: min(420px, 100%);
+            border: 1px solid rgba(123, 92, 245, 0.4);
+            border-radius: 8px;
+            background: #171331;
+            color: #fff;
+            padding: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+        }
+
+        .order-modal h2 {
+            margin: 0 0 8px;
+            font-size: 19px;
+            line-height: 1.3;
+        }
+
+        .order-modal p {
+            margin: 0;
+            color: #d7d4eb;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .scan-panel {
+            margin: 16px 0 12px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .scan-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+            color: #d7d4eb;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .scan-chip {
+            flex-shrink: 0;
+            padding: 4px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            color: #ffcf70;
+            font-size: 11px;
+        }
+
+        .scan-chip.connected {
+            color: #55efc4;
+            border-color: rgba(85, 239, 196, 0.42);
+            background: rgba(85, 239, 196, 0.08);
+        }
+
+        .scan-frame {
+            position: relative;
+            width: 166px;
+            height: 166px;
+            margin: 0 auto;
+            padding: 10px;
+            border: 2px solid rgba(123, 92, 245, 0.8);
+            border-radius: 18px;
+            background: #0d0627;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .scan-line {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            top: 50%;
+            height: 2px;
+            border-radius: 2px;
+            background: #55efc4;
+            box-shadow: 0 0 12px rgba(85, 239, 196, 0.8);
+        }
+
+        .qr-demo {
+            width: 142px;
+            height: 142px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fff;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .qr-demo span {
+            border-radius: 2px;
+            background: #111827;
+        }
+
+        .qr-demo span:nth-child(2n) {
+            background: #fff;
+        }
+
+        .qr-demo span:nth-child(1),
+        .qr-demo span:nth-child(2),
+        .qr-demo span:nth-child(3),
+        .qr-demo span:nth-child(8),
+        .qr-demo span:nth-child(10),
+        .qr-demo span:nth-child(15),
+        .qr-demo span:nth-child(16),
+        .qr-demo span:nth-child(17),
+        .qr-demo span:nth-child(33),
+        .qr-demo span:nth-child(34),
+        .qr-demo span:nth-child(35),
+        .qr-demo span:nth-child(40),
+        .qr-demo span:nth-child(42),
+        .qr-demo span:nth-child(47),
+        .qr-demo span:nth-child(48),
+        .qr-demo span:nth-child(49) {
+            background: #111827;
+        }
+
+        .scan-helper {
+            margin-top: 12px;
+            color: #aaa6c7;
+            font-size: 12px;
+            line-height: 1.45;
+            text-align: center;
+            word-break: keep-all;
+        }
+
+        .demo-scan-btn {
+            width: 100%;
+            height: 38px;
+            margin-top: 12px;
+            border: 1px solid rgba(85, 239, 196, 0.35);
+            border-radius: 8px;
+            background: rgba(85, 239, 196, 0.1);
+            color: #55efc4;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .modal-question {
+            margin-top: 4px;
+            font-size: 15px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .modal-actions button {
+            height: 42px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .modal-actions .yes {
+            border: 0;
+            background: linear-gradient(135deg, #7b5cf5, #ff7a1a);
+        }
+
+        .modal-actions .yes:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+        }
+
+        .modal-actions .no {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .order-summary-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 14px 0;
+        }
+
+        .order-summary-meta div {
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .order-summary-meta span {
+            display: block;
+            color: #aaa6c7;
+            font-size: 11px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .order-summary-meta strong {
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .order-summary-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+        }
+
+        .order-summary-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .order-summary-item-name {
+            font-size: 13px;
+            font-weight: 900;
+            line-height: 1.35;
+        }
+
+        .order-summary-item-qty {
+            color: #aaa6c7;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .order-summary-item-price {
+            flex-shrink: 0;
+            color: #a29bfe;
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .order-summary-total {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            font-weight: 900;
+        }
+
+        .order-summary-total strong {
+            color: #55efc4;
+            font-size: 20px;
+        }
+
+        .payment-choice-list {
+            display: grid;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .payment-choice {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .payment-choice.selected {
+            border-color: #7b5cf5;
+            background: rgba(123, 92, 245, 0.16);
+        }
+
+        .payment-choice:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+        }
+
+        .payment-choice-mark {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .payment-choice.selected .payment-choice-mark {
+            border-color: #55efc4;
+            box-shadow: inset 0 0 0 4px #171331;
+            background: #55efc4;
+        }
+
+        .payment-choice-title {
+            display: block;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .payment-choice-desc {
+            display: block;
+            margin-top: 3px;
+            color: #aaa6c7;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .payment-info-box {
+            padding: 12px;
+            border: 1px solid rgba(85, 239, 196, 0.25);
+            border-radius: 8px;
+            background: rgba(85, 239, 196, 0.08);
+            color: #d8fff5;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .order-cancel-btn {
+            width: 100%;
+            height: 38px;
+            margin-top: 10px;
+            border: 1px solid rgba(255, 107, 107, 0.35);
+            border-radius: 8px;
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff8b8b;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        @media (min-width: 640px) {
+            .menu-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .hero {
+                display: grid;
+                grid-template-columns: 260px 1fr;
+            }
+
+            .hero img {
+                height: 100%;
+                min-height: 190px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <div class="topbar">
+            <button class="back-btn" type="button" onclick="history.back()" aria-label="뒤로가기">‹</button>
+            <img class="brand-icon" src="./images/beef_500.png" alt="불고기구이 아이콘">
+            <div class="brand-title">
+                <strong>불고기구이 K-Meat</strong>
+                <span>오프라인 매장 주문 메뉴판</span>
+            </div>
+        </div>
+
+        <section class="hero">
+            <img src="./images/menu/samgyeopsal.png" alt="불고기구이 K-Meat 대표 메뉴">
+            <div class="hero-copy">
+                <h1>고기 구이. 와서 드셔보세요. 맛있습니다.</h1>
+                <p>돼지고기 구이와 식사 단품을 골라주세요. 고기 메뉴는 1인분 기준이며, 선택한 메뉴의 수량에 따라 주문 총액이 자동으로 계산됩니다.</p>
+            </div>
+        </section>
+
+        <div class="section-title">
+            <strong>고기 메뉴</strong>
+            <span>체크해서 선택</span>
+        </div>
+        <section class="menu-grid" id="meat-menu"></section>
+
+        <div class="section-title">
+            <strong>식사와 사이드</strong>
+            <span>함께 주문</span>
+        </div>
+        <section class="menu-grid" id="side-menu"></section>
+    </main>
+
+    <div class="summary-bar">
+        <div class="summary-row">
+            <span class="summary-label" id="summary-count">선택한 메뉴 0개</span>
+            <strong class="summary-price" id="summary-total">0원</strong>
+        </div>
+        <button class="order-btn" id="order-button" type="button" disabled>주문 확인</button>
+    </div>
+
+    <div class="order-modal-overlay" id="order-modal" aria-hidden="true">
+        <div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
+            <h2 id="order-modal-title">현재 테이블 QR코드를 인식해주세요.</h2>
+            <p>스마트폰으로 테이블 QR을 스캔하면 이 주문이 해당 테이블에 연결됩니다.</p>
+            <div class="scan-panel">
+                <div class="scan-status">
+                    <span id="scan-status-text">테이블 연결 대기 중</span>
+                    <span class="scan-chip" id="table-chip">미인식</span>
+                </div>
+                <div class="scan-frame" aria-label="테이블 QR코드 스캔 대기 데모">
+                    <div class="qr-demo">
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="scan-line"></div>
+                </div>
+                <div class="scan-helper" id="scan-helper">
+                    실제 기능 연결 시 스마트폰 QR 스캔 완료 이벤트가 들어오면 자동으로 테이블 번호가 표시됩니다.
+                </div>
+                <button class="demo-scan-btn" id="demo-scan-button" type="button">데모: QR 인식 완료</button>
+            </div>
+            <div class="modal-question" id="modal-question">QR 인식 후 주문할 수 있습니다.</div>
+            <div class="modal-actions">
+                <button class="no" id="order-no-button" type="button">아니오</button>
+                <button class="yes" id="order-yes-button" type="button" disabled>예</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="order-modal-overlay" id="order-summary-modal" aria-hidden="true">
+        <div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="order-summary-title">
+            <h2 id="order-summary-title">주문 전 요약</h2>
+            <p>테이블 번호와 선택한 메뉴를 확인한 뒤 최종 주문해주세요.</p>
+            <div class="order-summary-meta">
+                <div>
+                    <span>테이블</span>
+                    <strong id="summary-table-id">-</strong>
+                </div>
+                <div>
+                    <span>주문번호</span>
+                    <strong id="summary-order-no">-</strong>
+                </div>
+            </div>
+            <div class="order-summary-list" id="order-summary-list"></div>
+            <div class="order-summary-total">
+                <span>총 결제 예정 금액</span>
+                <strong id="order-summary-total">0원</strong>
+            </div>
+            <div class="modal-actions">
+                <button class="no" id="summary-cancel-button" type="button">수정하기</button>
+                <button class="yes" id="summary-confirm-button" type="button">최종 주문</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="order-modal-overlay" id="payment-modal" aria-hidden="true">
+        <div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+            <h2 id="payment-title">주문이 접수되었습니다.</h2>
+            <p id="payment-order-text">결제 방식을 선택해주세요.</p>
+            <div class="order-summary-meta">
+                <div>
+                    <span>테이블</span>
+                    <strong id="payment-table-id">-</strong>
+                </div>
+                <div>
+                    <span>주문번호</span>
+                    <strong id="payment-order-no">-</strong>
+                </div>
+            </div>
+            <div class="payment-info-box" id="payment-balance-text">온라인 정산 가능 금액을 확인 중입니다.</div>
+            <div class="payment-choice-list">
+                <button class="payment-choice" type="button" data-payment-method="offline">
+                    <span class="payment-choice-mark"></span>
+                    <span>
+                        <span class="payment-choice-title">오프라인 결제</span>
+                        <span class="payment-choice-desc">직원 호출 또는 카운터에서 카드/현금으로 결제합니다.</span>
+                    </span>
+                </button>
+                <button class="payment-choice" type="button" data-payment-method="settlement">
+                    <span class="payment-choice-mark"></span>
+                    <span>
+                        <span class="payment-choice-title">온라인 정산 금액에서 빼기</span>
+                        <span class="payment-choice-desc">보유 정산 금액에서 주문 총액을 바로 차감합니다.</span>
+                    </span>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button class="no" id="payment-later-button" type="button">나중에 결제</button>
+                <button class="yes" id="payment-submit-button" type="button" disabled>결제하기</button>
+            </div>
+            <button class="order-cancel-btn" id="payment-cancel-order-button" type="button">주문 취소</button>
+        </div>
+    </div>
+
+    <script>
+        const BULGOGI_ORDER_HISTORY_KEY = 'bulgogi_order_history';
+        const BULGOGI_PAYMENT_HISTORY_KEY = 'bulgogi_payment_history';
+        const BULGOGI_SETTLEMENT_BALANCE_KEY = 'bulgogi_settlement_balance';
+        const DEMO_TABLE_ID = '테이블 A-07';
+        const menuItems = [
+            {
+                id: 'samgyeopsal',
+                group: 'meat',
+                name: '돼지고기 삼겹살 1인분',
+                desc: '두툼하게 썬 생삼겹살. 1인분 180g 기준',
+                price: 15000,
+                unit: '인분',
+                spec: '180g',
+                img: './images/menu/samgyeopsal.png'
+            },
+            {
+                id: 'moksal',
+                group: 'meat',
+                name: '돼지고기 목살 1인분',
+                desc: '담백하고 씹는 맛이 좋은 목살. 1인분 180g 기준',
+                price: 14000,
+                unit: '인분',
+                spec: '180g',
+                img: './images/menu/moksal.png'
+            },
+            {
+                id: 'hangjeong',
+                group: 'meat',
+                name: '항정살 1인분',
+                desc: '고소한 지방과 쫄깃한 식감이 좋은 특수부위. 1인분 150g 기준',
+                price: 19000,
+                unit: '인분',
+                spec: '150g',
+                img: './images/menu/special-cuts.png'
+            },
+            {
+                id: 'galmaegi',
+                group: 'meat',
+                name: '갈매기살 1인분',
+                desc: '불판에서 빠르게 구워 먹는 고소한 돼지 특수부위. 1인분 150g 기준',
+                price: 17000,
+                unit: '인분',
+                spec: '150g',
+                img: './images/menu/special-cuts.png'
+            },
+            {
+                id: 'pork-galbi',
+                group: 'meat',
+                name: '돼지갈비 1인분',
+                desc: '달큰한 양념에 재운 고깃집 인기 메뉴. 1인분 250g 기준',
+                price: 17000,
+                unit: '인분',
+                spec: '250g',
+                img: './images/menu/special-cuts.png'
+            },
+            {
+                id: 'doenjang',
+                group: 'side',
+                name: '된장찌개 단품',
+                desc: '고기와 같이 먹기 좋은 구수한 된장찌개',
+                price: 6000,
+                unit: '개',
+                spec: '단품',
+                img: './images/menu/doenjang-jjigae.png'
+            },
+            {
+                id: 'kimchi-jjigae',
+                group: 'side',
+                name: '김치찌개 단품',
+                desc: '칼칼한 국물로 마무리하기 좋은 식사 메뉴',
+                price: 8000,
+                unit: '개',
+                spec: '단품',
+                img: './images/menu/doenjang-jjigae.png'
+            },
+            {
+                id: 'naengmyeon',
+                group: 'side',
+                name: '물냉면 단품',
+                desc: '고기 뒤에 시원하게 먹기 좋은 냉면',
+                price: 7000,
+                unit: '개',
+                spec: '단품',
+                img: './images/menu/naengmyeon.png'
+            },
+            {
+                id: 'bibimnaengmyeon',
+                group: 'side',
+                name: '비빔냉면 단품',
+                desc: '매콤달콤한 양념에 비벼 먹는 냉면',
+                price: 7500,
+                unit: '개',
+                spec: '단품',
+                img: './images/menu/naengmyeon.png'
+            },
+            {
+                id: 'gyeran',
+                group: 'side',
+                name: '계란찜 단품',
+                desc: '폭신하게 익힌 고깃집 기본 인기 사이드',
+                price: 5000,
+                unit: '개',
+                spec: '단품',
+                img: './images/menu/gyeran-jjim.png'
+            },
+            {
+                id: 'rice',
+                group: 'side',
+                name: '공기밥',
+                desc: '고기와 찌개에 곁들이는 기본 공기밥',
+                price: 1000,
+                unit: '개',
+                spec: '단품',
+                img: './images/menu/gyeran-jjim.png'
+            }
+        ];
+
+        const quantities = Object.fromEntries(menuItems.map(item => [item.id, 1]));
+        const selected = new Set();
+        const currency = new Intl.NumberFormat('ko-KR');
+        let tableQrRecognized = false;
+        let pendingOrder = null;
+        let paymentOrder = null;
+        let selectedPaymentMethod = null;
+
+        function renderMenu(group, targetId) {
+            const target = document.getElementById(targetId);
+            target.innerHTML = menuItems
+                .filter(item => item.group === group)
+                .map(item => `
+                    <article class="menu-card" data-id="${item.id}">
+                        <img src="${item.img}" alt="${item.name}">
+                        <div class="menu-body">
+                            <div class="menu-top">
+                                <input class="menu-check" type="checkbox" data-id="${item.id}" aria-label="${item.name} 선택">
+                                <div>
+                                    <div class="menu-name">${item.name}</div>
+                                    <div class="menu-desc">${item.desc}</div>
+                                    <div class="menu-meta">
+                                        <span class="menu-chip">${item.spec}</span>
+                                        <span class="menu-chip">${currency.format(item.price)}원 / ${item.unit}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="menu-bottom">
+                                <div class="price">${currency.format(item.price)}원</div>
+                                <div class="qty-control">
+                                    <button type="button" data-action="minus" data-id="${item.id}" aria-label="${item.name} 수량 줄이기">-</button>
+                                    <span id="qty-${item.id}">1${item.unit}</span>
+                                    <button type="button" data-action="plus" data-id="${item.id}" aria-label="${item.name} 수량 늘리기">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                `)
+                .join('');
+        }
+
+        function updateSummary() {
+            let total = 0;
+            let selectedCount = 0;
+            let servingCount = 0;
+
+            menuItems.forEach(item => {
+                const card = document.querySelector(`.menu-card[data-id="${item.id}"]`);
+                if (card) card.classList.toggle('selected', selected.has(item.id));
+                if (!selected.has(item.id)) return;
+                selectedCount += 1;
+                servingCount += quantities[item.id];
+                total += item.price * quantities[item.id];
+            });
+
+            document.getElementById('summary-count').textContent = `선택한 메뉴 ${selectedCount}개 · 총 ${servingCount}개/인분`;
+            document.getElementById('summary-total').textContent = `${currency.format(total)}원`;
+            document.getElementById('order-button').disabled = selectedCount === 0;
+        }
+
+        function changeQty(id, amount) {
+            quantities[id] = Math.max(1, quantities[id] + amount);
+            const item = menuItems.find(menuItem => menuItem.id === id);
+            document.getElementById(`qty-${id}`).textContent = `${quantities[id]}${item.unit}`;
+            if (amount > 0) selected.add(id);
+            document.querySelector(`.menu-check[data-id="${id}"]`).checked = selected.has(id);
+            updateSummary();
+        }
+
+        function resetOrder() {
+            selected.clear();
+            menuItems.forEach(item => {
+                quantities[item.id] = 1;
+                const qty = document.getElementById(`qty-${item.id}`);
+                const checkbox = document.querySelector(`.menu-check[data-id="${item.id}"]`);
+                if (qty) qty.textContent = `1${item.unit}`;
+                if (checkbox) checkbox.checked = false;
+            });
+            updateSummary();
+        }
+
+        function openOrderModal() {
+            setQrRecognitionState(false);
+            const modal = document.getElementById('order-modal');
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeOrderModal() {
+            const modal = document.getElementById('order-modal');
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function openSummaryModal() {
+            pendingOrder = buildPendingOrder();
+            renderOrderSummary(pendingOrder);
+            closeOrderModal();
+
+            const modal = document.getElementById('order-summary-modal');
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeSummaryModal() {
+            const modal = document.getElementById('order-summary-modal');
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function setQrRecognitionState(isRecognized) {
+            tableQrRecognized = isRecognized;
+            const chip = document.getElementById('table-chip');
+            const status = document.getElementById('scan-status-text');
+            const helper = document.getElementById('scan-helper');
+            const question = document.getElementById('modal-question');
+            const yesButton = document.getElementById('order-yes-button');
+            const demoButton = document.getElementById('demo-scan-button');
+
+            chip.classList.toggle('connected', isRecognized);
+            chip.textContent = isRecognized ? '테이블 A-07' : '미인식';
+            status.textContent = isRecognized ? '테이블 QR 인식 완료' : '테이블 연결 대기 중';
+            helper.textContent = isRecognized
+                ? '테이블 A-07로 주문이 연결되었습니다. 아래에서 주문 여부를 선택해주세요.'
+                : '실제 기능 연결 시 스마트폰 QR 스캔 완료 이벤트가 들어오면 자동으로 테이블 번호가 표시됩니다.';
+            question.textContent = isRecognized ? '주문하시겠습니까?' : 'QR 인식 후 주문할 수 있습니다.';
+            yesButton.disabled = !isRecognized;
+            demoButton.disabled = isRecognized;
+            demoButton.textContent = isRecognized ? 'QR 인식 완료됨' : '데모: QR 인식 완료';
+        }
+
+        function getSelectedOrderItems() {
+            return menuItems
+                .filter(item => selected.has(item.id))
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: quantities[item.id],
+                    unit: item.unit,
+                    subtotal: item.price * quantities[item.id]
+                }));
+        }
+
+        function createOrderNo() {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            const ms = String(now.getMilliseconds()).padStart(3, '0');
+            return `KM-${hh}${mm}${ss}${ms}`;
+        }
+
+        function buildPendingOrder() {
+            const items = getSelectedOrderItems();
+            const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+            return {
+                orderNo: createOrderNo(),
+                tableId: DEMO_TABLE_ID,
+                workId: 6,
+                brand: 'K-Meat',
+                storeName: '불고기구이 K-Meat',
+                items,
+                total,
+                status: 'accepted',
+                paymentStatus: 'pending',
+                paymentMethod: null,
+                orderedAt: new Date().toISOString()
+            };
+        }
+
+        function renderOrderSummary(order) {
+            document.getElementById('summary-table-id').textContent = order.tableId;
+            document.getElementById('summary-order-no').textContent = order.orderNo;
+            document.getElementById('order-summary-total').textContent = `${currency.format(order.total)}원`;
+            document.getElementById('order-summary-list').innerHTML = order.items.map(item => `
+                <div class="order-summary-item">
+                    <div>
+                        <div class="order-summary-item-name">${item.name}</div>
+                        <div class="order-summary-item-qty">${item.quantity}${item.unit} × ${currency.format(item.price)}원</div>
+                    </div>
+                    <div class="order-summary-item-price">${currency.format(item.subtotal)}원</div>
+                </div>
+            `).join('');
+        }
+
+        function saveOrderRecord(order) {
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem(BULGOGI_ORDER_HISTORY_KEY) || '[]');
+                if (!Array.isArray(history)) history = [];
+            } catch (error) {
+                history = [];
+            }
+            history.unshift(order);
+            localStorage.setItem(BULGOGI_ORDER_HISTORY_KEY, JSON.stringify(history));
+        }
+
+        function updateOrderRecord(orderNo, updates) {
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem(BULGOGI_ORDER_HISTORY_KEY) || '[]');
+                if (!Array.isArray(history)) history = [];
+            } catch (error) {
+                history = [];
+            }
+
+            const nextHistory = history.map(order => {
+                if (order && order.orderNo === orderNo) return Object.assign({}, order, updates);
+                return order;
+            });
+            localStorage.setItem(BULGOGI_ORDER_HISTORY_KEY, JSON.stringify(nextHistory));
+        }
+
+        function getSettlementBalance() {
+            const raw = localStorage.getItem(BULGOGI_SETTLEMENT_BALANCE_KEY);
+            const parsed = Number(raw);
+            if (Number.isFinite(parsed)) return parsed;
+            const defaultBalance = 100000;
+            localStorage.setItem(BULGOGI_SETTLEMENT_BALANCE_KEY, String(defaultBalance));
+            return defaultBalance;
+        }
+
+        function setSettlementBalance(value) {
+            localStorage.setItem(BULGOGI_SETTLEMENT_BALANCE_KEY, String(value));
+        }
+
+        function savePaymentRecord(payment) {
+            let payments = [];
+            try {
+                payments = JSON.parse(localStorage.getItem(BULGOGI_PAYMENT_HISTORY_KEY) || '[]');
+                if (!Array.isArray(payments)) payments = [];
+            } catch (error) {
+                payments = [];
+            }
+            payments.unshift(payment);
+            localStorage.setItem(BULGOGI_PAYMENT_HISTORY_KEY, JSON.stringify(payments));
+        }
+
+        function openPaymentModal(order) {
+            paymentOrder = order;
+            selectedPaymentMethod = null;
+            document.getElementById('payment-table-id').textContent = order.tableId;
+            document.getElementById('payment-order-no').textContent = order.orderNo;
+            document.getElementById('payment-order-text').textContent = `총 ${currency.format(order.total)}원 결제를 진행합니다.`;
+            updatePaymentUi();
+
+            const modal = document.getElementById('payment-modal');
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('payment-modal');
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function updatePaymentUi() {
+            const balance = getSettlementBalance();
+            const total = paymentOrder ? paymentOrder.total : 0;
+            const settlementDisabled = balance < total;
+            const balanceText = '온라인 정산 가능 금액: ' + currency.format(balance) + '원 · 주문 금액: ' + currency.format(total) + '원';
+            document.getElementById('payment-balance-text').textContent = settlementDisabled
+                ? balanceText + ' · 잔액 부족'
+                : balanceText;
+            document.querySelectorAll('.payment-choice').forEach(button => {
+                const isSettlement = button.dataset.paymentMethod === 'settlement';
+                button.disabled = isSettlement && settlementDisabled;
+                if (button.disabled && selectedPaymentMethod === button.dataset.paymentMethod) {
+                    selectedPaymentMethod = null;
+                }
+                button.classList.toggle('selected', button.dataset.paymentMethod === selectedPaymentMethod);
+            });
+            document.getElementById('payment-submit-button').disabled = !selectedPaymentMethod;
+        }
+
+        function finishPaymentLater() {
+            if (!paymentOrder) return;
+            updateOrderRecord(paymentOrder.orderNo, {
+                paymentStatus: 'pending',
+                paymentMethod: null,
+                paymentNote: 'payment_later'
+            });
+            closePaymentModal();
+            alert(`주문은 접수되었습니다.\n${paymentOrder.tableId} · ${paymentOrder.orderNo}\n결제는 나중에 진행합니다.\n주문을 리셋합니다.`);
+            paymentOrder = null;
+            resetOrder();
+        }
+
+        function submitPayment() {
+            if (!paymentOrder || !selectedPaymentMethod) return;
+
+            if (selectedPaymentMethod === 'offline') {
+                const paidAt = new Date().toISOString();
+                updateOrderRecord(paymentOrder.orderNo, {
+                    paymentStatus: 'offline_waiting',
+                    paymentMethod: 'offline',
+                    paymentRequestedAt: paidAt
+                });
+                savePaymentRecord({
+                    id: `PAY-${paymentOrder.orderNo}`,
+                    orderNo: paymentOrder.orderNo,
+                    tableId: paymentOrder.tableId,
+                    method: 'offline',
+                    amount: paymentOrder.total,
+                    status: 'offline_waiting',
+                    createdAt: paidAt
+                });
+                closePaymentModal();
+                alert(`오프라인 결제가 선택되었습니다.\n${paymentOrder.tableId} · ${paymentOrder.orderNo}\n직원 호출 또는 카운터에서 ${currency.format(paymentOrder.total)}원을 결제해주세요.\n주문을 리셋합니다.`);
+                paymentOrder = null;
+                resetOrder();
+                return;
+            }
+
+            const balance = getSettlementBalance();
+            if (balance < paymentOrder.total) {
+                alert('온라인 정산 금액이 부족합니다.\n보유 금액: ' + currency.format(balance) + '원\n주문 금액: ' + currency.format(paymentOrder.total) + '원');
+                return;
+            }
+
+            const paidAt = new Date().toISOString();
+            const nextBalance = balance - paymentOrder.total;
+            setSettlementBalance(nextBalance);
+            updateOrderRecord(paymentOrder.orderNo, {
+                paymentStatus: 'paid',
+                paymentMethod: 'online_settlement',
+                paidAt,
+                settlementBefore: balance,
+                settlementAfter: nextBalance
+            });
+            savePaymentRecord({
+                id: `PAY-${paymentOrder.orderNo}`,
+                orderNo: paymentOrder.orderNo,
+                tableId: paymentOrder.tableId,
+                method: 'online_settlement',
+                amount: paymentOrder.total,
+                settlementBefore: balance,
+                settlementAfter: nextBalance,
+                status: 'paid',
+                createdAt: paidAt
+            });
+            closePaymentModal();
+            alert('온라인 정산 결제가 완료되었습니다.\n차감 금액: ' + currency.format(paymentOrder.total) + '원\n남은 정산 금액: ' + currency.format(nextBalance) + '원\n주문을 리셋합니다.');
+            paymentOrder = null;
+            resetOrder();
+        }
+
+        function cancelPlacedOrder() {
+            if (!paymentOrder) return;
+            const cancelledAt = new Date().toISOString();
+            updateOrderRecord(paymentOrder.orderNo, {
+                status: 'cancelled',
+                paymentStatus: 'cancelled',
+                paymentMethod: null,
+                cancelledAt
+            });
+            closePaymentModal();
+            alert(`주문이 취소되었습니다.\n${paymentOrder.tableId} · ${paymentOrder.orderNo}\n주문을 리셋합니다.`);
+            paymentOrder = null;
+            resetOrder();
+        }
+
+        document.addEventListener('click', event => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            changeQty(button.dataset.id, button.dataset.action === 'plus' ? 1 : -1);
+        });
+
+        document.addEventListener('change', event => {
+            if (!event.target.matches('.menu-check')) return;
+            if (event.target.checked) selected.add(event.target.dataset.id);
+            else selected.delete(event.target.dataset.id);
+            updateSummary();
+        });
+
+        document.getElementById('order-button').addEventListener('click', openOrderModal);
+
+        document.getElementById('order-no-button').addEventListener('click', closeOrderModal);
+
+        document.getElementById('demo-scan-button').addEventListener('click', () => {
+            setQrRecognitionState(true);
+        });
+
+        document.getElementById('order-yes-button').addEventListener('click', () => {
+            if (!tableQrRecognized) return;
+            openSummaryModal();
+        });
+
+        document.getElementById('summary-cancel-button').addEventListener('click', () => {
+            closeSummaryModal();
+        });
+
+        document.getElementById('summary-confirm-button').addEventListener('click', () => {
+            if (!pendingOrder) return;
+            saveOrderRecord(pendingOrder);
+            closeSummaryModal();
+            openPaymentModal(pendingOrder);
+            pendingOrder = null;
+        });
+
+        document.querySelectorAll('.payment-choice').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.disabled) return;
+                selectedPaymentMethod = button.dataset.paymentMethod;
+                updatePaymentUi();
+            });
+        });
+
+        document.getElementById('payment-later-button').addEventListener('click', finishPaymentLater);
+
+        document.getElementById('payment-submit-button').addEventListener('click', submitPayment);
+
+        document.getElementById('payment-cancel-order-button').addEventListener('click', cancelPlacedOrder);
+        
+        getSettlementBalance();
+
+        renderMenu('meat', 'meat-menu');
+        renderMenu('side', 'side-menu');
+        updateSummary();
+    </script>
+</body>
+
+</html>

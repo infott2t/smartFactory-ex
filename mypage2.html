@@ -799,6 +799,15 @@
             }
         }
 
+        function formatReservationSlotTime(reservation) {
+            const fallbackSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+            const fallback = reservation.time || reservation.slotLabel || fallbackSlotLabels[Number(reservation.slot)] || '지정 시간';
+            if (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function') {
+                return window.MockData.formatWorkSlotTime(reservation.workId || 1, reservation.slot, fallback);
+            }
+            return fallback;
+        }
+
         function renderReservations() {
             const container = $('#reservations-container');
             container.empty();
@@ -825,8 +834,6 @@
                 return;
             }
 
-            const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
-
             myReservations.forEach(r => {
                 const parts = r.date.split('-');
                 let dayName = '';
@@ -839,6 +846,7 @@
                 const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
                 const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
                 const displayRatio = r.ratio ? Number(r.ratio).toFixed(1) : '1.2';
+                const slotText = formatReservationSlotTime(r);
                 const reservationStatus = String(r.workStatus || 'reserved');
                 const canCheckIn = reservationStatus === 'reserved';
                 const canEnterWork = ['ready', 'working'].includes(reservationStatus);
@@ -893,7 +901,7 @@
                         <span>${dayName}</span>
                     </div>
                     <div class="res-time-box">
-                        <span>${slotLabels[r.slot] || '지정 시간'}</span>
+                        <span>${slotText}</span>
                     </div>
                     <div class="res-job-box">
                         <div class="res-job-box2">
@@ -955,8 +963,7 @@
             FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: updatedReservations });
 
             if (targetRes && typeof window.addAppLog === 'function') {
-                const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
-                const slotText = slotLabels[targetRes.slot] || '지정 시간';
+                const slotText = formatReservationSlotTime(targetRes);
                 
                 let workTitle = "김치만들기";
                 try {

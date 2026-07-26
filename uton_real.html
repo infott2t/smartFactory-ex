@@ -1091,6 +1091,56 @@
             return ["completed", "early_left"].includes(String(status || ""));
         }
 
+        function isEnteredUtonWorkStatus(status) {
+            return ["ready", "working", "early_leave_waiting"].includes(String(status || ""));
+        }
+
+        function isUtonPreWorkEntryComplete(reservation) {
+            if (!reservation) return false;
+
+            const preWorkSteps = reservation.checkInSteps || {};
+            return (reservation.preWorkStatus === "verified" || isEnteredUtonWorkStatus(reservation.workStatus))
+                && reservation.handPhotoStatus === "approved"
+                && preWorkSteps.shopEntry === true;
+        }
+
+        function repairUtonPreWorkEntryState(reservation) {
+            if (!reservation
+                || reservation.preWorkStatus === "verified"
+                || !isEnteredUtonWorkStatus(reservation.workStatus)
+                || !window.FactoryStore
+                || typeof window.FactoryStore.dispatch !== "function") {
+                return reservation;
+            }
+
+            const repairedSteps = Object.assign({}, reservation.checkInSteps || {}, { shopEntry: true });
+            const changes = {
+                preWorkStatus: "verified",
+                checkInSteps: repairedSteps,
+                lastActivityAt: new Date().toISOString()
+            };
+
+            try {
+                window.FactoryStore.dispatch({
+                    type: "UPDATE_RESERVATION",
+                    payload: {
+                        id: getReservationId(reservation),
+                        match: {
+                            userId: reservation.userId,
+                            workId: reservation.workId,
+                            date: reservation.date,
+                            slot: reservation.slot
+                        },
+                        changes: changes
+                    }
+                });
+                return Object.assign({}, reservation, changes);
+            } catch (error) {
+                console.warn("Uton 입장 인증 상태를 보정하지 못했습니다.", error);
+                return reservation;
+            }
+        }
+
         function blockClosedUtonWorkEntry(reservation) {
             utonEntryBlocked = true;
             activeUtonReservation = reservation ? Object.assign({}, reservation) : null;
@@ -1226,15 +1276,15 @@
             if (!activeUtonReservation) return true;
             sessionStorage.setItem("selected_reservation", JSON.stringify(activeUtonReservation));
 
-            const preWorkSteps = activeUtonReservation.checkInSteps || {};
-            const isPreWorkVerified = activeUtonReservation.preWorkStatus === "verified"
-                && activeUtonReservation.handPhotoStatus === "approved"
-                && preWorkSteps.shopEntry === true;
+            const isPreWorkVerified = isUtonPreWorkEntryComplete(activeUtonReservation);
             if (!isPreWorkVerified) {
                 activeUtonReservation = null;
                 window.location.href = "uton_before.html";
                 return false;
             }
+
+            activeUtonReservation = repairUtonPreWorkEntryState(activeUtonReservation);
+            sessionStorage.setItem("selected_reservation", JSON.stringify(activeUtonReservation));
 
             if (isClosedUtonWorkStatus(activeUtonReservation.workStatus)) {
                 blockClosedUtonWorkEntry(activeUtonReservation);
@@ -2358,21 +2408,21 @@
                 img: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23222'/><text x='50' y='55' font-size='10' fill='white' text-anchor='middle'>육수 가열 없음</text></svg>"
             },
             { 
-                title: "2. 면 삶기 (타이머)", 
+                title: "1. 면 삶기 (타이머)", 
                 alerts: "<div class='alert-box'>🔥 <b>주의:</b> 뜨거우니 조심하세요!</div>",
                 infos: "",
-                text: "냄비의 끓는 물에 소면을 넣으세요.<br>아래 <b>타이머 시작</b>을 누르고 조리를 진행합니다.<br><br><b>면을 삶고 찬물로 채에 잘 치데어 차게해주세요.</b><br><br>",
+                text: "소면을 먼저 계량하세요. 비빔면 1인분은 <b>건면 기준 100g</b>입니다.<br>저울이 없으면 소면을 한 손으로 모았을 때 묶음 지름이 약 <b>2cm</b>가 되도록 잡아 1인분으로 계량하세요.<br><br>냄비의 끓는 물에 계량한 소면을 넣으세요.<br>아래 <b>타이머 시작</b>을 누르고 조리를 진행합니다.<br><br><b>면을 삶고 찬물로 채에 잘 치대어 차게 해주세요.</b><br><br>",
                 img: "./images/somyeon_boil.png" 
             },
             { 
-                title: "3. 양념 비비기", 
+                title: "2. 양념 비비기", 
                 alerts: "<div class='alert-box'>⚠️ <b>위생 안전 지침:</b> 면을 비빌 때에는 반드시 1회용 비닐장갑을 착용해야 하며, 사용 후에는 손을 깨끗이 씻어주세요.</div>",
                 infos: "",
                 text: "삶은 면을 찬물에 헹궈 물기를 완전히 짠 후 그릇에 넣습니다.<br><b>참기름, 간장 2스푼, 설탕 2스푼, 참기름 2스푼</b>을 넣고 맛있게 비벼줍니다.<br><br>",
                 img: "./images/somyeon_mix.png" 
             },
             { 
-                title: "4. 담기/완성", 
+                title: "3. 담기/완성", 
                 alerts: "",
                 infos: "",
                 text: "양념에 맛있게 비벼진 간장 비빔면을 완성 접시에 정갈하게 담아 배식 준비를 합니다.",
@@ -2476,7 +2526,8 @@
                     manualContent.innerHTML = `
                         <h3>[재료 준비]</h3>
                         <ul>
-                            <li>소면 1인분</li>
+                            <li>소면 1인분: 건면 100g</li>
+                            <li>계량 기준: 저울 사용 또는 소면 묶음 지름 약 2cm</li>
                             <li>양념: 간장 2스푼, 설탕 2스푼, 참기름 2스푼</li>
                             <li>기타: 1회용 비닐장갑</li>
                         </ul>
