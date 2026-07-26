@@ -953,6 +953,33 @@
         let currentProductData = null;
         let currentWorkId = null;
 
+        function getCurrentOrderWorkId() {
+            const parsed = Number(currentWorkId);
+            return Number.isFinite(parsed) ? parsed : 1;
+        }
+
+        function getCurrentWorkShopHistory() {
+            const workId = getCurrentOrderWorkId();
+            if (window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function') {
+                return window.FactoryStore.getShopOrders({ workId: workId });
+            }
+
+            const storageKey = String(workId) === '2' ? 'uton_shop_history' : 'kimp_shop_history';
+            try {
+                const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function getAllShopHistory() {
+            if (window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function') {
+                return window.FactoryStore.getShopOrders();
+            }
+            return getCurrentWorkShopHistory();
+        }
+
         window.addEventListener('load', function() {
             // URL 파라미터 파싱
             const urlParams = new URLSearchParams(window.location.search);
@@ -1478,8 +1505,7 @@
             
             // 전역 스토어에서 주문 상태가 completed/cancelled로 변했는지 확인
             if (window.FactoryStore && activeNo) {
-                const state = window.FactoryStore.getState();
-                const matchedOrder = state.shopHistory.find(item => item.orderNo === activeNo);
+                const matchedOrder = getCurrentWorkShopHistory().find(item => item.orderNo === activeNo);
                 if (matchedOrder && matchedOrder.status !== 'pending') {
                     // 완료 또는 취소된 주문이므로 임시 상태 키 클리어
                     sessionStorage.removeItem('activeOrderProduct');
@@ -1688,7 +1714,7 @@
 
             let completedSpent = 0;
             if (window.FactoryStore && window.FactoryStore.getState) {
-                const shopHistory = window.FactoryStore.getState().shopHistory || [];
+                const shopHistory = getAllShopHistory();
                 completedSpent = shopHistory.filter(item => item.status === 'completed')
                                             .reduce((sum, item) => sum + (item.price || 0), 0);
             }
@@ -1748,11 +1774,7 @@
             let shopHistory = [];
 
             try {
-                if (window.FactoryStore && typeof window.FactoryStore.getState === 'function') {
-                    shopHistory = window.FactoryStore.getState().shopHistory || [];
-                } else {
-                    shopHistory = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
-                }
+                shopHistory = getCurrentWorkShopHistory();
             } catch(e) {
                 shopHistory = [];
             }
@@ -1993,8 +2015,8 @@
                 localStorage.removeItem('activeOrderNo_current');
 
                 if (window.FactoryStore) {
-                    const state = window.FactoryStore.getState();
-                    const targetOrder = state.shopHistory.find(item => item.orderNo === activeNo && item.status === 'pending');
+                    const targetOrder = getCurrentWorkShopHistory()
+                        .find(item => item.orderNo === activeNo && item.status === 'pending');
                     if (targetOrder) {
                         window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: targetOrder.id });
                     }

@@ -15,7 +15,7 @@
 <body>
     <div class="header-wrap">
         <div class="header menu-bar mypage">
-            <div class="chevron" onclick="window.history.back();" style="cursor: pointer;">
+            <div class="chevron" onclick="window.location.href='./mypage2.html';" style="cursor: pointer;">
                 <i class="bi bi-chevron-left back"></i>
             </div>
             <div class="title"><span>나의 활동 내역</span></div>
@@ -151,9 +151,21 @@
                 renderCurrentTab(newIndex);
             });
 
-            // 전역 정렬 상태 (처음 접속 시 날짜 오름차순 정렬)
+            // 전역 정렬 상태 (처음 접속 시 날짜 내림차순 정렬)
             let currentSortType = 'date'; // 'date', 'pay', or 'like'
-            let currentSortDir = 'asc';  // 'asc' (날짜 오름차순 기본)
+            let currentSortDir = 'desc';
+            const selectedHistoryById = {};
+
+            window.openExploreHistoryDetail = function(historyId) {
+                const key = String(historyId);
+                const historyItem = selectedHistoryById[key];
+                if (historyItem) {
+                    try {
+                        sessionStorage.setItem('explore_selected_history', JSON.stringify(historyItem));
+                    } catch (e) {}
+                }
+                window.location.href = `./explore_detail.html?id=${encodeURIComponent(key)}`;
+            };
 
             // ★ 정렬 토글 기능 (오름차순/내림차순 / 필터)
             $(document).on('click', '.sort-item', function () {
@@ -203,6 +215,107 @@
                 if (profileStr) return JSON.parse(profileStr);
                 return { workedHours: 22 };
             }
+
+            function getCurrentUserShopHistory() {
+                const user = getCurrentUser();
+                const currentUserId = user && user.id !== undefined && user.id !== null ? String(user.id) : null;
+                const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [], utonShopHistory: [] };
+                const shopHistory = window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function'
+                    ? window.FactoryStore.getShopOrders()
+                    : ([]
+                        .concat(Array.isArray(state.shopHistory) ? state.shopHistory : [])
+                        .concat(Array.isArray(state.utonShopHistory) ? state.utonShopHistory : []));
+
+                return shopHistory.filter(item => {
+                    if (!item) return false;
+                    const hasOrderUserId = item.userId !== undefined &&
+                        item.userId !== null &&
+                        String(item.userId).trim() !== '';
+                    if (!hasOrderUserId) return true;
+                    if (currentUserId === null) return false;
+                    return String(item.userId) === currentUserId;
+                });
+            }
+
+            function isUtonMenuOrder(item) {
+                const productId = String(item.productId || item.productCode || '').toLowerCase();
+                const menuType = String(item.menuType || '').toLowerCase();
+                return String(item.workId || '') === '2' ||
+                    ['20001', '20002', 'p1', 'p2'].includes(productId) ||
+                    ['udon', 'bibim'].includes(menuType);
+            }
+
+            function clearActiveShopOrderState(target, restoreOrderCount) {
+                const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                const matchesActiveProduct = activeProduct !== null &&
+                    target.productId !== undefined &&
+                    target.productId !== null &&
+                    String(activeProduct) === String(target.productId);
+                const matchesActiveOrder = activeNo !== null &&
+                    target.orderNo !== undefined &&
+                    target.orderNo !== null &&
+                    String(activeNo) === String(target.orderNo);
+
+                if (!matchesActiveProduct && !matchesActiveOrder) return;
+
+                try {
+                    sessionStorage.removeItem('activeOrderProduct');
+                    sessionStorage.removeItem('activeOrderNo');
+                    sessionStorage.removeItem('activeOrderQty');
+                    localStorage.removeItem('activeOrderProduct_local');
+                    localStorage.removeItem('activeOrderNo_local');
+                    localStorage.removeItem('activeOrderQty_local');
+                    localStorage.removeItem('activeOrderNo_current');
+
+                    if (!restoreOrderCount || !isUtonMenuOrder(target)) return;
+
+                    const qty = Math.max(1, Number.parseInt(target.qty, 10) || 1);
+                    let orderCount10Min = parseInt(sessionStorage.getItem('orderCount10Min') || '0', 10);
+                    orderCount10Min = Math.max(0, orderCount10Min - qty);
+                    sessionStorage.setItem('orderCount10Min', String(orderCount10Min));
+                    if (orderCount10Min < 2) sessionStorage.removeItem('orderLimitExpireTime');
+
+                    const productId = String(target.productId || target.productCode || '').toLowerCase();
+                    const menuType = String(target.menuType || '').toLowerCase();
+                    const isBibim = productId === '20002' || productId === 'p2' || menuType === 'bibim';
+                    const counterKey = isBibim ? 'bibimOrderCount' : 'udonOrderCount';
+                    let menuCount = parseInt(sessionStorage.getItem(counterKey) || '0', 10);
+                    menuCount = Math.max(0, menuCount - qty);
+                    sessionStorage.setItem(counterKey, String(menuCount));
+                } catch (e) {}
+            }
+
+            window.cancelShopOrder = function(id) {
+                if (!confirm("정말로 주문을 취소하시겠습니까?")) return;
+
+                const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+                if (!target || target.status !== 'pending') return;
+
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: target.id });
+                }
+
+                clearActiveShopOrderState(target, true);
+                renderCurrentTab(3);
+                alert("주문이 성공적으로 취소되었습니다.");
+            };
+
+            window.completeShopOrder = function(id) {
+                const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+                if (!target) return;
+
+                const kitchenStatus = target.kitchenStatus || 'queued';
+                if (target.status !== 'pending' || kitchenStatus !== 'ready') return;
+
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: target.id });
+                }
+
+                clearActiveShopOrderState(target, false);
+                renderCurrentTab(3);
+                alert(`주문번호 #${target.orderNo || '-'} 수령 완료\n음식을 정상적으로 수령하였습니다. 맛있게 드세요!`);
+            };
 
             // 렌더링 함수
             function renderCurrentTab(index) {
@@ -369,6 +482,42 @@
                         $('#reservation-container').html(html);
                     }
                 } else if (index === 2) {
+                    function normalizeHistoryItem(item, itemIndex, userObj) {
+                        const source = item || {};
+                        const workId = window.MockData && typeof window.MockData.inferWorkId === 'function'
+                            ? window.MockData.inferWorkId(source)
+                            : (source.workId || (String(source.job || '').includes('우동') ? '2' : (String(source.job || '').includes('지갑') ? '3' : '1')));
+                        const meta = window.MockData && typeof window.MockData.getWorkMeta === 'function'
+                            ? window.MockData.getWorkMeta(workId)
+                            : {};
+                        const slotData = window.MockData && typeof window.MockData.getWorkTimeSlots === 'function'
+                            ? window.MockData.getWorkTimeSlots(workId)
+                            : null;
+                        const fallbackTime = slotData && slotData.slots && slotData.slots[0]
+                            ? slotData.slots[0].time
+                            : '10:00 ~ 12:00';
+                        const userId = userObj && (userObj.id || userObj.email || userObj.name) || 'guest';
+                        const workTitle = window.MockData && typeof window.MockData.normalizeWorkTitle === 'function'
+                            ? window.MockData.normalizeWorkTitle(source.job || source.workName || meta.title, workId)
+                            : String(source.job || source.workName || meta.title || '김치만들기').replace(/^(Uton|AFood|Persa)\s+/i, '').trim();
+                        const normalized = {
+                            ...source,
+                            workId: Number(workId),
+                            job: workTitle,
+                            workName: workTitle,
+                            brandName: source.brandName || meta.brandName || 'AFood',
+                            iconUrl: source.iconUrl || meta.iconUrl || './images/k-icon_150x150.png',
+                            time: source.time || source.slotTime || fallbackTime,
+                            status: source.status || '완료',
+                            role: source.role || '일반',
+                            pay: Number(source.pay) || 0
+                        };
+                        if (normalized.id === undefined || normalized.id === null || normalized.id === '') {
+                            normalized.id = `hist-${userId}-${normalized.workId}-${String(normalized.date || itemIndex).replace(/\W/g, '')}-${itemIndex}`;
+                        }
+                        return normalized;
+                    }
+
                     function getHistoryData(userObj) {
                         const userId = userObj ? userObj.id : "guest";
                         try {
@@ -376,44 +525,15 @@
                             if (localHistory) {
                                 const parsed = JSON.parse(localHistory);
                                 if (Array.isArray(parsed) && parsed.length > 0) {
-                                    return parsed;
+                                    return parsed.map((item, itemIndex) => normalizeHistoryItem(item, itemIndex, userObj));
                                 }
                             }
                         } catch (e) { }
 
-                        const name = userObj ? userObj.name : "손님";
-                        const today = new Date();
-                        const formatDate = (daysAgo) => {
-                            const d = new Date();
-                            d.setDate(today.getDate() - daysAgo);
-                            return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, '0') + "." + String(d.getDate()).padStart(2, '0');
-                        };
-                        if (name === '최현일') {
-                            return [
-                                { id: 101, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
-                                { id: 102, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
-                                { id: 103, date: formatDate(5), time: "15:00 ~ 17:00", job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
-                            ];
-                        } else if (name === '최수아') {
-                            return [
-                                { id: 201, date: formatDate(2), time: "13:00 ~ 15:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                                { id: 202, date: formatDate(6), time: "10:00 ~ 12:00", job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
-                                { id: 203, date: formatDate(10), time: "15:00 ~ 17:00", job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
-                            ];
-                        } else if (name === '김수민') {
-                            return [
-                                { id: 301, date: formatDate(4), time: "10:00 ~ 12:00", job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
-                            ];
-                        } else if (name === '김영희') {
-                            return [
-                                { id: 401, date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
-                                { id: 402, date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                                { id: 403, date: formatDate(8), time: "15:00 ~ 17:00", job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
-                            ];
+                        if (window.MockData && typeof window.MockData.getMockWorkHistories === 'function') {
+                            return window.MockData.getMockWorkHistories(userObj).map((item, itemIndex) => normalizeHistoryItem(item, itemIndex, userObj));
                         }
-                        return [
-                            { id: 999, date: formatDate(2), time: "10:00 ~ 12:00", job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
-                        ];
+                        return [normalizeHistoryItem({ date: '', job: '김치만들기', role: '일반', pay: 40000 }, 0, userObj)];
                     }
 
                     function parseDate(dateStr) {
@@ -468,17 +588,15 @@
                         return currentSortDir === 'asc' ? comparison : -comparison;
                     });
                     let html = '';
+                    Object.keys(selectedHistoryById).forEach(key => delete selectedHistoryById[key]);
 
                     historyData.forEach(h => {
-                        let corpName = 'AFood';
-                        let iconSrc = './images/k-icon_150x150.png';
-                        if (h.job.includes('우동')) {
-                            corpName = 'Uton';
-                            iconSrc = './images/Uton_150x150.png';
-                        } else if (h.job.includes('지갑')) {
-                            corpName = 'Persa';
-                            iconSrc = './images/fancy_150x150.png';
-                        }
+                        selectedHistoryById[String(h.id)] = h;
+                        const corpName = h.brandName || 'AFood';
+                        const iconSrc = h.iconUrl || './images/k-icon_150x150.png';
+                        const workTimeLabel = window.MockData && typeof window.MockData.getWorkDurationLabel === 'function'
+                            ? window.MockData.getWorkDurationLabel(h.workId, 'type')
+                            : '2h';
 
                         const roleLabel = formatRoleLabel(h.role);
                         let badgeClass = 'badge01';
@@ -503,8 +621,9 @@
                         }
                         
 
+                        const safeHistoryId = String(h.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                         html += `
-                        <div class="task-item" style="margin-bottom: 12px; cursor: pointer;" onclick="location.href='explore_detail.html?id=${h.id}'">
+                        <div class="task-item" style="margin-bottom: 12px; cursor: pointer;" onclick="window.openExploreHistoryDetail('${safeHistoryId}')">
                             <div class="task-items0" style="align-items: center;">
                                 <div class="task-items" style="flex: 1.2;">
                                     <img class="icon" src="${iconSrc}" alt="icon"> 
@@ -515,7 +634,7 @@
                                 </div>
                                 <div class="task-info-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 0 5px;">
                                     <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 3px;">
-                                        <span class="box-time">2h</span>
+                                        <span class="box-time">${workTimeLabel}</span>
                                         <span class="${badgeClass}">${roleLabel}</span>
                                     </div>
                                     <span style="font-size: 11px; color: #a29bfe;">${displayTime}</span>
@@ -596,7 +715,7 @@
                         container.html(html);
                     } else {
                         // 날짜별 주문이력 모드인 경우
-                        const shopHistory = state.shopHistory || [];
+                        const shopHistory = getCurrentUserShopHistory();
 
                         if (shopHistory.length === 0) {
                             container.html(`
@@ -627,19 +746,40 @@
                         sortedHistory.forEach(item => {
                             let statusTextHtml = "";
                             let btnHtml = "";
+                            let inlineCancelButtonHtml = "";
+                            let inlineReceiveButtonHtml = "";
+                            let statusBadgeHtml = "";
+                            const allowedKitchenStatuses = ['queued', 'preparing', 'ready'];
+                            const kitchenStatus = allowedKitchenStatuses.includes(item.kitchenStatus)
+                                ? item.kitchenStatus
+                                : 'queued';
+                            const amountHtml = item.shouldShowSpendAmount === false
+                                ? `<div style="font-size: 13px; font-weight: 800; color: var(--text-sub); white-space: nowrap;">${item.paymentDisplayLabel || '주문취소됨'}</div>`
+                                : `<div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">-₩ ${item.price.toLocaleString()}</div>`;
 
                             if (item.status === 'pending') {
                                 statusTextHtml = `<div style="color: var(--text-main); font-weight: bold; font-size: 14px;">₩ ${item.price.toLocaleString()}</div>`;
-                                btnHtml = `
-                                <div style="margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end;">
-                                    <button type="button" class="res-check-in-btn" style="background: var(--accent-secondary); color: #000; border: none; padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer;" onclick="completeShopOrder('${item.id}')">🔔 알람 받기 (수령)</button>
-                                    <button type="button" class="res-cancel-btn" style="background: rgba(255,255,255,0.08); color: #ccc; border: 1px solid rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 12px; font-size: 11px; cursor: pointer;" onclick="cancelShopOrder('${item.id}')">주문 취소</button>
-                                </div>`;
+                                if (kitchenStatus === 'ready') {
+                                    statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">준비 완료</span>`;
+                                    inlineReceiveButtonHtml = `
+                                        <button type="button" class="res-check-in-btn" style="background: #10b981; color: #07130f; border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 800; cursor: pointer;" onclick="event.stopPropagation(); window.completeShopOrder('${item.id}')">수령하기</button>`;
+                                } else {
+                                    const isPreparing = kitchenStatus === 'preparing';
+                                    statusBadgeHtml = isPreparing
+                                        ? `<span style="margin-left: 2px; background: rgba(99, 102, 241, 0.16); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 중</span>`
+                                        : `<span style="margin-left: 2px; background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 대기</span>`;
+                                    inlineCancelButtonHtml = `
+                                        <button type="button" class="res-cancel-btn" style="background: rgb(62 62 192); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 12px; font-size: 11px; cursor: pointer;" onclick="event.stopPropagation(); window.cancelShopOrder('${item.id}')">주문 취소</button>`;
+                                }
                             } else if (item.status === 'cancelled') {
+                                statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">주문 취소</span>`;
                                 statusTextHtml = `<div style="color: var(--text-sub); font-size: 12px;">주문 취소</div>`;
                             } else if (item.status === 'completed') {
+                                statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.16); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">수령 완료</span>`;
                                 statusTextHtml = `<div style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">-₩ ${item.price.toLocaleString()}</div>`;
                                 btnHtml = ``;
+                            } else {
+                                statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">상태 확인 중</span>`;
                             }
 
                             // 상품 썸네일 이미지 및 브랜드 탐색
@@ -688,6 +828,7 @@
                                     <div style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
                                         <span>${item.dateStr || item.orderDate} ${item.orderTime ? item.orderTime + ' ' : ''}주문</span>
                                         ${deliveryBadgeHtml}
+                                        ${statusBadgeHtml}
                                     </div>
                                     ${topRightHtml}
                                 </div>
@@ -700,10 +841,13 @@
                                             <div style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-top: 3px;">${pNameStr} (${qtyText})</div>
                                         </div>
                                     </div>
-                                    <div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">
-                                        -₩ ${item.price.toLocaleString()}
+                                    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                                        ${inlineCancelButtonHtml}
+                                        ${inlineReceiveButtonHtml}
+                                        ${amountHtml}
                                     </div>
                                 </div>
+                                ${btnHtml}
                             </div>`;
                         });
                         container.html(html);

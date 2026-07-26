@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Uton 스마트 주방 - 관리자 콘솔 (uManager)</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="./js/store.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/auth-guard.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #f4f7fb;
+            --bg-card: #ffffff;
+            --bg-card-hover: #eef4fb;
+            --border-color: #d7e0ea;
+            --text-primary: #172033;
+            --text-secondary: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-blue-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --glass-bg: rgba(255, 255, 255, 0.82);
+            --glass-border: rgba(15, 23, 42, 0.08);
+            --sidebar-width: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Noto Sans KR', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* ── 사이드바 ── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            box-shadow: 8px 0 24px rgba(15, 23, 42, 0.05);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-brand img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .sidebar-brand-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-brand-sub {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .menu-item:hover {
+            background-color: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.12));
+            color: #2563eb;
+            border: 1px solid rgba(37, 99, 235, 0.22);
+        }
+
+        .menu-item i {
+            font-size: 1.15rem;
+        }
+
+        .badge-count {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-weight: 700;
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* ── 메인 컨텐츠 영역 ── */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            width: calc(100% - var(--sidebar-width));
+            min-height: 100vh;
+        }
+
+        /* Top Header */
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-card);
+            padding: 16px 24px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+        }
+
+        .header-title-group h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-red), #dc2626);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-help {
+            background: linear-gradient(135deg, #0b7552, #0f8a61);
+            color: white;
+            box-shadow: 0 4px 12px rgba(11, 117, 82, 0.28);
+        }
+
+        .btn-help:hover {
+            filter: brightness(1.08);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--bg-card-hover);
+            border-color: var(--text-secondary);
+        }
+
+        /* ── KPI 카운터 카드 ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(37, 99, 235, 0.28);
+        }
+
+        .kpi-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .kpi-blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+        .kpi-green { background: rgba(16, 185, 129, 0.12); color: #059669; }
+        .kpi-purple { background: rgba(139, 92, 246, 0.12); color: #7c3aed; }
+        .kpi-teal { background: rgba(11, 117, 82, 0.12); color: #0b7552; }
+
+        .kpi-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .kpi-label {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .kpi-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* ── 대시보드 2컬럼 레이아웃 ── */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .panel-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── 데이터 테이블 ── */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        .custom-table th {
+            background-color: #f8fafc;
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .custom-table td {
+            padding: 14px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .custom-table tr:hover {
+            background-color: var(--bg-card-hover);
+        }
+
+        /* 상태 뱃지 */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .pill-pending { background: rgba(245, 158, 11, 0.12); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.28); }
+        .pill-cooking { background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.28); }
+        .pill-ready { background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.28); }
+        .pill-help { background: rgba(11, 117, 82, 0.12); color: #0b7552; border: 1px solid rgba(11, 117, 82, 0.28); }
+        .pill-danger { background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.28); }
+
+        /* 손씻기 이미지 승인 카드 */
+        .wash-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .wash-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .wash-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .wash-user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .wash-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-blue);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .wash-img-box {
+            width: 100%;
+            height: 160px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #f1f5f9;
+            border: 1px solid var(--border-color);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .wash-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .wash-img-box:hover img {
+            transform: scale(1.05);
+        }
+
+        /* IoT 장비 제어 패널 */
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .device-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .device-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; width: 18px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* ── 실시간 알림 팝업 토스트 ── */
+        .alert-toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 380px;
+            width: 100%;
+        }
+
+        .alert-toast {
+            background: #0b7552;
+            color: white;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(11, 117, 82, 0.35);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: slide-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .alert-toast i {
+            font-size: 1.6rem;
+        }
+
+        .toast-content h4 {
+            font-size: 0.98rem;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .toast-content p {
+            font-size: 0.82rem;
+            opacity: 0.9;
+        }
+
+        .toast-close {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        .toast-close:hover { opacity: 1; }
+
+        /* ── 모달 커스텀 ── */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.42);
+            backdrop-filter: blur(6px);
+            z-index: 5000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 540px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+            transform: scale(0.95);
+            transition: transform 0.25s ease;
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .modal-close-btn:hover { color: var(--text-primary); }
+
+        /* 모바일 반응형 처리 */
+        .menu-toggle-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 16px;
+            }
+            .menu-toggle-btn {
+                display: block;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+            .header-bar { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .header-actions { width: 100%; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── 사이드바 ── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="./images/Uton_150x150.png" alt="Uton Logo" onerror="this.src='https://via.placeholder.com/40'">
+            <div>
+                <div class="sidebar-brand-title">Uton Console</div>
+                <div class="sidebar-brand-sub">스마트 주방 KDS 관리자</div>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li class="menu-item active" onclick="switchTab('dashboard')">
+                <i class="bi bi-grid-1x2-fill"></i>
+                <span>통합 대시보드</span>
+            </li>
+            <li class="menu-item" onclick="switchTab('help-requests')">
+                <i class="bi bi-bell-fill" style="color:#0b7552;"></i>
+                <span>도움 요청 알림</span>
+                <span class="badge-count" id="help-badge-count">0</span>
+            </li>
+            <li class="menu-item" onclick="switchTab('handwash')">
+                <i class="bi bi-droplet-fill" style="color:#06b6d4;"></i>
+                <span>손씻기 사진 승인</span>
+                <span class="badge-count" id="wash-badge-count" style="background:#06b6d4;">1</span>
+            </li>
+            <li class="menu-item" onclick="switchTab('orders')">
+                <i class="bi bi-list-task"></i>
+                <span>주방 KDS 주문 관리</span>
+            </li>
+            <li class="menu-item" onclick="switchTab('staff')">
+                <i class="bi bi-people-fill"></i>
+                <span>근무자 & 예약 현황</span>
+            </li>
+            <li class="menu-item" onclick="switchTab('devices')">
+                <i class="bi bi-cpu-fill"></i>
+                <span>스마트 주방 장비</span>
+            </li>
+            <li class="menu-item" onclick="switchTab('inventory')">
+                <i class="bi bi-box-seam-fill"></i>
+                <span>원자재 & 품질 관리</span>
+            </li>
+        </ul>
+
+        <div style="padding: 16px; border-top: 1px solid var(--border-color);">
+            <a href="uton_real.html" class="btn-action btn-outline" style="width: 100%; justify-content: center; text-decoration: none;">
+                <i class="bi bi-arrow-left-circle"></i> Uton 주방 KDS로 이동
+            </a>
+        </div>
+    </aside>
+
+    <!-- ── 메인 컨텐츠 영역 ── -->
+    <main class="main-content">
+
+        <!-- Top Header Bar -->
+        <header class="header-bar">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <button class="menu-toggle-btn" onclick="toggleMobileSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="header-title-group">
+                    <h1 id="page-title"><i class="bi bi-grid-1x2-fill" style="color: #2563eb;"></i> Uton 주방 관제 대시보드</h1>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn-action btn-help" onclick="triggerSimulatedHelpRequest()">
+                    <i class="bi bi-megaphone-fill"></i> 모의 도움요청 발송
+                </button>
+                <button class="btn-action btn-primary" onclick="openSimulatedWashUploadModal()">
+                    <i class="bi bi-camera-fill"></i> 모의 손씻기 사진 등록
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI 카운터 카드 그리드 -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-blue"><i class="bi bi-bag-check-fill"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">오늘 완료 주문</span>
+                    <span class="kpi-value" id="kpi-completed-orders">18 건</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-green"><i class="bi bi-clock-history"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">평균 조리 완료시간</span>
+                    <span class="kpi-value" id="kpi-avg-time">3분 42초</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-purple"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">손씻기 인증 승인율</span>
+                    <span class="kpi-value" id="kpi-wash-rate">100%</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-teal"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">대기 중 도움 요청</span>
+                    <span class="kpi-value" id="kpi-help-count" style="color: #0b7552;">0 건</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 대시보드 뷰 (기본) -->
+        <div id="view-dashboard" class="tab-view">
+            <div class="dashboard-grid">
+                
+                <!-- Left: 실시간 KDS 주문 현황 및 손씻기 승인 대기 -->
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <!-- 🚨 도움 요청 수신 카드 (긴급) -->
+                    <div class="panel-card" id="help-alert-panel" style="border-color: rgba(11, 117, 82, 0.4); background: rgba(11, 117, 82, 0.05);">
+                        <div class="panel-header">
+                            <h2 style="color: #0b7552;"><i class="bi bi-bell-fill"></i> 실시간 도움 요청 (Call Alert)</h2>
+                            <span class="status-pill pill-help" id="help-status-badge">0건 대기 중</span>
+                        </div>
+                        <div id="help-request-list" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.9rem;">
+                                현재 대기 중인 긴급 도움 요청이 없습니다.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 🧼 손씻기 인증 사진 승인 요청 -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2><i class="bi bi-shield-check" style="color: #06b6d4;"></i> 손씻기 위생 사진 인증 승인 관리</h2>
+                        </div>
+                        
+                        <div class="wash-card-grid" id="handwash-cards-container">
+                            <!-- JS 렌더링 -->
+                        </div>
+                    </div>
+
+                    <!-- 🍳 실시간 주방 KDS 주문 관리 테이블 -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2><i class="bi bi-card-checklist" style="color: #3b82f6;"></i> 실시간 Uton 주방 KDS 주문 목록</h2>
+                            <button class="btn-action btn-primary" style="font-size: 0.82rem; padding: 6px 12px;" onclick="addTestOrder()">
+                                <i class="bi bi-plus-circle"></i> 테스트 주문 추가
+                            </button>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>주문번호</th>
+                                        <th>메뉴명</th>
+                                        <th>수량</th>
+                                        <th>주문시각</th>
+                                        <th>상태</th>
+                                        <th>제어 Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="kds-orders-tbody">
+                                    <!-- JS 렌더링 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right: Chart.js 및 스마트 장비 원격 제어 -->
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <!-- 차트 1: 시간대별 주문 현황 -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2><i class="bi bi-graph-up-arrow" style="color: #8b5cf6;"></i> 시간대별 주문 추이</h2>
+                        </div>
+                        <div style="height: 200px; position: relative;">
+                            <canvas id="orderTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 차트 2: Uton 우동 메뉴 판매 비중 -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2><i class="bi bi-pie-chart-fill" style="color: #f59e0b;"></i> 메뉴별 판매 비중</h2>
+                        </div>
+                        <div style="height: 200px; position: relative;">
+                            <canvas id="menuPieChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 스마트 IoT 장비 원격 제어 -->
+                    <div class="panel-card">
+                        <div class="panel-header">
+                            <h2><i class="bi bi-sliders" style="color: #10b981;"></i> 스마트 해면기 & 육수기 제어</h2>
+                        </div>
+
+                        <div class="device-grid">
+                            <div class="device-card">
+                                <div class="device-top">
+                                    <span style="font-weight: 700; font-size: 0.9rem;">🍜 면 해면기 #1</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked onchange="toggleDevice('noodle1', this.checked)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                    설정 수온: <strong style="color: #059669;">98.5 °C</strong>
+                                </div>
+                            </div>
+
+                            <div class="device-card">
+                                <div class="device-top">
+                                    <span style="font-weight: 700; font-size: 0.9rem;">🫗 가쓰오 육수기</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked onchange="toggleDevice('broth', this.checked)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                    정량 추출: <strong style="color: #2563eb;">350 cc</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn-action btn-danger" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="triggerEmergencyStop()">
+                            <i class="bi bi-slash-circle-fill"></i> 주방 장비 긴급 비상정지
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ── 실시간 알림 팝업 토스트 컨테이너 ── -->
+    <div class="alert-toast-container" id="toast-container"></div>
+
+    <!-- ── 손씻기 사진 상세 및 승인/반려 모달 ── -->
+    <div class="modal-overlay" id="wash-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="bi bi-shield-check" style="color: #06b6d4;"></i> 손씻기 사진 검수 및 승인</h3>
+                <button class="modal-close-btn" onclick="closeWashModal()">&times;</button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                    <span>제출자: <strong id="modal-wash-username">최수아</strong></span>
+                    <span style="color: var(--text-secondary);" id="modal-wash-time">2026-07-24 10:14</span>
+                </div>
+
+                <div style="width: 100%; height: 260px; border-radius: 12px; overflow: hidden; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+                    <img id="modal-wash-img" src="" alt="손씻기 인증 사진" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; font-size: 0.85rem;">
+                    <div style="font-weight: 700; margin-bottom: 6px; color: #2563eb;">🧼 위생 검수 체크리스트</div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; color: var(--text-secondary);">
+                        <div>✔ 손가락 사이 및 손톱 밑 비누 거품 세정 여부</div>
+                        <div>✔ 30초 이상 흐르는 물 세정 사진 확인</div>
+                        <div>✔ 이물질 미부착 및 안심 위생 상태</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-action btn-danger" style="flex: 1; justify-content: center;" onclick="rejectHandwash()">
+                        <i class="bi bi-x-circle-fill"></i> 인증 반려 (재요청)
+                    </button>
+                    <button class="btn-action btn-primary" style="flex: 1; justify-content: center;" onclick="approveHandwash()">
+                        <i class="bi bi-check-circle-fill"></i> 손씻기 최종 승인
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 모의 손씻기 사진 제출 업로드 모달 ── -->
+    <div class="modal-overlay" id="upload-wash-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="bi bi-camera-fill" style="color: #2563eb;"></i> 모의 손씻기 사진 등록</h3>
+                <button class="modal-close-btn" onclick="closeUploadWashModal()">&times;</button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 6px;">근무자 이름</label>
+                    <input type="text" id="sim-user-name" value="최수아" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: #ffffff; color: var(--text-primary);">
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 6px;">샘플 사진 선택</label>
+                    <select id="sim-photo-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: #ffffff; color: var(--text-primary);">
+                        <option value="./images/hygiene_gloves_heart.png">손가락 하트 손 위생 인증샷 (정상)</option>
+                        <option value="https://images.unsplash.com/photo-1584515933487-779824d29309?w=600&auto=format&fit=crop">💧 흐르는 물 세정 인증샷 (정상)</option>
+                        <option value="https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=600&auto=format&fit=crop">⚠️ 비누 거품 부족 사진 (검수 필요)</option>
+                    </select>
+                </div>
+
+                <button class="btn-action btn-primary" style="justify-content: center; margin-top: 10px;" onclick="submitSimulatedHandwash()">
+                    <i class="bi bi-send-fill"></i> 사진 제출 및 승인 요청 등록
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 로직 -->
+    <script>
+        // 글로벌 상태 변수
+        let activeTab = 'dashboard';
+        let currentSelectedWashId = null;
+        let orderTrendChart = null;
+        let menuPieChart = null;
+        let unsubscribeManagerStore = null;
+        let knownPendingHandwashIds = new Set();
+        let handwashNotificationReady = false;
+
+        // 인메모리 및 LocalStorage 데이터 관리
+        let handwashRequests = [
+            {
+                id: 'wash_101',
+                userName: '최수아',
+                time: new Date(Date.now() - 5 * 60 * 1000).toLocaleString('ko-KR'),
+                imgUrl: './images/hygiene_gloves_heart.png',
+                status: 'pending', // pending, approved, rejected
+                rejectReason: ''
+            }
+        ];
+        let manualHandwashRequests = handwashRequests.slice();
+
+        let helpCalls = [];
+
+        // Web Audio API 사운드 경보음 생성기
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 tone
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch (e) {
+                console.warn('Audio play error:', e);
+            }
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadKDSOrders();
+            loadHelpRequestFromStorage();
+            renderHandwashCards();
+            renderHelpRequests();
+            listenStorageEvents();
+
+            if (window.FactoryStore && typeof window.FactoryStore.subscribe === 'function') {
+                unsubscribeManagerStore = window.FactoryStore.subscribe(() => {
+                    loadKDSOrders();
+                    renderHandwashCards();
+                });
+                window.addEventListener('beforeunload', () => {
+                    if (unsubscribeManagerStore) unsubscribeManagerStore();
+                }, { once: true });
+            }
+            
+            // 3초 간격 실시간 동기화 인터벌
+            setInterval(() => {
+                syncData();
+            }, 3000);
+        });
+
+        // 탭 전환
+        function switchTab(tabName) {
+            activeTab = tabName;
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            const targetMenu = Array.from(document.querySelectorAll('.menu-item')).find(el => el.getAttribute('onclick')?.includes(tabName));
+            if (targetMenu) targetMenu.classList.add('active');
+
+            const pageTitle = document.getElementById('page-title');
+            if (tabName === 'dashboard') pageTitle.innerHTML = '<i class="bi bi-grid-1x2-fill" style="color: #2563eb;"></i> Uton 주방 관제 대시보드';
+            else if (tabName === 'help-requests') pageTitle.innerHTML = '<i class="bi bi-bell-fill" style="color: #0b7552;"></i> 실시간 도움 요청 알림 목록';
+            else if (tabName === 'handwash') pageTitle.innerHTML = '<i class="bi bi-droplet-fill" style="color: #06b6d4;"></i> 손씻기 위생 인증 사진 승인';
+            else if (tabName === 'orders') pageTitle.innerHTML = '<i class="bi bi-list-task" style="color: #3b82f6;"></i> 주방 KDS 주문 관리';
+            else pageTitle.innerHTML = `<i class="bi bi-gear-fill"></i> ${tabName} 관리`;
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        }
+
+        // ── 🚨 도움 요청 (Help Call) 처리 ──
+        function normalizeHelpRequest(req) {
+            if (!req) return null;
+            const rawId = req.id || req.requestedAt || req.timestamp || Date.now();
+            const requestedAt = req.requestedAt || req.timestamp || new Date().toISOString();
+            const requestedDate = new Date(requestedAt);
+            const displayTime = isNaN(requestedDate.getTime())
+                ? new Date().toLocaleTimeString('ko-KR')
+                : requestedDate.toLocaleTimeString('ko-KR');
+
+            return {
+                id: String(rawId).startsWith('help_') ? String(rawId) : `help_${rawId}`,
+                userId: req.userId || req.senderId || '',
+                userName: req.userName || req.sender || '사용자',
+                issue: req.reason || req.message || req.issue || '업무 지원이 필요합니다.',
+                time: displayTime,
+                requestedAt: requestedAt,
+                workId: req.workId || '',
+                sourcePage: req.sourcePage || '',
+                status: req.status === 'resolved' ? 'resolved' : 'pending'
+            };
+        }
+
+        function upsertHelpRequest(req, options = {}) {
+            const call = normalizeHelpRequest(req);
+            if (!call) return;
+
+            const existingIndex = helpCalls.findIndex(item => item.id === call.id);
+            if (existingIndex >= 0) {
+                helpCalls[existingIndex] = { ...helpCalls[existingIndex], ...call };
+            } else {
+                helpCalls.unshift(call);
+            }
+
+            if (options.alert && call.status === 'pending') {
+                playBeepSound();
+                showToastAlert(`🚨 [도움 요청] ${call.userName} 작업자`, call.issue);
+            }
+            renderHelpRequests();
+        }
+
+        function loadHelpRequestFromStorage() {
+            try {
+                const raw = localStorage.getItem('uton_help_request');
+                if (!raw) return;
+                const req = JSON.parse(raw);
+                upsertHelpRequest(req);
+            } catch (e) {}
+        }
+
+        function triggerSimulatedHelpRequest() {
+            const users = ['최수아', '김태호', '박민우'];
+            const user = users[Math.floor(Math.random() * users.length)];
+            const issues = [
+                '면 삶기 해면기 수온 급강하 (확인 필요)',
+                '가쓰오 육수 팩 잔량 부족 알림',
+                '주문 수량 폭주로 추가 조리 헬퍼 요청',
+                '포장용 용기 재고 부족'
+            ];
+            const issue = issues[Math.floor(Math.random() * issues.length)];
+
+            const newCall = {
+                id: 'help_' + Date.now(),
+                userName: user,
+                issue: issue,
+                time: new Date().toLocaleTimeString('ko-KR'),
+                status: 'pending' // pending, resolved
+            };
+
+            helpCalls.unshift(newCall);
+            saveHelpCallsToStorage(newCall);
+
+            // 소리 경보 & 토스트 & UI 갱신
+            playBeepSound();
+            showToastAlert(`🚨 [도움 요청] ${user} 작업자`, issue);
+            renderHelpRequests();
+        }
+
+        function renderHelpRequests() {
+            const container = document.getElementById('help-request-list');
+            const badge = document.getElementById('help-badge-count');
+            const kpiCount = document.getElementById('kpi-help-count');
+            const statusBadge = document.getElementById('help-status-badge');
+
+            const pendingCalls = helpCalls.filter(c => c.status === 'pending');
+            badge.textContent = pendingCalls.length;
+            kpiCount.textContent = `${pendingCalls.length} 건`;
+            statusBadge.textContent = `${pendingCalls.length}건 대기 중`;
+
+            if (pendingCalls.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.9rem;">
+                        현재 대기 중인 긴급 도움 요청이 없습니다.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = pendingCalls.map(call => `
+                <div style="background: rgba(11, 117, 82, 0.12); border: 1px solid rgba(11, 117, 82, 0.3); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="bi bi-exclamation-octagon-fill" style="font-size: 1.5rem; color: #0b7552;"></i>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: #064e3b;">${call.userName} <span style="font-size: 0.78rem; color: #0b7552; margin-left: 6px;">${call.time}</span></div>
+                            <div style="font-size: 0.85rem; color: #065f46; margin-top: 2px;">${call.issue}</div>
+                        </div>
+                    </div>
+                    <button class="btn-action btn-help" style="font-size: 0.8rem; padding: 6px 12px;" onclick="resolveHelpCall('${call.id}')">
+                        <i class="bi bi-check-circle"></i> 조치 완료
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function resolveHelpCall(callId) {
+            const call = helpCalls.find(c => c.id === callId);
+            if (call) {
+                call.status = 'resolved';
+                try {
+                    const raw = localStorage.getItem('uton_help_request');
+                    if (raw) {
+                        const req = JSON.parse(raw);
+                        const storedCall = normalizeHelpRequest(req);
+                        if (storedCall && storedCall.id === callId) {
+                            localStorage.setItem('uton_help_request', JSON.stringify({
+                                ...req,
+                                status: 'resolved',
+                                resolvedAt: new Date().toISOString()
+                            }));
+                        }
+                    }
+                } catch (e) {}
+                renderHelpRequests();
+                showToastAlert('✅ [조치 완료]', `${call.userName} 작업자의 도움 요청이 해결되었습니다.`);
+            }
+        }
+
+        function saveHelpCallsToStorage(call) {
+            try {
+                localStorage.setItem('uton_help_request', JSON.stringify({
+                    id: call.id,
+                    status: 'requested',
+                    userName: call.userName,
+                    reason: call.issue,
+                    requestedAt: new Date().toISOString(),
+                    sourcePage: 'umanager.html'
+                }));
+            } catch (e) {}
+        }
+
+        // ── 🧼 손씻기 사진 승인/반려 로직 ──
+        function syncHandwashRequestsFromReservations() {
+            const sampleImg = './images/hygiene_gloves_heart.png';
+            const reservations = window.FactoryStore && typeof window.FactoryStore.getReservations === 'function'
+                ? window.FactoryStore.getReservations({ workId: 2 })
+                : [];
+            const reservationRequests = reservations
+                .filter(reservation => ['reviewing', 'approved', 'rejected'].includes(reservation.handPhotoStatus))
+                .map(reservation => {
+                    const submittedAt = reservation.handPhotoCapturedAt || reservation.lastActivityAt || new Date().toISOString();
+                    return {
+                        id: 'reservation_' + reservation.id,
+                        reservationId: reservation.id,
+                        userId: reservation.userId,
+                        userName: reservation.userName || 'Uton 근무자',
+                        workId: reservation.workId,
+                        date: reservation.date,
+                        slot: reservation.slot,
+                        time: new Date(submittedAt).toLocaleString('ko-KR'),
+                        imgUrl: reservation.handPhotoUrl || sampleImg,
+                        status: reservation.handPhotoStatus === 'reviewing' ? 'pending' : reservation.handPhotoStatus,
+                        rejectReason: reservation.handPhotoRejectReason || ''
+                    };
+                });
+            const reservationIds = new Set(reservationRequests.map(req => req.id));
+            handwashRequests = reservationRequests.concat(manualHandwashRequests.filter(req => !reservationIds.has(req.id)));
+        }
+
+        function notifyNewPendingHandwashRequests(pendingList) {
+            const currentPendingIds = new Set(pendingList.map(req => req.id));
+            const newRequests = pendingList.filter(req => !knownPendingHandwashIds.has(req.id));
+
+            if (handwashNotificationReady && newRequests.length > 0) {
+                playBeepSound();
+                showToastAlert('손사진 인증 요청', `${newRequests[0].userName}님의 손 위생 사진이 도착했습니다.`);
+            }
+
+            knownPendingHandwashIds = currentPendingIds;
+            handwashNotificationReady = true;
+        }
+
+        function renderHandwashCards() {
+            syncHandwashRequestsFromReservations();
+            const container = document.getElementById('handwash-cards-container');
+            const badge = document.getElementById('wash-badge-count');
+            const pendingList = handwashRequests.filter(r => r.status === 'pending');
+            badge.textContent = pendingList.length;
+            notifyNewPendingHandwashRequests(pendingList);
+
+            if (handwashRequests.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); padding: 20px;">등록된 손씻기 사진이 없습니다.</div>';
+                return;
+            }
+
+            container.innerHTML = handwashRequests.map(req => `
+                <div class="wash-card">
+                    <div class="wash-card-header">
+                        <div class="wash-user-info">
+                            <div class="wash-avatar">${req.userName.slice(0, 1)}</div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 0.9rem;">${req.userName}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">${req.time}</div>
+                            </div>
+                        </div>
+                        ${req.status === 'pending' ? '<span class="status-pill pill-pending">승인 대기</span>' : 
+                          req.status === 'approved' ? '<span class="status-pill pill-ready">승인됨</span>' : 
+                          '<span class="status-pill pill-danger">반려됨</span>'}
+                    </div>
+
+                    <div class="wash-img-box" onclick="openWashModal('${req.id}')">
+                        <img src="${req.imgUrl}" alt="손가락 하트 손 위생 인증샷">
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        ${req.status === 'pending' ? `
+                            <button class="btn-action btn-outline" style="flex: 1; justify-content: center; font-size: 0.8rem;" onclick="openWashModal('${req.id}')">
+                                <i class="bi bi-search"></i> 검수 및 승인
+                            </button>
+                        ` : `
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; width: 100%;">
+                                ${req.status === 'approved' ? '✅ 관리자 승인 완료' : '❌ 반려: ' + (req.rejectReason || '재인증 필요')}
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openWashModal(id) {
+            currentSelectedWashId = id;
+            const req = handwashRequests.find(r => r.id === id);
+            if (!req) return;
+
+            document.getElementById('modal-wash-username').textContent = req.userName;
+            document.getElementById('modal-wash-time').textContent = req.time;
+            document.getElementById('modal-wash-img').src = req.imgUrl;
+            document.getElementById('wash-modal').classList.add('active');
+        }
+
+        function closeWashModal() {
+            document.getElementById('wash-modal').classList.remove('active');
+        }
+
+        function approveHandwash() {
+            if (!currentSelectedWashId) return;
+            const req = handwashRequests.find(r => r.id === currentSelectedWashId);
+            if (req) {
+                req.status = 'approved';
+                updateReservationHandwashState(req.userName, 'approved');
+                renderHandwashCards();
+                closeWashModal();
+                showToastAlert('🧼 [손씻기 승인 완료]', `${req.userName} 근무자의 위생 인증이 최종 승인되었습니다.`);
+            }
+        }
+
+        function rejectHandwash() {
+            if (!currentSelectedWashId) return;
+            const reason = prompt('반려 사유를 입력해주세요:', '손가락 사이 세정 거품 부족');
+            if (reason === null) return;
+
+            const req = handwashRequests.find(r => r.id === currentSelectedWashId);
+            if (req) {
+                req.status = 'rejected';
+                req.rejectReason = reason;
+                updateReservationHandwashState(req.userName, 'rejected');
+                renderHandwashCards();
+                closeWashModal();
+                showToastAlert('⚠️ [손씻기 인증 반려]', `${req.userName} 근무자에게 재촬영 요청을 전송했습니다.`);
+            }
+        }
+
+        function openSimulatedWashUploadModal() {
+            document.getElementById('upload-wash-modal').classList.add('active');
+        }
+
+        function closeUploadWashModal() {
+            document.getElementById('upload-wash-modal').classList.remove('active');
+        }
+
+        function submitSimulatedHandwash() {
+            const userName = document.getElementById('sim-user-name').value.trim() || '최수아';
+            const photoUrl = document.getElementById('sim-photo-select').value;
+
+            const newReq = {
+                id: 'wash_' + Date.now(),
+                userName: userName,
+                time: new Date().toLocaleString('ko-KR'),
+                imgUrl: photoUrl,
+                status: 'pending'
+            };
+
+            handwashRequests.unshift(newReq);
+            manualHandwashRequests.unshift(newReq);
+            renderHandwashCards();
+            closeUploadWashModal();
+            showToastAlert('📷 [손씻기 사진 등록 완료]', `${userName} 님이 새로운 위생 사진을 제출하였습니다.`);
+        }
+
+        function updateReservationHandwashState(userName, status) {
+            try {
+                if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                    const req = handwashRequests.find(r => r.id === currentSelectedWashId)
+                        || handwashRequests.find(r => r.userName === userName);
+                    if (req && req.reservationId) {
+                        const now = new Date().toISOString();
+                        const approved = status === 'approved';
+                        window.FactoryStore.dispatch({
+                            type: 'UPDATE_RESERVATION',
+                            payload: {
+                                id: req.reservationId,
+                                changes: {
+                                    checkInSteps: { handPhoto: approved },
+                                    handPhotoStatus: status,
+                                    handPhotoVerifiedAt: approved ? now : null,
+                                    handPhotoVerificationMode: 'manager_review',
+                                    handPhotoRejectReason: approved ? '' : (req.rejectReason || '재인증 필요'),
+                                    lastActivityAt: now
+                                }
+                            }
+                        });
+                        window.FactoryStore.appendReservationLog(req.reservationId, {
+                            type: 'hand_photo',
+                            status: status,
+                            message: approved ? '손 사진 관리자 승인 완료' : '손 사진 관리자 반려',
+                            createdAt: now,
+                            handPhotoStatus: status,
+                            rejectReason: req.rejectReason || ''
+                        });
+                        syncHandwashRequestsFromReservations();
+                        return;
+                    }
+                    window.FactoryStore.dispatch({
+                        type: 'UPDATE_HANDWASH_STATUS',
+                        payload: { userName, status }
+                    });
+                }
+            } catch (e) {}
+        }
+
+        // ── 🍳 주방 KDS 주문 로직 ──
+        // Uton 주문의 원본은 FactoryStore.state.utonShopHistory / uton_shop_history 입니다.
+        function escapeHtml(value) {
+            return String(value === undefined || value === null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function isUtonOrder(order) {
+            if (!order) return false;
+            if (String(order.workId || '') === '2') return true;
+            const productId = String(order.productId || order.productCode || '').toLowerCase();
+            const productName = String(order.productName || '');
+            return ['20001', '20002', 'p1', 'p2'].includes(productId)
+                || productName.includes('우동')
+                || productName.includes('비빔면');
+        }
+
+        function getUtonOrders() {
+            if (!window.FactoryStore || typeof window.FactoryStore.getState !== 'function') return [];
+            const orders = typeof window.FactoryStore.getShopOrders === 'function'
+                ? window.FactoryStore.getShopOrders({ workId: 2 })
+                : (window.FactoryStore.getState().utonShopHistory || []);
+            return orders
+                .filter(isUtonOrder)
+                .sort((a, b) => (Date.parse(b.orderedAt || b.createdAt || '') || 0) - (Date.parse(a.orderedAt || a.createdAt || '') || 0));
+        }
+
+        function getKdsOrderStatus(order) {
+            if (order.status === 'cancelled' || order.kitchenStatus === 'cancelled') return 'cancelled';
+            if (order.status === 'completed' || order.kitchenStatus === 'received') return 'completed';
+            if (order.kitchenStatus === 'ready') return 'ready';
+            if (order.kitchenStatus === 'preparing') return 'preparing';
+            return 'queued';
+        }
+
+        function formatKdsOrderTime(order) {
+            const time = Date.parse(order.orderedAt || order.createdAt || '');
+            if (Number.isFinite(time)) {
+                return new Date(time).toLocaleTimeString('ko-KR', {
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                });
+            }
+            return order.orderTime || '-';
+        }
+
+        function getKdsStatusMarkup(status) {
+            const labels = {
+                queued: ['pill-pending', '조리 대기'],
+                preparing: ['pill-cooking', '조리 중'],
+                ready: ['pill-ready', '수령 대기'],
+                completed: ['pill-ready', '제공 완료'],
+                cancelled: ['pill-danger', '주문 취소']
+            };
+            const [className, label] = labels[status] || labels.queued;
+            return `<span class="status-pill ${className}">${label}</span>`;
+        }
+
+        function getKdsActionMarkup(order, status) {
+            const id = escapeHtml(order.id);
+            if (status === 'queued') {
+                return `<button class="btn-action btn-primary" style="font-size: 0.75rem; padding: 4px 8px;" onclick="updateKdsOrderStatus('${id}', 'preparing')"><i class="bi bi-play-fill"></i> 조리 시작</button>`;
+            }
+            if (status === 'preparing') {
+                return `<button class="btn-action btn-primary" style="font-size: 0.75rem; padding: 4px 8px;" onclick="updateKdsOrderStatus('${id}', 'ready')"><i class="bi bi-check2"></i> 조리 완료</button>`;
+            }
+            if (status === 'ready') {
+                return `<button class="btn-action btn-outline" style="font-size: 0.75rem; padding: 4px 8px;" onclick="updateKdsOrderStatus('${id}', 'completed')"><i class="bi bi-bag-check"></i> 제공 완료</button>`;
+            }
+            return '<span style="color: var(--text-secondary); font-size: 0.8rem;">처리 완료</span>';
+        }
+
+        function loadKDSOrders() {
+            const tbody = document.getElementById('kds-orders-tbody');
+            if (!tbody) return;
+
+            const allOrders = getUtonOrders();
+            const orders = allOrders.slice(0, 20);
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-secondary); padding: 24px;">현재 Uton 주문이 없습니다.</td></tr>';
+                refreshOrderAnalytics(allOrders);
+                return;
+            }
+
+            tbody.innerHTML = orders.map(order => {
+                const status = getKdsOrderStatus(order);
+                return `
+                    <tr>
+                        <td><strong>#${escapeHtml(order.orderNo || '-')}</strong></td>
+                        <td>${escapeHtml(order.productName || 'Uton 메뉴')}</td>
+                        <td>${Math.max(1, Number(order.qty) || 1)}개</td>
+                        <td>${escapeHtml(formatKdsOrderTime(order))}</td>
+                        <td>${getKdsStatusMarkup(status)}</td>
+                        <td><div style="display: flex; gap: 6px;">${getKdsActionMarkup(order, status)}</div></td>
+                    </tr>`;
+            }).join('');
+            refreshOrderAnalytics(allOrders);
+        }
+
+        function updateKdsOrderStatus(orderId, nextStatus) {
+            if (!window.FactoryStore || typeof window.FactoryStore.dispatch !== 'function') return;
+            const order = getUtonOrders().find(item => String(item.id) === String(orderId));
+            if (!order || ['cancelled', 'completed'].includes(getKdsOrderStatus(order))) return;
+
+            const now = new Date().toISOString();
+            if (nextStatus === 'completed') {
+                window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: order.id });
+                showToastAlert('제공 완료', `주문 #${order.orderNo || '-'}을 고객 수령 완료로 처리했습니다.`);
+                return;
+            }
+
+            const changes = nextStatus === 'preparing'
+                ? { kitchenStatus: 'preparing', preparingAt: order.preparingAt || now }
+                : { kitchenStatus: 'ready', readyAt: now };
+            window.FactoryStore.dispatch({
+                type: 'UPDATE_SHOP_ORDER',
+                payload: { id: order.id, changes: changes }
+            });
+            showToastAlert(nextStatus === 'preparing' ? '조리 시작' : '조리 완료', `주문 #${order.orderNo || '-'} 상태를 변경했습니다.`);
+        }
+
+        function addTestOrder() {
+            if (!window.FactoryStore || typeof window.FactoryStore.dispatch !== 'function') return;
+            const now = new Date();
+            const isBibim = Math.random() >= 0.5;
+            const product = isBibim
+                ? { productId: '20002', productName: '감칠맛 간장 비빔면', menuType: 'bibim', price: 4200 }
+                : { productId: '20001', productName: '정통 가쓰오 우동', menuType: 'udon', price: 3800 };
+            const currentUser = window.FactoryStore.getState().currentUser || {};
+            const orderNo = `T${String(now.getTime()).slice(-5)}`;
+            const item = {
+                id: `manager_test_${now.getTime()}`,
+                orderNo: orderNo,
+                userId: currentUser.id || 'manager-test',
+                userName: currentUser.name || '관리자 테스트',
+                workId: 2,
+                productId: product.productId,
+                productCode: product.productId,
+                productName: product.productName,
+                menuType: product.menuType,
+                brandName: 'Uton',
+                orderType: 'dine_in',
+                fulfillmentType: 'pickup',
+                qty: 1,
+                unitPrice: product.price,
+                price: product.price,
+                status: 'pending',
+                kitchenStatus: 'queued',
+                orderedAt: now.toISOString(),
+                orderDate: now.toISOString().slice(0, 10),
+                orderTime: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+            };
+            window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: item });
+            showToastAlert('테스트 주문 추가', `주문 #${orderNo}이 실제 KDS 대기열에 추가되었습니다.`);
+        }
+
+        // ── 장비 제어 & 긴급 정지 ──
+        function toggleDevice(name, state) {
+            showToastAlert('⚙️ [장비 상태 변경]', `${name} 장비가 ${state ? '가동' : '중지'} 되었습니다.`);
+        }
+
+        function triggerEmergencyStop() {
+            if (confirm('🚨 모든 스마트 주방 설비를 긴급 비상정지 하시겠습니까?')) {
+                document.querySelectorAll('.toggle-switch input').forEach(input => input.checked = false);
+                playBeepSound();
+                showToastAlert('⛔ [긴급 비상정지 발동]', '모든 주방 설비 가동이 즉시 중지되었습니다.');
+            }
+        }
+
+        // ── 토스트 알림 ──
+        function showToastAlert(title, message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'alert-toast';
+            toast.innerHTML = `
+                <i class="bi bi-info-circle-fill"></i>
+                <div class="toast-content">
+                    <h4>${title}</h4>
+                    <p>${message}</p>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 4000);
+        }
+
+        // ── Chart.js 초기화 ──
+        function initCharts() {
+            if (!window.Chart) return;
+            // 시간대별 주문 추이
+            const ctx1 = document.getElementById('orderTrendChart').getContext('2d');
+            orderTrendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '주문 수량',
+                        data: [],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(148, 163, 184, 0.22)' }, ticks: { color: '#64748b' } },
+                        y: { grid: { color: 'rgba(148, 163, 184, 0.22)' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+
+            // 메뉴별 판매 비중
+            const ctx2 = document.getElementById('menuPieChart').getContext('2d');
+            menuPieChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['가쓰오 우동', '간장 비빔면'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#3b82f6', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#64748b' } } }
+                }
+            });
+        }
+
+        function refreshOrderAnalytics(orders) {
+            const source = Array.isArray(orders) ? orders : [];
+            const completedOrders = source.filter(order => getKdsOrderStatus(order) === 'completed');
+            const completedKpi = document.getElementById('kpi-completed-orders');
+            if (completedKpi) completedKpi.textContent = `${completedOrders.length} 건`;
+
+            const completionSeconds = completedOrders
+                .map(order => {
+                    const startedAt = Date.parse(order.preparingAt || order.orderedAt || '');
+                    const finishedAt = Date.parse(order.readyAt || order.completedAt || '');
+                    return Number.isFinite(startedAt) && Number.isFinite(finishedAt) && finishedAt >= startedAt
+                        ? Math.floor((finishedAt - startedAt) / 1000)
+                        : null;
+                })
+                .filter(value => value !== null);
+            const averageSeconds = completionSeconds.length
+                ? Math.floor(completionSeconds.reduce((sum, value) => sum + value, 0) / completionSeconds.length)
+                : 0;
+            const avgKpi = document.getElementById('kpi-avg-time');
+            if (avgKpi) {
+                avgKpi.textContent = completionSeconds.length
+                    ? `${Math.floor(averageSeconds / 60)}분 ${String(averageSeconds % 60).padStart(2, '0')}초`
+                    : '-';
+            }
+
+            if (orderTrendChart) {
+                const hourCounts = new Map();
+                source.forEach(order => {
+                    const timestamp = Date.parse(order.orderedAt || order.createdAt || '');
+                    const hour = Number.isFinite(timestamp)
+                        ? `${String(new Date(timestamp).getHours()).padStart(2, '0')}시`
+                        : '시간 미상';
+                    hourCounts.set(hour, (hourCounts.get(hour) || 0) + Math.max(1, Number(order.qty) || 1));
+                });
+                orderTrendChart.data.labels = Array.from(hourCounts.keys());
+                orderTrendChart.data.datasets[0].data = Array.from(hourCounts.values());
+                orderTrendChart.update('none');
+            }
+
+            if (menuPieChart) {
+                const udonQty = source
+                    .filter(order => String(order.menuType || '').toLowerCase() !== 'bibim'
+                        && !String(order.productName || '').includes('비빔면'))
+                    .reduce((sum, order) => sum + Math.max(1, Number(order.qty) || 1), 0);
+                const bibimQty = source
+                    .filter(order => String(order.menuType || '').toLowerCase() === 'bibim'
+                        || String(order.productName || '').includes('비빔면'))
+                    .reduce((sum, order) => sum + Math.max(1, Number(order.qty) || 1), 0);
+                menuPieChart.data.datasets[0].data = [udonQty, bibimQty];
+                menuPieChart.update('none');
+            }
+        }
+
+        function listenStorageEvents() {
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'uton_help_request' && e.newValue) {
+                    try {
+                        const req = JSON.parse(e.newValue);
+                        upsertHelpRequest(req, { alert: req.status === 'requested' });
+                    } catch (err) {}
+                }
+                if (!e.key || e.key === 'app_reservations_db') {
+                    renderHandwashCards();
+                }
+            });
+        }
+
+        function syncData() {
+            if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+            }
+            loadHelpRequestFromStorage();
+            loadKDSOrders();
+            renderHandwashCards();
+        }
+    </script>
+</body>
+</html>

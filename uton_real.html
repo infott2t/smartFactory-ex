@@ -545,6 +545,67 @@
             padding: 8px;
             border-radius: 6px;
         }
+        .lounge-rule-menu {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .lounge-rule-menu .btn-test-order {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 46px;
+            margin: 0;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+        }
+        .lounge-rule-menu .manager-only {
+            display: none;
+        }
+        .lounge-rule-menu.is-manager .manager-only {
+            display: flex;
+        }
+        .lounge-rule-map {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed rgba(245, 158, 11, 0.35);
+        }
+        .lounge-rule-map img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: #1a1a35;
+            border: 1px solid #444;
+        }
+        .lounge-rule-close {
+            min-height: 46px;
+            margin-top: 20px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
+        .lounge-help-select {
+            width: 100%;
+            margin: 14px 0;
+            padding: 11px 12px;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            background: #24242b;
+            color: #f3f4f6;
+            font-size: 0.95rem;
+        }
+        @media (max-width: 520px) {
+            .lounge-rule-menu {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -657,6 +718,7 @@
                 <div class="lounge-timer-display">
                     <div style="margin-bottom: 4px;">🕒 현재 시간: <span id="current-time-display">00:00:00</span></div>
                     <div style="margin-bottom: 4px;">⏱️ 남은 근무시간: <span id="work-timer-display" style="color: var(--accent-blue); font-weight: bold;">01:30:00</span></div>
+                    <div style="margin-bottom: 4px;">☕ 휴식시간: <span id="lounge-rest-time-counter" style="color: var(--accent-green); font-weight: bold;">00:00</span></div>
                     <div style="margin-bottom: 8px;">👥 근무 인원: <span style="color: var(--accent-green); font-weight: bold;">2명 (본인 포함)</span> <span style="font-size: 0.8rem; color: var(--text-muted);">(1명일 시 휴식 불가)</span></div>
                     <div style="display: flex; gap: 8px; margin-top: 10px;">
                         <button type="button" class="btn-test-order" style="background-color: #4b5563; flex: 1; border: 1px solid #6b7280; font-size: 0.9rem; margin-top: 0;" onclick="showLoungeLogs()">📋 나의 기록 보기</button>
@@ -665,7 +727,7 @@
                 </div>
 
                 <!-- 1. 휴식 기능 섹션 -->
-                <div class="lounge-section text-center" style="text-align: center; margin-top: 15px;">
+                <div class="lounge-section text-center" style="display: none; text-align: center; margin-top: 15px;">
                     <h3>휴식 및 휴게소 입장</h3>
                     <div id="rest-timer-area" class="rest-timer-display" style="display: none; font-size: 2rem; color: var(--accent-green); margin: 15px 0;">
                         🕒 휴식 시간: <span id="rest-time-counter">00:00</span>
@@ -676,18 +738,18 @@
                     </div>
                 </div>
 
-                <div class="early-leave-section">
+                <div class="early-leave-section" style="display: none;">
                     <h3>⏳ 조퇴 신청</h3>
                     <p style="color: var(--text-muted); font-size: 0.88rem; margin: 6px 0 12px;">신청 후 5분이 지나면 자동으로 조퇴 처리됩니다.</p>
                     <button type="button" class="btn-stop" id="btn-early-leave" style="width: 100%; background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="openEarlyLeaveModal()">조퇴하기 (5분 대기)</button>
                 </div>
 
                 <!-- 2. 실내 지도 섹션 -->
-                <div class="lounge-section" style="margin-top: 20px;">
+                <div class="lounge-section" style="display: none; margin-top: 20px;">
                     <h3>🗺️ 매장 실내 지도</h3>
                     <button type="button" class="btn-test-order" style="background-color: var(--accent-blue);" onclick="toggleLoungeMap()">🗺️ 실내 지도 보기/닫기</button>
                     
-                    <div id="lounge-map-area" style="display: none; margin-top: 15px;">
+                    <div id="lounge-map-area-legacy" style="display: none; margin-top: 15px;">
                         <!-- 3개의 구역(Zone)으로 나뉜 지도 SVG -->
                         <img src="./images/work-map-uton.svg" alt="Uton Shop 실내 지도" style="display:block; width:100%; height:auto; border-radius:8px; background:#1a1a35; border: 1px solid #444;">
                         <svg viewBox="0 0 400 240" style="display:none; width:100%; border-radius:8px; background:#1c1917; border: 1px solid #444;">
@@ -811,7 +873,7 @@
         <div class="lounge-modal" style="max-width: 400px;">
             <section id="early-leave-request-content">
                 <h3 style="color: white; margin-top: 0;">조퇴 확인</h3>
-                <p style="color: var(--text-muted); line-height: 1.6;">조퇴하시겠어요? 5분이 지나면 자동조퇴가 됩니다.</p>
+                <p style="color: var(--text-muted); line-height: 1.6;">조퇴하시겠습니까? 5분을 기다려주시면 조퇴가 완료됩니다.</p>
                 <div class="early-leave-countdown" id="early-leave-countdown">05:00</div>
                 <p style="color: var(--text-muted); font-size: 0.82rem;">대기 중에도 계속 근무를 선택할 수 있습니다.</p>
                 <div class="btn-group" style="gap: 9px;">
@@ -855,17 +917,36 @@
 
     <!-- 📜 라운지 룰 모달 -->
     <div id="lounge-rule-overlay" class="lounge-modal-overlay" style="display: none;">
-        <div class="lounge-modal" style="max-width: 400px; border: 1px solid var(--accent-orange);">
-            <h3 style="color: white; margin-top: 0; font-size: 1.25rem;">📜 라운지 쉼터 운영 룰</h3>
-            <div style="background: #24242b; padding: 20px; border-radius: 8px; margin: 15px 0; text-align: left; border: 1px solid #444; color: #e5e7eb; line-height: 1.6; font-size: 0.95rem; word-break: keep-all;">
-                <div style="margin-bottom: 10px;">※우동, 비빔면은 약 4분이 걸림니다. 그렇기 때문에 10분에 2건의 주문이 최대로 받아짐니다. 참조하세요. 😀👍</div>
-                <div style="border-top: 1px dashed #444; padding-top: 10px; margin-top: 10px;">
-                    ※처음 일하시는 분들은 말해주세요. 관련해서 5분정도 교육을 통해 만드는 법을 
-                    <button type="button" onclick="requestEducation()" style="display: inline-block; width: auto; padding: 4px 10px; font-size: 0.85rem; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 6px; margin: 0 0 0 5px; box-shadow: none; vertical-align: middle;">얄려드림니다.</button>
-                </div>
+        <div class="lounge-modal" style="max-width: 440px; border: 1px solid var(--accent-orange);">
+            <h3 style="color: white; margin-top: 0; font-size: 1.25rem;">📜 라운지 룰 메뉴</h3>
+            <p style="color: var(--text-muted); margin: 0; line-height: 1.55;">필요한 항목을 선택해 다음 단계에서 진행해 주세요.</p>
+            <div id="lounge-rule-menu" class="lounge-rule-menu">
+                <button type="button" id="btn-request-rest-rule" class="btn-test-order" onclick="requestRestFromRule()">휴식 시작</button>
+                <button type="button" id="btn-finish-rest-rule" class="btn-test-order" onclick="finishRestFromRule()" style="display: none;">업무 복귀</button>
+                <button type="button" id="btn-manager-console" class="btn-test-order manager-only" onclick="openManagerConsole()">관리자 콘솔</button>
+                <button type="button" class="btn-test-order" onclick="openHelpRequestModal()">도움 요청</button>
+                <button type="button" id="btn-early-leave-rule" class="btn-test-order" onclick="openEarlyLeaveFromRule()">조퇴 신청</button>
+                <button type="button" class="btn-test-order" onclick="toggleLoungeMap()">매장 실내지도</button>
             </div>
-            <div class="btn-group">
-                <button type="button" class="btn-next" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); width: 100%;" onclick="closeLoungeRule()">확인</button>
+            <div id="lounge-map-area" class="lounge-rule-map" style="display: none;">
+                <img src="./images/work-map-uton.svg" alt="Uton Shop 실내 지도">
+            </div>
+            <button type="button" class="btn-test-order lounge-rule-close" onclick="closeLoungeRule()">닫기</button>
+        </div>
+    </div>
+
+    <div id="lounge-help-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 400px;">
+            <h3 style="color: white; margin-top: 0;">도움 요청</h3>
+            <p style="color: var(--text-muted); line-height: 1.55;">요청 사유를 선택하면 관리자에게 전달됩니다.</p>
+            <select id="lounge-help-reason" class="lounge-help-select" aria-label="도움 요청 사유">
+                <option value="업무 지원이 필요합니다.">업무 지원</option>
+                <option value="조리 방법 안내가 필요합니다.">조리 방법 안내</option>
+                <option value="긴급 확인이 필요합니다.">긴급 확인</option>
+            </select>
+            <div class="btn-group" style="gap: 9px;">
+                <button type="button" class="btn-next" onclick="submitHelpRequest()">요청 보내기</button>
+                <button type="button" class="btn-stop" style="background-color: #6b7280;" onclick="closeHelpRequestModal()">취소</button>
             </div>
         </div>
     </div>
@@ -916,6 +997,42 @@
             } catch (error) {
                 return null;
             }
+        }
+
+        function isManagerUser(user) {
+            if (!user) return false;
+            const roleValues = [user.role, user.roleName, user.grade, user.level]
+                .filter(Boolean)
+                .map(value => String(value).trim().toUpperCase());
+            return roleValues.includes('ROLE_MANAGER')
+                || roleValues.includes('MANAGER')
+                || roleValues.includes('매니저')
+                || roleValues.includes('관리자');
+        }
+
+        function applyLoungeManagerVisibility() {
+            const menu = document.getElementById('lounge-rule-menu');
+            if (!menu) return;
+            menu.classList.toggle('is-manager', isManagerUser(getCurrentSessionUser()));
+        }
+
+        function syncLoungeRestButtons() {
+            const requestButton = document.getElementById('btn-request-rest-rule');
+            const finishButton = document.getElementById('btn-finish-rest-rule');
+            if (requestButton) requestButton.style.display = isResting ? 'none' : 'flex';
+            if (finishButton) finishButton.style.display = isResting ? 'flex' : 'none';
+            updateRestTimerDisplay(restTimeSeconds);
+        }
+
+        function updateRestTimerDisplay(seconds) {
+            const value = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(value / 60).toString().padStart(2, '0');
+            const restSeconds = (value % 60).toString().padStart(2, '0');
+            const text = `${minutes}:${restSeconds}`;
+            const legacyCounter = document.getElementById('rest-time-counter');
+            const loungeCounter = document.getElementById('lounge-rest-time-counter');
+            if (legacyCounter) legacyCounter.innerText = text;
+            if (loungeCounter) loungeCounter.innerText = text;
         }
 
         function belongsToCurrentUser(reservation) {
@@ -1367,19 +1484,32 @@
         }
 
         function updateEarlyLeaveButton() {
-            const button = document.getElementById('btn-early-leave');
-            if (!button) return;
+            const buttons = [
+                document.getElementById('btn-early-leave'),
+                document.getElementById('btn-early-leave-rule')
+            ].filter(Boolean);
+            if (!buttons.length) return;
             if (earlyLeaveCompleted) {
-                button.disabled = true;
-                button.textContent = '조퇴 처리 완료';
-                button.style.opacity = '0.55';
+                buttons.forEach(button => {
+                    button.disabled = true;
+                    button.textContent = '조퇴 처리 완료';
+                    button.style.opacity = '0.55';
+                });
             } else if (activeUtonReservation && activeUtonReservation.workStatus === 'early_leave_waiting') {
-                button.textContent = '조퇴 대기 중';
+                buttons.forEach(button => {
+                    button.disabled = false;
+                    button.textContent = '조퇴 대기 중';
+                    button.style.opacity = '1';
+                });
             }
         }
 
         function openEarlyLeaveModal() {
-            if (!activeUtonReservation) return;
+            refreshActiveUtonReservation();
+            if (!activeUtonReservation) {
+                alert('근무 시작 후 조퇴 신청이 가능합니다.');
+                return;
+            }
             const overlay = document.getElementById('early-leave-overlay');
             if (earlyLeaveCompleted) {
                 showEarlyLeaveCompleteView();
@@ -1418,16 +1548,24 @@
                 earlyLeaveAutoAt: null
             });
             document.getElementById('early-leave-overlay').style.display = 'none';
-            const button = document.getElementById('btn-early-leave');
-            if (button) button.textContent = '조퇴하기 (5분 대기)';
+            [
+                document.getElementById('btn-early-leave'),
+                document.getElementById('btn-early-leave-rule')
+            ].filter(Boolean).forEach(button => {
+                button.disabled = false;
+                button.textContent = button.id === 'btn-early-leave-rule' ? '조퇴 신청' : '조퇴하기 (5분 대기)';
+                button.style.opacity = '1';
+            });
             addLoungeLog('조퇴 신청을 취소하고 근무를 계속합니다.');
         }
 
         function finalizeActiveRestForEarlyLeave() {
             if (!isResting) return;
             clearInterval(restInterval);
-            totalRestSeconds += restTimeSeconds;
+            const closedRestSeconds = restTimeSeconds;
+            totalRestSeconds += closedRestSeconds;
             isResting = false;
+            restTimeSeconds = 0;
             try { sessionStorage.setItem(`${loungeStorageKey}_seconds`, String(totalRestSeconds)); } catch (e) {}
             const restArea = document.getElementById('rest-timer-area');
             const requestButton = document.getElementById('btn-request-rest');
@@ -1435,7 +1573,9 @@
             if (restArea) restArea.style.display = 'none';
             if (requestButton) requestButton.style.display = 'block';
             if (finishButton) finishButton.style.display = 'none';
-            addLoungeLog(`조퇴 정산을 위해 진행 중인 휴식을 ${formatEarlyLeaveDuration(restTimeSeconds)}으로 마감했습니다.`);
+            updateRestTimerDisplay(restTimeSeconds);
+            syncLoungeRestButtons();
+            addLoungeLog(`조퇴 정산을 위해 진행 중인 휴식을 ${formatEarlyLeaveDuration(closedRestSeconds)}으로 마감했습니다.`);
         }
 
         function getEarlyLeaveSummary() {
@@ -1484,7 +1624,7 @@
             const historyItem = {
                 id: historyId,
                 workId: UTON_WORK_ID,
-                job: 'Uton 우동만들기',
+                job: '우동만들기',
                 date: summary.checkoutAt.toISOString().slice(0, 10),
                 time: `${formatEarlyLeaveClock(summary.checkInAt)} ~ ${formatEarlyLeaveClock(summary.checkoutAt)}`,
                 checkInTime: formatEarlyLeaveClock(summary.checkInAt),
@@ -1550,17 +1690,16 @@
             closeExitQR();
             isResting = true;
             restTimeSeconds = 0;
-            document.getElementById('rest-time-counter').innerText = "00:00";
+            updateRestTimerDisplay(restTimeSeconds);
             document.getElementById('rest-timer-area').style.display = 'block';
             document.getElementById('btn-request-rest').style.display = 'none';
             document.getElementById('btn-finish-rest').style.display = 'block';
+            syncLoungeRestButtons();
 
             // 휴식 타이머 시작 (+1초)
             restInterval = setInterval(() => {
                 restTimeSeconds++;
-                const m = Math.floor(restTimeSeconds / 60).toString().padStart(2, '0');
-                const s = (restTimeSeconds % 60).toString().padStart(2, '0');
-                document.getElementById('rest-time-counter').innerText = `${m}:${s}`;
+                updateRestTimerDisplay(restTimeSeconds);
             }, 1000);
 
             // 📋 휴식 시작 로그 등록
@@ -1586,9 +1725,10 @@
             closeEntryQR();
             isResting = false;
             clearInterval(restInterval);
+            const finishedRestSeconds = restTimeSeconds;
             
             // 📋 누적 휴식시간 합산 및 세션 저장
-            totalRestSeconds += restTimeSeconds;
+            totalRestSeconds += finishedRestSeconds;
             try {
                 sessionStorage.setItem(`${loungeStorageKey}_seconds`, totalRestSeconds.toString());
             } catch(e) {}
@@ -1596,6 +1736,9 @@
             document.getElementById('rest-timer-area').style.display = 'none';
             document.getElementById('btn-request-rest').style.display = 'block';
             document.getElementById('btn-finish-rest').style.display = 'none';
+            restTimeSeconds = 0;
+            updateRestTimerDisplay(restTimeSeconds);
+            syncLoungeRestButtons();
 
             // 📋 휴식 종료 및 누적 시간 로그 등록
             addLoungeLog("휴식을 마쳤습니다.");
@@ -1604,15 +1747,20 @@
             const accSec = totalRestSeconds % 60;
             addLoungeLog(`누적 휴식시간: ${accMin}분 ${accSec}초`);
             
-            alert(`입구 QR 스캔이 완료되었습니다! 총 휴식 시간: ${Math.floor(restTimeSeconds / 60)}분 ${restTimeSeconds % 60}초. 매장으로 입장하여 업무에 복귀합니다!`);
+            alert(`입구 QR 스캔이 완료되었습니다! 총 휴식 시간: ${Math.floor(finishedRestSeconds / 60)}분 ${finishedRestSeconds % 60}초. 매장으로 입장하여 업무에 복귀합니다!`);
         }
 
         function toggleLoungeMap() {
             const mapArea = document.getElementById('lounge-map-area');
+            if (!mapArea) return;
             mapArea.style.display = mapArea.style.display === 'none' ? 'block' : 'none';
         }
 
         function showLoungeRule() {
+            applyLoungeManagerVisibility();
+            syncLoungeRestButtons();
+            const mapArea = document.getElementById('lounge-map-area');
+            if (mapArea) mapArea.style.display = 'none';
             document.getElementById('lounge-rule-overlay').style.display = 'flex';
         }
 
@@ -1620,10 +1768,64 @@
             document.getElementById('lounge-rule-overlay').style.display = 'none';
         }
 
-        function requestEducation() {
-            if (confirm("정말로 교육이 필요하나요?")) {
-                alert("관리자에게 연락을 합니다. 곧 도착하니, 기다려주세요.");
+        function requestRestFromRule() {
+            closeLoungeRule();
+            requestRest();
+        }
+
+        function finishRestFromRule() {
+            closeLoungeRule();
+            finishRest();
+        }
+
+        function openEarlyLeaveFromRule() {
+            closeLoungeRule();
+            openEarlyLeaveModal();
+        }
+
+        function openManagerConsole() {
+            if (!isManagerUser(getCurrentSessionUser())) {
+                alert('매니저 권한이 필요합니다.');
+                return;
             }
+            window.location.href = './umanager.html';
+        }
+
+        function openHelpRequestModal() {
+            closeLoungeRule();
+            document.getElementById('lounge-help-overlay').style.display = 'flex';
+        }
+
+        function closeHelpRequestModal() {
+            document.getElementById('lounge-help-overlay').style.display = 'none';
+        }
+
+        function submitHelpRequest() {
+            const user = getCurrentSessionUser() || {};
+            const reasonElement = document.getElementById('lounge-help-reason');
+            const reason = reasonElement ? reasonElement.value : '업무 지원이 필요합니다.';
+            const request = {
+                status: 'requested',
+                requestedAt: new Date().toISOString(),
+                userId: user.id || user.userId || user.email || 'unknown',
+                userName: user.name || user.email || '사용자',
+                workId: UTON_WORK_ID,
+                reason: reason,
+                sourcePage: 'uton_real.html',
+                arrivalCountdown: 10
+            };
+
+            localStorage.setItem('uton_help_request', JSON.stringify(request));
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog(`도움 요청을 보냈습니다: ${reason}`);
+            }
+            addLoungeLog(`도움 요청을 보냈습니다. 사유: ${reason}`);
+            closeHelpRequestModal();
+            alert('도움 요청이 관리자에게 전달되었습니다.');
+        }
+
+        function requestEducation() {
+            openHelpRequestModal();
         }
 
         // 띵~ 사운드 신디사이저 (Web Audio API)
@@ -1735,7 +1937,7 @@
                 orders = window.FactoryStore.getShopOrders({ workId: UTON_WORK_ID });
             } else {
                 const state = window.FactoryStore.getState();
-                orders = (state.shopHistory || []).filter(isUtonKitchenOrder);
+                orders = (state.utonShopHistory || []).filter(isUtonKitchenOrder);
             }
 
             return orders
@@ -2017,8 +2219,11 @@
 
         function receiveNewOrder() {
             if (!window.FactoryStore) return;
+            const existingUtonOrders = typeof window.FactoryStore.getShopOrders === 'function'
+                ? window.FactoryStore.getShopOrders({ workId: UTON_WORK_ID })
+                : (window.FactoryStore.getState().utonShopHistory || []);
             const usedNumbers = new Set(
-                (window.FactoryStore.getState().shopHistory || [])
+                existingUtonOrders
                     .map(order => String(order.orderNo || ''))
             );
             let orderNo = null;
@@ -2393,6 +2598,7 @@
             return `${m}:${s}`;
         }
 
+        applyLoungeManagerVisibility();
         initDashboard();
         updateUI();
 

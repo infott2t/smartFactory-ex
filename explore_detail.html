@@ -591,7 +591,7 @@
 <body>
     <div class="header-wrap">
         <div class="header menu-bar mypage">
-            <div class="chevron" onclick="window.history.back();" style="cursor: pointer;">
+            <div class="chevron" onclick="window.location.href='./explore2.html?tab=history';" style="cursor: pointer;">
                 <i class="bi bi-chevron-left back"></i>
             </div>
             <div class="title"><span>근로 이력 상세</span></div>
@@ -657,8 +657,8 @@
                     <td id="val-bonus" class="value">0</td>
                 </tr>
                 <tr>
-                    <td id="label-help" class="label">도움을 받은 횟수</td>
-                    <td id="val-help" class="value">2회 (-1,000)</td>
+                    <td id="label-work-metric" class="label">작업 지표</td>
+                    <td id="val-work-metric" class="value">-</td>
                 </tr>
                 <tr>
                     <td class="label">교대 차감</td>
@@ -761,11 +761,13 @@
     </div>
 
     <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/store.js" type="text/javascript"></script>
     <script>
         $(document).ready(function () {
             // URL 파라미터 id 파싱
             const urlParams = new URLSearchParams(window.location.search);
-            const historyId = parseInt(urlParams.get('id'), 10);
+            const historyId = urlParams.get('id');
+            const hasHistoryId = !!historyId && historyId !== 'undefined' && historyId !== 'null';
 
             // 유저 정보 로드
             function getCurrentUser() {
@@ -791,11 +793,62 @@
                         }
                     }
                 } catch (e) { }
-                return []; // 가짜 데이터 대신 빈 배열 반환
+                if (window.MockData && typeof window.MockData.getMockWorkHistories === 'function') {
+                    return window.MockData.getMockWorkHistories({ id: userId, name: name });
+                }
+                return [];
             }
 
-            const historyList = getHistoryData(user.id, user.name);
-            let currentItem = historyList.find(h => h.id === historyId);
+            function normalizeHistoryDetailItem(item, itemIndex) {
+                const source = item || {};
+                const workId = window.MockData && typeof window.MockData.inferWorkId === 'function'
+                    ? window.MockData.inferWorkId(source)
+                    : (source.workId || (String(source.job || '').includes('우동') ? '2' : (String(source.job || '').includes('지갑') ? '3' : '1')));
+                const meta = window.MockData && typeof window.MockData.getWorkMeta === 'function'
+                    ? window.MockData.getWorkMeta(workId)
+                    : {};
+                const workTitle = window.MockData && typeof window.MockData.normalizeWorkTitle === 'function'
+                    ? window.MockData.normalizeWorkTitle(source.job || source.workName || meta.title, workId)
+                    : String(source.job || source.workName || meta.title || '김치만들기').replace(/^(Uton|AFood|Persa)\s+/i, '').trim();
+                const normalized = {
+                    ...source,
+                    workId: Number(workId),
+                    job: workTitle,
+                    workName: workTitle,
+                    brandName: source.brandName || meta.brandName || 'AFood',
+                    iconUrl: source.iconUrl || meta.iconUrl || './images/k-icon_150x150.png',
+                    time: source.time || '10:00 ~ 12:00',
+                    role: source.role || '일반',
+                    pay: Number(source.pay) || 0,
+                    status: source.status || '완료'
+                };
+                if (normalized.id === undefined || normalized.id === null || normalized.id === '') {
+                    normalized.id = `hist-${user.id || 'guest'}-${normalized.workId}-${String(normalized.date || itemIndex).replace(/\W/g, '')}-${itemIndex}`;
+                }
+                return normalized;
+            }
+
+            function getSelectedHistoryItem() {
+                try {
+                    const selected = sessionStorage.getItem('explore_selected_history');
+                    return selected ? JSON.parse(selected) : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            const historyList = getHistoryData(user.id, user.name).map((item, itemIndex) => normalizeHistoryDetailItem(item, itemIndex));
+            const selectedHistoryItem = getSelectedHistoryItem();
+            let currentItem = hasHistoryId
+                ? historyList.find(h => String(h.id) === String(historyId))
+                : null;
+
+            if (!currentItem && selectedHistoryItem) {
+                const normalizedSelected = normalizeHistoryDetailItem(selectedHistoryItem, historyList.length);
+                if (!hasHistoryId || String(normalizedSelected.id) === String(historyId)) {
+                    currentItem = normalizedSelected;
+                }
+            }
 
             if (!currentItem) {
                 // 방금 정산하여 로컬 스토리지에 수집된 가장 최근의 근로 상세 내역을 1순위로 로드합니다.
@@ -804,7 +857,7 @@
                     if (localHistory) {
                         const parsed = JSON.parse(localHistory);
                         if (Array.isArray(parsed) && parsed.length > 0) {
-                            currentItem = parsed[parsed.length - 1]; // 가장 마지막(최신) 근로 건
+                            currentItem = normalizeHistoryDetailItem(parsed[parsed.length - 1], parsed.length - 1); // 가장 마지막(최신) 근로 건
                         }
                     }
                 } catch (e) { }
@@ -838,21 +891,130 @@
                 return `${month}월 ${day}일 ${dayName}`;
             }
 
-            let brandLogo = './images/k-icon_150x150.png';
-            let brandName = 'AFood';
-            if (currentItem.job.includes('우동')) {
-                brandLogo = './images/Uton_150x150.png';
-                brandName = 'Uton';
-            } else if (currentItem.job.includes('지갑')) {
-                brandLogo = './images/fancy_150x150.png';
-                brandName = 'Persa';
+            function formatTimeRangeToMinute(timeText) {
+                return String(timeText || '').replace(/\b(\d{1,2}:\d{2})(?::\d{2})\b/g, '$1');
             }
+
+            function inferWorkId(item) {
+                if (item && item.workId !== undefined && item.workId !== null) return String(item.workId);
+                const jobText = String(item && (item.job || item.workName || item.title) || '');
+                if (jobText.includes('우동')) return '2';
+                if (jobText.includes('지갑')) return '3';
+                if (jobText.includes('불고기')) return '6';
+                if (jobText.includes('버거')) return '7';
+                return '1';
+            }
+
+            function getWorkDurationBadgeLabel(item) {
+                const workId = inferWorkId(item);
+                try {
+                    const detailMap = window.MockData && window.MockData.workDetailJSON
+                        ? JSON.parse(window.MockData.workDetailJSON)
+                        : {};
+                    const workTime = detailMap[workId] && detailMap[workId].workTime;
+                    if (workTime) return String(workTime).replace(/\s*작업\s*$/, '').trim();
+                } catch (e) {}
+
+                const slotInfo = window.MockData && typeof window.MockData.getWorkTimeSlots === 'function'
+                    ? window.MockData.getWorkTimeSlots(workId)
+                    : null;
+                const type = slotInfo && slotInfo.type ? slotInfo.type : '2h';
+                if (type === '1.5h') return '1시간 30분';
+                if (type === '2.5h') return '2시간 30분';
+                if (type === '3h') return '3시간';
+                if (type === '4h') return '4시간';
+                return '2시간';
+            }
+
+            function getWorkDetailConfig(workId) {
+                const numericWorkId = Number(workId);
+                const configs = {
+                    1: {
+                        type: 'kimchi',
+                        metricLabel: '도움을 받은 횟수',
+                        achievementTitle: '나의 김치 작업 성과',
+                        totalUnit: '회'
+                    },
+                    2: {
+                        type: 'uton',
+                        metricLabel: '완료 주문 수',
+                        achievementTitle: '나의 Uton 작업 성과',
+                        completedKeys: ['completedOrdersCount', 'completedItemsCount', 'completedCount'],
+                        completedLabel: '수령 완료 처리 주문',
+                        totalUnit: '건'
+                    },
+                    3: {
+                        type: 'wallet',
+                        metricLabel: '완료 제작 수',
+                        achievementTitle: '나의 Persa 작업 성과',
+                        completedKeys: ['completedItemsCount', 'completedCount'],
+                        completedLabel: '완료 제작',
+                        totalUnit: '건'
+                    },
+                    6: {
+                        type: 'meat',
+                        metricLabel: '완료 조리 수',
+                        achievementTitle: '나의 K-Meat 작업 성과',
+                        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
+                        completedLabel: '완료 조리',
+                        totalUnit: '건'
+                    },
+                    7: {
+                        type: 'burger',
+                        metricLabel: '완료 제조 수',
+                        achievementTitle: '나의 BurgerQueen 작업 성과',
+                        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
+                        completedLabel: '완료 제조',
+                        totalUnit: '건'
+                    }
+                };
+                return configs[numericWorkId] || {
+                    type: 'generic',
+                    metricLabel: '완료 작업 수',
+                    achievementTitle: '나의 작업 성과',
+                    completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
+                    completedLabel: '완료 작업',
+                    totalUnit: '건'
+                };
+            }
+
+            function getFirstNumericValue(source, keys, fallback = 0) {
+                for (const key of keys) {
+                    const value = Number(source && source[key]);
+                    if (Number.isFinite(value)) return value;
+                }
+                return fallback;
+            }
+
+            const currentWorkMeta = window.MockData && typeof window.MockData.getWorkMeta === 'function'
+                ? window.MockData.getWorkMeta(inferWorkId(currentItem))
+                : {};
+            const currentWorkId = Number(inferWorkId(currentItem));
+            const currentWorkConfig = getWorkDetailConfig(currentWorkId);
+            const isKimchiWork = currentWorkConfig.type === 'kimchi';
+            const ranks = [
+                { name: '최현일', stageCount: 340, hours: 60, bonus: 3000, grade: '매니저' },
+                { name: '김영희', stageCount: 220, hours: 42, bonus: 1000, grade: '헬퍼' },
+                { name: '박준호', stageCount: 195, hours: 38, bonus: 1000, grade: '헬퍼' },
+                { name: '최수아', stageCount: 154, hours: 28, bonus: 500, grade: '일반' },
+                { name: '이민수', stageCount: 120, hours: 22, bonus: 500, grade: '일반' },
+                { name: '정수연', stageCount: 98, hours: 18, bonus: 500, grade: '일반' },
+                { name: '강동원', stageCount: 75, hours: 14, bonus: 500, grade: '일반' },
+                { name: '윤아름', stageCount: 42, hours: 10, bonus: 500, grade: '일반' },
+                { name: '홍길동', stageCount: 28, hours: 7, bonus: 500, grade: '일반' },
+                { name: '김수민', stageCount: 15, hours: 5, bonus: 500, grade: '일반' }
+            ];
+            const currentUserNameForRank = currentItem.userName || currentItem.name || user.name;
+            const myRankItem = ranks.find(rank => rank.name === currentUserNameForRank);
+            let brandLogo = currentItem.iconUrl || currentWorkMeta.iconUrl || './images/k-icon_150x150.png';
+            let brandName = currentItem.brandName || currentWorkMeta.brandName || 'AFood';
 
             $('#job-icon').attr('src', brandLogo);
             $('#job-title').text(currentItem.job);
             $('#corp-name').text(brandName);
             $('#detail-date').text(formatDisplayDateWithDay(currentItem.date));
-            $('#detail-time').text(currentItem.time || '10:00 ~ 12:00');
+            $('#detail-time').text(formatTimeRangeToMinute(currentItem.time || '10:00 ~ 12:00'));
+            $('.detail-duration-badge').first().text(getWorkDurationBadgeLabel(currentItem));
 
             // --- 이 부분을 찾아서 아래 내용으로 교체하세요 ---
             let checkInTime = currentItem.checkInTime || "09:55:12";
@@ -944,53 +1106,65 @@
             let finalCalculatedPay = elapsedSecs * wageRatePerSecond;
 
 
-            // B) 500원 단위 도움 수령/제공 및 무료 5회 초과 차감 로직
-            const currentRole = currentItem.role || user.role || "일반";
-            let helpGiven = currentItem.helpGiven !== undefined ? currentItem.helpGiven : (isMockData ? 2 : 0);
-            let helpReceived = currentItem.helpReceived !== undefined ? currentItem.helpReceived : (isMockData ? 1 : 0);
-            let calculatedHelpDeduct = 0;
+            // B) workId별 정산 지표 표시
+            let kimchiShiftDeduct = 0;
+            let kimchiShiftBonus = 0;
 
-            if (currentRole === '헬퍼' || currentRole === '매니저' || currentRole === 'ROLE_HELPER' || currentRole === 'ROLE_MANAGER') {
-                $('#label-help').text('도움을 준 횟수');
-                let bonusAmount = helpGiven * 500;
-                $('#val-help').text(`${helpGiven}회 (+${bonusAmount.toLocaleString()}원)`);
-                finalCalculatedPay += bonusAmount;
-            } else {
-                $('#label-help').text('도움을 받은 횟수');
-                if (helpReceived <= 5) {
-                    $('#val-help').text(`${helpReceived}회 (무료체험 0원)`);
-                    calculatedHelpDeduct = 0;
+            if (isKimchiWork) {
+                const currentRole = currentItem.role || user.role || "일반";
+                const helpGiven = currentItem.helpGiven !== undefined ? Number(currentItem.helpGiven) || 0 : (isMockData ? 2 : 0);
+                const helpReceived = currentItem.helpReceived !== undefined ? Number(currentItem.helpReceived) || 0 : (isMockData ? 1 : 0);
+                let calculatedHelpDeduct = 0;
+
+                if (currentRole === '헬퍼' || currentRole === '매니저' || currentRole === 'ROLE_HELPER' || currentRole === 'ROLE_MANAGER') {
+                    $('#label-work-metric').text('도움을 준 횟수');
+                    const bonusAmount = helpGiven * 500;
+                    $('#val-work-metric').text(`${helpGiven}회 (+${bonusAmount.toLocaleString()}원)`);
+                    finalCalculatedPay += bonusAmount;
                 } else {
-                    let chargedCount = helpReceived - 5;
-                    calculatedHelpDeduct = chargedCount * 500;
-                    $('#val-help').text(`${helpReceived}회 (-${calculatedHelpDeduct.toLocaleString()}원)`);
+                    $('#label-work-metric').text(currentWorkConfig.metricLabel);
+                    if (helpReceived <= 5) {
+                        $('#val-work-metric').text(`${helpReceived}회 (무료체험 0원)`);
+                        calculatedHelpDeduct = 0;
+                    } else {
+                        const chargedCount = helpReceived - 5;
+                        calculatedHelpDeduct = chargedCount * 500;
+                        $('#val-work-metric').text(`${helpReceived}회 (-${calculatedHelpDeduct.toLocaleString()}원)`);
+                    }
+                    finalCalculatedPay -= calculatedHelpDeduct;
                 }
-                finalCalculatedPay -= calculatedHelpDeduct;
+
+                kimchiShiftDeduct = currentItem.shiftDeduct !== undefined ? Number(currentItem.shiftDeduct) || 0 : 0;
+                kimchiShiftBonus = currentItem.shiftBonus !== undefined ? Number(currentItem.shiftBonus) || 0 : 0;
+                if (currentItem.shiftDeduct === undefined && helpReceived > 0) {
+                    kimchiShiftDeduct = 2000;
+                }
+                finalCalculatedPay -= kimchiShiftDeduct;
+                finalCalculatedPay += kimchiShiftBonus;
+            } else {
+                const completedCount = getFirstNumericValue(currentItem, currentWorkConfig.completedKeys || ['completedCount']);
+                $('#label-work-metric').text(currentWorkConfig.metricLabel);
+                $('#val-work-metric').text(`${completedCount}${currentWorkConfig.totalUnit || '건'}`);
             }
 
-            // C) 2,000원 단위 교대 차감 내역 매핑
-            let shiftDeduct = currentItem.shiftDeduct !== undefined ? currentItem.shiftDeduct : 0;
-            let shiftBonus = currentItem.shiftBonus !== undefined ? currentItem.shiftBonus : 0;
-
-            if (currentItem.shiftDeduct === undefined && helpReceived > 0) {
-                shiftDeduct = 2000;
-            }
-
-            $('#val-deduct').text('-₩ ' + shiftDeduct.toLocaleString());
-            $('#val-shift-bonus').text('+₩ ' + shiftBonus.toLocaleString());
-
-            finalCalculatedPay -= shiftDeduct;
-            finalCalculatedPay += shiftBonus;
+            // C) 김치만들기 전용: 2,000원 단위 교대 차감/보너스 표시
+            $('#val-deduct').text('-₩ ' + kimchiShiftDeduct.toLocaleString());
+            $('#val-shift-bonus').text('+₩ ' + kimchiShiftBonus.toLocaleString());
+            $('#val-deduct').closest('tr').toggle(isKimchiWork);
+            $('#val-shift-bonus').closest('tr').toggle(isKimchiWork);
 
             // 순위 보너스 연동
-            let bonus = currentItem.bonus !== undefined ? currentItem.bonus : 0;
+            const storedBonus = Number(currentItem.bonus);
+            const rankBonus = myRankItem ? Number(myRankItem.bonus) || 0 : 0;
+            const hasStoredBonus = Number.isFinite(storedBonus) && storedBonus > 0;
+            let bonus = hasStoredBonus ? storedBonus : rankBonus;
             $('#val-bonus').text(bonus.toLocaleString() + ' 원');
             finalCalculatedPay += bonus;
 
             // D) 최종 급여 소수점 버림 및 화면 매핑
             finalCalculatedPay = Math.max(0, Math.floor(finalCalculatedPay));
             if (currentItem.pay !== undefined) {
-                finalCalculatedPay = currentItem.pay;
+                finalCalculatedPay = (Number(currentItem.pay) || 0) + (hasStoredBonus ? 0 : bonus);
             }
             $('#val-pay').text('+₩ ' + finalCalculatedPay.toLocaleString());
 
@@ -1016,34 +1190,56 @@
             $('#val-grade').text(roleLabelMap[roleKey] || currentItem.role || '일반');
 
 
-            // ✅ 지운 자리에 이 코드를 붙여넣어 주세요.
-            const counts = currentItem.stageCounts || { "1": 0, "2": 0, "3": 0, "4": 0, "5-1": 0, "5-2": 0, "6": 0 };
-            let flipCount = currentItem.flipCount !== undefined ? currentItem.flipCount : 0;
             let totalAchievementCount = 0;
             let achievementHtml = '';
 
-            const stageKeys = ["1", "2", "3", "4", "5-1", "5-2", "6"];
-            stageKeys.forEach(key => {
-                let count = counts[key];
-                if (count > 0) {
-                    achievementHtml += `
-            <div class="achievement-row">
-                <span class="achievement-label">Stage ${key}</span>
-                <span class="achievement-value">${count}회</span>
-            </div>
-        `;
-                    totalAchievementCount += count;
-                }
-            });
+            if (isKimchiWork) {
+                $('.achievement-title').text(currentWorkConfig.achievementTitle);
+                const counts = currentItem.stageCounts || { "1": 0, "2": 0, "3": 0, "4": 0, "5-1": 0, "5-2": 0, "6": 0 };
+                let flipCount = currentItem.flipCount !== undefined ? currentItem.flipCount : 0;
+                const stageKeys = ["1", "2", "3", "4", "5-1", "5-2", "6"];
+                stageKeys.forEach(key => {
+                    let count = Number(counts[key]) || 0;
+                    if (count > 0) {
+                        achievementHtml += `
+                            <div class="achievement-row">
+                                <span class="achievement-label">Stage ${key}</span>
+                                <span class="achievement-value">${count}회</span>
+                            </div>
+                        `;
+                        totalAchievementCount += count;
+                    }
+                });
 
-            if (flipCount > 0) {
-                achievementHtml += `
-        <div class="achievement-row">
-            <span class="achievement-label">뒤집기</span>
-            <span class="achievement-value">${flipCount}회</span>
-        </div>
-    `;
-                totalAchievementCount += flipCount;
+                if (flipCount > 0) {
+                    achievementHtml += `
+                        <div class="achievement-row">
+                            <span class="achievement-label">뒤집기</span>
+                            <span class="achievement-value">${flipCount}회</span>
+                        </div>
+                    `;
+                    totalAchievementCount += flipCount;
+                }
+            } else if (currentWorkId === 2) {
+                $('.achievement-title').text(currentWorkConfig.achievementTitle);
+                const completedOrdersCount = getFirstNumericValue(currentItem, currentWorkConfig.completedKeys);
+                achievementHtml = `
+                    <div class="achievement-row">
+                        <span class="achievement-label">${currentWorkConfig.completedLabel}</span>
+                        <span class="achievement-value">${completedOrdersCount}건</span>
+                    </div>
+                `;
+                totalAchievementCount = completedOrdersCount;
+            } else {
+                $('.achievement-title').text(currentWorkConfig.achievementTitle);
+                const completedCount = getFirstNumericValue(currentItem, currentWorkConfig.completedKeys);
+                achievementHtml = `
+                    <div class="achievement-row">
+                        <span class="achievement-label">${currentWorkConfig.completedLabel}</span>
+                        <span class="achievement-value">${completedCount}건</span>
+                    </div>
+                `;
+                totalAchievementCount = completedCount;
             }
 
             if (achievementHtml === '') {
@@ -1051,7 +1247,7 @@
             }
 
             $('#achievement-container').html(achievementHtml);
-            $('#val-achievement-total').text(totalAchievementCount + '회');
+            $('#val-achievement-total').text(totalAchievementCount + (currentWorkConfig.totalUnit || '회'));
 
             // 함께 일한 사람들 렌더링
             let coworkerHtml = '';
@@ -1096,19 +1292,9 @@
             $('#coworker-container').html(coworkerHtml);
 
             $('#rank-title').text(`${currentItem.job} 7월 순위`);
-
-            const ranks = [
-                { name: '최현일', stageCount: 340, hours: 60, bonus: 3000, grade: '매니저' },
-                { name: '김영희', stageCount: 220, hours: 42, bonus: 1000, grade: '헬퍼' },
-                { name: '박준호', stageCount: 195, hours: 38, bonus: 1000, grade: '헬퍼' },
-                { name: '최수아', stageCount: 154, hours: 28, bonus: 500, grade: '일반' },
-                { name: '이민수', stageCount: 120, hours: 22, bonus: 500, grade: '일반' },
-                { name: '정수연', stageCount: 98, hours: 18, bonus: 500, grade: '일반' },
-                { name: '강동원', stageCount: 75, hours: 14, bonus: 500, grade: '일반' },
-                { name: '윤아름', stageCount: 42, hours: 10, bonus: 500, grade: '일반' },
-                { name: '홍길동', stageCount: 28, hours: 7, bonus: 500, grade: '일반' },
-                { name: '김수민', stageCount: 15, hours: 5, bonus: 500, grade: '일반' }
-            ];
+            $('.ranking-footer').html(isKimchiWork
+                ? '* 1회 참가 시 500 크레딧 추가<br>* 크레딧은 출석체크 포인트와 같은 개념입니다.'
+                : `* ${currentWorkConfig.metricLabel} 기준으로 순위가 표시됩니다.<br>* 크레딧은 출석체크 포인트와 같은 개념입니다.`);
 
             let rankingHtml = '';
             ranks.forEach((r, idx) => {
@@ -1125,7 +1311,7 @@
                     <div class="ranking-item ${highlightClass}">
                         <div class="rank-num">${medalHtml}</div>
                         <div class="rank-name">${r.name}${isMe ? ' (나)' : ''}</div>
-                        <div class="rank-stats"><span>${r.stageCount}</span>회 <span>${r.hours}</span>시간</div>
+                        <div class="rank-stats"><span>${r.stageCount}</span>${currentWorkConfig.totalUnit || '회'} <span>${r.hours}</span>시간</div>
                         <div class="rank-bonus">시급 +${r.bonus.toLocaleString()}원 보너스</div>
                     </div>
                 `;

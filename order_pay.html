@@ -592,7 +592,9 @@
 
             let completedSpent = 0;
             if (window.FactoryStore && window.FactoryStore.getState) {
-                const shopHistory = window.FactoryStore.getState().shopHistory || [];
+                const shopHistory = typeof window.FactoryStore.getShopOrders === 'function'
+                    ? window.FactoryStore.getShopOrders()
+                    : window.FactoryStore.getState().shopHistory || [];
                 completedSpent = shopHistory.filter(item => item.status === 'completed')
                                             .reduce((sum, item) => sum + (item.price || 0), 0);
             }

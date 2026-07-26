@@ -637,8 +637,12 @@
         }
 
         function getCurrentUserShopHistory() {
-            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [] };
-            const shopHistory = Array.isArray(state.shopHistory) ? state.shopHistory : [];
+            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [], utonShopHistory: [] };
+            const shopHistory = window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function'
+                ? window.FactoryStore.getShopOrders()
+                : ([]
+                    .concat(Array.isArray(state.shopHistory) ? state.shopHistory : [])
+                    .concat(Array.isArray(state.utonShopHistory) ? state.utonShopHistory : []));
             const currentUserId = currentUser && currentUser.id !== undefined && currentUser.id !== null
                 ? String(currentUser.id)
                 : null;
@@ -655,7 +659,30 @@
                 if (currentUserId === null) return false;
 
                 return String(item.userId) === currentUserId;
-            });
+            }).sort((a, b) => getShopOrderSortTime(b) - getShopOrderSortTime(a));
+        }
+
+        function getShopOrderSortTime(item) {
+            const candidates = [
+                item.orderedAt,
+                item.createdAt,
+                item.updatedAt,
+                item.completedAt,
+                item.cancelledAt,
+                item.dateStr,
+                [item.orderDate, item.orderTime].filter(Boolean).join(' ')
+            ];
+
+            for (const value of candidates) {
+                const time = Date.parse(value);
+                if (Number.isFinite(time)) return time;
+            }
+
+            const orderNo = Number.parseInt(item.orderNo, 10);
+            if (Number.isFinite(orderNo)) return orderNo;
+
+            const id = Number.parseInt(item.id, 10);
+            return Number.isFinite(id) ? id : 0;
         }
 
         function renderEarnings() {
@@ -668,9 +695,14 @@
             const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
             const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
 
-            const shopHistory = getCurrentUserShopHistory();
-            const completedSpent = shopHistory.filter(item => item.status === 'completed')
-                                               .reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+            const settlementTransactions = (FactoryStore.getState().settlementTransactions || []).filter(item => {
+                if (!item || item.type !== 'shop_spend') return false;
+                if (item.userId === undefined || item.userId === null || String(item.userId).trim() === '') return true;
+                return String(item.userId) === String(userId);
+            });
+            const completedSpent = settlementTransactions.reduce((sum, item) => {
+                return sum + (Number(item.absoluteAmount) || Math.abs(Number(item.amount) || 0));
+            }, 0);
 
             const totalSum = initialAsset + baseSum + helperBase + helperBonus - completedSpent;
             $('#total-earnings-display').text(totalSum.toLocaleString());
@@ -1080,6 +1112,9 @@
                     ? item.kitchenStatus
                     : 'queued';
                 const priceValue = Number.isFinite(Number(item.price)) ? Number(item.price) : 0;
+                const amountHtml = item.shouldShowSpendAmount === false
+                    ? `<div style="font-size: 13px; font-weight: 800; color: var(--text-sub); white-space: nowrap;">${item.paymentDisplayLabel || '주문취소됨'}</div>`
+                    : `<div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">-₩ ${priceValue.toLocaleString()}</div>`;
                 const quantityValue = Math.max(1, Number.parseInt(item.qty, 10) || 1);
                 const orderNumber = item.orderNo !== undefined &&
                     item.orderNo !== null &&
@@ -1203,9 +1238,7 @@
                                 <div style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-top: 3px;">${pNameStr} (${qtyText})</div>
                             </div>
                         </div>
-                        <div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">
-                            -₩ ${priceValue.toLocaleString()}
-                        </div>
+                        ${amountHtml}
                     </div>
                     ${btnHtml}
                 </div>

@@ -248,9 +248,21 @@ document.getElementById("skip-wash-btn").click();
 assert(state.reservations[0].handWashSkipped === true, "손씻기 건너뛰기 상태가 저장되지 않았습니다.");
 document.getElementById("confirm-sanitizer-btn").click();
 document.getElementById("capture-hand-btn").click();
-assert(state.reservations[0].handPhotoStatus === "approved", "손 사진이 자동 승인되지 않았습니다.");
-assert(state.reservations[0].handPhotoVerifiedAt, "손 사진 승인 시각이 저장되지 않았습니다.");
+assert(state.reservations[0].handPhotoStatus === "reviewing", "손 사진이 관리자 승인 대기 상태로 저장되지 않았습니다.");
+assert(state.reservations[0].checkInSteps.handPhoto === false, "관리자 승인 전 손 사진 단계가 완료 처리되었습니다.");
 
+document.getElementById("enter-shop-btn").click();
+assert(location.href !== "uton_real.html", "관리자 승인 전 작업 화면으로 이동했습니다.");
+
+state.reservations[0] = {
+    ...state.reservations[0],
+    checkInSteps: { ...state.reservations[0].checkInSteps, handPhoto: true },
+    handPhotoStatus: "approved",
+    handPhotoVerifiedAt: new Date().toISOString(),
+    handPhotoVerificationMode: "manager_review"
+};
+context.window.sessionStorage.setItem("selected_reservation", JSON.stringify(state.reservations[0]));
+document.listeners.DOMContentLoaded();
 document.getElementById("enter-shop-btn").click();
 assert(state.reservations[0].preWorkStatus === "verified", "출근 전 인증 완료 상태가 저장되지 않았습니다.");
 assert(state.reservations[0].workStatus === "ready", "작업 준비 상태가 저장되지 않았습니다.");

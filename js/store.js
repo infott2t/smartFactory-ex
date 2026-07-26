@@ -738,7 +738,91 @@
             }
         }
 
+        const isCancelled = normalized.status === 'cancelled';
+        normalized.shouldShowSpendAmount = !isCancelled;
+        normalized.paymentDisplayLabel = isCancelled ? '주문취소됨' : '';
+
         return normalized;
+    }
+
+    function isUtonShopOrder(order) {
+        return String(inferShopOrderWorkId(order)) === '2';
+    }
+
+    function getShopOrderIdentity(order, index) {
+        if (order && order.id !== undefined && order.id !== null && String(order.id).trim() !== '') {
+            return `id:${order.id}`;
+        }
+        if (order && order.orderNo !== undefined && order.orderNo !== null && String(order.orderNo).trim() !== '') {
+            return `order:${order.orderNo}:${order.userId || ''}:${order.orderedAt || order.orderDate || ''}`;
+        }
+        return `index:${index}`;
+    }
+
+    function dedupeShopOrders(orders) {
+        const seen = new Set();
+        return (Array.isArray(orders) ? orders : []).reduce((result, order, index) => {
+            const normalized = normalizeShopOrder(order);
+            const identity = getShopOrderIdentity(normalized, index);
+            if (!seen.has(identity)) {
+                seen.add(identity);
+                result.push(normalized);
+            }
+            return result;
+        }, []);
+    }
+
+    function getAllShopOrders() {
+        return dedupeShopOrders([].concat(state.shopHistory || [], state.utonShopHistory || []));
+    }
+
+    function findShopOrderCollection(orderId) {
+        const collections = [state.utonShopHistory || [], state.shopHistory || []];
+        for (const collection of collections) {
+            const index = collection.findIndex(item => item && String(item.id) === String(orderId));
+            if (index > -1) return { collection, index };
+        }
+        return null;
+    }
+
+    function getShopSettlementId(order) {
+        const key = order && (order.id || order.orderNo || `${order.userId || 'guest'}-${order.productId || ''}-${order.completedAt || order.orderedAt || order.orderDate || ''}`);
+        return `shop-spend:${String(key)}`;
+    }
+
+    function ensureShopSettlementForOrder(order) {
+        if (!order || order.status !== 'completed') return null;
+        const price = Number(order.price) || 0;
+        if (price <= 0) return null;
+        if (!Array.isArray(state.settlementTransactions)) state.settlementTransactions = [];
+
+        const transactionId = order.settlementTransactionId || getShopSettlementId(order);
+        const existing = state.settlementTransactions.find(item => item && item.id === transactionId);
+        if (existing) {
+            order.settlementTransactionId = existing.id;
+            order.settlementDeductedAt = order.settlementDeductedAt || existing.createdAt;
+            return existing;
+        }
+
+        const createdAt = order.completedAt || new Date().toISOString();
+        const transaction = {
+            id: transactionId,
+            type: 'shop_spend',
+            userId: order.userId !== undefined && order.userId !== null ? String(order.userId) : null,
+            orderId: order.id !== undefined && order.id !== null ? String(order.id) : null,
+            orderNo: order.orderNo !== undefined && order.orderNo !== null ? String(order.orderNo) : null,
+            productId: order.productId || order.productCode || null,
+            productName: order.productName || '주문 상품',
+            amount: -price,
+            absoluteAmount: price,
+            createdAt: createdAt,
+            source: 'shop_order_receipt',
+            description: '쇼핑 주문 수령 정산 차감'
+        };
+        state.settlementTransactions.push(transaction);
+        order.settlementTransactionId = transaction.id;
+        order.settlementDeductedAt = createdAt;
+        return transaction;
     }
 
     let state = {
@@ -747,7 +831,9 @@
         userWorkHours: {}, // 신규 추가: { [`${userId}_${workId}`]: hours }
         reservations: [],
         history: [],
-        shopHistory: [],
+        shopHistory: [], // 김치 주문: kimp_shop_history
+        utonShopHistory: [], // 우동/비빔면 주문: uton_shop_history
+        settlementTransactions: [],
         isLike: [], // 신규 추가: [ { userId, productId, likedAt } ]
         experienceRemainingSeconds: 180,
         productionOrders: {},
@@ -787,7 +873,7 @@
         workDetails: 'MockData.workDetailJSON',
         workReservations: 'FactoryStore.state.reservations / app_reservations_db',
         workHistories: 'FactoryStore.state.history / mypage_history_{userId}',
-        shopOrders: 'FactoryStore.state.shopHistory / kimp_shop_history',
+        shopOrders: 'FactoryStore.state.shopHistory / kimp_shop_history + FactoryStore.state.utonShopHistory / uton_shop_history',
         products: 'MockData.storeProducts',
         productReviews: 'MockData.productReviews',
         userWorkExperiences: 'MockData.userWorkProgress / userWorkProgress',
@@ -843,7 +929,7 @@
             workDetails: getMockWorkDetails(),
             workReservations: cloneData((state.reservations || []).map(normalizeReservation)),
             workHistories: cloneData(state.history || []),
-            shopOrders: cloneData((state.shopHistory || []).map(normalizeShopOrder)),
+            shopOrders: cloneData(getAllShopOrders()),
             products: getMockProducts(),
             productReviews: getMockProductReviews(),
             userWorkExperiences: getMockUserWorkExperiences(),
@@ -980,11 +1066,41 @@
         }
 
         // 3.5 Shop History
+        // 김치와 Uton 매장 주문은 서로 다른 저장소를 사용합니다.
+        // 이전 버전에서 kimp_shop_history에 섞여 저장된 Uton 주문은 한 번만 uton_shop_history로 이전합니다.
+        let legacyKimpOrders = [];
+        let storedUtonOrders = [];
         try {
-            let parsed = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
-            state.shopHistory = Array.isArray(parsed) ? parsed.map(normalizeShopOrder) : [];
+            const parsed = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
+            legacyKimpOrders = Array.isArray(parsed) ? parsed.map(normalizeShopOrder) : [];
+        } catch(e) {}
+        try {
+            const parsed = JSON.parse(localStorage.getItem('uton_shop_history') || '[]');
+            storedUtonOrders = Array.isArray(parsed) ? parsed.map(normalizeShopOrder) : [];
+        } catch(e) {}
+
+        const migratedUtonOrders = legacyKimpOrders.filter(isUtonShopOrder);
+        state.shopHistory = dedupeShopOrders(legacyKimpOrders.filter(order => !isUtonShopOrder(order)));
+        state.utonShopHistory = dedupeShopOrders(storedUtonOrders.concat(migratedUtonOrders));
+
+        if (migratedUtonOrders.length > 0) {
+            localStorage.setItem('kimp_shop_history', JSON.stringify(state.shopHistory));
+            localStorage.setItem('uton_shop_history', JSON.stringify(state.utonShopHistory));
+        }
+
+        try {
+            const parsed = JSON.parse(localStorage.getItem('kimp_settlement_transactions') || '[]');
+            state.settlementTransactions = Array.isArray(parsed) ? parsed : [];
         } catch(e) {
-            state.shopHistory = [];
+            state.settlementTransactions = [];
+        }
+
+        const beforeSettlementCount = state.settlementTransactions.length;
+        getAllShopOrders().forEach(order => ensureShopSettlementForOrder(order));
+        if (state.settlementTransactions.length !== beforeSettlementCount) {
+            localStorage.setItem('kimp_settlement_transactions', JSON.stringify(state.settlementTransactions));
+            localStorage.setItem('kimp_shop_history', JSON.stringify(state.shopHistory));
+            localStorage.setItem('uton_shop_history', JSON.stringify(state.utonShopHistory));
         }
 
         // 4. Experience time
@@ -1267,6 +1383,12 @@
         if (shouldSave('shop_history')) {
             localStorage.setItem('kimp_shop_history', JSON.stringify(state.shopHistory));
         }
+        if (shouldSave('uton_shop_history')) {
+            localStorage.setItem('uton_shop_history', JSON.stringify(state.utonShopHistory));
+        }
+        if (shouldSave('settlements')) {
+            localStorage.setItem('kimp_settlement_transactions', JSON.stringify(state.settlementTransactions || []));
+        }
 
         // 4. Experience time
         if (shouldSave('experience_time')) {
@@ -1507,6 +1629,11 @@
                     : [],
                 history: Array.isArray(state.history) ? [...state.history] : [],
                 shopHistory: state.shopHistory ? [...state.shopHistory] : [],
+                utonShopHistory: state.utonShopHistory ? [...state.utonShopHistory] : [],
+                allShopHistory: getAllShopOrders(),
+                settlementTransactions: Array.isArray(state.settlementTransactions)
+                    ? JSON.parse(JSON.stringify(state.settlementTransactions))
+                    : [],
                 experienceRemainingSeconds: state.experienceRemainingSeconds,
                 productionOrders: state.productionOrders ? { ...state.productionOrders } : {},
                 packagingOrders: state.packagingOrders ? { ...state.packagingOrders } : {},
@@ -1632,7 +1759,7 @@
                             payload: {
                                 id: historyId,
                                 workId: current.workId,
-                                job: current.workName || (String(current.workId) === '2' ? 'Uton 우동만들기' : '김치만들기'),
+                                job: current.workName || (String(current.workId) === '2' ? '우동만들기' : '김치만들기'),
                                 date: current.date,
                                 time: '예약 시간 미출근',
                                 role: current.role || 'general',
@@ -1671,7 +1798,7 @@
                 return String(actual) === String(expected);
             };
 
-            const orders = (Array.isArray(state.shopHistory) ? state.shopHistory : [])
+            const orders = getAllShopOrders()
                 .map(normalizeShopOrder)
                 .filter(order => {
                     if (!order) return false;
@@ -1996,18 +2123,21 @@
                 case 'DECREMENT_SHIFT_TIME':
                     state.remainingSeconds = Math.max(0, state.remainingSeconds - 1);
                     break;
-                case 'ADD_SHOP_ORDER':
-                    state.shopHistory.unshift(normalizeShopOrder(action.payload));
+                case 'ADD_SHOP_ORDER': {
+                    const order = normalizeShopOrder(action.payload);
+                    const targetHistory = isUtonShopOrder(order)
+                        ? state.utonShopHistory
+                        : state.shopHistory;
+                    targetHistory.unshift(order);
                     break;
+                }
                 case 'UPDATE_SHOP_ORDER': {
                     const payload = action.payload || {};
                     const orderId = payload.id;
-                    const targetIndex = state.shopHistory.findIndex(item =>
-                        item && String(item.id) === String(orderId)
-                    );
-                    if (targetIndex > -1) {
-                        state.shopHistory[targetIndex] = normalizeShopOrder({
-                            ...state.shopHistory[targetIndex],
+                    const target = findShopOrderCollection(orderId);
+                    if (target) {
+                        target.collection[target.index] = normalizeShopOrder({
+                            ...target.collection[target.index],
                             ...(payload.changes || {}),
                             updatedAt: (payload.changes && payload.changes.updatedAt) || new Date().toISOString()
                         });
@@ -2016,28 +2146,40 @@
                 }
                 case 'CANCEL_SHOP_ORDER': {
                     const orderId = action.payload;
-                    const target = state.shopHistory.find(item => item.id === orderId);
+                    const found = findShopOrderCollection(orderId);
+                    const target = found ? found.collection[found.index] : null;
                     if (target) {
                         target.status = 'cancelled';
                         target.kitchenStatus = 'cancelled';
                         target.cancelledAt = target.cancelledAt || new Date().toISOString();
+                        target.shouldShowSpendAmount = false;
+                        target.paymentDisplayLabel = '주문취소됨';
                     }
                     break;
                 }
                 case 'COMPLETE_SHOP_ORDER': {
                     const orderId = action.payload;
-                    const target = state.shopHistory.find(item => item.id === orderId);
+                    const found = findShopOrderCollection(orderId);
+                    const target = found ? found.collection[found.index] : null;
                     if (target) {
                         target.status = 'completed';
                         target.kitchenStatus = 'received';
                         target.completedAt = target.completedAt || new Date().toISOString();
+                        ensureShopSettlementForOrder(target);
                     }
                     break;
                 }
-                case 'SET_SHOP_HISTORY':
-                    state.shopHistory = Array.isArray(action.payload)
+                case 'SET_SHOP_HISTORY': {
+                    const incomingOrders = Array.isArray(action.payload)
                         ? action.payload.map(normalizeShopOrder)
                         : [];
+                    const incomingUtonOrders = incomingOrders.filter(isUtonShopOrder);
+                    state.shopHistory = dedupeShopOrders(incomingOrders.filter(order => !isUtonShopOrder(order)));
+                    state.utonShopHistory = dedupeShopOrders((state.utonShopHistory || []).concat(incomingUtonOrders));
+                    break;
+                }
+                case 'SET_UTON_SHOP_HISTORY':
+                    state.utonShopHistory = dedupeShopOrders(action.payload);
                     break;
                 case 'TOGGLE_PRODUCT_LIKE': {
                     const { userId, productId } = action.payload;
@@ -2084,6 +2226,8 @@
                     state.packagingOrders = {};
                     state.workersProgress = {};
                     state.shopHistory = [];
+                    state.utonShopHistory = [];
+                    state.settlementTransactions = [];
                     state.isLike = [];
                     state.remainingSeconds = 7200;
                     state.clockHour = 15;
@@ -2118,7 +2262,8 @@
                         case 'CANCEL_SHOP_ORDER':
                         case 'COMPLETE_SHOP_ORDER':
                         case 'SET_SHOP_HISTORY':
-                            keysToSave = ['shop_history'];
+                        case 'SET_UTON_SHOP_HISTORY':
+                            keysToSave = ['shop_history', 'uton_shop_history', 'settlements'];
                             break;
                         case 'TOGGLE_PRODUCT_LIKE':
                             keysToSave = ['workers', 'isLike'];
@@ -2191,7 +2336,7 @@
     window.getPartitionedItem = function(key) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_help_request' || key === 'uton_shop_history' || key === 'kimp_settlement_transactions') {
                 return localStorage.getItem(key);
             }
             return localStorage.getItem(key + "_" + userId);
@@ -2202,6 +2347,12 @@
 
         if (key === 'kimp_shop_history') {
             return JSON.stringify(state.shopHistory);
+        }
+        if (key === 'uton_shop_history') {
+            return JSON.stringify(state.utonShopHistory);
+        }
+        if (key === 'kimp_settlement_transactions') {
+            return JSON.stringify(state.settlementTransactions || []);
         }
         if (key === 'app_reservations_db') {
             return JSON.stringify(state.reservations);
@@ -2300,7 +2451,7 @@
     window.setPartitionedItem = function(key, value) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request' || key === 'uton_shop_history' || key === 'kimp_settlement_transactions') {
                 localStorage.setItem(key, value);
             } else {
                 localStorage.setItem(key + "_" + userId, value);
@@ -2310,6 +2461,16 @@
         }
         if (key === 'kimp_shop_history') {
             window.FactoryStore.dispatch({ type: 'SET_SHOP_HISTORY', payload: JSON.parse(value) });
+            return;
+        }
+        if (key === 'uton_shop_history') {
+            window.FactoryStore.dispatch({ type: 'SET_UTON_SHOP_HISTORY', payload: JSON.parse(value) });
+            return;
+        }
+        if (key === 'kimp_settlement_transactions') {
+            state.settlementTransactions = JSON.parse(value);
+            saveToStorage(['settlements']);
+            notifyListeners();
             return;
         }
         if (key === 'app_reservations_db') {
@@ -2393,7 +2554,7 @@
     window.removePartitionedItem = function(key) {
         if (!window.FactoryStore) {
             const userId = sessionStorage.getItem("user-id") || "guest";
-            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request') {
+            if (key === 'app_reservations_db' || key === 'kimp_production_orders' || key === 'kimp_packaging_orders' || key === 'kimp_help_request' || key === 'uton_shop_history' || key === 'kimp_settlement_transactions') {
                 localStorage.removeItem(key);
             } else {
                 localStorage.removeItem(key + "_" + userId);
@@ -2409,6 +2570,20 @@
             window.FactoryStore.dispatch({ type: 'UPDATE_EXPERIENCE_TIME', payload: 180 });
             return;
         }
+        if (key === 'kimp_shop_history') {
+            window.FactoryStore.dispatch({ type: 'SET_SHOP_HISTORY', payload: [] });
+            return;
+        }
+        if (key === 'uton_shop_history') {
+            window.FactoryStore.dispatch({ type: 'SET_UTON_SHOP_HISTORY', payload: [] });
+            return;
+        }
+        if (key === 'kimp_settlement_transactions') {
+            state.settlementTransactions = [];
+            saveToStorage(['settlements']);
+            notifyListeners();
+            return;
+        }
         
         const userId = sessionStorage.getItem("user-id") || "guest";
         localStorage.removeItem(key + "_" + userId);
@@ -2421,7 +2596,7 @@
         if (!e.key) return;
 
         const key = e.key;
-        if (key === 'app_reservations_db' || key.startsWith('kimp_') || key.includes('mypage_') || key === 'kimp_worker_profile' || key.includes('hours_udon') || key.includes('hours_wallet')) {
+        if (key === 'app_reservations_db' || key === 'uton_shop_history' || key === 'kimp_settlement_transactions' || key.startsWith('kimp_') || key.includes('mypage_') || key === 'kimp_worker_profile' || key.includes('hours_udon') || key.includes('hours_wallet')) {
             window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
         }
     });
@@ -3528,4 +3703,122 @@ window.MockData.getWorkTimeSlots = function(workId) {
         type: timeKey,
         slots: this.workTimeSlots[timeKey] || this.workTimeSlots["2h"]
     };
+};
+
+window.MockData.inferWorkId = function(item) {
+    if (item && typeof item === 'object' && item.workId !== undefined && item.workId !== null && item.workId !== '') {
+        return String(item.workId);
+    }
+    const text = typeof item === 'object'
+        ? String(item.job || item.workName || item.title || item.brandName || '')
+        : String(item || '');
+    if (text.includes('우동') || text.includes('Uton')) return '2';
+    if (text.includes('지갑') || text.includes('Persa')) return '3';
+    if (text.includes('불고기') || text.includes('K-Meat')) return '6';
+    if (text.includes('버거') || text.includes('Burger')) return '7';
+    return '1';
+};
+
+window.MockData.normalizeWorkTitle = function(title, workId) {
+    const rawTitle = String(title || '').trim();
+    const cleanedTitle = rawTitle
+        .replace(/^(Uton|AFood|Persa|K-Meat|BurgerQueen)\s+/i, '')
+        .trim();
+    if (cleanedTitle) return cleanedTitle;
+    return this.getWorkMeta ? this.getWorkMeta(workId || '1').title : '김치만들기';
+};
+
+window.MockData.getWorkMeta = function(workId) {
+    const wId = String(workId || '1');
+    let detail = {};
+    let work = {};
+    try {
+        const detailMap = JSON.parse(this.workDetailJSON || '{}');
+        detail = detailMap[wId] || {};
+    } catch (e) {}
+    try {
+        const works = JSON.parse(this.worksJSON || '[]');
+        work = works.find(function(item) { return String(item.workId) === wId; }) || {};
+    } catch (e) {}
+    return {
+        workId: Number(wId),
+        title: detail.title || work.workName || '김치만들기',
+        brandName: work.brandName || (wId === '2' ? 'Uton' : (wId === '3' ? 'Persa' : 'AFood')),
+        iconUrl: detail.iconUrl || work.iconUrl || './images/k-icon_150x150.png',
+        ratio: detail.value || work.salary || 1.2,
+        workTime: detail.workTime || '2시간 작업'
+    };
+};
+
+window.MockData.getWorkDurationLabel = function(workId, format) {
+    const wId = String(workId || '1');
+    if (format === 'text') {
+        const meta = this.getWorkMeta(wId);
+        return String(meta.workTime || '2시간 작업').replace(/\s*작업\s*$/, '').trim();
+    }
+    const slotData = this.getWorkTimeSlots(wId);
+    return slotData && slotData.type ? slotData.type : '2h';
+};
+
+window.MockData.getMockWorkHistories = function(userObj) {
+    const userId = String((userObj && (userObj.id || userObj.email || userObj.name)) || sessionStorage.getItem('user-id') || 'guest');
+    const userName = String((userObj && userObj.name) || '손님');
+    const today = new Date();
+    const formatDate = function(daysAgo) {
+        const d = new Date();
+        d.setDate(today.getDate() - daysAgo);
+        return d.getFullYear() + "." + String(d.getMonth() + 1).padStart(2, '0') + "." + String(d.getDate()).padStart(2, '0');
+    };
+    const profileMap = {
+        '최현일': [
+            { workId: 3, daysAgo: 1, slot: 1, role: '매니저', pay: 220000 },
+            { workId: 2, daysAgo: 3, slot: 0, role: '매니저', pay: 190000 },
+            { workId: 1, daysAgo: 5, slot: 2, role: '매니저', pay: 180000 }
+        ],
+        '최수아': [
+            { workId: 2, daysAgo: 2, slot: 1, role: '헬퍼', pay: 110000 },
+            { workId: 3, daysAgo: 6, slot: 0, role: '일반', pay: 50000 },
+            { workId: 1, daysAgo: 10, slot: 2, role: '일반', pay: 45000 }
+        ],
+        '김수민': [
+            { workId: 2, daysAgo: 4, slot: 0, role: '일반', pay: 45000 }
+        ],
+        '김영희': [
+            { workId: 3, daysAgo: 1, slot: 1, role: '헬퍼', pay: 120000 },
+            { workId: 2, daysAgo: 3, slot: 0, role: '헬퍼', pay: 110000 },
+            { workId: 1, daysAgo: 8, slot: 2, role: '헬퍼', pay: 115000 }
+        ]
+    };
+    const rows = profileMap[userName] || [
+        { workId: 1, daysAgo: 2, slot: 0, role: '일반', pay: 40000 }
+    ];
+
+    return rows.map((row, index) => {
+        const meta = this.getWorkMeta(row.workId);
+        const slotData = this.getWorkTimeSlots(row.workId);
+        const slots = slotData.slots || [];
+        const slot = slots[row.slot] || slots[0] || { time: '10:00 ~ 12:00' };
+        const timeParts = String(slot.time).split('~').map(part => part.trim());
+        const checkInTime = (timeParts[0] || '10:00') + ':00';
+        const checkOutTime = (timeParts[1] || '12:00') + ':00';
+        return {
+            id: `mock-${userId}-${row.workId}-${row.daysAgo}-${row.slot}-${index}`,
+            userId: userId,
+            userName: userName,
+            workId: Number(row.workId),
+            date: formatDate(row.daysAgo),
+            time: slot.time,
+            checkInTime: checkInTime,
+            checkOutTime: checkOutTime,
+            job: meta.title,
+            workName: meta.title,
+            brandName: meta.brandName,
+            iconUrl: meta.iconUrl,
+            role: row.role,
+            pay: row.pay,
+            ratio: meta.ratio,
+            status: '완료',
+            breakSeconds: 0
+        };
+    });
 };

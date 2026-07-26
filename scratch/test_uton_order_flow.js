@@ -111,6 +111,15 @@ assert(utonOrders.length === 1, "레거시 Uton 주문의 workId 추론에 실�
 assert(utonOrders[0].orderNo === "321", "레거시 주문번호 문자열 정규화에 실패했습니다.");
 assert(utonOrders[0].menuType === "udon", "레거시 메뉴 종류 추론에 실패했습니다.");
 assert(utonOrders[0].kitchenStatus === "queued", "레거시 주방 대기 상태 보완에 실패했습니다.");
+assert(
+    JSON.parse(localStorage.getItem("kimp_shop_history")).length === 1
+        && JSON.parse(localStorage.getItem("kimp_shop_history"))[0].id === "delivery-1",
+    "레거시 Uton 주문이 kimp_shop_history에서 분리되지 않았습니다."
+);
+assert(
+    JSON.parse(localStorage.getItem("uton_shop_history")).some(order => order.orderNo === "321"),
+    "레거시 Uton 주문이 uton_shop_history로 이전되지 않았습니다."
+);
 
 const orderedAt = "2026-07-23T05:00:00.000Z";
 store.dispatch({
@@ -136,8 +145,12 @@ store.dispatch({
 utonOrders = store.getShopOrders({ workId: 2, status: "pending", menuType: "bibim" });
 assert(utonOrders.length === 1 && utonOrders[0].orderNo === "654", "신규 주문 식별자 조회에 실패했습니다.");
 assert(
-    JSON.parse(localStorage.getItem("kimp_shop_history")).some(order => order.orderNo === "654"),
-    "주문번호가 kimp_shop_history에 저장되지 않았습니다."
+    JSON.parse(localStorage.getItem("uton_shop_history")).some(order => order.orderNo === "654"),
+    "Uton 주문번호가 uton_shop_history에 저장되지 않았습니다."
+);
+assert(
+    !JSON.parse(localStorage.getItem("kimp_shop_history")).some(order => order.orderNo === "654"),
+    "Uton 주문번호가 kimp_shop_history에 섞였습니다."
 );
 
 store.dispatch({
@@ -175,10 +188,41 @@ assert(
     "주문 조회 결과가 Store 원본을 노출합니다."
 );
 
+store.dispatch({
+    type: "ADD_SHOP_ORDER",
+    payload: {
+        id: "kimchi-10001",
+        orderNo: "777",
+        userId: 2,
+        workId: 1,
+        productId: 10001,
+        productName: "맛김치 300g",
+        price: 3000,
+        qty: 1,
+        status: "completed",
+        orderedAt
+    }
+});
+assert(
+    JSON.parse(localStorage.getItem("kimp_shop_history")).some(order => order.orderNo === "777"),
+    "김치 주문번호가 kimp_shop_history에 저장되지 않았습니다."
+);
+assert(
+    !JSON.parse(localStorage.getItem("uton_shop_history")).some(order => order.orderNo === "777"),
+    "김치 주문번호가 uton_shop_history에 섞였습니다."
+);
+
 assertInlineScriptsParse("kimp_detail.html");
 assertInlineScriptsParse("mypage2.html");
 assertInlineScriptsParse("uton_real.html");
 assertInlineScriptsParse("explore2.html");
+const kimpDetailHtml = fs.readFileSync("kimp_detail.html", "utf8");
+assert(kimpDetailHtml.includes("getCurrentWorkShopHistory"), "상품 상세가 workId별 주문 저장소를 조회하지 않습니다.");
+assert(kimpDetailHtml.includes("uton_shop_history"), "상품 상세에 Uton 주문 저장소 분기가 없습니다.");
+const mypageHtml = fs.readFileSync("mypage2.html", "utf8");
+assert(mypageHtml.includes("FactoryStore.getShopOrders()"), "마이페이지가 분리된 주문 저장소를 통합 조회하지 않습니다.");
+const managerHtml = fs.readFileSync("umanager.html", "utf8");
+assert(managerHtml.includes("getShopOrders({ workId: 2 })"), "관리자 콘솔이 Uton 주문 저장소를 workId 2로 조회하지 않습니다.");
 const utonMap = fs.readFileSync("images/work-map-uton.svg", "utf8");
 assert(!utonMap.includes("Task 1") && !utonMap.includes("Task 2-3") && !utonMap.includes("Task 4-5"), "Uton 지도에 제거 대상 Task 영역이 남아 있습니다.");
 const utonRealHtml = fs.readFileSync("uton_real.html", "utf8");

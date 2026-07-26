@@ -83,6 +83,10 @@ assert(Array.isArray(tables.users) && tables.users.length >= 4, "users table sho
 assert(Array.isArray(tables.works) && tables.works.some(work => Number(work.workId) === 2), "works table should expose work rows.");
 assert(Array.isArray(tables.workReservations) && tables.workReservations.length === 2, "workReservations table should expose reservations.");
 assert(Array.isArray(tables.shopOrders) && tables.shopOrders.length === 1, "shopOrders table should expose shop history.");
+assert(store.getState().shopHistory.length === 0, "kimp_shop_history should not retain Uton orders after migration.");
+assert(store.getState().utonShopHistory.length === 1, "uton_shop_history should receive migrated Uton orders.");
+assert(JSON.parse(localStorage.getItem("kimp_shop_history")).length === 0, "legacy Uton order should be removed from kimp_shop_history.");
+assert(JSON.parse(localStorage.getItem("uton_shop_history")).length === 1, "migrated Uton order should be saved to uton_shop_history.");
 assert(Array.isArray(store.getProducts({ workId: 2 })), "getProducts should support workId filters.");
 assert(store.getReservations({ workId: 2 }).length === 1, "getReservations should support workId filters.");
 assert(store.tableSources.workReservations.includes("app_reservations_db"), "tableSources should document reservation storage.");

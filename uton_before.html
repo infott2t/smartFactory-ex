@@ -242,7 +242,7 @@
             let selectedGender = null;
             let washSeconds = 30;
             let washTimer = null;
-            let approvalTimer = null;
+            let unsubscribeStore = null;
             let qrScanning = false;
 
             document.addEventListener("DOMContentLoaded", init);
@@ -276,8 +276,13 @@
                 bindEvents();
                 render();
 
-                if (reservation.handPhotoStatus === "reviewing" && !reservation.checkInSteps.handPhoto) {
-                    scheduleAutomaticApproval(900);
+                if (window.FactoryStore && typeof FactoryStore.subscribe === "function") {
+                    unsubscribeStore = FactoryStore.subscribe(refreshReservationFromStore);
+                    if (typeof window.addEventListener === "function") {
+                        window.addEventListener("beforeunload", function () {
+                            if (unsubscribeStore) unsubscribeStore();
+                        }, { once: true });
+                    }
                 }
             }
 
@@ -294,6 +299,9 @@
                     completeStep("uniform");
                 });
                 document.getElementById("enter-shop-btn").addEventListener("click", enterShop);
+                if (typeof window.addEventListener === "function") {
+                    window.addEventListener("storage", refreshReservationFromStore);
+                }
 
                 document.querySelectorAll(".room-btn").forEach(function (button) {
                     button.addEventListener("click", function () {
@@ -302,6 +310,16 @@
                         renderGenderRoom();
                     });
                 });
+            }
+
+            function refreshReservationFromStore() {
+                const latest = findReservation();
+                if (!latest || !sameReservation(latest, reservation)) return;
+                const normalized = normalizeReservation(latest);
+                const changed = JSON.stringify(normalized) !== JSON.stringify(reservation);
+                reservation = normalized;
+                sessionStorage.setItem("selected_reservation", JSON.stringify(reservation));
+                if (changed) render();
             }
 
             function findReservation() {
@@ -658,7 +676,7 @@
                 const photoStatus = reservation.handPhotoStatus || "not_submitted";
                 const timerDone = !!steps.handWash;
                 const sanitizerDone = !!steps.sanitizer;
-                const photoDone = !!steps.handPhoto;
+                const photoDone = !!steps.handPhoto && photoStatus === "approved";
 
                 container.innerHTML = [
                     '<div class="info-banner"><strong>손씻기 매뉴얼</strong><br>흐르는 물과 비누로 약 30초 동안 손을 씻어주세요. 손바닥, 손등, 손가락 사이와 손톱 밑까지 꼼꼼하게 문질러야 합니다.</div>',
@@ -679,9 +697,9 @@
                     '  <div class="hygiene-stage-title"><span><i class="bi bi-phone-fill"></i> 3. 손 사진 인증</span><span class="mini-status">' + photoStatusLabel(photoStatus) + '</span></div>',
                     '  <div class="phone-camera" id="phone-camera"><div class="hand-guide"><i class="bi bi-hand-index"></i></div><div class="camera-message">' + cameraMessage(photoStatus) + '</div></div>',
                     photoStatus === "reviewing"
-                        ? '  <div class="verification-spinner"></div><div class="info-banner" style="text-align:center;">손 위생 상태 확인 중 · 테스트 자동 승인</div>'
+                        ? '  <div class="verification-spinner"></div><div class="info-banner" style="text-align:center;">손 위생 상태 확인 중 · 관리자 승인 대기</div>'
                         : photoDone
-                            ? '  <div class="success-banner"><i class="bi bi-patch-check-fill"></i> 손 위생 사진이 자동 승인되었습니다.<br>' + formatDateTime(reservation.handPhotoVerifiedAt, "") + '</div>'
+                            ? '  <div class="success-banner"><i class="bi bi-patch-check-fill"></i> 손 위생 사진이 관리자 승인되었습니다.<br>' + formatDateTime(reservation.handPhotoVerifiedAt, "") + '</div>'
                             : '  <button type="button" class="primary-btn" id="capture-hand-btn"><i class="bi bi-camera-fill"></i> 손 사진 촬영하기</button>',
                     '</div>'
                 ].join("");
@@ -772,33 +790,13 @@
                 updateReservation({
                     handPhotoStatus: "reviewing",
                     handPhotoCapturedAt: capturedAt,
-                    handPhotoVerificationMode: "mock_auto",
+                    handPhotoVerificationMode: "manager_review",
                     preWorkStatus: "in_progress",
                     lastActivityAt: capturedAt
                 });
-                appendWorkLog("hand_photo", "손 사진 촬영 및 자동 인증 검토 시작", { handPhotoStatus: "reviewing" });
+                appendWorkLog("hand_photo", "손 사진 촬영 및 관리자 승인 요청", { handPhotoStatus: "reviewing" });
                 const camera = document.getElementById("phone-camera");
                 if (camera) camera.classList.add("flash");
-                scheduleAutomaticApproval(1500);
-            }
-
-            function scheduleAutomaticApproval(delay) {
-                if (approvalTimer) clearTimeout(approvalTimer);
-                approvalTimer = setTimeout(function () {
-                    const steps = Object.assign({}, STEP_DEFAULTS, reservation.checkInSteps);
-                    steps.handPhoto = true;
-                    const verifiedAt = new Date().toISOString();
-                    approvalTimer = null;
-                    updateReservation({
-                        checkInSteps: steps,
-                        handPhotoStatus: "approved",
-                        handPhotoVerifiedAt: verifiedAt,
-                        handPhotoVerificationMode: "mock_auto",
-                        lastActivityAt: verifiedAt
-                    });
-                    appendWorkLog("hand_photo", "손 사진 자동 인증 완료", { handPhotoStatus: "approved" });
-                    focusActiveStep();
-                }, delay);
             }
 
             function renderEntry() {
@@ -807,7 +805,7 @@
                     (reservation.lockerGender ? genderLabel(reservation.lockerGender) + " " : "") +
                     (reservation.lockerNumber ? reservation.lockerNumber + "번" : "-");
                 document.getElementById("entry-hygiene").textContent =
-                    reservation.handPhotoStatus === "approved" ? "자동 승인 완료" : "승인 대기";
+                    reservation.handPhotoStatus === "approved" ? "관리자 승인 완료" : "승인 대기";
 
                 const completed = !!reservation.checkInSteps.shopEntry;
                 const button = document.getElementById("enter-shop-btn");
@@ -821,7 +819,11 @@
             }
 
             function enterShop() {
-                if (!reservation.checkInSteps.handPhoto) return;
+                if (!reservation.checkInSteps.handPhoto || reservation.handPhotoStatus !== "approved") {
+                    render();
+                    focusActiveStep();
+                    return;
+                }
                 if (reservation.checkInSteps.shopEntry) {
                     location.href = "uton_real.html";
                     return;
