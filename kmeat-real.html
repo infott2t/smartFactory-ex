@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#e0362c">
+    <title>불고기구이 K-Meat 작업 | 작업자 단말</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/kmeat-worker.css">
+
+    <script src="./js/auth.js"></script>
+    <script src="./js/auth-guard.js"></script>
+    <script src="./js/store.js"></script>
+</head>
+<body>
+<div class="app">
+
+    <!-- ── 헤더 ── -->
+    <header class="topbar">
+        <div class="topbar-row">
+            <div class="topbar-title">
+                <i class="bi bi-fire" style="font-size:1.4rem;"></i>
+                <div>
+                    불고기구이 K-Meat
+                    <small id="who">작업자 님</small>
+                </div>
+            </div>
+            <span class="mode-badge"><i class="bi bi-broadcast"></i> 실제 근무</span>
+        </div>
+        <!-- 근무 현황은 [더보기] 탭 상단으로 이동했습니다 -->
+    </header>
+
+    <!-- ── 뷰 ── -->
+    <div id="view-orders"></div>
+    <div id="view-work" style="display:none;"></div>
+    <div id="view-manual" style="display:none;"></div>
+    <div id="view-rest" style="display:none;"></div>
+
+    <div id="view-more" style="display:none;">
+        <!-- 상단 고정 영역: 근무 현황 (DOM에 항상 유지되어 타이머가 갱신됨) -->
+        <div class="section">
+            <div class="section-head">
+                <h2><i class="bi bi-speedometer2" style="color:var(--brand);"></i> 근무 현황</h2>
+            </div>
+            <div class="status-panel">
+                <div class="cell">
+                    <span class="lbl"><i class="bi bi-clock"></i> 현재 시간</span>
+                    <span class="val" id="st-clock">--:--</span>
+                </div>
+                <div class="cell">
+                    <span class="lbl"><i class="bi bi-briefcase"></i> 근무 시간</span>
+                    <span class="val" id="st-work">00:00:00</span>
+                </div>
+                <div class="cell" id="st-rest-cell">
+                    <span class="lbl"><i class="bi bi-cup-hot"></i> 휴식 시간</span>
+                    <span class="val" id="st-rest">00:00:00</span>
+                </div>
+                <div class="cell salary">
+                    <span class="lbl"><i class="bi bi-cash-coin"></i> 예상 급여액</span>
+                    <span class="val">₩ <span id="st-salary">0</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실제 근무 모드에는 체험 완료 버튼이 없습니다 -->
+
+        <!-- 나머지 더보기 내용 (JS 렌더링) -->
+        <div id="more-body"></div>
+    </div>
+
+</div>
+
+<!-- ── 하단 탭바 ── -->
+<nav class="tabbar">
+    <button class="tab active" id="tab-orders" onclick="KmeatWorker.switchTab('orders')">
+        <i class="bi bi-receipt"></i><span>주문확인</span>
+        <span class="tab-badge" id="badge-orders">0</span>
+    </button>
+    <button class="tab" id="tab-work" onclick="KmeatWorker.switchTab('work')">
+        <i class="bi bi-tools"></i><span>내 작업</span>
+        <span class="tab-badge" id="badge-work">0</span>
+    </button>
+    <button class="tab" id="tab-manual" onclick="KmeatWorker.switchTab('manual')">
+        <i class="bi bi-journal-text"></i><span>매뉴얼</span>
+    </button>
+    <button class="tab" id="tab-rest" onclick="KmeatWorker.switchTab('rest')">
+        <i class="bi bi-cup-hot"></i><span>휴식·QR</span>
+    </button>
+    <button class="tab" id="tab-more" onclick="KmeatWorker.switchTab('more')">
+        <i class="bi bi-list"></i><span>더보기</span>
+    </button>
+</nav>
+
+<!-- ── 시트 모달 ── -->
+<div class="sheet-back" id="sheet-back" onclick="KmeatWorker.closeSheet()"></div>
+<div class="sheet" id="sheet">
+    <div class="sheet-head">
+        <h3 id="sheet-title"><i class="bi bi-window"></i> 상세</h3>
+        <button class="sheet-close" onclick="KmeatWorker.closeSheet()" aria-label="닫기">&times;</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+</div>
+
+<!-- 휴식 중에는 어느 탭에서든 복귀할 수 있는 플로팅 버튼 -->
+<button class="rest-fab" id="rest-fab" onclick="KmeatWorker.scanEnter()">
+    <i class="bi bi-qr-code-scan"></i> 휴식 종료 · 입장 QR 스캔 (클릭)
+</button>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>window.KMEAT_MODE = 'real';</script>
+<script src="./js/kmeat-worker.js"></script>
+</body>
+</html>

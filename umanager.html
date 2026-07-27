@@ -1371,6 +1371,36 @@
 
                 <div class="panel-card">
                     <div class="panel-header">
+                        <h2><i class="bi bi-gear-fill" style="color: #8b5cf6;"></i> 비용 설정</h2>
+                    </div>
+                    <div class="order-limit-settings-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="order-limit-field">
+                            <label for="setting-food-cost-rate-input">식재료 원가율 (%)</label>
+                            <input type="number" id="setting-food-cost-rate-input" min="0" max="100" step="1" value="30" inputmode="numeric">
+                        </div>
+                        <div class="order-limit-field">
+                            <label for="setting-electricity-input">전기세 (월, 만원)</label>
+                            <input type="number" id="setting-electricity-input" min="0" step="1" value="40" inputmode="numeric">
+                        </div>
+                        <div class="order-limit-field">
+                            <label for="setting-gas-input">가스요금 (월, 만원)</label>
+                            <input type="number" id="setting-gas-input" min="0" step="1" value="25" inputmode="numeric">
+                        </div>
+                        <div class="order-limit-field">
+                            <label for="setting-rent-input">임대료 (월, 만원)</label>
+                            <input type="number" id="setting-rent-input" min="0" step="1" value="400" inputmode="numeric">
+                        </div>
+                        <button class="btn-action btn-primary" type="button" style="justify-content: center; min-height: 42px; align-self: end;" onclick="saveFixedCostSettings()">
+                            <i class="bi bi-check-circle"></i> 설정 저장
+                        </button>
+                    </div>
+                    <div class="order-limit-summary" id="fixed-cost-summary" style="background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.2); color: #6d28d9;">
+                        전기세·가스요금·임대료는 30일 기준으로 일할 반영됩니다.
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
                         <h2><i class="bi bi-calendar-week" style="color: #10b981;"></i> 일별 손익 게시판</h2>
                         <span class="status-pill pill-ready">최신 날짜순</span>
                     </div>
@@ -1613,6 +1643,84 @@
             ...((window.MockData && window.MockData.utonFinanceAssumptions) || {})
         };
 
+        // 고정비(식재료 원가율, 전기세, 가스요금, 임대료) localStorage 복원
+        (function loadSavedFixedCosts() {
+            try {
+                const saved = localStorage.getItem('uton_fixed_cost_settings');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && typeof parsed === 'object') {
+                        if (Number.isFinite(parsed.foodCostRate) && parsed.foodCostRate >= 0 && parsed.foodCostRate <= 1) {
+                            FINANCE_ASSUMPTIONS.foodCostRate = parsed.foodCostRate;
+                        }
+                        if (Number.isFinite(parsed.monthlyElectricityCost) && parsed.monthlyElectricityCost >= 0) {
+                            FINANCE_ASSUMPTIONS.monthlyElectricityCost = parsed.monthlyElectricityCost;
+                        }
+                        if (Number.isFinite(parsed.monthlyGasCost) && parsed.monthlyGasCost >= 0) {
+                            FINANCE_ASSUMPTIONS.monthlyGasCost = parsed.monthlyGasCost;
+                        }
+                        if (Number.isFinite(parsed.monthlyRentCost) && parsed.monthlyRentCost >= 0) {
+                            FINANCE_ASSUMPTIONS.monthlyRentCost = parsed.monthlyRentCost;
+                        }
+                    }
+                }
+            } catch(e) {}
+        })();
+
+        function renderFixedCostSettings() {
+            const foodCostInput = document.getElementById('setting-food-cost-rate-input');
+            const elecInput = document.getElementById('setting-electricity-input');
+            const gasInput = document.getElementById('setting-gas-input');
+            const rentInput = document.getElementById('setting-rent-input');
+            if (foodCostInput) foodCostInput.value = Math.round(FINANCE_ASSUMPTIONS.foodCostRate * 100);
+            if (elecInput) elecInput.value = Math.round(FINANCE_ASSUMPTIONS.monthlyElectricityCost / 10000);
+            if (gasInput) gasInput.value = Math.round(FINANCE_ASSUMPTIONS.monthlyGasCost / 10000);
+            if (rentInput) rentInput.value = Math.round(FINANCE_ASSUMPTIONS.monthlyRentCost / 10000);
+        }
+
+        function saveFixedCostSettings() {
+            const foodCostInput = document.getElementById('setting-food-cost-rate-input');
+            const elecInput = document.getElementById('setting-electricity-input');
+            const gasInput = document.getElementById('setting-gas-input');
+            const rentInput = document.getElementById('setting-rent-input');
+
+            const foodCostPercent = parseInt(foodCostInput && foodCostInput.value);
+            const elecManWon = parseInt(elecInput && elecInput.value);
+            const gasManWon = parseInt(gasInput && gasInput.value);
+            const rentManWon = parseInt(rentInput && rentInput.value);
+
+            if (!Number.isFinite(foodCostPercent) || foodCostPercent < 0 || foodCostPercent > 100 ||
+                !Number.isFinite(elecManWon) || elecManWon < 0 ||
+                !Number.isFinite(gasManWon) || gasManWon < 0 ||
+                !Number.isFinite(rentManWon) || rentManWon < 0) {
+                alert('유효한 값을 입력해주세요. (원가율 0~100%, 금액 0 이상)');
+                return;
+            }
+
+            FINANCE_ASSUMPTIONS.foodCostRate = foodCostPercent / 100;
+            FINANCE_ASSUMPTIONS.monthlyElectricityCost = elecManWon * 10000;
+            FINANCE_ASSUMPTIONS.monthlyGasCost = gasManWon * 10000;
+            FINANCE_ASSUMPTIONS.monthlyRentCost = rentManWon * 10000;
+
+            localStorage.setItem('uton_fixed_cost_settings', JSON.stringify({
+                foodCostRate: FINANCE_ASSUMPTIONS.foodCostRate,
+                monthlyElectricityCost: FINANCE_ASSUMPTIONS.monthlyElectricityCost,
+                monthlyGasCost: FINANCE_ASSUMPTIONS.monthlyGasCost,
+                monthlyRentCost: FINANCE_ASSUMPTIONS.monthlyRentCost
+            }));
+
+            // MockData도 동기화
+            if (window.MockData && window.MockData.utonFinanceAssumptions) {
+                window.MockData.utonFinanceAssumptions.foodCostRate = FINANCE_ASSUMPTIONS.foodCostRate;
+                window.MockData.utonFinanceAssumptions.monthlyElectricityCost = FINANCE_ASSUMPTIONS.monthlyElectricityCost;
+                window.MockData.utonFinanceAssumptions.monthlyGasCost = FINANCE_ASSUMPTIONS.monthlyGasCost;
+                window.MockData.utonFinanceAssumptions.monthlyRentCost = FINANCE_ASSUMPTIONS.monthlyRentCost;
+            }
+
+            renderFinanceDashboard();
+            showToastAlert('비용 설정 저장 완료', `식재료 원가율 ${foodCostPercent}%, 전기세 월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyElectricityCost)}, 가스요금 월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyGasCost)}, 임대료 월 ${formatFinanceMoney(FINANCE_ASSUMPTIONS.monthlyRentCost)}으로 설정되었습니다.`);
+        }
+
         function getUtonOrderLimitSettings() {
             if (window.FactoryStore && typeof window.FactoryStore.getUtonOrderSettings === 'function') {
                 return window.FactoryStore.getUtonOrderSettings();
@@ -1691,6 +1799,7 @@
             renderStaffReservations();
             renderUtonOrderLimitSettings();
             renderFinanceDashboard();
+            renderFixedCostSettings();
             loadHelpRequestFromStorage();
             renderHandwashCards();
             renderHelpRequests();
@@ -1743,7 +1852,7 @@
                 renderUtonOrderLimitSettings();
                 loadKDSOrders();
             }
-            if (tabName === 'finance') renderFinanceDashboard();
+            if (tabName === 'finance') { renderFinanceDashboard(); renderFixedCostSettings(); }
             if (tabName === 'staff') renderStaffReservations();
             if (tabName === 'help-requests') renderHelpRequests();
             if (tabName === 'handwash') renderHandwashCards();

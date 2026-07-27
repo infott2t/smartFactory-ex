@@ -322,6 +322,30 @@
                 expPage = "uton_before.html";
             }
 
+            // 실제 근무용 작업자 페이지가 등록되어 있으면 체험 페이지 대신 사용한다.
+            try {
+                const worksListW = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                    ? window.FactoryStore.getWorks()
+                    : JSON.parse(window.MockData.worksJSON);
+                const workObjW = worksListW.find(w => w.workId == workId);
+                if (workObjW && workObjW.workerLink) {
+                    expPage = workObjW.workerLink;
+                }
+            } catch(e) {}
+
+            // 매니저 역할인 경우, managerLink로 입장
+            if (res.role === 'manager') {
+                try {
+                    const worksList2 = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                        ? window.FactoryStore.getWorks()
+                        : JSON.parse(window.MockData.worksJSON);
+                    const workObj2 = worksList2.find(w => w.workId == workId);
+                    if (workObj2 && workObj2.managerLink) {
+                        expPage = workObj2.managerLink;
+                    }
+                } catch(e) {}
+            }
+
             // 상단 Profile Info Box 업데이트
             $('#info-icon').attr('src', iconUrl);
             $('#info-brand').text(brandName);

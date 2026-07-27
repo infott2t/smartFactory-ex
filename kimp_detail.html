@@ -1119,6 +1119,17 @@
                 });
             }
 
+            // 주방(KDS)에서 조리 완료 처리 시 알림이 뜨도록 주기적으로 주문 상태를 동기화
+            setInterval(function() {
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                if (!activeNo) return;
+                if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function'
+                    && !window.FactoryStore.isSaving()) {
+                    window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+                }
+                updateOrderUI();
+            }, 3000);
+
             window.addEventListener('storage', function(event) {
                 if (event.key === 'uton_order_settings' || event.key === 'uton_shop_history') {
                     syncOrderCount10Min();
@@ -1650,6 +1661,71 @@
             }
         } catch(e) {}
 
+        // 현재 활성 주문이 수령 가능(준비 완료) 상태인지
+        let activeOrderReady = false;
+        // 준비 완료 알림을 이미 띄운 주문번호 (중복 알림 방지)
+        let notifiedReadyOrderNo = null;
+
+        // 준비 완료 알림음
+        function playOrderReadyChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [880, 1174].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.18);
+                    gain.gain.setValueAtTime(0.22, ctx.currentTime + i * 0.18);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.18 + 0.16);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.18);
+                    osc.stop(ctx.currentTime + i * 0.18 + 0.17);
+                });
+            } catch (e) {}
+        }
+
+        // 🔔 알림 확인 · 수령하기
+        function handleReceiveOrder() {
+            const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+            if (!activeNo) return;
+
+            let targetOrder = null;
+            try {
+                targetOrder = getCurrentWorkShopHistory()
+                    .find(item => item.orderNo === activeNo && item.status === 'pending');
+            } catch (e) {}
+
+            if (!targetOrder) {
+                alert('수령할 주문을 찾을 수 없습니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            if (targetOrder.kitchenStatus !== 'ready') {
+                alert('아직 조리가 완료되지 않았습니다. 준비 완료 알림을 기다려주세요.');
+                return;
+            }
+
+            if (window.FactoryStore) {
+                window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: targetOrder.id });
+            }
+
+            // 활성 주문 상태 키 정리
+            try {
+                sessionStorage.removeItem('activeOrderProduct');
+                sessionStorage.removeItem('activeOrderNo');
+                sessionStorage.removeItem('activeOrderQty');
+                localStorage.removeItem('activeOrderProduct_local');
+                localStorage.removeItem('activeOrderNo_local');
+                localStorage.removeItem('activeOrderQty_local');
+                localStorage.removeItem('activeOrderNo_current');
+            } catch (e) {}
+
+            activeOrderReady = false;
+            notifiedReadyOrderNo = null;
+            updateOrderUI();
+            alert(`🔔 주문번호 #${activeNo} 수령 완료\n음식을 정상적으로 수령하였습니다. 맛있게 드세요! 😀`);
+        }
+
         function updateOrderUI() {
 
             const banner = document.getElementById('order-status-banner');
@@ -1695,16 +1771,53 @@
             const isUdonOrBibim = pId === 'p1' || pId === 'p2' || pId.includes('udon') || pName.includes('우동') || pName.includes('비빔면');
 
             if (isUdonOrBibim && String(currentWorkId) === '2' && String(activeProduct) === pId) {
+                // 주방 조리 상태 확인 (queued / preparing / ready)
+                let kitchenStatus = 'queued';
+                if (window.FactoryStore && activeNo) {
+                    const matched = getCurrentWorkShopHistory().find(item => item.orderNo === activeNo);
+                    if (matched && ['queued', 'preparing', 'ready'].includes(matched.kitchenStatus)) {
+                        kitchenStatus = matched.kitchenStatus;
+                    }
+                }
+                activeOrderReady = kitchenStatus === 'ready';
+
                 if (banner && bannerText) {
                     banner.style.display = 'block';
-                    bannerText.innerHTML = `<strong>${pName}</strong>, <strong>${activeQty}그릇</strong> 주문 상태입니다. 주문번호는 <strong>${activeNo}번</strong>이니, 알림이 뜨면, 가져가 주세요.`;
+                    if (activeOrderReady) {
+                        banner.style.background = 'rgba(16, 185, 129, 0.12)';
+                        banner.style.borderColor = '#10b981';
+                        bannerText.innerHTML = `🔔 <strong>${pName}</strong> <strong>${activeQty}그릇</strong> 준비가 완료되었습니다! 주문번호 <strong>${activeNo}번</strong>으로 카운터에서 수령해 주세요.`;
+                    } else if (kitchenStatus === 'preparing') {
+                        banner.style.background = 'rgba(99, 102, 241, 0.12)';
+                        banner.style.borderColor = '#6366f1';
+                        bannerText.innerHTML = `<strong>${pName}</strong>, <strong>${activeQty}그릇</strong> 조리 중입니다. 주문번호는 <strong>${activeNo}번</strong>이니, 알림이 뜨면 가져가 주세요.`;
+                    } else {
+                        banner.style.background = 'rgba(255, 0, 127, 0.1)';
+                        banner.style.borderColor = 'var(--accent-pink)';
+                        bannerText.innerHTML = `<strong>${pName}</strong>, <strong>${activeQty}그릇</strong> 주문 상태입니다. 주문번호는 <strong>${activeNo}번</strong>이니, 알림이 뜨면, 가져가 주세요.`;
+                    }
                 }
+
                 if (buyBtn) {
-                    buyBtn.textContent = "주문 취소하기";
-                    buyBtn.style.background = "linear-gradient(135deg, var(--accent-pink), #c0005a)";
-                    buyBtn.style.boxShadow = "0 4px 15px rgba(255, 0, 127, 0.3)";
+                    if (activeOrderReady) {
+                        buyBtn.textContent = "🔔 알림 확인 · 수령하기";
+                        buyBtn.style.background = "linear-gradient(135deg, #10b981, #059669)";
+                        buyBtn.style.boxShadow = "0 4px 15px rgba(16, 185, 129, 0.35)";
+                    } else {
+                        buyBtn.textContent = "주문 취소하기";
+                        buyBtn.style.background = "linear-gradient(135deg, var(--accent-pink), #c0005a)";
+                        buyBtn.style.boxShadow = "0 4px 15px rgba(255, 0, 127, 0.3)";
+                    }
+                }
+
+                // 준비 완료로 전환된 순간 1회 알림
+                if (activeOrderReady && notifiedReadyOrderNo !== String(activeNo)) {
+                    notifiedReadyOrderNo = String(activeNo);
+                    playOrderReadyChime();
+                    showToast(`🔔 주문번호 ${activeNo}번 준비 완료! 수령해 주세요.`);
                 }
             } else {
+                activeOrderReady = false;
                 if (banner) banner.style.display = 'none';
                 if (buyBtn) {
                     if (isUdonOrBibim && String(currentWorkId) === '2') {
@@ -1881,14 +1994,16 @@
             const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
             const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
 
-            let completedSpent = 0;
+            // 💡 주문 접수 시점에 차감되므로 취소되지 않은 주문(대기/조리/수령완료) 전체를 지출로 계산
+            let orderSpent = 0;
             if (window.FactoryStore && window.FactoryStore.getState) {
                 const shopHistory = getAllShopHistory();
-                completedSpent = shopHistory.filter(item => item.status === 'completed')
-                                            .reduce((sum, item) => sum + (item.price || 0), 0);
+                orderSpent = shopHistory
+                    .filter(item => item && item.status !== 'cancelled')
+                    .reduce((sum, item) => sum + (Number(item.price) || 0), 0);
             }
 
-            return initialAsset + baseSum + helperBase + helperBonus - completedSpent;
+            return initialAsset + baseSum + helperBase + helperBonus - orderSpent;
         }
 
         function isDeliveryProduct(productId) {
@@ -1911,6 +2026,18 @@
             const pId = String(currentProductId);
             const isDelivery = isDeliveryProduct(pId);
 
+            // 진행 중인 주문이 있으면 수령/취소 처리를 먼저 수행 (잔액 검사 대상 아님)
+            if (!isDelivery) {
+                const activeProduct = sessionStorage.getItem('activeOrderProduct')
+                    || localStorage.getItem('activeOrderProduct_local');
+                if (String(activeProduct) === pId) {
+                    // 준비 완료 상태면 수령 처리, 아니면 주문 취소
+                    if (activeOrderReady) handleReceiveOrder();
+                    else handleCancelOrder();
+                    return;
+                }
+            }
+
             const itemPrice = currentProductData ? (currentProductData.price || 3000) : 3000;
             const currentAssets = getUserCurrentAssets();
             if (currentAssets < itemPrice) {
@@ -1919,11 +2046,6 @@
             }
 
             if (!isDelivery) {
-                const activeProduct = sessionStorage.getItem('activeOrderProduct');
-                if (activeProduct === pId) {
-                    handleCancelOrder();
-                    return;
-                }
                 isQrScanned = false;
                 document.getElementById('order-confirm-overlay').style.display = 'flex';
                 checkLimitTimer();

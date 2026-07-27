@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>불고기구이 K-Meat 오프라인 주문</title>
+    <script src="./js/store.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -693,6 +694,7 @@
             <span class="summary-label" id="summary-count">선택한 메뉴 0개</span>
             <strong class="summary-price" id="summary-total">0원</strong>
         </div>
+        <div id="order-limit-notice" style="margin-bottom: 8px; font-size: 11px; font-weight: 800; color: #55efc4;"></div>
         <button class="order-btn" id="order-button" type="button" disabled>주문 확인</button>
     </div>
 
@@ -751,7 +753,7 @@
             </div>
             <div class="modal-actions">
                 <button class="no" id="summary-cancel-button" type="button">수정하기</button>
-                <button class="yes" id="summary-confirm-button" type="button">최종 주문</button>
+                <button class="yes" id="summary-confirm-button" type="button">주문하기</button>
             </div>
         </div>
     </div>
@@ -996,6 +998,12 @@
         }
 
         function openOrderModal() {
+            const limit = checkOrderLimit();
+            if (!limit.allowed) {
+                alert(limit.message);
+                renderOrderLimitNotice();
+                return;
+            }
             setQrRecognitionState(false);
             const modal = document.getElementById('order-modal');
             modal.classList.add('show');
@@ -1070,19 +1078,121 @@
         function buildPendingOrder() {
             const items = getSelectedOrderItems();
             const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+            const orderedAt = new Date().toISOString();
+
+            // 조리 예측시간 및 자동 조리순서 (kmanager.html과 공유)
+            let estimate = null;
+            let cooking = null;
+            if (window.MockData) {
+                if (typeof window.MockData.estimateKmeatOrderTime === 'function') {
+                    estimate = window.MockData.estimateKmeatOrderTime({ items });
+                }
+                if (typeof window.MockData.buildKmeatCookingSequence === 'function') {
+                    cooking = window.MockData.buildKmeatCookingSequence({ items });
+                }
+            }
+
+            const orderNo = createOrderNo();
+
             return {
-                orderNo: createOrderNo(),
+                orderNo: orderNo,
                 tableId: DEMO_TABLE_ID,
                 workId: 6,
                 brand: 'K-Meat',
                 storeName: '불고기구이 K-Meat',
                 items,
                 total,
+                // 주문 차수 (추가 주문 시 2차, 3차로 누적)
+                rounds: [{ round: 1, items: items, total: total, orderedAt: orderedAt }],
+                // 아직 추가 주문을 받을 수 있는 상태 (매니저가 '주문 마감' 시 true)
+                orderFinalized: false,
                 status: 'accepted',
+                // 주문완료 → 조리대기 → 조리완료 → 수령대기 → 수령완료
+                kitchenStage: 'ordered',
+                estimatedMinutes: estimate ? estimate.totalMinutes : null,
+                // 생고기 1차 서빙까지의 시간 (손님 체감 대기시간)
+                firstServeMinutes: estimate ? estimate.firstServeMinutes : null,
+                cookingSequence: cooking ? cooking.sequence : [],
+                userId: getCurrentOrderUserId(),
+                userName: getCurrentOrderUserName(),
                 paymentStatus: 'pending',
                 paymentMethod: null,
-                orderedAt: new Date().toISOString()
+                orderedAt: orderedAt
             };
+        }
+
+        function getCurrentOrderUserName() {
+            try {
+                const user = JSON.parse(sessionStorage.getItem('user') || 'null');
+                if (user && user.name) return user.name;
+            } catch (error) {}
+            return '고객';
+        }
+
+        // ── 주문 접수 제한 (기본 10분당 1건) ──
+        const KMEAT_ORDER_LIMIT_STATE_KEY = 'kmeat_order_limit_state';
+
+        function getKmeatOrderLimitSettings() {
+            if (window.MockData && typeof window.MockData.getKmeatOrderSettings === 'function') {
+                return window.MockData.getKmeatOrderSettings();
+            }
+            return { intervalMinutes: 10, maxQtyPerInterval: 1 };
+        }
+
+        function getRecentOrderCount() {
+            const settings = getKmeatOrderLimitSettings();
+            const windowMs = settings.intervalMinutes * 60 * 1000;
+            const since = Date.now() - windowMs;
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem(BULGOGI_ORDER_HISTORY_KEY) || '[]');
+                if (!Array.isArray(history)) history = [];
+            } catch (error) {
+                history = [];
+            }
+            const recent = history.filter(order => {
+                if (!order || order.status === 'cancelled') return false;
+                const t = Date.parse(order.orderedAt || '');
+                return Number.isFinite(t) && t >= since;
+            });
+            const oldestRecent = recent.reduce((oldest, order) => {
+                const t = Date.parse(order.orderedAt || '');
+                return oldest === null || t < oldest ? t : oldest;
+            }, null);
+            return {
+                count: recent.length,
+                settings,
+                resetAt: oldestRecent !== null ? oldestRecent + windowMs : null
+            };
+        }
+
+        function checkOrderLimit() {
+            const { count, settings, resetAt } = getRecentOrderCount();
+            if (count < settings.maxQtyPerInterval) return { allowed: true };
+            const remainMs = resetAt ? Math.max(0, resetAt - Date.now()) : settings.intervalMinutes * 60 * 1000;
+            const mm = Math.floor(remainMs / 60000);
+            const ss = Math.floor((remainMs % 60000) / 1000);
+            return {
+                allowed: false,
+                message: `현재 매장 주문은 ${settings.intervalMinutes}분당 최대 ${settings.maxQtyPerInterval}건까지 접수됩니다.\n${mm}분 ${String(ss).padStart(2, '0')}초 후에 다시 주문해주세요.`
+            };
+        }
+
+        function renderOrderLimitNotice() {
+            const el = document.getElementById('order-limit-notice');
+            if (!el) return;
+            const { count, settings, resetAt } = getRecentOrderCount();
+            const remaining = Math.max(0, settings.maxQtyPerInterval - count);
+            if (remaining > 0) {
+                el.textContent = `주문 가능: ${settings.intervalMinutes}분당 ${settings.maxQtyPerInterval}건 · 남은 접수 ${remaining}건`;
+                el.style.color = '#55efc4';
+            } else {
+                const remainMs = resetAt ? Math.max(0, resetAt - Date.now()) : 0;
+                const mm = Math.floor(remainMs / 60000);
+                const ss = Math.floor((remainMs % 60000) / 1000);
+                el.textContent = `주문 접수 제한 중 · ${mm}:${String(ss).padStart(2, '0')} 후 재접수 가능`;
+                el.style.color = '#ffcf70';
+            }
         }
 
         function renderOrderSummary(order) {
@@ -1144,8 +1254,19 @@
 
         function getShopOrderStatus(order) {
             if (order.status === 'cancelled' || order.paymentStatus === 'cancelled') return 'cancelled';
+            if (order.kitchenStage === 'received') return 'completed';
             if (order.paymentStatus === 'paid') return 'completed';
             return 'pending';
+        }
+
+        // K-Meat 5단계 주방 상태 → 공용 kitchenStatus 매핑
+        function mapKitchenStageToStatus(order) {
+            if (order.status === 'cancelled') return 'cancelled';
+            const stage = order.kitchenStage || 'ordered';
+            if (stage === 'received') return 'received';
+            if (stage === 'pickup_wait' || stage === 'cooked') return 'ready';
+            if (stage === 'queued') return 'preparing';
+            return 'queued';
         }
 
         function buildShopOrderRecord(order) {
@@ -1183,7 +1304,9 @@
                     ? '온라인 정산 금액 결제'
                     : (order.paymentMethod === 'offline' ? '오프라인 결제' : '나중에 결제'),
                 status: getShopOrderStatus(order),
-                kitchenStatus: order.status === 'cancelled' ? 'cancelled' : 'queued',
+                kitchenStatus: mapKitchenStageToStatus(order),
+                kitchenStage: order.kitchenStage || 'ordered',
+                estimatedMinutes: order.estimatedMinutes || null,
                 orderType: 'dine_in',
                 fulfillmentType: 'pickup',
                 tableId: order.tableId,
@@ -1219,6 +1342,12 @@
         }
 
         function getSettlementBalance() {
+            // 회원정보(store.js)의 정산금액을 단일 소스로 사용
+            const userId = getCurrentOrderUserId();
+            if (userId && window.MockData && typeof window.MockData.getUserSettlementBalance === 'function') {
+                return window.MockData.getUserSettlementBalance(userId);
+            }
+            // 비로그인 fallback
             const raw = localStorage.getItem(BULGOGI_SETTLEMENT_BALANCE_KEY);
             const parsed = Number(raw);
             if (Number.isFinite(parsed)) return parsed;
@@ -1228,7 +1357,45 @@
         }
 
         function setSettlementBalance(value) {
+            // 정산 잔액은 결제 로그에서 파생되므로 비로그인 fallback만 직접 저장한다
+            const userId = getCurrentOrderUserId();
+            if (userId && window.MockData && typeof window.MockData.getUserSettlementBalance === 'function') return;
             localStorage.setItem(BULGOGI_SETTLEMENT_BALANCE_KEY, String(value));
+        }
+
+        function recordSettlementLog(order, balanceBefore, balanceAfter, paidAt) {
+            const userId = getCurrentOrderUserId();
+            if (!userId || !window.MockData || typeof window.MockData.addSettlementLog !== 'function') return;
+
+            const items = Array.isArray(order.items) ? order.items : [];
+            const firstItem = items[0] || {};
+            const extraCount = Math.max(0, items.length - 1);
+            const title = extraCount > 0
+                ? `${firstItem.name || 'K-Meat 매장 주문'} 외 ${extraCount}개`
+                : (firstItem.name || 'K-Meat 매장 주문');
+
+            window.MockData.addSettlementLog(userId, {
+                id: `settle_bulgogi_${order.orderNo}`,
+                type: 'purchase',
+                category: '상품 구입',
+                title: title,
+                storeName: '불고기구이 K-Meat',
+                workId: 6,
+                orderNo: order.orderNo,
+                amount: -Math.abs(Number(order.total) || 0),
+                balanceBefore: balanceBefore,
+                balanceAfter: balanceAfter,
+                items: items.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    price: item.price,
+                    subtotal: item.subtotal
+                })),
+                paymentMethod: 'online_settlement',
+                createdAt: paidAt || new Date().toISOString(),
+                description: `${order.tableId} 매장 주문 정산 차감`
+            });
         }
 
         function savePaymentRecord(payment) {
@@ -1328,7 +1495,8 @@
 
             const paidAt = new Date().toISOString();
             const nextBalance = balance - paymentOrder.total;
-            setSettlementBalance(nextBalance);
+            // 결제 로그 기록이 곧 정산금액 차감 (파생 잔액 방식)
+            recordSettlementLog(paymentOrder, balance, nextBalance, paidAt);
             updateOrderRecord(paymentOrder.orderNo, {
                 paymentStatus: 'paid',
                 paymentMethod: 'online_settlement',
@@ -1425,6 +1593,11 @@
         renderMenu('meat', 'meat-menu');
         renderMenu('side', 'side-menu');
         updateSummary();
+
+        // 주문 제한 안내 실시간 갱신
+        renderOrderLimitNotice();
+        setInterval(renderOrderLimitNotice, 1000);
+        window.addEventListener('storage', renderOrderLimitNotice);
     </script>
 </body>
 

@@ -149,12 +149,24 @@
             z-index: 1;
         }
 
+        .earnings-section { cursor: pointer; transition: background 0.2s ease; }
+        .earnings-section:hover { background: rgba(0, 0, 0, 0.32); }
         .earnings-section .label { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.8); }
         .earnings-section .amount {
             font-family: 'Outfit', sans-serif;
             font-size: 28px;
             font-weight: 700;
             color: #fff;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        .earnings-section .earnings-arrow {
+            margin-left: 6px;
+            font-size: 18px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.7);
+            vertical-align: middle;
         }
 
         /* --- Section Titles --- */
@@ -407,9 +419,9 @@
                         <div id="user-email-display">user@example.com</div>
                     </div>
                 </div>
-                <div class="earnings-section">
+                <div class="earnings-section" onclick="location.href='./settlement_log.html'">
                     <span class="label">나의 정산 자산</span>
-                    <div class="amount">₩ <span id="total-earnings-display">0</span></div>
+                    <div class="amount">₩ <span id="total-earnings-display">0</span><i class="bi bi-chevron-right earnings-arrow"></i></div>
                 </div>
             </div>
 
@@ -687,25 +699,9 @@
 
         function renderEarnings() {
             const userId = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : "2";
-            const initialAsset = (window.MockData && window.MockData.getUserBaseAssets) ? window.MockData.getUserBaseAssets(userId) : 100000;
+            const settlementBalance = (window.MockData && window.MockData.getUserSettlementBalance) ? window.MockData.getUserSettlementBalance(userId) : 100000;
 
-            const history = FactoryStore.getState().history || [];
-            let baseSum = history.reduce((sum, item) => sum + (item.pay || 0), 0);
-
-            const helperBase = parseInt(getPartitionedItem('kimp_helper_base_salary') || '0');
-            const helperBonus = parseInt(getPartitionedItem('kimp_helper_bonus') || '0');
-
-            const settlementTransactions = (FactoryStore.getState().settlementTransactions || []).filter(item => {
-                if (!item || item.type !== 'shop_spend') return false;
-                if (item.userId === undefined || item.userId === null || String(item.userId).trim() === '') return true;
-                return String(item.userId) === String(userId);
-            });
-            const completedSpent = settlementTransactions.reduce((sum, item) => {
-                return sum + (Number(item.absoluteAmount) || Math.abs(Number(item.amount) || 0));
-            }, 0);
-
-            const totalSum = initialAsset + baseSum + helperBase + helperBonus - completedSpent;
-            $('#total-earnings-display').text(totalSum.toLocaleString());
+            $('#total-earnings-display').text(settlementBalance.toLocaleString());
         }
 
         function renderPartnerGrades() {
@@ -1103,7 +1099,7 @@
                         <div style="font-size: 36px; margin-bottom: 4px; filter: drop-shadow(0 0 8px rgba(253, 132, 237, 0.3));">🛍️</div>
                         <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">아직 주문한 내역이 없습니다</div>
                         <div style="font-size: 11px; color: var(--text-sub); max-width: 260px; line-height: 1.5; margin-bottom: 6px;">라운지 쉼터에서 정성 가득한 우동과 간장 비빔면을 주문해 보세요!</div>
-                        <a href="./kimp_detail.html?productId=p1&workId=2" style="background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); color: #000; border: none; padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(253, 132, 237, 0.3); transition: all 0.2s;">
+                        <a href="./main.html" style="background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); color: #000; border: none; padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(253, 132, 237, 0.3); transition: all 0.2s;">
                             <span>🍜 주문하러 바로가기</span> <i class="bi bi-chevron-right" style="font-size: 10px; font-weight: bold;"></i>
                         </a>
                     </div>

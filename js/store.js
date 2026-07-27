@@ -825,8 +825,29 @@
         return `shop-spend:${String(key)}`;
     }
 
-    function ensureShopSettlementForOrder(order) {
-        if (!order || order.status !== 'completed') return null;
+    function isManagerTestOrder(order) {
+        if (!order) return false;
+        if (String(order.userId || '') === 'manager-test') return true;
+        if (String(order.id || '').startsWith('manager_test_')) return true;
+        return /^T\d+$/.test(String(order.orderNo || ''));
+    }
+
+    function ensureShopSettlementForOrder(order, options) {
+        const allowCreate = !(options && options.allowCreate === false);
+
+        // 💡 주문이 접수(완료)된 시점에 정산금액을 차감한다. 취소된 주문은 차감하지 않는다.
+        if (!order || order.status === 'cancelled') return null;
+
+        // 관리자 KDS 테스트 주문은 실제 구매가 아니므로 정산금액에서 차감하지 않는다
+        if (isManagerTestOrder(order)) return null;
+
+        // 별도 결제 절차가 있는 주문(오프라인 매장 주문 등)은 온라인 정산 결제로 확정된 경우만 차감한다.
+        // paymentStatus 필드를 가진 주문은 결제 방식을 직접 선택하는 주문이다.
+        if (order.paymentStatus !== undefined && order.paymentStatus !== null) {
+            if (order.paymentStatus !== 'paid') return null;
+            if (order.paymentMethod && order.paymentMethod !== 'online_settlement') return null;
+        }
+
         const price = Number(order.price) || 0;
         if (price <= 0) return null;
         if (!Array.isArray(state.settlementTransactions)) state.settlementTransactions = [];
@@ -839,7 +860,10 @@
             return existing;
         }
 
-        const createdAt = order.completedAt || new Date().toISOString();
+        // 신규 생성이 허용되지 않은 호출(로드 시 연결 전용)은 여기서 종료
+        if (!allowCreate) return null;
+
+        const createdAt = order.orderedAt || order.createdAt || new Date().toISOString();
         const transaction = {
             id: transactionId,
             type: 'shop_spend',
@@ -848,16 +872,35 @@
             orderNo: order.orderNo !== undefined && order.orderNo !== null ? String(order.orderNo) : null,
             productId: order.productId || order.productCode || null,
             productName: order.productName || '주문 상품',
+            workId: order.workId !== undefined && order.workId !== null ? order.workId : inferShopOrderWorkId(order),
+            brandName: order.brandName || null,
+            qty: Math.max(1, Number(order.qty) || 1),
+            unitPrice: Number(order.unitPrice) || price,
             amount: -price,
             absoluteAmount: price,
             createdAt: createdAt,
-            source: 'shop_order_receipt',
-            description: '쇼핑 주문 수령 정산 차감'
+            source: 'shop_order_placed',
+            description: '쇼핑 주문 접수 정산 차감'
         };
         state.settlementTransactions.push(transaction);
         order.settlementTransactionId = transaction.id;
         order.settlementDeductedAt = createdAt;
         return transaction;
+    }
+
+    // 주문 취소 시 정산 차감 트랜잭션을 제거해 잔액을 복구한다
+    function removeShopSettlementForOrder(order) {
+        if (!order) return false;
+        if (!Array.isArray(state.settlementTransactions)) return false;
+
+        const transactionId = order.settlementTransactionId || getShopSettlementId(order);
+        const index = state.settlementTransactions.findIndex(item => item && item.id === transactionId);
+        if (index < 0) return false;
+
+        state.settlementTransactions.splice(index, 1);
+        delete order.settlementTransactionId;
+        delete order.settlementDeductedAt;
+        return true;
     }
 
     let state = {
@@ -1135,8 +1178,10 @@
             state.settlementTransactions = [];
         }
 
+        // 💡 페이지 로드 시에는 기존 트랜잭션 연결만 수행한다.
+        // (신규 생성을 허용하면 과거 주문들이 뒤늦게 소급 차감되는 문제가 발생함)
         const beforeSettlementCount = state.settlementTransactions.length;
-        getAllShopOrders().forEach(order => ensureShopSettlementForOrder(order));
+        getAllShopOrders().forEach(order => ensureShopSettlementForOrder(order, { allowCreate: false }));
         if (state.settlementTransactions.length !== beforeSettlementCount) {
             localStorage.setItem('kimp_settlement_transactions', JSON.stringify(state.settlementTransactions));
             localStorage.setItem('kimp_shop_history', JSON.stringify(state.shopHistory));
@@ -2209,6 +2254,8 @@
                         ? state.utonShopHistory
                         : state.shopHistory;
                     targetHistory.unshift(order);
+                    // 💡 주문 접수 시점에 정산금액 차감
+                    ensureShopSettlementForOrder(order);
                     break;
                 }
                 case 'UPDATE_SHOP_ORDER': {
@@ -2234,6 +2281,8 @@
                         target.cancelledAt = target.cancelledAt || new Date().toISOString();
                         target.shouldShowSpendAmount = false;
                         target.paymentDisplayLabel = '주문취소됨';
+                        // 💡 주문 취소 시 차감했던 정산금액을 복구
+                        removeShopSettlementForOrder(target);
                     }
                     break;
                 }
@@ -2245,6 +2294,7 @@
                         target.status = 'completed';
                         target.kitchenStatus = 'received';
                         target.completedAt = target.completedAt || new Date().toISOString();
+                        // 주문 접수 시 이미 차감되었으므로 누락된 경우에만 보정
                         ensureShopSettlementForOrder(target);
                     }
                     break;
@@ -2695,7 +2745,8 @@ window.MockData = {
             "isNew": false,
             "fulfillmentType": "delivery",
             "thumbnailMode": "product",
-            "exp": "kimp"
+            "exp": "kimp",
+            "managerLink": "manager.html"
         },
         {
             "workId": 2, "workName": "우동만들기", "brandName": "Uton", "iconUrl": "./images/Uton_150x150.png",
@@ -2704,7 +2755,8 @@ window.MockData = {
             "isNew": false,
             "fulfillmentType": "dine_in",
             "thumbnailMode": "product",
-            "exp": "uton"
+            "exp": "uton",
+            "managerLink": "umanager.html"
         },
         {
             "workId": 3, "workName": "지갑만들기", "brandName": "Persa", "iconUrl": "./images/fancy_150x150.png",
@@ -2715,12 +2767,14 @@ window.MockData = {
         },
         {
             "workId": 6, "workName": "불고기구이", "brandName": "K-Meat", "iconUrl": "./images/beef_500.png",
-            "salary": 1.5, "salaryChange": -0.02, "taskCount": 5, "participants": 80, "createdAt": "2026-06-20",
+            "salary": 1.5, "salaryChange": -0.02, "taskCount": 6, "participants": 80, "createdAt": "2026-06-20",
             "region": "서울시 종로구 연남동", "categories": ["음식", "요리", "불고기", "고기", "구이"],
             "isNew": true,
             "fulfillmentType": "dine_in",
             "thumbnailMode": "work_icon",
-            "exp": null
+            "exp": "kmeat",
+            "managerLink": "kmanager.html",
+            "workerLink": "kmeat-real.html"
         },
         {
             "workId": 7, "workName": "버거만들기", "brandName": "BurgerQueen", "iconUrl": "./images/burger_500.png",
@@ -2737,6 +2791,7 @@ window.MockData = {
             name: "최현일",
             email: "tt2t2am1118@naver.com",
             baseAssets: 100000,
+            settlementBalance: 100000,
             picture: "",
             role: "MANAGER",          // 시스템 권한
             roleName: "매니저",         // 화면 표시용
@@ -2755,6 +2810,7 @@ window.MockData = {
             name: "최수아",
             email: "capegon21@gmail.com",
             baseAssets: 100000,
+            settlementBalance: 100000,
             picture: "",
             role: "USER",
             roleName: "일반",
@@ -2773,6 +2829,7 @@ window.MockData = {
             name: "김수민",
             email: "capegon23@gmail.com",
             baseAssets: 100000,
+            settlementBalance: 100000,
             picture: "",
             role: "USER",
             roleName: "일반",
@@ -2791,6 +2848,7 @@ window.MockData = {
             name: "김영희",
             email: "younghee@naver.com",
             baseAssets: 100000,
+            settlementBalance: 100000,
             picture: "",
             role: "HELPER",
             roleName: "헬퍼",
@@ -2994,10 +3052,38 @@ window.MockData = {
                 { "icon": "bi-calendar-event", "iconColor": "color-green", "text": "당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊", "isBanner": true, "bannerClass": "banner-green" }
             ],
             "workflows": [
-                { "step": 1, "desc": "면발 재료 준비하기" },
-                { "step": 2, "desc": "우동 면 뽑기" },
-                { "step": 3, "desc": "우동 국물 끓이기" },
-                { "step": 4, "desc": "포장하기" }
+                { "step": 1, "desc": "가쓰오 우동 - 육수 가열" },
+                { "step": 2, "desc": "가쓰오 우동 - 면 삶기 & 고명 준비" },
+                { "step": 3, "desc": "간장 비빔면 - 소면 계량 & 삶기" },
+                { "step": 4, "desc": "간장 비빔면 - 양념 비비기 & 담기" }
+            ],
+            "workflowGroups": [
+                {
+                    "menuId": "p1",
+                    "name": "가쓰오 우동 만들기",
+                    "icon": "🍜",
+                    "color": "#2563eb",
+                    "note": "따뜻한 국물 요리. 육수를 먼저 올려야 합니다.",
+                    "steps": [
+                        { "step": 1, "desc": "멸치·다시마 가쓰오 육수 500ml 강불 가열" },
+                        { "step": 2, "desc": "끓는 물에 우동면 투입 후 타이머 조리" },
+                        { "step": 3, "desc": "고명 준비 (어묵·대파·튀김가루·김가루)" },
+                        { "step": 4, "desc": "그릇에 담고 육수 부어 고명 올려 완성" }
+                    ]
+                },
+                {
+                    "menuId": "p2",
+                    "name": "간장 비빔면 만들기",
+                    "icon": "🥢",
+                    "color": "#f59e0b",
+                    "note": "차가운 비빔 요리. 육수 가열 단계가 없습니다.",
+                    "steps": [
+                        { "step": 1, "desc": "소면 1인분 100g 계량 (묶음 지름 약 2cm)" },
+                        { "step": 2, "desc": "끓는 물에 삶고 찬물에 헹궈 물기 완전히 짜기" },
+                        { "step": 3, "desc": "간장·설탕·참기름 양념에 비비기 (비닐장갑 착용)" },
+                        { "step": 4, "desc": "완성 접시에 정갈하게 담아 배식 준비" }
+                    ]
+                }
             ]
         },
         "3": {
@@ -3058,7 +3144,7 @@ window.MockData = {
         },
         "6": {
             "title": "불고기구이",
-            "expPage": null,
+            "expPage": "kmeat-ex.html",
             "iconUrl": "./images/beef_500.png",
             "value": 1.5,
             "change": "-0.02%",
@@ -3106,11 +3192,84 @@ window.MockData = {
                 { "icon": "bi-gift-fill", "iconColor": "color-lightpurple", "text": "처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉", "textColor": "color-lightpurple", "isBanner": true, "bannerClass": "banner-purple" }
             ],
             "workflows": [
-                { "step": 1, "desc": "소고기 핏물 빼기" },
-                { "step": 2, "desc": "양념장 만들기" },
-                { "step": 3, "desc": "고기 재우기" },
-                { "step": 4, "desc": "직화구이 작업" },
-                { "step": 5, "desc": "도시락 포장하기" }
+                { "step": 1, "desc": "고기 소분하기 (저울 계량 · 생고기 제공)" },
+                { "step": 2, "desc": "반찬 5종 · 쌈채소(상추·깻잎) 덜기" },
+                { "step": 3, "desc": "사이드 메뉴 - 찌개류 (된장·김치찌개)" },
+                { "step": 4, "desc": "사이드 메뉴 - 냉면류 (물냉면·비빔냉면)" },
+                { "step": 5, "desc": "사이드 메뉴 - 계란찜" },
+                { "step": 6, "desc": "테이블 서빙 및 설겆이" }
+            ],
+            "workflowGroups": [
+                {
+                    "name": "고기 소분하기",
+                    "icon": "🥩",
+                    "color": "#e0362c",
+                    "note": "굽지 않고 생고기로 제공합니다. 손님이 테이블 불판에서 직접 굽습니다.",
+                    "steps": [
+                        { "step": 1, "desc": "냉장 숙성고에서 반출, 저울 트레이 영점(Tare) 조절" },
+                        { "step": 2, "desc": "삼겹살·목살 180g / 항정살·갈매기살 150g 계량 (±5%)" },
+                        { "step": 3, "desc": "돼지갈비는 양념 국물 걸러내고 250g 계량" },
+                        { "step": 4, "desc": "핏물 제거 후 접시에 담아 1차로 즉시 서빙" }
+                    ]
+                },
+                {
+                    "name": "반찬 · 쌈채소 준비",
+                    "icon": "🥬",
+                    "color": "#10b981",
+                    "note": "생고기와 함께 1차로 나갑니다.",
+                    "steps": [
+                        { "step": 1, "desc": "반찬 5종 세팅 (배추김치·무생채·콩나물·마늘고추·쌈장)" },
+                        { "step": 2, "desc": "상추 1인분 70g(약 10장) 계량, 2회 세척 후 물기 제거" },
+                        { "step": 3, "desc": "깻잎 1인분 20g(약 8장) 계량, 줄기 제거" },
+                        { "step": 4, "desc": "쌈장 종지 1인 1개, 불판·집게·가위 세팅 확인" }
+                    ]
+                },
+                {
+                    "name": "사이드 메뉴 - 찌개류",
+                    "icon": "🍲",
+                    "color": "#f59e0b",
+                    "note": "3차 마무리 식사. 손님 식사 진행률 70% 시점에 맞춰 늦게 착수합니다.",
+                    "steps": [
+                        { "step": 1, "desc": "된장찌개 - 육수 300ml에 된장 30g 풀고 두부·애호박 투입" },
+                        { "step": 2, "desc": "김치찌개 - 숙성 김치 150g 먼저 볶아 감칠맛 올리기" },
+                        { "step": 3, "desc": "중강불로 6~7분 끓이기" },
+                        { "step": 4, "desc": "대파·청양고추 올려 뚝배기째 서빙" }
+                    ]
+                },
+                {
+                    "name": "사이드 메뉴 - 냉면류",
+                    "icon": "🧊",
+                    "color": "#0891b2",
+                    "note": "3차 마무리 식사. 면 삶기 90초를 넘기지 않습니다.",
+                    "steps": [
+                        { "step": 1, "desc": "냉면 육수 350ml를 살얼음 상태(-1℃)로 준비" },
+                        { "step": 2, "desc": "면 100g을 끓는 물에 90초 삶기" },
+                        { "step": 3, "desc": "얼음물에 3회 헹궈 전분 제거, 물기 완전히 털기" },
+                        { "step": 4, "desc": "물냉면은 육수 붓고, 비빔냉면은 비빔장 50g에 버무려 완성" }
+                    ]
+                },
+                {
+                    "name": "사이드 메뉴 - 계란찜",
+                    "icon": "🍳",
+                    "color": "#eab308",
+                    "note": "2차 곁들이. 손님이 굽기 시작한 직후 나갑니다.",
+                    "steps": [
+                        { "step": 1, "desc": "계란 3개 + 육수 150ml 풀어 체에 걸러 기포 제거" },
+                        { "step": 2, "desc": "뚝배기에 담아 약불 5분, 뚜껑 덮어 폭신하게" },
+                        { "step": 3, "desc": "대파·통깨 올려 서빙" }
+                    ]
+                },
+                {
+                    "name": "서빙 및 설겆이",
+                    "icon": "🍽️",
+                    "color": "#7c3aed",
+                    "note": "테이블 번호를 반드시 확인하고 차수 순서대로 내보냅니다.",
+                    "steps": [
+                        { "step": 1, "desc": "1차(생고기+반찬) → 2차(계란찜) → 3차(찌개·냉면·밥) 순서 서빙" },
+                        { "step": 2, "desc": "지정된 테이블 번호 확인 후 배식" },
+                        { "step": 3, "desc": "식사 종료 후 불판 기름 긁어내고 그릇 세척" }
+                    ]
+                }
             ]
         },
         "7": {
@@ -3669,8 +3828,8 @@ window.MockData.storeProducts = [
     { productId: 10004, productCode: "p5kg", workId: 1, name: "5kg 실속 김치 팩", price: 32000, img: "./images/kimchi_1kg.png", brand: "AFood", isDelivery: true, description: "대가족 및 업소용 실속 포장. 대용량 실속 파우치에 담긴 5kg 배추김치입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파", manufacturer: "AFood" },
     { productId: 10005, productCode: "p10kg", workId: 1, name: "10kg 업소용 김치", price: 60000, img: "./images/kimchi_3kg.png", brand: "AFood", isDelivery: true, description: "업소/단체급식 전용 대용량 김치. 식당이나 대규모 급식 시설 전용의 벌크형 10kg 제품입니다.", category: "요리", ingredients: "배추, 고춧가루, 마늘, 젓갈, 무, 양파, 파", manufacturer: "AFood" },
     // 우동공정 (workId: 2)
-    { productId: 20001, productCode: "p1", workId: 2, name: "정통 가쓰오 우동", price: 3000, status: "생산 중", img: "./images/udon_product.png", brand: "Uton", isDelivery: false, description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.", category: "패스트푸드", ingredients: "우동면, 육수, 쪽파", manufacturer: "Uton" },
-    { productId: 20002, productCode: "p2", workId: 2, name: "감칠맛 간장 비빔면", price: 3000, status: "생산 중", img: "./images/somyeon_complete.png", brand: "Uton", isDelivery: false, description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.", category: "패스트푸드", ingredients: "소면, 간장, 설탕, 참기름", manufacturer: "Uton" },
+    { productId: 20001, productCode: "p1", workId: 2, name: "정통 가쓰오 우동", price: 3000, status: "판매 중", img: "./images/udon_product.png", brand: "Uton", isDelivery: false, description: "진한 가쓰오 육수와 쫄깃한 면발을 자랑하는 매장의 대표 가쓰오 우동입니다.", category: "패스트푸드", ingredients: "우동면, 육수, 쪽파", manufacturer: "Uton" },
+    { productId: 20002, productCode: "p2", workId: 2, name: "감칠맛 간장 비빔면", price: 3000, status: "판매 중", img: "./images/somyeon_complete.png", brand: "Uton", isDelivery: false, description: "특제 간장 소스와 고소한 참기름을 곁들여 자극적이지 않고 달콤 짭조름하여 아이들도 너무 좋아하고 맛있게 잘 먹는 온 가족 영양 별미 감칠맛 소면 비빔면입니다.", category: "패스트푸드", ingredients: "소면, 간장, 설탕, 참기름", manufacturer: "Uton" },
     { productId: 20003, productCode: "udon_01", workId: 2, name: "수제 쫄깃 우동면 2인분", price: 4500, img: "./images/udon_noodle.png", brand: "Uton", isDelivery: true, description: "수타 공정으로 뽑아내어 한층 더 탱글하고 쫄깃한 명품 우동 사리 면발입니다.", category: "식자재", ingredients: "우동면", manufacturer: "Uton" },
     // 지갑공정 (workId: 3)
     { productId: 30001, productCode: "wallet_01", workId: 3, name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa", isDelivery: true, description: "고급 소가죽 원단을 사용하여 부드러운 터치감과 뛰어난 실용성을 갖춘 명함지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
@@ -3754,6 +3913,256 @@ window.MockData.getUserBaseAssets = function(userId) {
     return found ? (found.baseAssets || 100000) : 100000;
 };
 
+// 정산금액 저장 키 접두어 (회원별 파티션)
+window.MockData.SETTLEMENT_BALANCE_KEY_PREFIX = 'user_settlement_balance_';
+
+// 회원 식별자를 정규화 (users 배열의 id로 통일)
+window.MockData.normalizeSettlementUserId = function(userId) {
+    var uList = (window.FactoryStore && window.FactoryStore.getState) ? window.FactoryStore.getState().users : (this.users || []);
+    if (!uList || uList.length === 0) uList = this.users || [];
+    var strId = String(userId === undefined || userId === null ? '' : userId).trim();
+
+    // 1) 정확 일치 (id / email / name)
+    var found = uList.find(function(u) {
+        return String(u.id) === strId || u.email === strId || u.name === strId;
+    });
+    if (found) return String(found.id);
+
+    // 2) 부분 일치 (local-email 형태나 email 일부가 섞인 식별자 대응)
+    found = uList.find(function(u) {
+        if (!strId) return false;
+        var emailLocal = u.email ? String(u.email).split('@')[0] : '';
+        return (u.email && strId.indexOf(u.email) > -1)
+            || (emailLocal && strId.indexOf(emailLocal) > -1)
+            || (u.name && strId.indexOf(u.name) > -1);
+    });
+    if (found) return String(found.id);
+
+    return strId;
+};
+
+// 회원정보에 등록된 초기 정산금액 (기본 10만원)
+window.MockData.getUserInitialSettlementBalance = function(userId) {
+    var normId = this.normalizeSettlementUserId(userId);
+
+    // 관리자가 초기값을 조정한 경우 우선 적용
+    try {
+        var override = localStorage.getItem(this.SETTLEMENT_BALANCE_KEY_PREFIX + normId + '_initial');
+        if (override !== null && override !== '' && override !== 'null') {
+            var parsedOverride = Number(override);
+            if (Number.isFinite(parsedOverride)) return parsedOverride;
+        }
+    } catch (e) {}
+
+    var uList = (window.FactoryStore && window.FactoryStore.getState) ? window.FactoryStore.getState().users : (this.users || []);
+    if (!uList || uList.length === 0) uList = this.users || [];
+    var found = uList.find(function(u) {
+        return String(u.id) === normId;
+    });
+    return found && Number.isFinite(Number(found.settlementBalance))
+        ? Number(found.settlementBalance)
+        : 100000;
+};
+
+// 현재 정산금액 = 초기 정산금액 + 모든 로그 증감액 합계 (로그 기반 파생값이라 중복 차감 불가)
+window.MockData.getUserSettlementBalance = function(userId) {
+    var initial = this.getUserInitialSettlementBalance(userId);
+    var logs = this.getSettlementLogs(userId);
+    var delta = logs.reduce(function(sum, log) {
+        return sum + (Number(log.amount) || 0);
+    }, 0);
+    return Math.max(0, Math.round(initial + delta));
+};
+
+// 초기 정산금액 조정 (필요 시)
+window.MockData.setUserInitialSettlementBalance = function(userId, value) {
+    var normId = this.normalizeSettlementUserId(userId);
+    var amount = Math.max(0, Math.round(Number(value) || 0));
+    try {
+        localStorage.setItem(this.SETTLEMENT_BALANCE_KEY_PREFIX + normId + '_initial', String(amount));
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+    return amount;
+};
+
+// ==========================================
+// 💳 정산금액 결제 로그 (상품 구입 등 차감 이력)
+// ==========================================
+window.MockData.SETTLEMENT_LOG_KEY_PREFIX = 'user_settlement_log_';
+
+window.MockData.getSettlementLogs = function(userId) {
+    var normId = this.normalizeSettlementUserId(userId);
+    var storageKey = this.SETTLEMENT_LOG_KEY_PREFIX + normId;
+    var logs = [];
+    try {
+        var parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(parsed)) logs = parsed;
+    } catch (e) {}
+
+    // 이미 기록된 주문번호 집합 (중복 차감 방지용)
+    var knownIds = new Set(logs.map(function(l) { return String(l.id); }));
+    var knownOrderNos = new Set(
+        logs.filter(function(l) { return l.orderNo; })
+            .map(function(l) { return String(l.orderNo); })
+    );
+
+    // FactoryStore의 shop_spend 정산 트랜잭션(김치/우동 상품 구입)도 병합
+    try {
+        var txns = (window.FactoryStore && window.FactoryStore.getState)
+            ? (window.FactoryStore.getState().settlementTransactions || [])
+            : [];
+        var self = this;
+        txns.forEach(function(t) {
+            if (!t || t.type !== 'shop_spend') return;
+            // 관리자 KDS 테스트 주문은 정산 로그에서 제외
+            if (String(t.userId || '') === 'manager-test') return;
+            if (String(t.orderId || '').indexOf('manager_test_') === 0) return;
+            if (/^T\d+$/.test(String(t.orderNo || ''))) return;
+            // 트랜잭션의 userId가 이메일/이름일 수 있으므로 정규화 후 비교
+            if (t.userId !== null && t.userId !== undefined && String(t.userId) !== 'guest') {
+                if (self.normalizeSettlementUserId(t.userId) !== normId) return;
+            }
+            if (knownIds.has(String(t.id))) return;
+            if (t.orderNo && knownOrderNos.has(String(t.orderNo))) return;
+
+            var workId = t.workId !== undefined && t.workId !== null
+                ? t.workId
+                : self.inferSettlementWorkId(t);
+            var qty = Math.max(1, Number(t.qty) || 1);
+            var unitPrice = Number(t.unitPrice) || Math.abs(Number(t.absoluteAmount || t.amount) || 0);
+            logs.push({
+                id: t.id,
+                userId: normId,
+                type: 'purchase',
+                category: '상품 구입',
+                title: t.productName || '상품 구입',
+                storeName: t.storeName || t.brandName || self.getSettlementStoreName(workId),
+                workId: workId,
+                orderNo: t.orderNo || null,
+                amount: -Math.abs(Number(t.absoluteAmount || t.amount) || 0),
+                items: [{
+                    name: t.productName || '주문 상품',
+                    quantity: qty,
+                    unit: '개',
+                    price: unitPrice,
+                    subtotal: Math.abs(Number(t.absoluteAmount || t.amount) || 0)
+                }],
+                createdAt: t.createdAt || new Date().toISOString(),
+                description: t.description || '쇼핑 주문 정산 차감',
+                paymentMethod: 'online_settlement'
+            });
+            knownIds.add(String(t.id));
+            if (t.orderNo) knownOrderNos.add(String(t.orderNo));
+        });
+    } catch (e) {}
+
+    return logs.sort(function(a, b) {
+        return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0);
+    });
+};
+
+// 정산 트랜잭션의 workId 추정 (상품코드/상품명 기반)
+window.MockData.inferSettlementWorkId = function(txn) {
+    if (!txn) return null;
+    var productId = String(txn.productId || '').toLowerCase();
+    var productName = String(txn.productName || '');
+
+    var products = Array.isArray(this.storeProducts) ? this.storeProducts : [];
+    var matched = products.find(function(p) {
+        return String(p.productId).toLowerCase() === productId
+            || String(p.productCode).toLowerCase() === productId;
+    });
+    if (matched) return matched.workId;
+
+    if (productName.indexOf('우동') > -1 || productName.indexOf('비빔') > -1) return 2;
+    if (productName.indexOf('김치') > -1) return 1;
+    if (productName.indexOf('지갑') > -1) return 3;
+    if (productName.indexOf('불고기') > -1) return 6;
+    if (productName.indexOf('버거') > -1) return 7;
+    return null;
+};
+
+window.MockData.getSettlementStoreName = function(workId) {
+    var map = {
+        '1': 'AFood 김치공장',
+        '2': 'Uton Shop',
+        '3': 'Persa 공방',
+        '6': '불고기구이 K-Meat',
+        '7': 'BurgerQueen'
+    };
+    return map[String(workId)] || '';
+};
+
+window.MockData.addSettlementLog = function(userId, entry) {
+    var normId = this.normalizeSettlementUserId(userId);
+    var storageKey = this.SETTLEMENT_LOG_KEY_PREFIX + normId;
+    var logs = [];
+    try {
+        var parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(parsed)) logs = parsed;
+    } catch (e) {}
+
+    var source = entry && typeof entry === 'object' ? entry : {};
+    var record = {
+        id: source.id || ('settle_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
+        userId: normId,
+        type: source.type || 'purchase',
+        category: source.category || '상품 구입',
+        title: source.title || '정산금액 차감',
+        storeName: source.storeName || '',
+        workId: source.workId !== undefined ? source.workId : null,
+        orderNo: source.orderNo || null,
+        amount: Number(source.amount) || 0,
+        balanceBefore: source.balanceBefore !== undefined ? Number(source.balanceBefore) : null,
+        balanceAfter: source.balanceAfter !== undefined ? Number(source.balanceAfter) : null,
+        items: Array.isArray(source.items) ? source.items : [],
+        paymentMethod: source.paymentMethod || 'online_settlement',
+        createdAt: source.createdAt || new Date().toISOString(),
+        description: source.description || ''
+    };
+
+    if (!logs.some(function(l) { return String(l.id) === String(record.id); })) {
+        logs.unshift(record);
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(logs));
+            window.dispatchEvent(new Event('storage'));
+        } catch (e) {}
+    }
+    return record;
+};
+
+// 정산금액 차감 (부족하면 null 반환). 로그 기록이 곧 차감이다.
+window.MockData.deductUserSettlementBalance = function(userId, amount, meta) {
+    var current = this.getUserSettlementBalance(userId);
+    var cost = Math.max(0, Math.round(Number(amount) || 0));
+    if (current < cost) return null;
+
+    var next = current - cost;
+    this.addSettlementLog(userId, Object.assign({}, meta || {}, {
+        amount: -cost,
+        balanceBefore: current,
+        balanceAfter: next
+    }));
+    return next;
+};
+
+// 하위 호환: 잔액을 직접 세팅하는 대신 차액을 조정 로그로 남긴다
+window.MockData.setUserSettlementBalance = function(userId, value) {
+    var current = this.getUserSettlementBalance(userId);
+    var target = Math.max(0, Math.round(Number(value) || 0));
+    if (current === target) return target;
+    this.addSettlementLog(userId, {
+        type: 'adjustment',
+        category: '잔액 조정',
+        title: '정산 잔액 조정',
+        amount: target - current,
+        balanceBefore: current,
+        balanceAfter: target,
+        description: '정산 잔액을 직접 조정했습니다.'
+    });
+    return target;
+};
+
 window.MockData.workTimeSlots = {
     "1.5h": [
         { slot: 0, time: "10:00 ~ 11:30", label: "오전 타임", startHour: 10, startMin: 0, endHour: 11, endMin: 30 },
@@ -3774,6 +4183,10 @@ window.MockData.workTimeSlots = {
     "3h": [
         { slot: 0, time: "09:00 ~ 12:00", label: "오전 타임", startHour: 9, startMin: 0, endHour: 12, endMin: 0 },
         { slot: 1, time: "13:00 ~ 16:00", label: "오후 타임", startHour: 13, startMin: 0, endHour: 16, endMin: 0 }
+    ],
+    // 불고기구이(workId 6) - 저녁 영업 4시간 통근무 (오후 4시 ~ 오후 8시)
+    "4h": [
+        { slot: 0, time: "16:00 ~ 20:00", label: "저녁 타임", startHour: 16, startMin: 0, endHour: 20, endMin: 0 }
     ]
 };
 
@@ -3788,6 +4201,7 @@ window.MockData.getWorkTimeSlots = function(workId) {
                 const wt = detail.workTime;
                 if (wt.includes("1시간 30분") || wt.includes("1.5시간")) timeKey = "1.5h";
                 else if (wt.includes("2시간 30분") || wt.includes("2.5시간")) timeKey = "2.5h";
+                else if (wt.includes("4시간")) timeKey = "4h";
                 else if (wt.includes("3시간")) timeKey = "3h";
                 else if (wt.includes("2시간")) timeKey = "2h";
                 return {
@@ -3800,6 +4214,7 @@ window.MockData.getWorkTimeSlots = function(workId) {
 
     if (wId === "2") timeKey = "1.5h";
     else if (wId === "3") timeKey = "3h";
+    else if (wId === "6") timeKey = "4h";
     else if (wId === "7") timeKey = "2.5h";
     else timeKey = "2h";
 
@@ -3939,4 +4354,1250 @@ window.MockData.getMockWorkHistories = function(userObj) {
             breakSeconds: 0
         };
     });
+};
+
+// ==========================================
+// 🥩 불고기구이 K-Meat (workId 6) 조리 매뉴얼 / 예측시간 데이터
+// ==========================================
+window.MockData.kmeatOrderSettings = {
+    intervalMinutes: 10,
+    maxQtyPerInterval: 1
+};
+
+// 반찬 및 쌈채소 기준량 정책
+window.MockData.kmeatBanchanPolicy = {
+    banchanCount: 5,
+    banchanList: [
+        { name: '배추김치', amount: '80g', note: 'AFood 김치 사용' },
+        { name: '무생채', amount: '60g', note: '주문 직전 무침' },
+        { name: '콩나물무침', amount: '60g', note: '데친 후 참기름' },
+        { name: '마늘·고추', amount: '마늘 6쪽 / 고추 2개', note: '생마늘 별도 접시' },
+        { name: '쌈장', amount: '30g', note: '1인 1종지' }
+    ],
+    ssamPerServing: {
+        sangchu: { name: '상추', gramsPerServing: 70, countPerServing: 10, note: '2회 세척 후 물기 제거' },
+        kkaennip: { name: '깻잎', gramsPerServing: 20, countPerServing: 8, note: '줄기 제거, 겹치지 않게 담기' }
+    },
+    scaleTolerance: 0.05 // 저울 계량 허용 오차 ±5%
+};
+
+// 메뉴별 조리 매뉴얼 (bulgogi_order.html 메뉴 id와 1:1 매칭)
+window.MockData.kmeatMenuManuals = {
+    'samgyeopsal': {
+        id: 'samgyeopsal', name: '돼지고기 삼겹살 1인분', group: 'meat', station: 'butcher',
+        // 생고기 제공: 손님이 테이블 불판에서 직접 구움 → 주방은 계량·손질·담기만 수행
+        serveCourse: 1, raw: true,
+        price: 15000, unit: '인분', targetWeightG: 180, prepMinutes: 4,
+        scale: { target: 180, min: 171, max: 189, note: '저울 위 트레이 영점(Tare) 잡고 계량. 180g ±5% 이내여야 통과.' },
+        steps: [
+            { step: 1, minutes: 1, text: '냉장 숙성고(0~4℃)에서 생삼겹 블록 반출, 저울 트레이 영점 조절' },
+            { step: 2, minutes: 2, text: '두께 12mm로 썰어 180g 계량 (171~189g 허용). 초과분은 되돌림' },
+            { step: 3, minutes: 1, text: '핏물 제거 후 생고기 접시에 결 방향으로 펼쳐 담고 즉시 서빙 (굽지 않음)' }
+        ],
+        cautions: ['생고기 제공 - 절대 주방에서 굽지 않음', '반출 후 10분 내 서빙, 상온 방치 금지', '핏물은 키친타월로 제거']
+    },
+    'moksal': {
+        id: 'moksal', name: '돼지고기 목살 1인분', group: 'meat', station: 'butcher',
+        serveCourse: 1, raw: true,
+        price: 14000, unit: '인분', targetWeightG: 180, prepMinutes: 4,
+        scale: { target: 180, min: 171, max: 189, note: '저울 영점 후 180g ±5%. 목살은 결 방향 확인 후 계량.' },
+        steps: [
+            { step: 1, minutes: 1, text: '목살 블록 반출, 저울 트레이 영점 조절' },
+            { step: 2, minutes: 2, text: '결 반대 방향으로 15mm 두께 슬라이스, 180g 계량' },
+            { step: 3, minutes: 1, text: '접시에 겹치지 않게 담아 생고기 상태로 서빙' }
+        ],
+        cautions: ['생고기 제공 - 굽지 않음', '결 방향으로 썰면 손님이 구웠을 때 질겨짐']
+    },
+    'hangjeong': {
+        id: 'hangjeong', name: '항정살 1인분', group: 'meat', station: 'butcher',
+        serveCourse: 1, raw: true,
+        price: 19000, unit: '인분', targetWeightG: 150, prepMinutes: 5,
+        scale: { target: 150, min: 143, max: 158, note: '특수부위는 150g ±5%. 저울 소수점 1자리까지 확인.' },
+        steps: [
+            { step: 1, minutes: 1, text: '항정살 반출, 저울 영점 후 150g 계량 (143~158g)' },
+            { step: 2, minutes: 2, text: '칼집을 격자로 얕게 넣어 손님이 구울 때 오그라짐 방지' },
+            { step: 3, minutes: 2, text: '소금·기름장 종지와 함께 생고기 접시에 담아 서빙' }
+        ],
+        cautions: ['생고기 제공 - 굽지 않음', '칼집 필수 (미실시 시 구울 때 말림)']
+    },
+    'galmaegi': {
+        id: 'galmaegi', name: '갈매기살 1인분', group: 'meat', station: 'butcher',
+        serveCourse: 1, raw: true,
+        price: 17000, unit: '인분', targetWeightG: 150, prepMinutes: 5,
+        scale: { target: 150, min: 143, max: 158, note: '150g ±5%. 막 제거 후 순살 기준으로 계량.' },
+        steps: [
+            { step: 1, minutes: 2, text: '갈매기살 반출, 겉막 완전 제거 (순살 기준 계량)' },
+            { step: 2, minutes: 2, text: '10mm 두께로 손질 후 저울에 150g 계량' },
+            { step: 3, minutes: 1, text: '접시에 담아 생고기 상태로 서빙' }
+        ],
+        cautions: ['생고기 제공 - 굽지 않음', '겉막을 남기면 손님이 구웠을 때 질김', '얇은 부위이므로 손님에게 센 불 짧게 안내']
+    },
+    'pork-galbi': {
+        id: 'pork-galbi', name: '돼지갈비 1인분', group: 'meat', station: 'butcher',
+        serveCourse: 1, raw: true,
+        price: 17000, unit: '인분', targetWeightG: 250, prepMinutes: 5,
+        scale: { target: 250, min: 238, max: 263, note: '양념 포함 250g ±5%. 양념 국물은 체에 걸러 제외하고 계량.' },
+        steps: [
+            { step: 1, minutes: 2, text: '숙성 양념갈비 반출 (최소 12시간 숙성 확인)' },
+            { step: 2, minutes: 2, text: '양념 국물은 체에 걸러 제외하고 저울에 250g 계량' },
+            { step: 3, minutes: 1, text: '접시에 담아 생고기 상태로 서빙 (당분 많아 저온 구이 안내)' }
+        ],
+        cautions: ['생고기 제공 - 굽지 않음', '숙성 12시간 미달 시 사용 불가', '손님에게 약불 구이 안내 (양념 당분으로 쉽게 탐)']
+    },
+    'doenjang': {
+        id: 'doenjang', name: '된장찌개 단품', group: 'side', station: 'soup',
+        // 마무리 식사: 손님이 고기를 다 구울 무렵 서빙 (3차)
+        serveCourse: 3,
+        price: 6000, unit: '개', prepMinutes: 9,
+        steps: [
+            { step: 1, minutes: 1, text: '멸치·다시마 육수 300ml 뚝배기에 붓기' },
+            { step: 2, minutes: 1, text: '된장 30g 풀고 두부·애호박·양파 투입' },
+            { step: 3, minutes: 6, text: '중강불로 6분 끓이기 (끓어오른 후 4분 유지)' },
+            { step: 4, minutes: 1, text: '대파·청양고추 올려 마무리, 밥과 함께 서빙' }
+        ],
+        cautions: ['된장을 끓는 물에 넣으면 향이 날아감 - 육수 미지근할 때 투입']
+    },
+    'kimchi-jjigae': {
+        id: 'kimchi-jjigae', name: '김치찌개 단품', group: 'side', station: 'soup',
+        serveCourse: 3,
+        price: 8000, unit: '개', prepMinutes: 11,
+        steps: [
+            { step: 1, minutes: 2, text: '숙성 김치 150g을 기름에 볶기 (감칠맛 상승)' },
+            { step: 2, minutes: 1, text: '육수 300ml, 돼지고기 50g 투입' },
+            { step: 3, minutes: 7, text: '중강불 7분 끓이기. 김치가 물러질 때까지' },
+            { step: 4, minutes: 1, text: '두부·대파 올려 마무리' }
+        ],
+        cautions: ['김치를 먼저 볶지 않으면 국물이 겉돎']
+    },
+    'naengmyeon': {
+        id: 'naengmyeon', name: '물냉면 단품', group: 'side', station: 'cold',
+        serveCourse: 3,
+        price: 7000, unit: '개', prepMinutes: 7,
+        steps: [
+            { step: 1, minutes: 1, text: '냉면 육수 350ml를 살얼음 상태로 준비 (-1℃)' },
+            { step: 2, minutes: 2, text: '면 100g을 끓는 물에 90초 삶기' },
+            { step: 3, minutes: 2, text: '얼음물에 3회 헹궈 전분 제거, 물기 완전히 털기' },
+            { step: 4, minutes: 2, text: '사리 담고 육수 부어 계란·무절임·오이 고명 올리기' }
+        ],
+        cautions: ['면 삶기 90초 초과 금지 - 불면', '헹구기 부족 시 국물이 탁해짐']
+    },
+    'bibimnaengmyeon': {
+        id: 'bibimnaengmyeon', name: '비빔냉면 단품', group: 'side', station: 'cold',
+        serveCourse: 3,
+        price: 7500, unit: '개', prepMinutes: 7,
+        steps: [
+            { step: 1, minutes: 2, text: '면 100g 끓는 물에 90초 삶기' },
+            { step: 2, minutes: 2, text: '얼음물 3회 헹굼 후 물기 제거' },
+            { step: 3, minutes: 2, text: '비빔장 50g과 골고루 버무리기' },
+            { step: 4, minutes: 1, text: '참기름·통깨·고명 올려 서빙' }
+        ],
+        cautions: ['물기가 남으면 양념이 묽어짐']
+    },
+    'gyeran': {
+        id: 'gyeran', name: '계란찜 단품', group: 'side', station: 'soup',
+        // 곁들이 사이드: 손님이 굽기 시작한 직후 서빙 (2차)
+        serveCourse: 2,
+        price: 5000, unit: '개', prepMinutes: 8,
+        steps: [
+            { step: 1, minutes: 2, text: '계란 3개 + 육수 150ml 풀어 체에 한 번 걸러 기포 제거' },
+            { step: 2, minutes: 5, text: '뚝배기에 넣고 약불 5분. 뚜껑 덮어 폭신하게' },
+            { step: 3, minutes: 1, text: '대파·통깨 올려 서빙' }
+        ],
+        cautions: ['센 불 사용 시 겉만 타고 속이 안 익음']
+    },
+    'rice': {
+        id: 'rice', name: '공기밥', group: 'side', station: 'rice',
+        // 마무리 식사와 함께 (찌개/냉면 서빙 시점에 맞춤)
+        serveCourse: 3,
+        price: 1000, unit: '개', prepMinutes: 2,
+        steps: [
+            { step: 1, minutes: 1, text: '보온밥솥에서 210g 퍼담기' },
+            { step: 2, minutes: 1, text: '뚜껑 덮어 서빙' }
+        ],
+        cautions: ['보온 4시간 초과된 밥은 폐기']
+    }
+};
+
+// 조리 스테이션 정보 (병렬 처리 가능 단위)
+// ※ 불판은 손님 테이블에 있으므로 주방 스테이션이 아님. 고기는 정육·계량대에서 생으로 담아 나감.
+window.MockData.kmeatStations = {
+    butcher: { key: 'butcher', label: '정육·계량대', icon: 'bi-speedometer2', capacity: 2, color: '#e0362c' },
+    soup:    { key: 'soup',    label: '탕·찌개 화구', icon: 'bi-thermometer-half', capacity: 3, color: '#f59e0b' },
+    cold:    { key: 'cold',    label: '냉면 코너',   icon: 'bi-snow', capacity: 2, color: '#0891b2' },
+    rice:    { key: 'rice',    label: '밥·반찬 준비', icon: 'bi-basket', capacity: 4, color: '#10b981' }
+};
+
+// ==========================================
+// 🍽️ 서빙 차수(코스) 정의
+// 고기는 생으로 즉시 나가고, 손님이 굽는 동안 사이드가 뒤따라 나간다.
+// ==========================================
+window.MockData.kmeatServiceCourses = {
+    1: {
+        course: 1, key: 'first',
+        label: '1차 · 생고기 + 반찬',
+        desc: '손님이 바로 구울 수 있도록 생고기와 반찬·쌈채소를 최우선으로 서빙합니다.',
+        icon: 'bi-lightning-charge-fill', color: '#e0362c'
+    },
+    2: {
+        course: 2, key: 'accompany',
+        label: '2차 · 곁들이 사이드',
+        desc: '손님이 굽기 시작한 직후 나가는 곁들이 메뉴입니다.',
+        icon: 'bi-egg-fried', color: '#f59e0b'
+    },
+    3: {
+        course: 3, key: 'finale',
+        label: '3차 · 마무리 식사',
+        desc: '고기를 거의 다 구울 무렵 서빙합니다. 시간이 걸리는 찌개·냉면은 역산해서 늦게 착수합니다.',
+        icon: 'bi-bowl', color: '#0891b2'
+    }
+};
+
+// 서비스 타이밍 정책
+window.MockData.kmeatServicePolicy = {
+    // 1차(생고기+반찬) 세팅에 필요한 플레이팅 시간
+    firstPlatingMinutes: 3,
+    // 2차 곁들이 사이드 목표 서빙 시각 = 1차 서빙 + 이 값
+    accompanyDelayMinutes: 6,
+    // 손님이 1인분을 굽고 먹는 데 걸리는 평균 시간
+    mealPaceMinutesPerServing: 8,
+    // 3차 마무리 식사는 전체 식사 진행률이 이 비율에 도달할 때 서빙
+    finaleServeRatio: 0.7,
+    // 3차 최소 지연 (고기 서빙 후 최소 이만큼 뒤에 나감)
+    finaleMinDelayMinutes: 12,
+    // 3차 최대 지연 (너무 늦지 않도록 상한)
+    finaleMaxDelayMinutes: 45
+};
+
+// 메뉴의 서빙 차수 판별
+window.MockData.getKmeatServeCourse = function(manual) {
+    if (!manual) return 3;
+    if (manual.serveCourse) return Number(manual.serveCourse);
+    return manual.group === 'meat' ? 1 : 3;
+};
+
+window.MockData.getKmeatMenuManual = function(menuId) {
+    return this.kmeatMenuManuals[String(menuId)] || null;
+};
+
+// 메뉴 id 추정 (주문 항목명 기반 fallback)
+window.MockData.resolveKmeatMenuId = function(item) {
+    if (!item) return null;
+    var directId = String(item.id || item.menuId || '');
+    if (this.kmeatMenuManuals[directId]) return directId;
+
+    var name = String(item.name || item.productName || '');
+    var manuals = this.kmeatMenuManuals;
+    var matchedKey = Object.keys(manuals).find(function(key) {
+        return manuals[key].name === name;
+    });
+    if (matchedKey) return matchedKey;
+
+    if (name.indexOf('삼겹') > -1) return 'samgyeopsal';
+    if (name.indexOf('목살') > -1) return 'moksal';
+    if (name.indexOf('항정') > -1) return 'hangjeong';
+    if (name.indexOf('갈매기') > -1) return 'galmaegi';
+    if (name.indexOf('갈비') > -1) return 'pork-galbi';
+    if (name.indexOf('된장') > -1) return 'doenjang';
+    if (name.indexOf('김치찌개') > -1) return 'kimchi-jjigae';
+    if (name.indexOf('비빔냉면') > -1) return 'bibimnaengmyeon';
+    if (name.indexOf('냉면') > -1) return 'naengmyeon';
+    if (name.indexOf('계란') > -1) return 'gyeran';
+    if (name.indexOf('공기밥') > -1 || name.indexOf('밥') > -1) return 'rice';
+    return null;
+};
+
+// 주문 항목 → 작업(task) 목록 변환
+window.MockData.buildKmeatTasks = function(items) {
+    var self = this;
+    var list = Array.isArray(items) ? items : [];
+    var tasks = [];
+
+    list.forEach(function(item) {
+        var menuId = self.resolveKmeatMenuId(item);
+        var manual = menuId ? self.kmeatMenuManuals[menuId] : null;
+        if (!manual) return;
+        var qty = Math.max(1, Number(item.quantity || item.qty) || 1);
+        // 동일 메뉴 추가 수량은 함께 처리 가능하므로 60%만 가산
+        var minutes = Math.max(1, Math.round(manual.prepMinutes * (1 + (qty - 1) * 0.6)));
+        var station = manual.station;
+        tasks.push({
+            menuId: menuId,
+            name: manual.name,
+            group: manual.group,
+            raw: !!manual.raw,
+            course: self.getKmeatServeCourse(manual),
+            station: station,
+            stationLabel: (self.kmeatStations[station] || {}).label || station,
+            qty: qty,
+            unit: manual.unit || '개',
+            minutes: minutes,
+            unitMinutes: manual.prepMinutes,
+            targetWeightG: manual.targetWeightG || null,
+            scale: manual.scale || null,
+            steps: manual.steps || [],
+            cautions: manual.cautions || []
+        });
+    });
+
+    return tasks;
+};
+
+// 고기 인분 수 (반찬·쌈채소 계량 기준)
+window.MockData.countKmeatMeatServings = function(items) {
+    var tasks = this.buildKmeatTasks(items);
+    var servings = tasks.filter(function(t) { return t.group === 'meat'; })
+                        .reduce(function(sum, t) { return sum + t.qty; }, 0);
+    return Math.max(1, servings);
+};
+
+// ──────────────────────────────────────────
+// 서빙 타임라인 계산
+// 1차(생고기+반찬)를 최우선으로 내보내고, 2·3차는 목표 서빙 시각에서 역산해 착수한다.
+// ──────────────────────────────────────────
+window.MockData.planKmeatService = function(order) {
+    var items = (order && Array.isArray(order.items)) ? order.items : [];
+    var policy = this.kmeatServicePolicy;
+    var tasks = this.buildKmeatTasks(items);
+
+    var byCourse = { 1: [], 2: [], 3: [] };
+    tasks.forEach(function(t) {
+        var c = byCourse[t.course] ? t.course : 3;
+        byCourse[c].push(t);
+    });
+
+    var meatServings = this.countKmeatMeatServings(items);
+    var hasFirstCourse = byCourse[1].length > 0;
+    var firstPlating = hasFirstCourse ? policy.firstPlatingMinutes : 0;
+
+    // ── 1차: 스테이션 병렬 처리 후 플레이팅 ──
+    var firstStationTotals = {};
+    byCourse[1].forEach(function(t) {
+        firstStationTotals[t.station] = (firstStationTotals[t.station] || 0) + t.minutes;
+    });
+    var firstPrepMinutes = 0;
+    Object.keys(firstStationTotals).forEach(function(k) {
+        if (firstStationTotals[k] > firstPrepMinutes) firstPrepMinutes = firstStationTotals[k];
+    });
+    var firstServeAt = hasFirstCourse ? firstPrepMinutes + firstPlating : 0;
+
+    // ── 손님 식사 진행 예측 (생고기를 직접 굽는 시간) ──
+    var totalMealMinutes = meatServings * policy.mealPaceMinutesPerServing;
+    var grillFinishAt = firstServeAt + totalMealMinutes;
+
+    // ── 2차: 1차 서빙 후 accompanyDelay 시점 목표 ──
+    var accompanyServeAt = byCourse[2].length > 0
+        ? firstServeAt + policy.accompanyDelayMinutes
+        : null;
+
+    // ── 3차: 식사 진행률 finaleServeRatio 시점 목표 (하한/상한 적용) ──
+    var finaleServeAt = null;
+    if (byCourse[3].length > 0) {
+        var ratioDelay = Math.round(totalMealMinutes * policy.finaleServeRatio);
+        var delay = Math.min(policy.finaleMaxDelayMinutes,
+                             Math.max(policy.finaleMinDelayMinutes, ratioDelay));
+        finaleServeAt = firstServeAt + delay;
+    }
+
+    return {
+        tasks: tasks,
+        byCourse: byCourse,
+        meatServings: meatServings,
+        firstPrepMinutes: firstPrepMinutes,
+        firstPlatingMinutes: firstPlating,
+        firstServeAt: firstServeAt,
+        accompanyServeAt: accompanyServeAt,
+        finaleServeAt: finaleServeAt,
+        totalMealMinutes: totalMealMinutes,
+        grillFinishAt: grillFinishAt
+    };
+};
+
+// 주문 전체의 예측 시간 요약
+window.MockData.estimateKmeatOrderTime = function(order) {
+    var plan = this.planKmeatService(order);
+    var lines = plan.tasks.map(function(t) {
+        return {
+            menuId: t.menuId, name: t.name, station: t.station,
+            course: t.course, qty: t.qty,
+            minutes: t.minutes, unitMinutes: t.unitMinutes
+        };
+    });
+
+    var stationTotals = {};
+    plan.tasks.forEach(function(t) {
+        stationTotals[t.station] = (stationTotals[t.station] || 0) + t.minutes;
+    });
+    var bottleneckStation = null;
+    var bottleneckMinutes = 0;
+    Object.keys(stationTotals).forEach(function(k) {
+        if (stationTotals[k] > bottleneckMinutes) {
+            bottleneckMinutes = stationTotals[k];
+            bottleneckStation = k;
+        }
+    });
+
+    var serialMinutes = plan.tasks.reduce(function(s, t) { return s + t.minutes; }, 0)
+        + plan.firstPlatingMinutes;
+
+    // 마지막 서빙 완료 시점
+    var lastServeAt = Math.max(
+        plan.firstServeAt,
+        plan.accompanyServeAt || 0,
+        plan.finaleServeAt || 0
+    );
+
+    return {
+        lines: lines,
+        stationTotals: stationTotals,
+        bottleneckStation: bottleneckStation,
+        bottleneckMinutes: Math.round(bottleneckMinutes),
+        platingMinutes: plan.firstPlatingMinutes,
+        meatServings: plan.meatServings,
+        // 1차(생고기) 서빙까지 걸리는 시간 = 손님 체감 대기시간
+        firstServeMinutes: plan.firstServeAt,
+        accompanyServeMinutes: plan.accompanyServeAt,
+        finaleServeMinutes: plan.finaleServeAt,
+        totalMealMinutes: plan.totalMealMinutes,
+        // 주방이 마지막 접시를 내보내는 시점
+        totalMinutes: lastServeAt,
+        serialMinutes: Math.round(serialMinutes),
+        courseCounts: {
+            1: plan.byCourse[1].length,
+            2: plan.byCourse[2].length,
+            3: plan.byCourse[3].length
+        }
+    };
+};
+
+// ──────────────────────────────────────────
+// 주문 접수 → 차수별 조리/서빙 순서 자동 생성
+//  · 1차: 생고기 + 반찬·쌈채소 → 즉시 착수, 동시 완성
+//  · 2차: 곁들이 사이드 → 목표 서빙 시각에서 역산 착수
+//  · 3차: 마무리 식사(찌개·냉면·밥) → 목표 서빙 시각에서 역산 착수 (늦게 시작)
+// ──────────────────────────────────────────
+window.MockData.buildKmeatCookingSequence = function(order) {
+    var self = this;
+    var items = (order && Array.isArray(order.items)) ? order.items : [];
+    var plan = this.planKmeatService(order);
+    var policy = this.kmeatServicePolicy;
+    var courses = [];
+
+    if (plan.tasks.length === 0) {
+        return { totalMinutes: 0, platingMinutes: 0, stationTotals: {}, sequence: [], courses: [] };
+    }
+
+    // ── 1차: 생고기 + 반찬 (동시 완성 후 플레이팅) ──
+    if (plan.byCourse[1].length > 0) {
+        var firstTasks = plan.byCourse[1].slice().sort(function(a, b) { return b.minutes - a.minutes; });
+        var prepEnd = plan.firstPrepMinutes;
+        var rows = firstTasks.map(function(task) {
+            var startAt = Math.max(0, prepEnd - task.minutes);
+            return { startAtMinute: startAt, finishAtMinute: startAt + task.minutes, task: task };
+        });
+        // 반찬·쌈채소 플레이팅
+        rows.push({
+            startAtMinute: prepEnd,
+            finishAtMinute: prepEnd + plan.firstPlatingMinutes,
+            task: self.buildKmeatPlatingTask(plan.meatServings, plan.firstPlatingMinutes)
+        });
+        courses.push({
+            course: 1,
+            meta: self.kmeatServiceCourses[1],
+            serveAtMinute: plan.firstServeAt,
+            rows: rows.sort(function(a, b) { return a.startAtMinute - b.startAtMinute; })
+        });
+    }
+
+    // 주문이 아직 열려 있으면(추가 주문 가능) 마무리 식사는 착수 보류
+    var finalized = this.isKmeatOrderFinalized(order);
+
+    // ── 2차 / 3차: 목표 서빙 시각에서 역산 ──
+    [2, 3].forEach(function(courseNo) {
+        var courseTasks = plan.byCourse[courseNo];
+        if (courseTasks.length === 0) return;
+        var serveAt = courseNo === 2 ? plan.accompanyServeAt : plan.finaleServeAt;
+        // 3차는 주문 마감 전에는 잠정 계획 (추가 주문 시 시각이 밀림)
+        var held = courseNo === 3 && !finalized;
+
+        // 같은 스테이션 작업은 순차 처리되므로 스테이션별로 역순 배치
+        var stationCursor = {};
+        var rows = courseTasks.slice()
+            .sort(function(a, b) { return b.minutes - a.minutes; })
+            .map(function(task) {
+                var cursor = stationCursor[task.station];
+                var finishAt = cursor === undefined ? serveAt : cursor;
+                var startAt = Math.max(0, finishAt - task.minutes);
+                stationCursor[task.station] = startAt;
+                return {
+                    startAtMinute: startAt,
+                    finishAtMinute: finishAt,
+                    held: held,
+                    task: task
+                };
+            })
+            .sort(function(a, b) { return a.startAtMinute - b.startAtMinute; });
+
+        courses.push({
+            course: courseNo,
+            meta: self.kmeatServiceCourses[courseNo],
+            serveAtMinute: serveAt,
+            held: held,
+            heldReason: held ? '추가 주문 대기 중 · 주문 마감 시 착수 시각 확정' : null,
+            rows: rows
+        });
+    });
+
+    // 평면 시퀀스 (착수 시간순 전체 목록)
+    var sequence = [];
+    courses.forEach(function(c) {
+        c.rows.forEach(function(r) {
+            sequence.push({
+                course: c.course,
+                courseLabel: c.meta.label,
+                serveAtMinute: c.serveAtMinute,
+                startAtMinute: r.startAtMinute,
+                finishAtMinute: r.finishAtMinute,
+                held: !!r.held,
+                task: r.task
+            });
+        });
+    });
+    sequence.sort(function(a, b) {
+        if (a.startAtMinute !== b.startAtMinute) return a.startAtMinute - b.startAtMinute;
+        return a.course - b.course;
+    });
+    sequence = sequence.map(function(row, i) { return Object.assign({}, row, { order: i + 1 }); });
+
+    var stationTotals = {};
+    plan.tasks.forEach(function(t) {
+        stationTotals[t.station] = (stationTotals[t.station] || 0) + t.minutes;
+    });
+
+    var lastServeAt = courses.reduce(function(max, c) {
+        return Math.max(max, c.serveAtMinute || 0);
+    }, 0);
+
+    return {
+        totalMinutes: lastServeAt,
+        firstServeMinutes: plan.firstServeAt,
+        platingMinutes: plan.firstPlatingMinutes,
+        meatServings: plan.meatServings,
+        totalMealMinutes: plan.totalMealMinutes,
+        finalized: finalized,
+        hasHeldCourse: courses.some(function(c) { return c.held; }),
+        stationTotals: stationTotals,
+        courses: courses,
+        sequence: sequence
+    };
+};
+
+// ==========================================
+// 📋 주문 확정 여부 / 추가 주문(차수) 관리
+// 한 번에 주문이 끝나지 않는 매장 특성 반영:
+//  · 주문이 열려 있으면(추가 주문 가능) 3차 마무리 식사는 착수 보류
+//  · '주문 마감'을 누르면 마무리 식사 시각을 확정해 착수
+// ==========================================
+window.MockData.isKmeatOrderFinalized = function(order) {
+    return !!(order && order.orderFinalized);
+};
+
+// 주문의 차수 목록 (rounds가 없는 legacy 주문은 items 전체를 1차로 간주)
+window.MockData.getKmeatOrderRounds = function(order) {
+    if (!order) return [];
+    if (Array.isArray(order.rounds) && order.rounds.length > 0) return order.rounds;
+    return [{
+        round: 1,
+        items: Array.isArray(order.items) ? order.items : [],
+        total: Number(order.total) || 0,
+        orderedAt: order.orderedAt || null
+    }];
+};
+
+// 추가 주문 접수 (같은 테이블에 메뉴 추가)
+window.MockData.appendKmeatOrderItems = function(orderNo, newItems) {
+    var orders = this.getKmeatOrders();
+    var order = orders.find(function(o) { return String(o.orderNo) === String(orderNo); });
+    if (!order) return null;
+    if (order.status === 'cancelled') return null;
+
+    var additions = (Array.isArray(newItems) ? newItems : []).filter(function(i) { return i && i.name; });
+    if (additions.length === 0) return null;
+
+    var rounds = this.getKmeatOrderRounds(order).slice();
+    var nextRound = rounds.length + 1;
+    var addTotal = additions.reduce(function(s, i) { return s + (Number(i.subtotal) || 0); }, 0);
+    var now = new Date().toISOString();
+
+    rounds.push({
+        round: nextRound,
+        items: additions,
+        total: addTotal,
+        orderedAt: now
+    });
+
+    // 병합 items (동일 메뉴는 수량 합산)
+    var merged = [];
+    rounds.forEach(function(r) {
+        (r.items || []).forEach(function(item) {
+            var found = merged.find(function(m) { return String(m.id) === String(item.id); });
+            if (found) {
+                found.quantity = (Number(found.quantity) || 0) + (Number(item.quantity) || 1);
+                found.subtotal = (Number(found.subtotal) || 0) + (Number(item.subtotal) || 0);
+            } else {
+                merged.push(Object.assign({}, item));
+            }
+        });
+    });
+
+    var total = merged.reduce(function(s, i) { return s + (Number(i.subtotal) || 0); }, 0);
+    var estimate = this.estimateKmeatOrderTime({ items: merged });
+
+    return this.updateKmeatOrder(orderNo, {
+        rounds: rounds,
+        items: merged,
+        total: total,
+        estimatedMinutes: estimate.totalMinutes,
+        firstServeMinutes: estimate.firstServeMinutes,
+        lastRoundAt: now,
+        // 추가 주문이 들어오면 다시 열린 상태로 (마무리 식사 시각 재계산 필요)
+        orderFinalized: false
+    });
+};
+
+// 주문 마감 (더 이상 추가 주문 없음 → 마무리 식사 착수 확정)
+window.MockData.finalizeKmeatOrder = function(orderNo) {
+    var orders = this.getKmeatOrders();
+    var order = orders.find(function(o) { return String(o.orderNo) === String(orderNo); });
+    if (!order) return null;
+    var estimate = this.estimateKmeatOrderTime(order);
+    return this.updateKmeatOrder(orderNo, {
+        orderFinalized: true,
+        finalizedAt: new Date().toISOString(),
+        estimatedMinutes: estimate.totalMinutes,
+        finaleServeMinutes: estimate.finaleServeMinutes
+    });
+};
+
+// 주문 마감 해제 (추가 주문 재개)
+window.MockData.reopenKmeatOrder = function(orderNo) {
+    return this.updateKmeatOrder(orderNo, { orderFinalized: false, finalizedAt: null });
+};
+
+// 반찬 · 쌈채소 플레이팅 작업 생성
+window.MockData.buildKmeatPlatingTask = function(servings, minutes) {
+    var policy = this.kmeatBanchanPolicy;
+    var sc = policy.ssamPerServing.sangchu;
+    var kk = policy.ssamPerServing.kkaennip;
+    var n = Math.max(1, Number(servings) || 1);
+    return {
+        menuId: '__plating__',
+        name: '반찬 · 쌈채소 세팅 및 불판 준비',
+        group: 'prep',
+        course: 1,
+        station: 'rice',
+        stationLabel: (this.kmeatStations.rice || {}).label || '밥·반찬 준비',
+        qty: n,
+        unit: '인분',
+        minutes: Math.max(1, Number(minutes) || 3),
+        steps: [
+            { step: 1, minutes: 1, text: '반찬 ' + policy.banchanCount + '종 세팅: '
+                + policy.banchanList.map(function(b) { return b.name + ' ' + b.amount; }).join(', ') },
+            { step: 2, minutes: 1, text: '상추 ' + (sc.gramsPerServing * n) + 'g(약 ' + (sc.countPerServing * n) + '장), '
+                + '깻잎 ' + (kk.gramsPerServing * n) + 'g(약 ' + (kk.countPerServing * n) + '장) 계량' },
+            { step: 3, minutes: 1, text: '쌈장 종지 ' + n + '개, 불판·집게·가위 세팅 확인 후 생고기와 함께 서빙' }
+        ],
+        cautions: ['쌈채소는 물기 제거 후 담기', '반찬은 주문 시점에 새로 담기', '불판 예열은 손님 착석 후 점화']
+    };
+};
+
+// K-Meat 주문 제한 설정 저장/조회 (기본 10분당 1건)
+window.MockData.KMEAT_ORDER_SETTINGS_KEY = 'kmeat_order_settings';
+
+window.MockData.getKmeatOrderSettings = function() {
+    var defaults = this.kmeatOrderSettings || { intervalMinutes: 10, maxQtyPerInterval: 1 };
+    try {
+        var stored = JSON.parse(localStorage.getItem(this.KMEAT_ORDER_SETTINGS_KEY) || 'null');
+        if (stored && typeof stored === 'object') {
+            return {
+                intervalMinutes: Math.max(1, Math.floor(Number(stored.intervalMinutes) || defaults.intervalMinutes)),
+                maxQtyPerInterval: Math.max(1, Math.floor(Number(stored.maxQtyPerInterval) || defaults.maxQtyPerInterval))
+            };
+        }
+    } catch (e) {}
+    return {
+        intervalMinutes: Math.max(1, Math.floor(Number(defaults.intervalMinutes) || 10)),
+        maxQtyPerInterval: Math.max(1, Math.floor(Number(defaults.maxQtyPerInterval) || 1))
+    };
+};
+
+window.MockData.setKmeatOrderSettings = function(settings) {
+    var normalized = {
+        intervalMinutes: Math.max(1, Math.floor(Number(settings && settings.intervalMinutes) || 10)),
+        maxQtyPerInterval: Math.max(1, Math.floor(Number(settings && settings.maxQtyPerInterval) || 1))
+    };
+    try {
+        localStorage.setItem(this.KMEAT_ORDER_SETTINGS_KEY, JSON.stringify(normalized));
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+    return normalized;
+};
+
+// ==========================================
+// 🥩 K-Meat 주문 저장소 접근 (bulgogi_order_history 단일 소스)
+// ==========================================
+window.MockData.KMEAT_ORDER_HISTORY_KEY = 'bulgogi_order_history';
+
+window.MockData.getKmeatOrders = function() {
+    var orders = [];
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.KMEAT_ORDER_HISTORY_KEY) || '[]');
+        if (Array.isArray(parsed)) orders = parsed;
+    } catch (e) {}
+    return orders
+        .filter(function(o) { return o && o.orderNo; })
+        .sort(function(a, b) {
+            return (Date.parse(b.orderedAt || '') || 0) - (Date.parse(a.orderedAt || '') || 0);
+        });
+};
+
+window.MockData.updateKmeatOrder = function(orderNo, updates) {
+    var orders = [];
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.KMEAT_ORDER_HISTORY_KEY) || '[]');
+        if (Array.isArray(parsed)) orders = parsed;
+    } catch (e) {}
+
+    var updated = null;
+    var next = orders.map(function(o) {
+        if (o && String(o.orderNo) === String(orderNo)) {
+            updated = Object.assign({}, o, updates || {});
+            return updated;
+        }
+        return o;
+    });
+
+    try {
+        localStorage.setItem(this.KMEAT_ORDER_HISTORY_KEY, JSON.stringify(next));
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+    return updated;
+};
+
+// K-Meat 주방 상태 라벨 (주문완료 → 조리대기 → 조리완료 → 수령대기 → 수령완료)
+window.MockData.KMEAT_KITCHEN_FLOW = [
+    { key: 'ordered',   label: '주문완료', icon: 'bi-receipt',            next: 'queued' },
+    { key: 'queued',    label: '조리대기', icon: 'bi-hourglass-split',    next: 'cooked' },
+    { key: 'cooked',    label: '조리완료', icon: 'bi-fire',               next: 'pickup_wait' },
+    { key: 'pickup_wait', label: '수령대기', icon: 'bi-bell',             next: 'received' },
+    { key: 'received',  label: '수령완료', icon: 'bi-check-circle-fill',  next: null }
+];
+
+window.MockData.getKmeatFlowStage = function(stageKey) {
+    var flow = this.KMEAT_KITCHEN_FLOW;
+    return flow.find(function(s) { return s.key === String(stageKey); }) || flow[0];
+};
+
+// ==========================================
+// 👷 K-Meat 작업자(근로자) 단말 지원 데이터 / API
+// kmeat-ex.html (체험) · kmeat-real.html (실제 작업) 공용
+// ==========================================
+
+// 작업자가 선택할 수 있는 담당 포지션
+window.MockData.kmeatWorkerStations = {
+    butcher: {
+        key: 'butcher', label: '정육·계량대', short: '고기 계량',
+        icon: 'bi-speedometer2', color: '#e0362c',
+        desc: '생고기를 저울에 계량하고 접시에 담습니다. 굽지 않습니다.',
+        handles: ['butcher']
+    },
+    soup: {
+        key: 'soup', label: '화구 조리 (탕·찌개)', short: '화구 조리',
+        icon: 'bi-fire', color: '#f59e0b',
+        desc: '된장찌개·김치찌개·계란찜을 화구에서 조리합니다.',
+        handles: ['soup']
+    },
+    cold: {
+        key: 'cold', label: '냉면 코너', short: '냉면',
+        icon: 'bi-snow', color: '#0891b2',
+        desc: '면을 삶고 얼음물에 헹궈 냉면을 완성합니다.',
+        handles: ['cold']
+    },
+    prep: {
+        key: 'prep', label: '반찬·밥 준비', short: '반찬 덜기',
+        icon: 'bi-basket-fill', color: '#10b981',
+        desc: '반찬 5종을 덜고 상추·깻잎을 계량합니다. 공기밥을 담습니다.',
+        handles: ['rice']
+    },
+    serving: {
+        key: 'serving', label: '홀 서빙', short: '서빙',
+        icon: 'bi-person-walking', color: '#7c3aed',
+        desc: '완성된 접시를 지정된 테이블로 서빙합니다.',
+        handles: []
+    },
+    dish: {
+        key: 'dish', label: '설겆이', short: '설겆이',
+        icon: 'bi-droplet-fill', color: '#2563eb',
+        desc: '사용이 끝난 그릇과 불판을 세척합니다.',
+        handles: []
+    }
+};
+
+// 작업 태스크의 고유 키 (주문 내 식별자)
+window.MockData.getKmeatTaskKey = function(task) {
+    if (!task) return '';
+    return String(task.menuId || task.id || task.name || '');
+};
+
+// 주문의 태스크 진행 상황 조회
+window.MockData.getKmeatTaskProgress = function(order) {
+    if (!order || !order.taskProgress || typeof order.taskProgress !== 'object') return {};
+    return order.taskProgress;
+};
+
+window.MockData.isKmeatTaskDone = function(order, taskKey) {
+    var progress = this.getKmeatTaskProgress(order);
+    var entry = progress[String(taskKey)];
+    return !!(entry && entry.done);
+};
+
+// 태스크 완료 기록 (저울 계량값 등 부가정보 포함 가능)
+window.MockData.markKmeatTaskDone = function(orderNo, taskKey, payload) {
+    var orders = this.getKmeatOrders();
+    var order = orders.find(function(o) { return String(o.orderNo) === String(orderNo); });
+    if (!order) return null;
+
+    var progress = Object.assign({}, this.getKmeatTaskProgress(order));
+    progress[String(taskKey)] = Object.assign({
+        done: true,
+        doneAt: new Date().toISOString()
+    }, payload || {});
+
+    return this.updateKmeatOrder(orderNo, { taskProgress: progress });
+};
+
+// 태스크 완료 취소 (되돌리기)
+window.MockData.unmarkKmeatTask = function(orderNo, taskKey) {
+    var orders = this.getKmeatOrders();
+    var order = orders.find(function(o) { return String(o.orderNo) === String(orderNo); });
+    if (!order) return null;
+    var progress = Object.assign({}, this.getKmeatTaskProgress(order));
+    delete progress[String(taskKey)];
+    return this.updateKmeatOrder(orderNo, { taskProgress: progress });
+};
+
+// 특정 차수의 모든 태스크가 완료되었는지
+window.MockData.isKmeatCourseReady = function(order, course) {
+    var plan = this.buildKmeatCookingSequence(order);
+    var target = (plan.courses || []).find(function(c) { return c.course === Number(course); });
+    if (!target || target.rows.length === 0) return false;
+    var self = this;
+    return target.rows.every(function(row) {
+        return self.isKmeatTaskDone(order, self.getKmeatTaskKey(row.task));
+    });
+};
+
+// 서빙 완료된 차수 목록
+window.MockData.getKmeatServedCourses = function(order) {
+    if (!order || !Array.isArray(order.servedCourses)) return [];
+    return order.servedCourses.map(Number);
+};
+
+window.MockData.isKmeatCourseServed = function(order, course) {
+    return this.getKmeatServedCourses(order).indexOf(Number(course)) > -1;
+};
+
+// 차수 서빙 완료 처리 (테이블에 내보냄)
+window.MockData.serveKmeatCourse = function(orderNo, course) {
+    var orders = this.getKmeatOrders();
+    var order = orders.find(function(o) { return String(o.orderNo) === String(orderNo); });
+    if (!order) return null;
+
+    var served = this.getKmeatServedCourses(order).slice();
+    if (served.indexOf(Number(course)) < 0) served.push(Number(course));
+
+    var log = Array.isArray(order.serveLog) ? order.serveLog.slice() : [];
+    log.push({ course: Number(course), servedAt: new Date().toISOString() });
+
+    return this.updateKmeatOrder(orderNo, { servedCourses: served, serveLog: log });
+};
+
+// 주문의 모든 차수가 서빙 완료되었는지
+window.MockData.isKmeatOrderFullyServed = function(order) {
+    var plan = this.buildKmeatCookingSequence(order);
+    var courses = (plan.courses || []).map(function(c) { return c.course; });
+    if (courses.length === 0) return false;
+    var self = this;
+    return courses.every(function(c) { return self.isKmeatCourseServed(order, c); });
+};
+
+// 작업자 담당 포지션에서 처리해야 할 태스크 목록 추출
+// 반환: [{ orderNo, tableId, course, courseLabel, serveAtMinute, held, task, taskKey, done, elapsedMinutes, dueInMinutes }]
+window.MockData.getKmeatStationTasks = function(stationKey) {
+    var self = this;
+    var station = this.kmeatWorkerStations[String(stationKey)];
+    if (!station) return [];
+    var handles = station.handles || [];
+    var result = [];
+
+    this.getKmeatOrders().forEach(function(order) {
+        if (!order || order.status === 'cancelled') return;
+        var stage = order.kitchenStage || 'ordered';
+        if (stage === 'received' || stage === 'cancelled') return;
+
+        var plan = self.buildKmeatCookingSequence(order);
+        var orderedAt = Date.parse(order.orderedAt || '') || Date.now();
+        var elapsed = Math.floor((Date.now() - orderedAt) / 60000);
+
+        (plan.courses || []).forEach(function(c) {
+            // 이미 서빙된 차수는 제외
+            if (self.isKmeatCourseServed(order, c.course)) return;
+            c.rows.forEach(function(row) {
+                var task = row.task;
+                if (handles.indexOf(task.station) < 0) return;
+                var taskKey = self.getKmeatTaskKey(task);
+                result.push({
+                    orderNo: order.orderNo,
+                    tableId: order.tableId || '테이블 미지정',
+                    course: c.course,
+                    courseLabel: (c.meta || {}).label || ('차수 ' + c.course),
+                    courseColor: (c.meta || {}).color || '#64748b',
+                    serveAtMinute: c.serveAtMinute,
+                    held: !!row.held,
+                    startAtMinute: row.startAtMinute,
+                    task: task,
+                    taskKey: taskKey,
+                    done: self.isKmeatTaskDone(order, taskKey),
+                    elapsedMinutes: elapsed,
+                    // 남은 여유 시간 (음수면 지연)
+                    dueInMinutes: (c.serveAtMinute || 0) - elapsed
+                });
+            });
+        });
+    });
+
+    // 지연된 것 우선, 그 다음 착수 시각 순
+    return result.sort(function(a, b) {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return a.dueInMinutes - b.dueInMinutes;
+    });
+};
+
+// 서빙 담당이 볼 목록: 조리 완료되어 나갈 준비가 된 차수
+window.MockData.getKmeatServeQueue = function() {
+    var self = this;
+    var queue = [];
+    this.getKmeatOrders().forEach(function(order) {
+        if (!order || order.status === 'cancelled') return;
+        var stage = order.kitchenStage || 'ordered';
+        if (stage === 'received' || stage === 'cancelled') return;
+
+        var plan = self.buildKmeatCookingSequence(order);
+        var orderedAt = Date.parse(order.orderedAt || '') || Date.now();
+        var elapsed = Math.floor((Date.now() - orderedAt) / 60000);
+
+        (plan.courses || []).forEach(function(c) {
+            if (self.isKmeatCourseServed(order, c.course)) return;
+            var ready = c.rows.every(function(row) {
+                return self.isKmeatTaskDone(order, self.getKmeatTaskKey(row.task));
+            });
+            queue.push({
+                orderNo: order.orderNo,
+                tableId: order.tableId || '테이블 미지정',
+                course: c.course,
+                courseLabel: (c.meta || {}).label || ('차수 ' + c.course),
+                courseColor: (c.meta || {}).color || '#64748b',
+                courseIcon: (c.meta || {}).icon || 'bi-circle',
+                serveAtMinute: c.serveAtMinute,
+                held: !!c.held,
+                ready: ready,
+                itemNames: c.rows.map(function(r) { return r.task.name; }),
+                doneCount: c.rows.filter(function(r) {
+                    return self.isKmeatTaskDone(order, self.getKmeatTaskKey(r.task));
+                }).length,
+                totalCount: c.rows.length,
+                elapsedMinutes: elapsed,
+                dueInMinutes: (c.serveAtMinute || 0) - elapsed
+            });
+        });
+    });
+    return queue.sort(function(a, b) {
+        if (a.ready !== b.ready) return a.ready ? -1 : 1;
+        return a.dueInMinutes - b.dueInMinutes;
+    });
+};
+
+// ── 설겆이 대기열 ──
+window.MockData.KMEAT_DISH_QUEUE_KEY = 'kmeat_dish_queue';
+
+window.MockData.getKmeatDishQueue = function() {
+    var defaults = { pending: 0, washed: 0, lastWashedAt: null, seededOrders: [] };
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.KMEAT_DISH_QUEUE_KEY) || 'null');
+        if (parsed && typeof parsed === 'object') {
+            return {
+                pending: Math.max(0, Number(parsed.pending) || 0),
+                washed: Math.max(0, Number(parsed.washed) || 0),
+                lastWashedAt: parsed.lastWashedAt || null,
+                seededOrders: Array.isArray(parsed.seededOrders) ? parsed.seededOrders : []
+            };
+        }
+    } catch (e) {}
+    return defaults;
+};
+
+window.MockData.saveKmeatDishQueue = function(queue) {
+    try {
+        localStorage.setItem(this.KMEAT_DISH_QUEUE_KEY, JSON.stringify(queue));
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+    return queue;
+};
+
+// 서빙 완료된 주문에서 사용된 그릇 수를 설겆이 대기열에 반영 (주문당 1회)
+window.MockData.syncKmeatDishQueue = function() {
+    var queue = this.getKmeatDishQueue();
+    var seeded = queue.seededOrders.slice();
+    var added = 0;
+
+    this.getKmeatOrders().forEach(function(order) {
+        if (!order || order.status === 'cancelled') return;
+        if ((order.kitchenStage || '') !== 'received') return;
+        if (seeded.indexOf(String(order.orderNo)) > -1) return;
+        var items = Array.isArray(order.items) ? order.items : [];
+        // 접시 = 메뉴 수 + 반찬 5종 + 불판 1
+        var dishes = items.reduce(function(s, i) {
+            return s + Math.max(1, Number(i.quantity) || 1);
+        }, 0) + 6;
+        queue.pending += dishes;
+        added += dishes;
+        seeded.push(String(order.orderNo));
+    });
+
+    if (added > 0) {
+        queue.seededOrders = seeded;
+        this.saveKmeatDishQueue(queue);
+    }
+    return queue;
+};
+
+window.MockData.washKmeatDishes = function(count) {
+    var queue = this.getKmeatDishQueue();
+    var n = Math.max(1, Math.min(queue.pending, Math.floor(Number(count) || 1)));
+    queue.pending = Math.max(0, queue.pending - n);
+    queue.washed += n;
+    queue.lastWashedAt = new Date().toISOString();
+    this.saveKmeatDishQueue(queue);
+    return { washed: n, queue: queue };
+};
+
+// ── 작업자 활동 로그 ──
+window.MockData.KMEAT_WORKER_LOG_KEY = 'kmeat_worker_logs';
+
+window.MockData.getKmeatWorkerLogs = function(mode) {
+    var key = this.KMEAT_WORKER_LOG_KEY + '_' + (mode || 'real');
+    try {
+        var parsed = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.addKmeatWorkerLog = function(mode, entry) {
+    var key = this.KMEAT_WORKER_LOG_KEY + '_' + (mode || 'real');
+    var logs = this.getKmeatWorkerLogs(mode);
+    var now = new Date();
+    logs.push(Object.assign({
+        time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
+            + ':' + String(now.getSeconds()).padStart(2, '0'),
+        createdAt: now.toISOString()
+    }, entry || {}));
+    if (logs.length > 300) logs.shift();
+    try {
+        localStorage.setItem(key, JSON.stringify(logs));
+    } catch (e) {}
+    return logs;
+};
+
+window.MockData.clearKmeatWorkerLogs = function(mode) {
+    var key = this.KMEAT_WORKER_LOG_KEY + '_' + (mode || 'real');
+    try { localStorage.removeItem(key); } catch (e) {}
+    return [];
+};
+
+// 저울 계량 판정
+window.MockData.judgeKmeatWeight = function(menuId, grams) {
+    var manual = this.getKmeatMenuManual(menuId);
+    if (!manual || !manual.scale) {
+        return { ok: true, message: '계량 기준이 없는 메뉴입니다.', target: null };
+    }
+    var g = Number(grams);
+    var s = manual.scale;
+    if (!Number.isFinite(g)) {
+        return { ok: false, message: '무게를 입력해주세요.', target: s.target, min: s.min, max: s.max };
+    }
+    if (g < s.min) {
+        return {
+            ok: false, low: true, target: s.target, min: s.min, max: s.max, value: g,
+            message: '부족합니다. ' + (s.min - g).toFixed(0) + 'g 더 담아주세요. (목표 ' + s.target + 'g)'
+        };
+    }
+    if (g > s.max) {
+        return {
+            ok: false, high: true, target: s.target, min: s.min, max: s.max, value: g,
+            message: '초과했습니다. ' + (g - s.max).toFixed(0) + 'g 덜어주세요. (목표 ' + s.target + 'g)'
+        };
+    }
+    return {
+        ok: true, target: s.target, min: s.min, max: s.max, value: g,
+        message: '합격! ' + g + 'g (허용 ' + s.min + '~' + s.max + 'g)'
+    };
+};
+
+// 반찬 덜기 체크리스트 (인분 수 반영)
+window.MockData.buildKmeatBanchanChecklist = function(servings) {
+    var policy = this.kmeatBanchanPolicy;
+    var n = Math.max(1, Number(servings) || 1);
+    var list = policy.banchanList.map(function(b, i) {
+        return {
+            key: 'banchan_' + i,
+            name: b.name,
+            amount: b.amount,
+            note: b.note,
+            type: 'banchan'
+        };
+    });
+    var sc = policy.ssamPerServing.sangchu;
+    var kk = policy.ssamPerServing.kkaennip;
+    list.push({
+        key: 'ssam_sangchu', name: sc.name, type: 'ssam',
+        amount: (sc.gramsPerServing * n) + 'g (약 ' + (sc.countPerServing * n) + '장)',
+        note: sc.note, grams: sc.gramsPerServing * n
+    });
+    list.push({
+        key: 'ssam_kkaennip', name: kk.name, type: 'ssam',
+        amount: (kk.gramsPerServing * n) + 'g (약 ' + (kk.countPerServing * n) + '장)',
+        note: kk.note, grams: kk.gramsPerServing * n
+    });
+    list.push({
+        key: 'ssamjang', name: '쌈장 종지', type: 'etc',
+        amount: n + '개', note: '1인 1종지'
+    });
+    return { servings: n, items: list };
+};
+
+// ==========================================
+// 🧹 K-Meat 주문 전체 삭제 (데모/초기화용)
+// 주문은 여러 저장소에 미러링되어 있으므로 함께 정리해야 잔여 데이터가 남지 않는다.
+//   1) bulgogi_order_history        : 주문 원본
+//   2) kimp_shop_history            : 마이페이지/주문내역 미러 레코드
+//   3) kimp_settlement_transactions : 정산 차감 트랜잭션 (잔액 복구)
+//   4) user_settlement_log_*        : 정산 결제 로그 (잔액 복구)
+//   5) kmeat_dish_queue             : 설겆이 대기열
+//   6) bulgogi_payment_history      : 결제 이력
+// ==========================================
+window.MockData.clearKmeatOrders = function(options) {
+    var opts = options || {};
+    var removed = {
+        orders: 0, shopRecords: 0, settlements: 0,
+        settlementLogs: 0, dishes: 0, payments: 0, logs: 0
+    };
+
+    // 1) 주문 원본
+    try {
+        var orders = JSON.parse(localStorage.getItem(this.KMEAT_ORDER_HISTORY_KEY) || '[]');
+        removed.orders = Array.isArray(orders) ? orders.length : 0;
+        localStorage.removeItem(this.KMEAT_ORDER_HISTORY_KEY);
+    } catch (e) {}
+
+    // 2) kimp_shop_history 에서 K-Meat 레코드 제거
+    try {
+        var hist = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
+        if (Array.isArray(hist)) {
+            var kept = hist.filter(function(r) {
+                if (!r) return false;
+                if (String(r.id || '').indexOf('bulgogi_') === 0) return false;
+                if (String(r.workId) === '6') return false;
+                if (String(r.productId || '') === 'bulgogi_dine_in') return false;
+                return true;
+            });
+            removed.shopRecords = hist.length - kept.length;
+            localStorage.setItem('kimp_shop_history', JSON.stringify(kept));
+        }
+    } catch (e) {}
+
+    // 3) 정산 트랜잭션 제거 (정산금액 복구)
+    try {
+        var txns = JSON.parse(localStorage.getItem('kimp_settlement_transactions') || '[]');
+        if (Array.isArray(txns)) {
+            var keptTx = txns.filter(function(t) {
+                if (!t) return false;
+                if (String(t.workId) === '6') return false;
+                if (String(t.orderId || '').indexOf('bulgogi_') === 0) return false;
+                if (String(t.id || '').indexOf('shop-spend:bulgogi_') === 0) return false;
+                if (String(t.productId || '') === 'bulgogi_dine_in') return false;
+                if (/^KM-/.test(String(t.orderNo || ''))) return false;
+                return true;
+            });
+            removed.settlements = txns.length - keptTx.length;
+            localStorage.setItem('kimp_settlement_transactions', JSON.stringify(keptTx));
+        }
+    } catch (e) {}
+
+    // 4) 회원별 정산 결제 로그에서 K-Meat 항목 제거
+    try {
+        var prefix = this.SETTLEMENT_LOG_KEY_PREFIX;
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf(prefix) === 0) keys.push(k);
+        }
+        keys.forEach(function(key) {
+            try {
+                var logs = JSON.parse(localStorage.getItem(key) || '[]');
+                if (!Array.isArray(logs)) return;
+                var keptLogs = logs.filter(function(l) {
+                    if (!l) return false;
+                    if (String(l.workId) === '6') return false;
+                    if (String(l.id || '').indexOf('settle_bulgogi_') === 0) return false;
+                    if (/^KM-/.test(String(l.orderNo || ''))) return false;
+                    return true;
+                });
+                removed.settlementLogs += logs.length - keptLogs.length;
+                localStorage.setItem(key, JSON.stringify(keptLogs));
+            } catch (e) {}
+        });
+    } catch (e) {}
+
+    // 5) 설겆이 대기열 초기화
+    try {
+        var dq = this.getKmeatDishQueue();
+        removed.dishes = dq.pending;
+        this.saveKmeatDishQueue({ pending: 0, washed: 0, lastWashedAt: null, seededOrders: [] });
+    } catch (e) {}
+
+    // 6) 결제 이력
+    try {
+        var pay = JSON.parse(localStorage.getItem('bulgogi_payment_history') || '[]');
+        removed.payments = Array.isArray(pay) ? pay.length : 0;
+        localStorage.removeItem('bulgogi_payment_history');
+    } catch (e) {}
+
+    // (선택) 작업자 로그도 함께 초기화
+    if (opts.clearWorkerLogs) {
+        try {
+            removed.logs = this.getKmeatWorkerLogs('ex').length + this.getKmeatWorkerLogs('real').length;
+            this.clearKmeatWorkerLogs('ex');
+            this.clearKmeatWorkerLogs('real');
+        } catch (e) {}
+    }
+
+    // 손님 화면의 활성 주문 표시 상태도 정리
+    try {
+        localStorage.removeItem('activeOrderNo_current');
+    } catch (e) {}
+
+    try {
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+
+    return removed;
 };

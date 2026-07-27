@@ -1,0 +1,2677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>불고기구이 K-Meat - 관리자 콘솔 (kManager)</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="./js/store.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/auth-guard.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #f6f7fb;
+            --bg-card: #ffffff;
+            --bg-card-hover: #eef2f9;
+            --border-color: #dde3ec;
+            --text-primary: #1a2233;
+            --text-secondary: #64748b;
+            --accent-red: #e0362c;
+            --accent-orange: #f97316;
+            --accent-amber: #f59e0b;
+            --accent-green: #10b981;
+            --accent-blue: #2563eb;
+            --accent-cyan: #0891b2;
+            --accent-purple: #7c3aed;
+            --sidebar-width: 262px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Noto Sans KR', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* ── 접근 차단 화면 ── */
+        .access-denied {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 28px;
+            text-align: center;
+            background: #ffffff;
+        }
+        .access-denied.show { display: flex; }
+        .access-denied i { font-size: 54px; color: var(--accent-red); }
+        .access-denied h2 { font-size: 1.35rem; }
+        .access-denied p { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.6; }
+
+        /* ── 사이드바 ── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            box-shadow: 8px 0 24px rgba(26, 34, 51, 0.05);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            z-index: 1000;
+        }
+
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
+            background: rgba(26, 34, 51, 0.36);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .sidebar-backdrop.active { opacity: 1; pointer-events: auto; }
+
+        .sidebar-brand {
+            padding: 22px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sidebar-brand img { width: 40px; height: 40px; border-radius: 9px; object-fit: cover; }
+        .sidebar-brand-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e0362c, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sidebar-brand-sub { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 18px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 15px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 0.93rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .menu-item:hover { background-color: var(--bg-card-hover); color: var(--text-primary); }
+        .menu-item.active {
+            background: linear-gradient(135deg, rgba(224, 54, 44, 0.1), rgba(249, 115, 22, 0.1));
+            color: #c62828;
+            border: 1px solid rgba(224, 54, 44, 0.2);
+        }
+        .menu-item i { font-size: 1.12rem; }
+
+        .badge-count {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: #fff;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+        .badge-count.pulse { animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(224, 54, 44, 0.65); }
+            70% { box-shadow: 0 0 0 8px rgba(224, 54, 44, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(224, 54, 44, 0); }
+        }
+
+        /* ── 메인 ── */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: calc(100% - var(--sidebar-width));
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background-color: var(--bg-card);
+            padding: 15px 22px;
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 18px rgba(26, 34, 51, 0.06);
+            min-width: 0;
+        }
+        .header-title-group { min-width: 0; }
+        .header-title-group h1 {
+            font-size: 1.32rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            flex-shrink: 0;
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .header-user .avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0362c, #f97316);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 800;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 15px;
+            border-radius: 9px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+        }
+        .btn-primary { background: linear-gradient(135deg, #e0362c, #f97316); color: #fff; box-shadow: 0 4px 12px rgba(224, 54, 44, 0.25); }
+        .btn-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+        .btn-green { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
+        .btn-green:hover { filter: brightness(1.07); }
+        .btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+        .btn-amber:hover { filter: brightness(1.07); }
+        .btn-blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; }
+        .btn-blue:hover { filter: brightness(1.07); }
+        .btn-danger { background: #fff; color: #dc2626; border-color: rgba(220, 38, 38, 0.35); }
+        .btn-danger:hover { background: rgba(220, 38, 38, 0.06); }
+        .btn-outline { background: transparent; color: var(--text-primary); border-color: var(--border-color); }
+        .btn-outline:hover { background-color: var(--bg-card-hover); }
+        .btn-action:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+        .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* ── KPI ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+            gap: 15px;
+        }
+        .kpi-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s ease;
+        }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-icon {
+            width: 50px; height: 50px;
+            border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.42rem;
+            flex-shrink: 0;
+        }
+        .kpi-red { background: rgba(224, 54, 44, 0.1); color: #c62828; }
+        .kpi-amber { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+        .kpi-green { background: rgba(16, 185, 129, 0.12); color: #047857; }
+        .kpi-blue { background: rgba(37, 99, 235, 0.1); color: #1d4ed8; }
+        .kpi-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .kpi-label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+        .kpi-value { font-size: 1.42rem; font-weight: 800; font-family: 'Outfit', sans-serif; }
+
+        /* ── 뷰 / 패널 ── */
+        .tab-view { display: none; width: 100%; max-width: 100%; min-width: 0; }
+        .tab-view.active { display: block; }
+        .view-stack { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+        .panel-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 0;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 11px;
+            border-bottom: 1px solid var(--border-color);
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+        .panel-header h2 {
+            font-size: 1.06rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        /* ── 상태 배지 ── */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .pill-ordered { background: rgba(124, 58, 237, 0.1); color: #6d28d9; border: 1px solid rgba(124, 58, 237, 0.26); }
+        .pill-queued { background: rgba(245, 158, 11, 0.12); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.28); }
+        .pill-cooked { background: rgba(224, 54, 44, 0.1); color: #c62828; border: 1px solid rgba(224, 54, 44, 0.26); }
+        .pill-pickup { background: rgba(37, 99, 235, 0.1); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.26); }
+        .pill-received { background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.28); }
+        .pill-cancel { background: rgba(100, 116, 139, 0.12); color: #475569; border: 1px solid rgba(100, 116, 139, 0.26); }
+
+        /* ── 주문 카드 ── */
+        .order-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 14px;
+        }
+        .order-card {
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-purple);
+            border-radius: 13px;
+            background: #fff;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            cursor: pointer;
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+            min-width: 0;
+        }
+        .order-card:hover { box-shadow: 0 8px 22px rgba(26, 34, 51, 0.1); transform: translateY(-2px); }
+        .order-card.stage-ordered { border-left-color: var(--accent-purple); }
+        .order-card.stage-queued { border-left-color: var(--accent-amber); }
+        .order-card.stage-cooked { border-left-color: var(--accent-red); }
+        .order-card.stage-pickup_wait { border-left-color: var(--accent-blue); }
+        .order-card.stage-received { border-left-color: var(--accent-green); }
+        .order-card.stage-cancelled { border-left-color: #94a3b8; opacity: 0.72; }
+        .order-card.is-new { animation: flash-new 1.4s ease-in-out 2; }
+        @keyframes flash-new {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(224, 54, 44, 0); }
+            50% { box-shadow: 0 0 0 6px rgba(224, 54, 44, 0.18); }
+        }
+
+        .order-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .order-no { font-family: 'Outfit', sans-serif; font-size: 1.02rem; font-weight: 800; }
+        .order-meta { font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px; line-height: 1.5; }
+        .order-items {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            border-radius: 9px;
+            background: #f8fafc;
+            font-size: 0.83rem;
+        }
+        .order-item-row { display: flex; justify-content: space-between; gap: 10px; }
+        .order-item-row span:last-child { color: var(--text-secondary); flex-shrink: 0; }
+        .order-card-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .order-total { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem; color: #c62828; }
+        .order-eta {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.76rem; font-weight: 700; color: var(--text-secondary);
+        }
+
+        /* ── 진행 스텝 ── */
+        .stage-track { display: flex; align-items: center; gap: 4px; }
+        .stage-dot {
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: #e2e8f0;
+        }
+        .stage-dot.done { background: linear-gradient(90deg, #e0362c, #f97316); }
+
+        /* ── 조리 매뉴얼 / 시퀀스 ── */
+        .manual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 14px;
+        }
+        .manual-card {
+            border: 1px solid var(--border-color);
+            border-radius: 13px;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .manual-head {
+            padding: 13px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .manual-title { font-size: 0.94rem; font-weight: 700; overflow-wrap: anywhere; }
+        .manual-body { padding: 14px 15px; display: flex; flex-direction: column; gap: 11px; }
+        .manual-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+        .chip {
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            font-size: 0.71rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .chip.scale { border-color: rgba(37, 99, 235, 0.3); color: #1d4ed8; background: rgba(37, 99, 235, 0.06); }
+        .chip.time { border-color: rgba(245, 158, 11, 0.35); color: #b45309; background: rgba(245, 158, 11, 0.07); }
+        .chip.station { border-color: rgba(224, 54, 44, 0.3); color: #c62828; background: rgba(224, 54, 44, 0.06); }
+
+        .scale-box {
+            padding: 11px 12px;
+            border-radius: 9px;
+            border: 1px dashed rgba(37, 99, 235, 0.4);
+            background: rgba(37, 99, 235, 0.05);
+            font-size: 0.79rem;
+            line-height: 1.55;
+            color: #1e3a8a;
+        }
+        .scale-box strong { font-family: 'Outfit', sans-serif; }
+
+        .step-list { display: flex; flex-direction: column; gap: 7px; }
+        .step-row {
+            display: grid;
+            grid-template-columns: 26px minmax(0, 1fr) auto;
+            gap: 9px;
+            align-items: start;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+        .step-num {
+            width: 26px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+            background: rgba(224, 54, 44, 0.1);
+            color: #c62828;
+            font-size: 0.72rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .step-min { font-size: 0.72rem; color: var(--text-secondary); font-weight: 700; white-space: nowrap; }
+
+        .caution-box {
+            padding: 9px 11px;
+            border-radius: 8px;
+            background: rgba(224, 54, 44, 0.06);
+            border: 1px solid rgba(224, 54, 44, 0.2);
+            font-size: 0.76rem;
+            line-height: 1.55;
+            color: #991b1b;
+        }
+
+        /* ── 서빙 차수 블록 ── */
+        .course-block {
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--course-color, #64748b);
+            border-radius: 13px;
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 14px;
+        }
+        .course-block.is-held { background: #fbfbfd; border-style: dashed; }
+        .course-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 7px;
+        }
+        .course-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .course-desc {
+            font-size: 0.79rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            margin-bottom: 12px;
+        }
+        .chip.serve {
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #047857;
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .chip.raw {
+            border-color: rgba(224, 54, 44, 0.4);
+            color: #c62828;
+            background: rgba(224, 54, 44, 0.07);
+        }
+        .pill-hold {
+            background: rgba(100, 116, 139, 0.1);
+            color: #475569;
+            border: 1px dashed rgba(100, 116, 139, 0.4);
+        }
+        .info-summary.warn {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #92400e;
+        }
+        .info-summary.ok {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.28);
+            color: #065f46;
+        }
+
+        /* ── 타임라인 ── */
+        .seq-timeline { display: flex; flex-direction: column; gap: 10px; }
+        .seq-row.is-held { opacity: 0.62; }
+        .seq-row.is-held .seq-time { background: #eef1f6; border: 1px dashed var(--border-color); }
+        .seq-row {
+            display: grid;
+            grid-template-columns: 62px minmax(0, 1fr);
+            gap: 12px;
+            align-items: stretch;
+        }
+        .seq-time {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 8px 4px;
+            border-radius: 9px;
+            background: #f1f5f9;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 0.88rem;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .seq-time small { font-size: 0.62rem; font-weight: 600; color: var(--text-secondary); }
+        .seq-body {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            min-width: 0;
+        }
+        .seq-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        /* ── 테이블 ── */
+        .table-responsive { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; }
+        .custom-table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+            font-size: 0.87rem;
+            text-align: left;
+        }
+        .custom-table th {
+            background-color: #f8fafc;
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 11px 13px;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        .custom-table td {
+            padding: 13px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        .custom-table tr:hover { background-color: var(--bg-card-hover); }
+
+        /* ── 설정 필드 ── */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+        .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .field label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 700; }
+        .field input, .field select {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 9px;
+            background: #fff;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            font-family: inherit;
+        }
+        .info-summary {
+            padding: 11px 13px;
+            border-radius: 10px;
+            background: rgba(224, 54, 44, 0.06);
+            border: 1px solid rgba(224, 54, 44, 0.18);
+            color: #991b1b;
+            font-size: 0.83rem;
+            line-height: 1.55;
+            font-weight: 600;
+        }
+
+        /* ── 사원 관리 ── */
+        .staff-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+        }
+        .staff-card {
+            border: 1px solid var(--border-color);
+            border-radius: 13px;
+            padding: 15px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            min-width: 0;
+        }
+        .staff-top { display: flex; align-items: center; gap: 11px; }
+        .staff-avatar {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0362c, #f97316);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .staff-name { font-size: 0.95rem; font-weight: 700; }
+        .staff-role { font-size: 0.75rem; color: var(--text-secondary); }
+        .staff-stats { display: flex; flex-direction: column; gap: 5px; font-size: 0.79rem; }
+        .staff-stat-row { display: flex; justify-content: space-between; gap: 10px; }
+        .staff-stat-row span:last-child { font-weight: 700; }
+
+        /* ── 빈 상태 ── */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            border: 1px dashed var(--border-color);
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+        .empty-state i { font-size: 34px; color: var(--text-secondary); opacity: 0.55; }
+        .empty-state p { margin-top: 10px; font-size: 0.9rem; font-weight: 600; }
+        .empty-state span { display: block; margin-top: 5px; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
+
+        /* ── 토스트 ── */
+        .toast-container {
+            position: fixed;
+            top: 20px; right: 20px;
+            z-index: 9000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 370px;
+            width: 100%;
+        }
+        .toast {
+            background: linear-gradient(135deg, #e0362c, #f97316);
+            color: #fff;
+            border-radius: 13px;
+            padding: 14px;
+            box-shadow: 0 10px 28px rgba(224, 54, 44, 0.3);
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            animation: slide-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes slide-in { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast i { font-size: 1.45rem; flex-shrink: 0; }
+        .toast h4 { font-size: 0.94rem; margin-bottom: 3px; font-weight: 700; }
+        .toast p { font-size: 0.8rem; opacity: 0.94; line-height: 1.45; }
+        .toast button {
+            margin-left: auto; background: transparent; border: none;
+            color: #fff; font-size: 1.15rem; cursor: pointer; opacity: 0.85;
+            flex-shrink: 0;
+        }
+
+        /* ── 모달 ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 34, 51, 0.45);
+            backdrop-filter: blur(5px);
+            z-index: 5000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.22s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box {
+            background: #fff;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 720px;
+            max-height: 88vh;
+            overflow-y: auto;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 20px 44px rgba(26, 34, 51, 0.2);
+            transform: scale(0.96);
+            transition: transform 0.22s ease;
+        }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 11px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .modal-header h3 { font-size: 1.14rem; font-weight: 700; display: flex; align-items: center; gap: 9px; }
+        .modal-close {
+            background: transparent; border: none;
+            color: var(--text-secondary); font-size: 1.5rem;
+            cursor: pointer; line-height: 1; flex-shrink: 0;
+        }
+        .modal-close:hover { color: var(--text-primary); }
+
+        .menu-toggle-btn {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.45rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        /* ── 반응형 ── */
+        @media (max-width: 1024px) {
+            .order-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                overflow: hidden;
+                border-right: none;
+                box-shadow: none;
+            }
+            .sidebar.mobile-open {
+                width: var(--sidebar-width);
+                border-right: 1px solid var(--border-color);
+                box-shadow: 8px 0 24px rgba(26, 34, 51, 0.14);
+            }
+            .main-content { margin-left: 0; width: 100%; max-width: 100vw; padding: 14px; gap: 16px; }
+            .header-bar { position: sticky; top: 10px; z-index: 800; padding: 12px 15px; }
+            .menu-toggle-btn { display: block; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; }
+            .order-grid, .manual-grid, .staff-grid { grid-template-columns: 1fr; }
+            .quick-actions .btn-action { flex: 1 1 160px; justify-content: center; }
+            .custom-table { min-width: 540px; }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+            .header-title-group h1 { font-size: 1rem; line-height: 1.3; }
+            .header-user span { display: none; }
+            .quick-actions { display: grid; grid-template-columns: 1fr; gap: 9px; }
+            .quick-actions .btn-action { width: 100%; min-height: 44px; }
+            .toast-container { left: 12px; right: 12px; width: auto; max-width: none; }
+            .seq-row { grid-template-columns: 52px minmax(0, 1fr); gap: 9px; }
+            .modal-box { padding: 16px; max-height: 92vh; }
+            .step-row { grid-template-columns: 24px minmax(0, 1fr); }
+            .step-row .step-min { grid-column: 2; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── 매니저 전용 접근 차단 ── -->
+    <div class="access-denied" id="access-denied">
+        <i class="bi bi-shield-lock-fill"></i>
+        <h2>매니저 전용 페이지입니다</h2>
+        <p id="access-denied-msg">불고기구이 K-Meat 관리자 콘솔은 매니저 등급만 접근할 수 있습니다.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+            <a href="./main.html" class="btn-action btn-primary" style="text-decoration:none;"><i class="bi bi-house-door"></i> 메인으로</a>
+            <a href="./mypage2.html" class="btn-action btn-outline" style="text-decoration:none;"><i class="bi bi-person"></i> 마이페이지</a>
+        </div>
+    </div>
+
+    <!-- ── 사이드바 ── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="./images/beef_500.png" alt="K-Meat" onerror="this.style.display='none'">
+            <div>
+                <div class="sidebar-brand-title">K-Meat Console</div>
+                <div class="sidebar-brand-sub">불고기구이 주방 관제</div>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li class="menu-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+                <i class="bi bi-grid-1x2-fill"></i><span>통합 대시보드</span>
+            </li>
+            <li class="menu-item" data-tab="orders" onclick="switchTab('orders')">
+                <i class="bi bi-receipt-cutoff" style="color:#e0362c;"></i><span>실시간 주문 관리</span>
+                <span class="badge-count" id="order-badge">0</span>
+            </li>
+            <li class="menu-item" data-tab="sequence" onclick="switchTab('sequence')">
+                <i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i><span>자동 조리순서</span>
+            </li>
+            <li class="menu-item" data-tab="manual" onclick="switchTab('manual')">
+                <i class="bi bi-journal-bookmark-fill" style="color:#2563eb;"></i><span>메뉴별 조리 매뉴얼</span>
+            </li>
+            <li class="menu-item" data-tab="prep" onclick="switchTab('prep')">
+                <i class="bi bi-basket2-fill" style="color:#10b981;"></i><span>반찬 · 쌈채소 기준</span>
+            </li>
+            <li class="menu-item" data-tab="staff" onclick="switchTab('staff')">
+                <i class="bi bi-people-fill" style="color:#7c3aed;"></i><span>사원 관리</span>
+            </li>
+            <li class="menu-item" data-tab="settings" onclick="switchTab('settings')">
+                <i class="bi bi-sliders" style="color:#0891b2;"></i><span>주문 접수 설정</span>
+            </li>
+        </ul>
+
+        <div style="padding: 15px; border-top: 1px solid var(--border-color); display:flex; flex-direction:column; gap:8px;">
+            <a href="./kmeat-real.html" class="btn-action btn-outline" style="width:100%; justify-content:center; text-decoration:none;">
+                <i class="bi bi-tools"></i> 작업자 단말 (주방)
+            </a>
+            <a href="./bulgogi_order.html?workId=6" class="btn-action btn-outline" style="width:100%; justify-content:center; text-decoration:none;">
+                <i class="bi bi-phone"></i> 고객 주문 화면
+            </a>
+            <a href="./main.html" class="btn-action btn-outline" style="width:100%; justify-content:center; text-decoration:none;">
+                <i class="bi bi-arrow-left-circle"></i> 메인으로 돌아가기
+            </a>
+        </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
+    <!-- ── 메인 ── -->
+    <main class="main-content">
+        <header class="header-bar">
+            <div style="display:flex; align-items:center; gap:13px; min-width:0;">
+                <button class="menu-toggle-btn" onclick="toggleMobileSidebar()" aria-label="메뉴 열기">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="header-title-group">
+                    <h1 id="page-title"><i class="bi bi-grid-1x2-fill" style="color:#e0362c;"></i> K-Meat 주방 관제 대시보드</h1>
+                </div>
+            </div>
+            <div class="header-user">
+                <div class="avatar" id="header-avatar">MG</div>
+                <span id="header-username">매니저</span>
+            </div>
+        </header>
+
+        <section class="quick-actions">
+            <button class="btn-action btn-primary" onclick="createDemoOrder()">
+                <i class="bi bi-plus-circle"></i> 데모 주문 생성
+            </button>
+            <button class="btn-action btn-outline" onclick="syncNow()">
+                <i class="bi bi-arrow-repeat"></i> 지금 동기화
+            </button>
+        </section>
+
+        <!-- KPI -->
+        <section class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-red"><i class="bi bi-receipt"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">오늘 주문</span>
+                    <span class="kpi-value" id="kpi-today-orders">0 건</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-amber"><i class="bi bi-fire"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">진행 중 (조리·수령대기)</span>
+                    <span class="kpi-value" id="kpi-active-orders">0 건</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-green"><i class="bi bi-cash-coin"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">오늘 매출</span>
+                    <span class="kpi-value" id="kpi-today-sales">₩0</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon kpi-blue"><i class="bi bi-lightning-charge"></i></div>
+                <div class="kpi-info">
+                    <span class="kpi-label">평균 생고기 서빙 대기</span>
+                    <span class="kpi-value" id="kpi-avg-time">-</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 대시보드 -->
+        <div id="view-dashboard" class="tab-view active">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-bell-fill" style="color:#e0362c;"></i> 신규 주문 알림</h2>
+                        <span class="status-pill pill-ordered" id="new-order-badge">0건 대기</span>
+                    </div>
+                    <div class="order-grid" id="dashboard-new-orders"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i> 현재 조리 순서 (자동 생성)</h2>
+                        <span class="status-pill pill-queued" id="dashboard-seq-badge">대기 없음</span>
+                    </div>
+                    <div id="dashboard-sequence"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-bar-chart-fill" style="color:#2563eb;"></i> 메뉴별 판매 수량</h2>
+                    </div>
+                    <div style="height: 250px; position: relative;">
+                        <canvas id="menuChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 주문 관리 -->
+        <div id="view-orders" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-receipt-cutoff" style="color:#e0362c;"></i> 실시간 주문 관리</h2>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select id="order-filter" onchange="renderOrders()"
+                                style="min-height:38px; padding:7px 11px; border:1px solid var(--border-color); border-radius:9px; font-family:inherit; font-weight:600; font-size:0.84rem;">
+                                <option value="active">진행 중만</option>
+                                <option value="all">전체</option>
+                                <option value="ordered">주문완료</option>
+                                <option value="queued">조리대기</option>
+                                <option value="cooked">조리완료</option>
+                                <option value="pickup_wait">수령대기</option>
+                                <option value="received">수령완료</option>
+                                <option value="cancelled">주문취소</option>
+                            </select>
+                            <button class="btn-action btn-danger" type="button" onclick="clearAllOrders()">
+                                <i class="bi bi-trash3"></i> 데모: 주문 전체 삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-secondary); line-height:1.6;">
+                        주문 카드를 클릭하면 메뉴별 조리 매뉴얼과 예측 소요시간, 자동 생성된 조리 순서를 확인할 수 있습니다.
+                    </div>
+                    <div class="order-grid" id="orders-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 자동 조리순서 -->
+        <div id="view-sequence" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i> 주문별 자동 조리순서</h2>
+                        <span class="status-pill pill-queued">동시 완성 기준</span>
+                    </div>
+                    <div class="info-summary">
+                        <strong>고기는 굽지 않고 생으로 제공합니다.</strong> 손님이 테이블 불판에서 직접 구우므로
+                        주방은 계량·손질·담기만 수행하고 <strong>1차로 최우선 서빙</strong>합니다.<br>
+                        사이드는 손님의 식사 진행에 맞춰 뒤따라 나갑니다.
+                        2차 곁들이는 생고기 서빙 +6분, 3차 마무리 식사(찌개·냉면·밥)는
+                        고기 식사 진행률 70% 시점에 서빙되도록 <strong>착수 시각을 역산</strong>합니다.<br>
+                        주문이 아직 열려 있으면(추가 주문 가능) 3차는 <strong>착수 보류</strong>로 표시되고,
+                        <strong>주문 마감</strong>을 누르면 시각이 확정됩니다.
+                    </div>
+                    <div id="sequence-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 조리 매뉴얼 -->
+        <div id="view-manual" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-journal-bookmark-fill" style="color:#2563eb;"></i> 고기 메뉴 (생고기 제공 · 저울 계량)</h2>
+                        <span class="status-pill pill-cooked"><i class="bi bi-droplet"></i> 굽지 않음 · 1차 즉시 서빙</span>
+                    </div>
+                    <div class="info-summary">
+                        <i class="bi bi-info-circle-fill"></i> 고기는 <strong>주방에서 굽지 않습니다.</strong>
+                        저울 계량 → 손질 → 접시 담기까지만 수행하고 손님이 테이블 불판에서 직접 굽습니다.
+                        따라서 준비시간이 짧고, 반찬·쌈채소와 함께 <strong>가장 먼저</strong> 나가야 합니다.
+                    </div>
+                    <div class="manual-grid" id="manual-meat"></div>
+                </div>
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-egg-fried" style="color:#f59e0b;"></i> 식사 · 사이드 조리 매뉴얼</h2>
+                        <span class="status-pill pill-pickup"><i class="bi bi-clock-history"></i> 2·3차 후속 서빙</span>
+                    </div>
+                    <div class="info-summary">
+                        <i class="bi bi-info-circle-fill"></i> 사이드는 손님이 고기를 굽는 동안 뒤따라 나갑니다.
+                        <strong>계란찜</strong>은 2차(생고기 서빙 +6분), <strong>찌개·냉면·공기밥</strong>은 3차(식사 진행률 70% 시점)에 맞춰
+                        착수 시각이 역산됩니다.
+                    </div>
+                    <div class="manual-grid" id="manual-side"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 반찬 / 쌈채소 -->
+        <div id="view-prep" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-basket2-fill" style="color:#10b981;"></i> 반찬 구성 기준</h2>
+                        <span class="status-pill pill-received" id="banchan-count-badge">5종</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr><th>반찬</th><th>1상 기준량</th><th>비고</th></tr>
+                            </thead>
+                            <tbody id="banchan-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-flower1" style="color:#10b981;"></i> 쌈채소 (상추 · 깻잎) 기준량</h2>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="field">
+                            <label for="ssam-servings">인분 수 계산기</label>
+                            <input type="number" id="ssam-servings" min="1" max="20" step="1" value="1" oninput="renderSsamCalc()">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr><th>쌈채소</th><th>1인분 기준</th><th>선택 인분 필요량</th><th>취급 요령</th></tr>
+                            </thead>
+                            <tbody id="ssam-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="info-summary" id="ssam-summary"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-speedometer" style="color:#2563eb;"></i> 저울 계량 기준표</h2>
+                        <span class="status-pill pill-pickup">허용 오차 ±5%</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr><th>메뉴</th><th>목표 중량</th><th>허용 범위</th><th>계량 지침</th></tr>
+                            </thead>
+                            <tbody id="scale-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 사원 관리 -->
+        <div id="view-staff" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-people-fill" style="color:#7c3aed;"></i> 사원 현황 (불고기구이 공정)</h2>
+                        <span class="status-pill pill-ordered" id="staff-count-badge">0명</span>
+                    </div>
+                    <div class="staff-grid" id="staff-grid"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-person-badge" style="color:#0891b2;"></i> 근무 배치 · 스테이션 지정</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr><th>사원</th><th>등급</th><th>누적 근무</th><th>담당 스테이션</th><th>상태</th></tr>
+                            </thead>
+                            <tbody id="staff-assign-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-calendar-check" style="color:#10b981;"></i> 예약 · 출근 현황</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr><th>근무자</th><th>역할</th><th>예약일</th><th>시간대</th><th>상태</th></tr>
+                            </thead>
+                            <tbody id="staff-reservations-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 주문 접수 설정 -->
+        <div id="view-settings" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-sliders" style="color:#0891b2;"></i> 주문 접수 제한 설정</h2>
+                        <span class="status-pill pill-pickup" id="settings-pill">10분당 1건</span>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="field">
+                            <label for="setting-interval">제한 시간 (분)</label>
+                            <input type="number" id="setting-interval" min="1" step="1" value="10">
+                        </div>
+                        <div class="field">
+                            <label for="setting-max-qty">해당 시간 내 최대 주문 건수</label>
+                            <input type="number" id="setting-max-qty" min="1" step="1" value="1">
+                        </div>
+                        <button class="btn-action btn-primary" type="button" style="justify-content:center; min-height:42px;" onclick="saveOrderSettings()">
+                            <i class="bi bi-check-circle"></i> 설정 저장
+                        </button>
+                    </div>
+                    <div class="info-summary" id="settings-summary"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-shop" style="color:#e0362c;"></i> 매장 정보</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <tbody>
+                                <tr><td style="width:200px;"><strong>브랜드</strong></td><td>K-Meat (불고기구이)</td></tr>
+                                <tr><td><strong>주소</strong></td><td>서울시 종로구 연남동</td></tr>
+                                <tr><td><strong>운영시간</strong></td><td>오후 4:00 ~ 오후 8:00</td></tr>
+                                <tr><td><strong>작업 시간</strong></td><td>4시간 작업 (workId 6)</td></tr>
+                                <tr><td><strong>불판 스테이션</strong></td><td>2대 동시 운용</td></tr>
+                                <tr><td><strong>주문 방식</strong></td><td>매장 테이블 QR 주문 (dine-in)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- 주문 상세 모달 -->
+    <div class="modal-overlay" id="order-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="bi bi-clipboard-check" style="color:#e0362c;"></i> <span id="modal-order-title">주문 상세</span></h3>
+                <button class="modal-close" onclick="closeOrderModal()" aria-label="닫기">&times;</button>
+            </div>
+            <div id="modal-order-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // ══════════════════════════════════════
+        //  전역 상태
+        // ══════════════════════════════════════
+        let currentUser = null;
+        let activeTab = 'dashboard';
+        let menuChart = null;
+        let knownOrderNos = new Set();
+        let notifyReady = false;
+        let selectedOrderNo = null;
+
+        const WORK_ID = 6;
+        const FLOW = [
+            { key: 'ordered',      label: '주문완료', pill: 'pill-ordered',  icon: 'bi-receipt',           next: 'queued',      nextLabel: '조리 시작' },
+            { key: 'queued',       label: '조리대기', pill: 'pill-queued',   icon: 'bi-hourglass-split',   next: 'cooked',      nextLabel: '조리 완료' },
+            { key: 'cooked',       label: '조리완료', pill: 'pill-cooked',   icon: 'bi-fire',              next: 'pickup_wait', nextLabel: '수령 호출' },
+            { key: 'pickup_wait',  label: '수령대기', pill: 'pill-pickup',   icon: 'bi-bell',              next: 'received',    nextLabel: '수령 완료' },
+            { key: 'received',     label: '수령완료', pill: 'pill-received', icon: 'bi-check-circle-fill', next: null,          nextLabel: null }
+        ];
+
+        function flowIndex(stage) {
+            const i = FLOW.findIndex(f => f.key === String(stage));
+            return i < 0 ? 0 : i;
+        }
+        function flowOf(stage) { return FLOW[flowIndex(stage)]; }
+
+        const currency = new Intl.NumberFormat('ko-KR');
+
+        function escapeHtml(v) {
+            return String(v === undefined || v === null ? '' : v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        // ══════════════════════════════════════
+        //  매니저 권한 확인
+        // ══════════════════════════════════════
+        function resolveUser() {
+            let user = window.AuthManager && typeof window.AuthManager.getCurrentUser === 'function'
+                ? window.AuthManager.getCurrentUser() : null;
+            if (!user) {
+                try {
+                    const raw = sessionStorage.getItem('user');
+                    if (raw) user = JSON.parse(raw);
+                } catch (e) {}
+            }
+            return user;
+        }
+
+        function isManager(user) {
+            if (!user) return false;
+            if (String(user.role || '').toUpperCase() === 'MANAGER') return true;
+            if (user.roleName === '매니저') return true;
+            if (user.name === '최현일' || user.email === 'tt2t2am1118@naver.com') return true;
+            const email = String(user.email || '').toLowerCase();
+            const name = String(user.name || '').toLowerCase();
+            if (email.includes('manager') || name.includes('manager')) return true;
+            // 불고기구이(workId 6) 누적 근무 50시간 이상이면 매니저 등급
+            if (window.FactoryStore && typeof window.FactoryStore.getWorkHours === 'function') {
+                const hours = Number(window.FactoryStore.getWorkHours(user.id || user.email || user.name, WORK_ID)) || 0;
+                if (hours >= 50) return true;
+            }
+            return false;
+        }
+
+        function enforceManagerAccess() {
+            currentUser = resolveUser();
+            if (!currentUser) {
+                alert('로그인이 필요합니다.');
+                location.href = './login.html';
+                return false;
+            }
+            if (!isManager(currentUser)) {
+                const msg = document.getElementById('access-denied-msg');
+                if (msg) {
+                    msg.innerHTML = `${escapeHtml(currentUser.name || '사용자')} 님은 현재 매니저 등급이 아닙니다.<br>`
+                        + `불고기구이 공정 누적 근무 50시간 이상이면 매니저로 승급됩니다.`;
+                }
+                document.getElementById('access-denied').classList.add('show');
+                document.querySelector('.sidebar').style.display = 'none';
+                document.querySelector('.main-content').style.display = 'none';
+                return false;
+            }
+            // 헤더 사용자 표기
+            const nm = currentUser.name || '매니저';
+            document.getElementById('header-username').textContent = `${nm} 님 · 매니저`;
+            document.getElementById('header-avatar').textContent = nm.substring(0, 2);
+            return true;
+        }
+
+        // ══════════════════════════════════════
+        //  데이터 접근
+        // ══════════════════════════════════════
+        function getOrders() {
+            if (window.MockData && typeof window.MockData.getKmeatOrders === 'function') {
+                return window.MockData.getKmeatOrders();
+            }
+            try {
+                const parsed = JSON.parse(localStorage.getItem('bulgogi_order_history') || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+
+        function getStageOf(order) {
+            if (!order) return 'ordered';
+            if (order.status === 'cancelled') return 'cancelled';
+            return order.kitchenStage || 'ordered';
+        }
+
+        function isActiveStage(stage) {
+            return ['ordered', 'queued', 'cooked', 'pickup_wait'].includes(stage);
+        }
+
+        function getManual(menuId) {
+            if (window.MockData && typeof window.MockData.getKmeatMenuManual === 'function') {
+                return window.MockData.getKmeatMenuManual(menuId);
+            }
+            return null;
+        }
+
+        function getEstimate(order) {
+            if (window.MockData && typeof window.MockData.estimateKmeatOrderTime === 'function') {
+                return window.MockData.estimateKmeatOrderTime(order);
+            }
+            return { totalMinutes: 0, lines: [] };
+        }
+
+        function getSequence(order) {
+            if (window.MockData && typeof window.MockData.buildKmeatCookingSequence === 'function') {
+                return window.MockData.buildKmeatCookingSequence(order);
+            }
+            return { totalMinutes: 0, sequence: [] };
+        }
+
+        function stationInfo(key) {
+            const stations = (window.MockData && window.MockData.kmeatStations) || {};
+            return stations[key] || { label: key, icon: 'bi-tools', color: '#64748b' };
+        }
+
+        function isToday(iso) {
+            const d = new Date(iso);
+            if (!Number.isFinite(d.getTime())) return false;
+            const n = new Date();
+            return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+        }
+
+        function fmtTime(iso) {
+            const d = new Date(iso);
+            if (!Number.isFinite(d.getTime())) return '-';
+            return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function fmtDateTime(iso) {
+            const d = new Date(iso);
+            if (!Number.isFinite(d.getTime())) return '-';
+            return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${fmtTime(iso)}`;
+        }
+
+        function elapsedMinutes(iso) {
+            const t = Date.parse(iso);
+            if (!Number.isFinite(t)) return 0;
+            return Math.floor((Date.now() - t) / 60000);
+        }
+
+        // ══════════════════════════════════════
+        //  주문 상태 전이
+        // ══════════════════════════════════════
+        function advanceStage(orderNo, evt) {
+            if (evt) evt.stopPropagation();
+            const order = getOrders().find(o => String(o.orderNo) === String(orderNo));
+            if (!order) return;
+            const stage = getStageOf(order);
+            if (stage === 'cancelled') return;
+            const flow = flowOf(stage);
+            if (!flow.next) return;
+
+            const now = new Date().toISOString();
+            const updates = { kitchenStage: flow.next };
+            if (flow.next === 'queued') updates.cookStartedAt = now;
+            if (flow.next === 'cooked') updates.cookedAt = now;
+            if (flow.next === 'pickup_wait') updates.pickupCalledAt = now;
+            if (flow.next === 'received') {
+                updates.receivedAt = now;
+                updates.status = 'served';
+            }
+
+            applyOrderUpdate(orderNo, updates);
+            const nextFlow = flowOf(flow.next);
+            showToast(`주문 #${orderNo} → ${nextFlow.label}`, `상태를 ${nextFlow.label}(으)로 변경했습니다.`);
+            renderAll();
+        }
+
+        // 주문 마감 → 3차 마무리 식사 착수 확정
+        function finalizeOrder(orderNo, evt) {
+            if (evt) evt.stopPropagation();
+            const order = getOrders().find(o => String(o.orderNo) === String(orderNo));
+            if (!order) return;
+
+            const est = getEstimate(order);
+            const hasFinale = est.courseCounts && est.courseCounts[3] > 0;
+            const msg = hasFinale
+                ? `주문 #${orderNo}을 마감하시겠습니까?\n\n마무리 식사(찌개·냉면·밥) 착수 시각이 확정됩니다.\n서빙 목표: 생고기 서빙 +${est.finaleServeMinutes - est.firstServeMinutes}분 후`
+                : `주문 #${orderNo}을 마감하시겠습니까?\n더 이상 추가 주문을 받지 않습니다.`;
+            if (!confirm(msg)) return;
+
+            if (window.MockData && typeof window.MockData.finalizeKmeatOrder === 'function') {
+                window.MockData.finalizeKmeatOrder(orderNo);
+            }
+            showToast(`주문 #${orderNo} 마감`, hasFinale
+                ? `마무리 식사 착수 시각이 확정되었습니다.`
+                : `추가 주문 접수를 종료했습니다.`);
+            renderAll();
+            if (selectedOrderNo === String(orderNo)) openOrderModal(orderNo);
+        }
+
+        function reopenOrder(orderNo, evt) {
+            if (evt) evt.stopPropagation();
+            if (window.MockData && typeof window.MockData.reopenKmeatOrder === 'function') {
+                window.MockData.reopenKmeatOrder(orderNo);
+            }
+            showToast(`주문 #${orderNo} 마감 해제`, '추가 주문을 다시 받을 수 있습니다.');
+            renderAll();
+            if (selectedOrderNo === String(orderNo)) openOrderModal(orderNo);
+        }
+
+        // 추가 주문 접수 (매장에서 손님이 메뉴를 더 시킨 경우)
+        function openAppendModal(orderNo, evt) {
+            if (evt) evt.stopPropagation();
+            const manuals = (window.MockData && window.MockData.kmeatMenuManuals) || {};
+            const ids = Object.keys(manuals);
+            if (ids.length === 0) return;
+
+            const opts = ids.map(id => {
+                const m = manuals[id];
+                const courseLabel = m.serveCourse === 1 ? '1차' : (m.serveCourse === 2 ? '2차' : '3차');
+                return `<option value="${id}">[${courseLabel}] ${escapeHtml(m.name)} · ${currency.format(m.price)}원</option>`;
+            }).join('');
+
+            document.getElementById('modal-order-title').textContent = `주문 #${orderNo} 추가 주문`;
+            document.getElementById('modal-order-body').innerHTML = `
+                <div class="info-summary">
+                    <i class="bi bi-plus-circle-fill"></i> 같은 테이블에 메뉴를 추가합니다.
+                    추가 후 서빙 차수와 조리 착수 시각이 자동으로 다시 계산됩니다.
+                </div>
+                <div class="settings-grid">
+                    <div class="field">
+                        <label for="append-menu">추가 메뉴</label>
+                        <select id="append-menu">${opts}</select>
+                    </div>
+                    <div class="field">
+                        <label for="append-qty">수량</label>
+                        <input type="number" id="append-qty" min="1" max="20" step="1" value="1">
+                    </div>
+                    <button class="btn-action btn-primary" style="justify-content:center; min-height:42px;"
+                        onclick="submitAppend('${escapeHtml(orderNo)}')">
+                        <i class="bi bi-check-circle"></i> 추가 주문 접수
+                    </button>
+                </div>
+                <div style="display:flex; gap:9px; justify-content:flex-end; padding-top:6px; border-top:1px solid var(--border-color);">
+                    <button class="btn-action btn-outline" onclick="openOrderModal('${escapeHtml(orderNo)}')">주문 상세로 돌아가기</button>
+                </div>`;
+            document.getElementById('order-modal').classList.add('active');
+            selectedOrderNo = String(orderNo);
+        }
+
+        function submitAppend(orderNo) {
+            const menuId = (document.getElementById('append-menu') || {}).value;
+            const qty = Math.max(1, parseInt((document.getElementById('append-qty') || {}).value, 10) || 1);
+            const manuals = (window.MockData && window.MockData.kmeatMenuManuals) || {};
+            const m = manuals[menuId];
+            if (!m) return;
+
+            const item = {
+                id: menuId, name: m.name, price: m.price,
+                quantity: qty, unit: m.unit, subtotal: m.price * qty
+            };
+
+            if (window.MockData && typeof window.MockData.appendKmeatOrderItems === 'function') {
+                const updated = window.MockData.appendKmeatOrderItems(orderNo, [item]);
+                if (updated) syncToShopHistory(updated);
+            }
+
+            const courseLabel = m.serveCourse === 1 ? '1차 즉시' : (m.serveCourse === 2 ? '2차 곁들이' : '3차 마무리');
+            showToast(`추가 주문 접수 #${orderNo}`, `${m.name} ${qty}${m.unit} · ${courseLabel} 서빙으로 편성했습니다.`);
+            playChime();
+            renderAll();
+            openOrderModal(orderNo);
+        }
+
+        function cancelOrder(orderNo, evt) {
+            if (evt) evt.stopPropagation();
+            if (!confirm(`주문 #${orderNo}을 취소하시겠습니까?\n정산 차감분도 함께 복구됩니다.`)) return;
+
+            applyOrderUpdate(orderNo, {
+                status: 'cancelled',
+                kitchenStage: 'cancelled',
+                cancelledAt: new Date().toISOString()
+            });
+
+            // 공용 스토어의 주문도 취소 처리 (정산금액 복구)
+            if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                const shopOrder = (window.FactoryStore.getShopOrders
+                    ? window.FactoryStore.getShopOrders({ workId: WORK_ID })
+                    : []).find(o => String(o.orderNo) === String(orderNo));
+                if (shopOrder) {
+                    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: shopOrder.id });
+                }
+            }
+
+            showToast(`주문 #${orderNo} 취소`, '주문이 취소되고 정산 차감분이 복구되었습니다.');
+            closeOrderModal();
+            renderAll();
+        }
+
+        // bulgogi_order_history 갱신 + kimp_shop_history 동기화
+        function applyOrderUpdate(orderNo, updates) {
+            let updated = null;
+            if (window.MockData && typeof window.MockData.updateKmeatOrder === 'function') {
+                updated = window.MockData.updateKmeatOrder(orderNo, updates);
+            }
+            if (!updated) return null;
+            syncToShopHistory(updated);
+            return updated;
+        }
+
+        function mapStageToKitchenStatus(order) {
+            const stage = getStageOf(order);
+            if (stage === 'cancelled') return 'cancelled';
+            if (stage === 'received') return 'received';
+            if (stage === 'pickup_wait' || stage === 'cooked') return 'ready';
+            if (stage === 'queued') return 'preparing';
+            return 'queued';
+        }
+
+        function syncToShopHistory(order) {
+            const recordId = `bulgogi_${order.orderNo}`;
+            const stage = getStageOf(order);
+            const changes = {
+                kitchenStage: stage,
+                kitchenStatus: mapStageToKitchenStatus(order),
+                estimatedMinutes: order.estimatedMinutes || null
+            };
+            if (stage === 'received') changes.status = 'completed';
+            if (stage === 'cancelled') {
+                changes.status = 'cancelled';
+                changes.shouldShowSpendAmount = false;
+                changes.paymentDisplayLabel = '주문취소됨';
+            }
+
+            // FactoryStore 경유 (정산/알림 로직 재사용)
+            if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                window.FactoryStore.dispatch({
+                    type: 'UPDATE_SHOP_ORDER',
+                    payload: { id: recordId, changes }
+                });
+                return;
+            }
+
+            // Fallback: localStorage 직접 갱신
+            try {
+                let history = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
+                if (!Array.isArray(history)) history = [];
+                const idx = history.findIndex(h => h && String(h.id) === recordId);
+                if (idx > -1) {
+                    history[idx] = Object.assign({}, history[idx], changes);
+                    localStorage.setItem('kimp_shop_history', JSON.stringify(history));
+                    window.dispatchEvent(new Event('storage'));
+                }
+            } catch (e) {}
+        }
+
+        // ══════════════════════════════════════
+        //  렌더링 - 주문 카드
+        // ══════════════════════════════════════
+        function orderCardHtml(order, opts) {
+            const options = opts || {};
+            const stage = getStageOf(order);
+            const flow = stage === 'cancelled'
+                ? { label: '주문취소', pill: 'pill-cancel', icon: 'bi-x-circle', next: null }
+                : flowOf(stage);
+            const items = Array.isArray(order.items) ? order.items : [];
+            const est = getEstimate(order);
+            const elapsed = elapsedMinutes(order.orderedAt);
+            const idx = stage === 'cancelled' ? -1 : flowIndex(stage);
+
+            const track = FLOW.map((f, i) =>
+                `<div class="stage-dot ${idx >= i ? 'done' : ''}" title="${f.label}"></div>`
+            ).join('');
+
+            const itemRows = items.slice(0, 4).map(it => `
+                <div class="order-item-row">
+                    <span>${escapeHtml(it.name)}</span>
+                    <span>${Math.max(1, Number(it.quantity) || 1)}${escapeHtml(it.unit || '개')} · ${currency.format(Number(it.subtotal) || 0)}원</span>
+                </div>`).join('')
+                + (items.length > 4 ? `<div class="order-item-row"><span style="color:var(--text-secondary);">외 ${items.length - 4}개 항목</span><span></span></div>` : '');
+
+            const actionBtn = (stage !== 'cancelled' && flow.next)
+                ? `<button class="btn-action ${stage === 'pickup_wait' ? 'btn-green' : (stage === 'ordered' ? 'btn-amber' : 'btn-primary')}"
+                        style="font-size:0.78rem; padding:6px 11px;"
+                        onclick="advanceStage('${escapeHtml(order.orderNo)}', event)">
+                        <i class="bi bi-arrow-right-circle"></i> ${flow.nextLabel}
+                   </button>`
+                : (stage === 'received'
+                    ? `<span style="font-size:0.78rem; color:var(--text-secondary); font-weight:700;">처리 완료</span>`
+                    : `<span style="font-size:0.78rem; color:var(--text-secondary); font-weight:700;">-</span>`);
+
+            const cancelBtn = isActiveStage(stage)
+                ? `<button class="btn-action btn-danger" style="font-size:0.76rem; padding:6px 10px;"
+                        onclick="cancelOrder('${escapeHtml(order.orderNo)}', event)">취소</button>`
+                : '';
+
+            // 주문 확정 여부 (추가 주문 가능 / 마감)
+            const finalized = window.MockData && window.MockData.isKmeatOrderFinalized
+                ? window.MockData.isKmeatOrderFinalized(order) : false;
+            const rounds = (window.MockData && window.MockData.getKmeatOrderRounds)
+                ? window.MockData.getKmeatOrderRounds(order) : [];
+            const openBadge = stage === 'cancelled' ? '' : (finalized
+                ? `<span class="status-pill pill-received"><i class="bi bi-lock-fill"></i> 주문 마감</span>`
+                : `<span class="status-pill pill-hold"><i class="bi bi-plus-circle-dotted"></i> 추가 주문 가능</span>`);
+            const roundBadge = rounds.length > 1
+                ? `<span class="chip" style="border-color:rgba(124,58,237,0.35); color:#6d28d9; background:rgba(124,58,237,0.06);">${rounds.length}차 주문</span>`
+                : '';
+            const finalizeBtn = (isActiveStage(stage) && !finalized)
+                ? `<button class="btn-action btn-blue" style="font-size:0.76rem; padding:6px 10px;"
+                        onclick="finalizeOrder('${escapeHtml(order.orderNo)}', event)">
+                        <i class="bi bi-lock"></i> 주문 마감
+                   </button>`
+                : '';
+
+            return `
+                <article class="order-card stage-${escapeHtml(stage)} ${options.isNew ? 'is-new' : ''}"
+                         onclick="openOrderModal('${escapeHtml(order.orderNo)}')">
+                    <div class="order-card-top">
+                        <div style="min-width:0;">
+                            <div class="order-no">#${escapeHtml(order.orderNo)}</div>
+                            <div class="order-meta">
+                                ${escapeHtml(order.tableId || '테이블 미지정')} · ${escapeHtml(fmtDateTime(order.orderedAt))}
+                                ${isActiveStage(stage) ? ` · 경과 ${elapsed}분` : ''}
+                            </div>
+                        </div>
+                        <span class="status-pill ${flow.pill}"><i class="bi ${flow.icon}"></i> ${flow.label}</span>
+                    </div>
+
+                    <div class="stage-track">${track}</div>
+
+                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                        ${openBadge}${roundBadge}
+                    </div>
+
+                    <div class="order-items">${itemRows || '<span style="color:var(--text-secondary);">항목 없음</span>'}</div>
+
+                    <div class="order-card-bottom">
+                        <div>
+                            <div class="order-total">${currency.format(Number(order.total) || 0)}원</div>
+                            <div class="order-eta">
+                                <i class="bi bi-lightning-charge"></i> 생고기 +${est.firstServeMinutes}분
+                                <span style="opacity:0.5;">|</span>
+                                <i class="bi bi-stopwatch"></i> 마무리 +${est.totalMinutes}분
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:7px; align-items:center; flex-wrap:wrap;">
+                            ${cancelBtn}${finalizeBtn}${actionBtn}
+                        </div>
+                    </div>
+                </article>`;
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('orders-container');
+            if (!container) return;
+            const filter = (document.getElementById('order-filter') || {}).value || 'active';
+            let orders = getOrders();
+
+            if (filter === 'active') orders = orders.filter(o => isActiveStage(getStageOf(o)));
+            else if (filter !== 'all') orders = orders.filter(o => getStageOf(o) === filter);
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <i class="bi bi-inbox"></i>
+                        <p>표시할 주문이 없습니다.</p>
+                        <span>고객이 매장 QR로 주문하면 이곳에 실시간으로 표시됩니다.</span>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = orders.map(o => orderCardHtml(o)).join('');
+        }
+
+        function renderDashboardNewOrders() {
+            const container = document.getElementById('dashboard-new-orders');
+            const badge = document.getElementById('new-order-badge');
+            if (!container) return;
+
+            const newOrders = getOrders().filter(o => ['ordered', 'queued'].includes(getStageOf(o)));
+            if (badge) badge.textContent = `${newOrders.length}건 대기`;
+
+            if (newOrders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <i class="bi bi-check2-circle"></i>
+                        <p>대기 중인 신규 주문이 없습니다.</p>
+                        <span>새 주문이 접수되면 알림과 함께 이곳에 표시됩니다.</span>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = newOrders.map(o => orderCardHtml(o)).join('');
+        }
+
+        // ══════════════════════════════════════
+        //  렌더링 - 조리 순서 타임라인
+        // ══════════════════════════════════════
+        function taskRowHtml(row) {
+            const t = row.task;
+            const st = stationInfo(t.station);
+            const steps = (t.steps || []).map(s => `
+                <div class="step-row">
+                    <div class="step-num">${s.step}</div>
+                    <div>${escapeHtml(s.text)}</div>
+                    <div class="step-min">${s.minutes}분</div>
+                </div>`).join('');
+            const scaleBox = t.scale
+                ? `<div class="scale-box">
+                      <i class="bi bi-speedometer2"></i> <strong>저울 계량</strong> ·
+                      목표 <strong>${t.scale.target}g</strong>
+                      (허용 <strong>${t.scale.min}~${t.scale.max}g</strong>)<br>
+                      ${escapeHtml(t.scale.note)}
+                   </div>` : '';
+            const cautions = (t.cautions && t.cautions.length)
+                ? `<div class="caution-box"><i class="bi bi-exclamation-triangle-fill"></i> ${t.cautions.map(escapeHtml).join(' · ')}</div>`
+                : '';
+            const rawChip = t.raw ? `<span class="chip raw"><i class="bi bi-droplet"></i> 생고기 제공</span>` : '';
+
+            return `
+                <div class="seq-row ${row.held ? 'is-held' : ''}">
+                    <div class="seq-time">
+                        <small>착수</small>
+                        +${row.startAtMinute}분
+                        <small>~ +${row.finishAtMinute}분</small>
+                    </div>
+                    <div class="seq-body">
+                        <div class="seq-title">
+                            <span style="color:${st.color};"><i class="bi ${st.icon}"></i></span>
+                            ${escapeHtml(t.name)}
+                            ${rawChip}
+                            <span class="chip station">${escapeHtml(t.stationLabel || st.label)}</span>
+                            <span class="chip time">${t.minutes}분</span>
+                            <span class="chip">${t.qty}${escapeHtml(t.unit || '개')}</span>
+                        </div>
+                        ${scaleBox}
+                        <div class="step-list">${steps}</div>
+                        ${cautions}
+                    </div>
+                </div>`;
+        }
+
+        function sequenceHtml(order) {
+            const seq = getSequence(order);
+            if (!seq.courses || seq.courses.length === 0) {
+                return `<div class="empty-state"><i class="bi bi-slash-circle"></i><p>조리 순서를 생성할 항목이 없습니다.</p></div>`;
+            }
+
+            const finalized = seq.finalized;
+            const openNotice = finalized
+                ? `<div class="info-summary ok" style="margin-bottom:12px;">
+                       <i class="bi bi-lock-fill"></i> <strong>주문 마감됨</strong> ·
+                       마무리 식사 착수 시각이 확정되었습니다.
+                   </div>`
+                : `<div class="info-summary warn" style="margin-bottom:12px;">
+                       <i class="bi bi-hourglass-split"></i> <strong>주문 진행 중 (추가 주문 가능)</strong> ·
+                       3차 마무리 식사는 <strong>착수 보류</strong> 상태입니다.
+                       추가 주문이 들어오면 서빙 시각이 자동으로 다시 계산됩니다.
+                   </div>`;
+
+            const coursesHtml = seq.courses.map(c => {
+                const meta = c.meta || {};
+                const heldBadge = c.held
+                    ? `<span class="status-pill pill-hold"><i class="bi bi-pause-circle"></i> 착수 보류</span>`
+                    : `<span class="status-pill pill-received"><i class="bi bi-check2"></i> 착수 확정</span>`;
+                return `
+                    <div class="course-block ${c.held ? 'is-held' : ''}" style="--course-color:${meta.color || '#64748b'};">
+                        <div class="course-head">
+                            <div class="course-title">
+                                <span style="color:${meta.color || '#64748b'};"><i class="bi ${meta.icon || 'bi-circle'}"></i></span>
+                                ${escapeHtml(meta.label || ('차수 ' + c.course))}
+                            </div>
+                            <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+                                <span class="chip serve"><i class="bi bi-box-arrow-right"></i> 서빙 +${c.serveAtMinute}분</span>
+                                ${heldBadge}
+                            </div>
+                        </div>
+                        <div class="course-desc">${escapeHtml(meta.desc || '')}${c.heldReason ? ` <strong>(${escapeHtml(c.heldReason)})</strong>` : ''}</div>
+                        <div class="seq-timeline">${c.rows.map(taskRowHtml).join('')}</div>
+                    </div>`;
+            }).join('');
+
+            return `
+                ${openNotice}
+                <div class="info-summary" style="margin-bottom:14px;">
+                    <i class="bi bi-stopwatch-fill"></i>
+                    <strong>1차 생고기 서빙 +${seq.firstServeMinutes}분</strong> (손님 체감 대기시간) ·
+                    고기 ${seq.meatServings}인분 예상 식사시간 ${seq.totalMealMinutes}분 ·
+                    마지막 접시 서빙 <strong>+${seq.totalMinutes}분</strong>
+                </div>
+                ${coursesHtml}`;
+        }
+
+        function renderSequenceView() {
+            const container = document.getElementById('sequence-container');
+            if (!container) return;
+            const orders = getOrders().filter(o => isActiveStage(getStageOf(o)));
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-diagram-3"></i>
+                        <p>진행 중인 주문이 없습니다.</p>
+                        <span>주문이 접수되면 조리 순서가 자동으로 생성됩니다.</span>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = orders.map(o => {
+                const flow = flowOf(getStageOf(o));
+                return `
+                    <div style="margin-bottom:22px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:11px;">
+                            <div style="font-size:1rem; font-weight:800;">
+                                #${escapeHtml(o.orderNo)}
+                                <span style="font-size:0.8rem; color:var(--text-secondary); font-weight:600; margin-left:7px;">
+                                    ${escapeHtml(o.tableId || '')} · ${escapeHtml(fmtTime(o.orderedAt))}
+                                </span>
+                            </div>
+                            <span class="status-pill ${flow.pill}"><i class="bi ${flow.icon}"></i> ${flow.label}</span>
+                        </div>
+                        ${sequenceHtml(o)}
+                    </div>`;
+            }).join('');
+        }
+
+        function renderDashboardSequence() {
+            const container = document.getElementById('dashboard-sequence');
+            const badge = document.getElementById('dashboard-seq-badge');
+            if (!container) return;
+
+            const orders = getOrders().filter(o => ['ordered', 'queued'].includes(getStageOf(o)));
+            if (orders.length === 0) {
+                if (badge) badge.textContent = '대기 없음';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-cup-hot"></i>
+                        <p>조리 대기 중인 주문이 없습니다.</p>
+                    </div>`;
+                return;
+            }
+            const target = orders[orders.length - 1]; // 가장 먼저 들어온 주문
+            const seq = getSequence(target);
+            if (badge) badge.textContent = `#${target.orderNo} · ${seq.totalMinutes}분`;
+            container.innerHTML = `
+                <div style="font-size:0.86rem; font-weight:700; margin-bottom:11px;">
+                    가장 먼저 처리할 주문: <span style="color:#c62828;">#${escapeHtml(target.orderNo)}</span>
+                    <span style="color:var(--text-secondary); font-weight:600;">(${escapeHtml(target.tableId || '')})</span>
+                </div>
+                ${sequenceHtml(target)}`;
+        }
+
+        // ══════════════════════════════════════
+        //  렌더링 - 조리 매뉴얼
+        // ══════════════════════════════════════
+        const COURSE_CHIP = {
+            1: '<span class="chip" style="border-color:rgba(224,54,44,0.4); color:#c62828; background:rgba(224,54,44,0.07);"><i class="bi bi-lightning-charge-fill"></i> 1차 즉시</span>',
+            2: '<span class="chip time"><i class="bi bi-egg-fried"></i> 2차 곁들이</span>',
+            3: '<span class="chip" style="border-color:rgba(8,145,178,0.4); color:#0e7490; background:rgba(8,145,178,0.07);"><i class="bi bi-bowl"></i> 3차 마무리</span>'
+        };
+
+        function manualCardHtml(manual) {
+            const st = stationInfo(manual.station);
+            const course = (window.MockData && window.MockData.getKmeatServeCourse)
+                ? window.MockData.getKmeatServeCourse(manual) : 3;
+            const steps = (manual.steps || []).map(s => `
+                <div class="step-row">
+                    <div class="step-num">${s.step}</div>
+                    <div>${escapeHtml(s.text)}</div>
+                    <div class="step-min">${s.minutes}분</div>
+                </div>`).join('');
+            const scaleBox = manual.scale
+                ? `<div class="scale-box">
+                      <i class="bi bi-speedometer2"></i> <strong>저울 계량</strong> ·
+                      목표 <strong>${manual.scale.target}g</strong>
+                      (허용 <strong>${manual.scale.min}~${manual.scale.max}g</strong>)<br>
+                      ${escapeHtml(manual.scale.note)}
+                   </div>` : '';
+            const cautions = (manual.cautions && manual.cautions.length)
+                ? `<div class="caution-box"><i class="bi bi-exclamation-triangle-fill"></i> ${manual.cautions.map(escapeHtml).join(' · ')}</div>`
+                : '';
+
+            return `
+                <div class="manual-card">
+                    <div class="manual-head">
+                        <div class="manual-title">${escapeHtml(manual.name)}</div>
+                        <span class="status-pill ${manual.group === 'meat' ? 'pill-cooked' : 'pill-queued'}">
+                            <i class="bi ${st.icon}"></i> ${escapeHtml(st.label)}
+                        </span>
+                    </div>
+                    <div class="manual-body">
+                        <div class="manual-chips">
+                            ${COURSE_CHIP[course] || ''}
+                            <span class="chip time"><i class="bi bi-stopwatch"></i> ${manual.prepMinutes}분</span>
+                            ${manual.raw ? `<span class="chip raw"><i class="bi bi-droplet"></i> 생고기 제공</span>` : ''}
+                            <span class="chip">${currency.format(manual.price)}원 / ${escapeHtml(manual.unit)}</span>
+                            ${manual.targetWeightG ? `<span class="chip scale">${manual.targetWeightG}g 기준</span>` : ''}
+                        </div>
+                        ${scaleBox}
+                        <div class="step-list">${steps}</div>
+                        ${cautions}
+                    </div>
+                </div>`;
+        }
+
+        function renderManuals() {
+            const manuals = (window.MockData && window.MockData.kmeatMenuManuals) || {};
+            const list = Object.keys(manuals).map(k => manuals[k]);
+            const meat = document.getElementById('manual-meat');
+            const side = document.getElementById('manual-side');
+            if (meat) meat.innerHTML = list.filter(m => m.group === 'meat').map(manualCardHtml).join('');
+            if (side) side.innerHTML = list.filter(m => m.group === 'side').map(manualCardHtml).join('');
+        }
+
+        // ══════════════════════════════════════
+        //  렌더링 - 반찬 / 쌈채소 / 저울
+        // ══════════════════════════════════════
+        function renderPrepView() {
+            const policy = (window.MockData && window.MockData.kmeatBanchanPolicy) || null;
+            if (!policy) return;
+
+            const badge = document.getElementById('banchan-count-badge');
+            if (badge) badge.textContent = `${policy.banchanCount}종`;
+
+            const bTbody = document.getElementById('banchan-tbody');
+            if (bTbody) {
+                bTbody.innerHTML = policy.banchanList.map(b => `
+                    <tr>
+                        <td><strong>${escapeHtml(b.name)}</strong></td>
+                        <td>${escapeHtml(b.amount)}</td>
+                        <td style="color:var(--text-secondary);">${escapeHtml(b.note)}</td>
+                    </tr>`).join('');
+            }
+
+            renderSsamCalc();
+
+            const sTbody = document.getElementById('scale-tbody');
+            const manuals = (window.MockData && window.MockData.kmeatMenuManuals) || {};
+            if (sTbody) {
+                const rows = Object.keys(manuals)
+                    .map(k => manuals[k])
+                    .filter(m => m.scale)
+                    .map(m => `
+                        <tr>
+                            <td><strong>${escapeHtml(m.name)}</strong></td>
+                            <td><strong style="font-family:'Outfit',sans-serif;">${m.scale.target}g</strong></td>
+                            <td>${m.scale.min}g ~ ${m.scale.max}g</td>
+                            <td style="color:var(--text-secondary);">${escapeHtml(m.scale.note)}</td>
+                        </tr>`).join('');
+                sTbody.innerHTML = rows;
+            }
+        }
+
+        function renderSsamCalc() {
+            const policy = (window.MockData && window.MockData.kmeatBanchanPolicy) || null;
+            if (!policy) return;
+            const servings = Math.max(1, parseInt((document.getElementById('ssam-servings') || {}).value, 10) || 1);
+
+            const tbody = document.getElementById('ssam-tbody');
+            const keys = ['sangchu', 'kkaennip'];
+            if (tbody) {
+                tbody.innerHTML = keys.map(k => {
+                    const s = policy.ssamPerServing[k];
+                    return `
+                        <tr>
+                            <td><strong>${escapeHtml(s.name)}</strong></td>
+                            <td>${s.gramsPerServing}g (약 ${s.countPerServing}장)</td>
+                            <td><strong style="font-family:'Outfit',sans-serif; color:#047857;">
+                                ${s.gramsPerServing * servings}g (약 ${s.countPerServing * servings}장)
+                            </strong></td>
+                            <td style="color:var(--text-secondary);">${escapeHtml(s.note)}</td>
+                        </tr>`;
+                }).join('');
+            }
+
+            const summary = document.getElementById('ssam-summary');
+            if (summary) {
+                const sc = policy.ssamPerServing.sangchu;
+                const kk = policy.ssamPerServing.kkaennip;
+                summary.innerHTML = `<i class="bi bi-info-circle-fill"></i> <strong>${servings}인분</strong> 기준 `
+                    + `상추 <strong>${sc.gramsPerServing * servings}g</strong>, `
+                    + `깻잎 <strong>${kk.gramsPerServing * servings}g</strong>, `
+                    + `쌈장 종지 <strong>${servings}개</strong>, `
+                    + `반찬 <strong>${policy.banchanCount}종</strong>을 세팅합니다. `
+                    + `저울 허용 오차는 ±${Math.round(policy.scaleTolerance * 100)}%입니다.`;
+            }
+        }
+
+        // ══════════════════════════════════════
+        //  렌더링 - 사원 관리
+        // ══════════════════════════════════════
+        const STATION_ASSIGN_KEY = 'kmeat_station_assign';
+
+        function getStationAssign() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(STATION_ASSIGN_KEY) || '{}');
+                return (parsed && typeof parsed === 'object') ? parsed : {};
+            } catch (e) { return {}; }
+        }
+
+        function setStationAssign(userId, station) {
+            const map = getStationAssign();
+            map[String(userId)] = station;
+            localStorage.setItem(STATION_ASSIGN_KEY, JSON.stringify(map));
+            showToast('스테이션 배치 변경', `배치가 저장되었습니다.`);
+            renderStaffView();
+        }
+
+        function gradeOf(hours) {
+            if (hours >= 50) return { label: '매니저', pill: 'pill-received' };
+            if (hours >= 30) return { label: '헬퍼', pill: 'pill-pickup' };
+            return { label: '일반', pill: 'pill-queued' };
+        }
+
+        function getStaffList() {
+            const users = (window.FactoryStore && window.FactoryStore.getUsers)
+                ? window.FactoryStore.getUsers()
+                : ((window.MockData && window.MockData.users) || []);
+            return users.map(u => {
+                const hours = (window.FactoryStore && window.FactoryStore.getWorkHours)
+                    ? Number(window.FactoryStore.getWorkHours(u.id, WORK_ID)) || 0
+                    : 0;
+                return {
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    gender: u.gender,
+                    tel: u.tel,
+                    healthStatus: u.healthCertificateStatus,
+                    hours,
+                    grade: gradeOf(hours)
+                };
+            });
+        }
+
+        function renderStaffView() {
+            const staff = getStaffList();
+            const assign = getStationAssign();
+            const stations = (window.MockData && window.MockData.kmeatStations) || {};
+            const stationKeys = Object.keys(stations);
+
+            const badge = document.getElementById('staff-count-badge');
+            if (badge) badge.textContent = `${staff.length}명`;
+
+            const grid = document.getElementById('staff-grid');
+            if (grid) {
+                grid.innerHTML = staff.map(s => {
+                    const assignedKey = assign[String(s.id)] || 'grill';
+                    const st = stations[assignedKey] || { label: '미배치', icon: 'bi-dash-circle', color: '#64748b' };
+                    const health = s.healthStatus === 'approved'
+                        ? '<span class="status-pill pill-received"><i class="bi bi-check-circle"></i> 보건증 승인</span>'
+                        : '<span class="status-pill pill-cancel"><i class="bi bi-exclamation-circle"></i> 보건증 미등록</span>';
+                    return `
+                        <div class="staff-card">
+                            <div class="staff-top">
+                                <div class="staff-avatar">${escapeHtml(String(s.name || '').substring(0, 2))}</div>
+                                <div style="min-width:0;">
+                                    <div class="staff-name">${escapeHtml(s.name)}</div>
+                                    <div class="staff-role">${escapeHtml(s.email || '')}</div>
+                                </div>
+                                <span class="status-pill ${s.grade.pill}" style="margin-left:auto;">${s.grade.label}</span>
+                            </div>
+                            <div class="staff-stats">
+                                <div class="staff-stat-row"><span>불고기구이 누적</span><span>${s.hours}시간</span></div>
+                                <div class="staff-stat-row"><span>담당 스테이션</span><span style="color:${st.color};"><i class="bi ${st.icon}"></i> ${escapeHtml(st.label)}</span></div>
+                                <div class="staff-stat-row"><span>연락처</span><span>${escapeHtml(s.tel || '-')}</span></div>
+                            </div>
+                            ${health}
+                        </div>`;
+                }).join('');
+            }
+
+            const tbody = document.getElementById('staff-assign-tbody');
+            if (tbody) {
+                tbody.innerHTML = staff.map(s => {
+                    const assignedKey = assign[String(s.id)] || 'grill';
+                    const opts = stationKeys.map(k =>
+                        `<option value="${k}" ${assignedKey === k ? 'selected' : ''}>${escapeHtml(stations[k].label)}</option>`
+                    ).join('');
+                    return `
+                        <tr>
+                            <td><strong>${escapeHtml(s.name)}</strong></td>
+                            <td><span class="status-pill ${s.grade.pill}">${s.grade.label}</span></td>
+                            <td>${s.hours}시간</td>
+                            <td>
+                                <select onchange="setStationAssign('${escapeHtml(s.id)}', this.value)"
+                                    style="min-height:36px; padding:6px 10px; border:1px solid var(--border-color); border-radius:8px; font-family:inherit; font-weight:600; font-size:0.83rem;">
+                                    ${opts}
+                                </select>
+                            </td>
+                            <td>${s.healthStatus === 'approved'
+                                ? '<span class="status-pill pill-received">근무 가능</span>'
+                                : '<span class="status-pill pill-cancel">서류 대기</span>'}</td>
+                        </tr>`;
+                }).join('');
+            }
+
+            renderStaffReservations();
+        }
+
+        function renderStaffReservations() {
+            const tbody = document.getElementById('staff-reservations-tbody');
+            if (!tbody) return;
+
+            const reservations = (window.FactoryStore && typeof window.FactoryStore.getReservations === 'function')
+                ? window.FactoryStore.getReservations({ workId: WORK_ID })
+                : [];
+
+            if (reservations.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary); padding:24px;">
+                    등록된 불고기구이 근무자 예약이 없습니다.</td></tr>`;
+                return;
+            }
+
+            const sorted = reservations.slice().sort((a, b) =>
+                String(`${b.date || ''} ${b.slot || ''}`).localeCompare(String(`${a.date || ''} ${a.slot || ''}`)));
+
+            tbody.innerHTML = sorted.map(r => {
+                const role = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
+                const slotTime = (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function')
+                    ? window.MockData.formatWorkSlotTime(WORK_ID, r.slot, r.time || '-')
+                    : (r.time || '-');
+                const status = r.workStatus || 'reserved';
+                let pill = '<span class="status-pill pill-queued">예약</span>';
+                if (status === 'working') pill = '<span class="status-pill pill-cooked">근무 중</span>';
+                else if (status === 'completed') pill = '<span class="status-pill pill-received">완료</span>';
+                else if (status === 'early_left') pill = '<span class="status-pill pill-pickup">조퇴</span>';
+                else if (status === 'absent') pill = '<span class="status-pill pill-cancel">결근</span>';
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(r.userName || '근무자')}</strong></td>
+                        <td>${escapeHtml(role)}</td>
+                        <td>${escapeHtml(r.date || '-')}</td>
+                        <td>${escapeHtml(slotTime)}</td>
+                        <td>${pill}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // ══════════════════════════════════════
+        //  렌더링 - 설정
+        // ══════════════════════════════════════
+        function getOrderSettings() {
+            if (window.MockData && typeof window.MockData.getKmeatOrderSettings === 'function') {
+                return window.MockData.getKmeatOrderSettings();
+            }
+            return { intervalMinutes: 10, maxQtyPerInterval: 1 };
+        }
+
+        function renderSettings() {
+            const s = getOrderSettings();
+            const i = document.getElementById('setting-interval');
+            const m = document.getElementById('setting-max-qty');
+            const pill = document.getElementById('settings-pill');
+            const summary = document.getElementById('settings-summary');
+            if (i) i.value = String(s.intervalMinutes);
+            if (m) m.value = String(s.maxQtyPerInterval);
+            if (pill) pill.textContent = `${s.intervalMinutes}분당 ${s.maxQtyPerInterval}건`;
+            if (summary) {
+                summary.innerHTML = `<i class="bi bi-info-circle-fill"></i> 현재 매장 주문은 `
+                    + `<strong>${s.intervalMinutes}분당 최대 ${s.maxQtyPerInterval}건</strong>까지 접수됩니다. `
+                    + `고객 주문 화면(bulgogi_order.html)의 접수 제한도 이 설정을 따릅니다.`;
+            }
+        }
+
+        function saveOrderSettings() {
+            const interval = Math.max(1, parseInt((document.getElementById('setting-interval') || {}).value, 10) || 10);
+            const maxQty = Math.max(1, parseInt((document.getElementById('setting-max-qty') || {}).value, 10) || 1);
+            if (window.MockData && typeof window.MockData.setKmeatOrderSettings === 'function') {
+                window.MockData.setKmeatOrderSettings({ intervalMinutes: interval, maxQtyPerInterval: maxQty });
+            } else {
+                localStorage.setItem('kmeat_order_settings', JSON.stringify({ intervalMinutes: interval, maxQtyPerInterval: maxQty }));
+            }
+            renderSettings();
+            showToast('주문 접수 설정 저장', `${interval}분당 최대 ${maxQty}건으로 설정되었습니다.`);
+        }
+
+        // ══════════════════════════════════════
+        //  KPI / 차트
+        // ══════════════════════════════════════
+        function renderKpis() {
+            const orders = getOrders();
+            const todayOrders = orders.filter(o => isToday(o.orderedAt) && getStageOf(o) !== 'cancelled');
+            const active = orders.filter(o => isActiveStage(getStageOf(o)));
+            const sales = todayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+            // 손님 체감 대기시간 = 1차 생고기 서빙까지 걸리는 시간
+            const estimates = active.map(o => getEstimate(o).firstServeMinutes).filter(n => n > 0);
+            const avg = estimates.length
+                ? Math.round(estimates.reduce((a, b) => a + b, 0) / estimates.length)
+                : 0;
+
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            set('kpi-today-orders', `${todayOrders.length} 건`);
+            set('kpi-active-orders', `${active.length} 건`);
+            set('kpi-today-sales', `₩${currency.format(sales)}`);
+            set('kpi-avg-time', avg > 0 ? `${avg}분` : '-');
+
+            const badge = document.getElementById('order-badge');
+            if (badge) {
+                badge.textContent = String(active.length);
+                badge.classList.toggle('pulse', active.length > 0);
+            }
+        }
+
+        function initChart() {
+            if (!window.Chart) return;
+            const el = document.getElementById('menuChart');
+            if (!el) return;
+            menuChart = new Chart(el.getContext('2d'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: '판매 수량', data: [], backgroundColor: '#e0362c', borderRadius: 6 }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(100,116,139,0.15)' }, ticks: { color: '#64748b', precision: 0 } }
+                    }
+                }
+            });
+        }
+
+        function renderChart() {
+            if (!menuChart) return;
+            const counts = new Map();
+            getOrders()
+                .filter(o => getStageOf(o) !== 'cancelled')
+                .forEach(o => {
+                    (Array.isArray(o.items) ? o.items : []).forEach(it => {
+                        const name = String(it.name || '기타');
+                        counts.set(name, (counts.get(name) || 0) + (Math.max(1, Number(it.quantity) || 1)));
+                    });
+                });
+            const entries = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+            menuChart.data.labels = entries.map(e => e[0].length > 12 ? e[0].slice(0, 11) + '…' : e[0]);
+            menuChart.data.datasets[0].data = entries.map(e => e[1]);
+            menuChart.update('none');
+        }
+
+        // ══════════════════════════════════════
+        //  주문 상세 모달
+        // ══════════════════════════════════════
+        function openOrderModal(orderNo) {
+            const order = getOrders().find(o => String(o.orderNo) === String(orderNo));
+            if (!order) return;
+            selectedOrderNo = String(orderNo);
+
+            const stage = getStageOf(order);
+            const flow = stage === 'cancelled'
+                ? { label: '주문취소', pill: 'pill-cancel', icon: 'bi-x-circle', next: null }
+                : flowOf(stage);
+            const est = getEstimate(order);
+            const items = Array.isArray(order.items) ? order.items : [];
+
+            document.getElementById('modal-order-title').textContent = `주문 #${order.orderNo} 상세`;
+
+            const COURSE_PILL = {
+                1: '<span class="status-pill pill-cooked" style="font-size:0.7rem;">1차 즉시</span>',
+                2: '<span class="status-pill pill-queued" style="font-size:0.7rem;">2차 곁들이</span>',
+                3: '<span class="status-pill pill-pickup" style="font-size:0.7rem;">3차 마무리</span>'
+            };
+
+            const itemRows = items.map(it => {
+                const menuId = (window.MockData && window.MockData.resolveKmeatMenuId)
+                    ? window.MockData.resolveKmeatMenuId(it) : null;
+                const manual = menuId ? getManual(menuId) : null;
+                const course = (window.MockData && window.MockData.getKmeatServeCourse)
+                    ? window.MockData.getKmeatServeCourse(manual) : 3;
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(it.name)}</strong>${manual && manual.raw ? ' <span class="chip raw" style="font-size:0.65rem;">생고기</span>' : ''}</td>
+                        <td>${COURSE_PILL[course] || '-'}</td>
+                        <td>${Math.max(1, Number(it.quantity) || 1)}${escapeHtml(it.unit || '개')}</td>
+                        <td>${manual ? manual.prepMinutes + '분' : '-'}</td>
+                        <td>${manual && manual.targetWeightG ? manual.targetWeightG + 'g' : '-'}</td>
+                        <td style="text-align:right;">${currency.format(Number(it.subtotal) || 0)}원</td>
+                    </tr>`;
+            }).join('');
+
+            const stageButtons = FLOW.map((f, i) => {
+                const cur = flowIndex(stage);
+                const done = stage !== 'cancelled' && cur >= i;
+                return `<span class="status-pill ${done ? f.pill : 'pill-cancel'}" style="${done ? '' : 'opacity:0.5;'}">
+                            <i class="bi ${f.icon}"></i> ${f.label}
+                        </span>`;
+            }).join(' ');
+
+            const nextBtn = (stage !== 'cancelled' && flow.next)
+                ? `<button class="btn-action btn-primary" onclick="advanceStage('${escapeHtml(order.orderNo)}', event); openOrderModal('${escapeHtml(order.orderNo)}');">
+                       <i class="bi bi-arrow-right-circle"></i> ${flow.nextLabel}
+                   </button>` : '';
+            const cancelBtn = isActiveStage(stage)
+                ? `<button class="btn-action btn-danger" onclick="cancelOrder('${escapeHtml(order.orderNo)}', event)">
+                       <i class="bi bi-x-circle"></i> 주문 취소
+                   </button>` : '';
+
+            // 주문 확정 상태 및 차수 이력
+            const finalized = window.MockData && window.MockData.isKmeatOrderFinalized
+                ? window.MockData.isKmeatOrderFinalized(order) : false;
+            const rounds = (window.MockData && window.MockData.getKmeatOrderRounds)
+                ? window.MockData.getKmeatOrderRounds(order) : [];
+
+            const roundRows = rounds.map(r => `
+                <tr>
+                    <td><strong>${r.round}차</strong></td>
+                    <td>${escapeHtml(fmtDateTime(r.orderedAt))}</td>
+                    <td>${(r.items || []).map(i => escapeHtml(i.name) + ' ' + (i.quantity || 1) + escapeHtml(i.unit || '개')).join(', ')}</td>
+                    <td style="text-align:right;">${currency.format(Number(r.total) || 0)}원</td>
+                </tr>`).join('');
+
+            const openStateRow = stage === 'cancelled' ? '' : `
+                <tr>
+                    <td><strong>주문 접수 상태</strong></td>
+                    <td>${finalized
+                        ? '<span class="status-pill pill-received"><i class="bi bi-lock-fill"></i> 주문 마감 (추가 주문 불가)</span>'
+                        : '<span class="status-pill pill-hold"><i class="bi bi-plus-circle-dotted"></i> 진행 중 (추가 주문 가능)</span>'}
+                    </td>
+                </tr>`;
+
+            const finalizeBtn = isActiveStage(stage)
+                ? (finalized
+                    ? `<button class="btn-action btn-outline" onclick="reopenOrder('${escapeHtml(order.orderNo)}', event)">
+                           <i class="bi bi-unlock"></i> 마감 해제
+                       </button>`
+                    : `<button class="btn-action btn-blue" onclick="finalizeOrder('${escapeHtml(order.orderNo)}', event)">
+                           <i class="bi bi-lock"></i> 주문 마감
+                       </button>`)
+                : '';
+            const appendBtn = isActiveStage(stage)
+                ? `<button class="btn-action btn-amber" onclick="openAppendModal('${escapeHtml(order.orderNo)}', event)">
+                       <i class="bi bi-plus-circle"></i> 추가 주문
+                   </button>`
+                : '';
+
+            const finaleGap = (est.finaleServeMinutes !== null && est.finaleServeMinutes !== undefined)
+                ? est.finaleServeMinutes - est.firstServeMinutes : null;
+
+            document.getElementById('modal-order-body').innerHTML = `
+                <div style="display:flex; flex-wrap:wrap; gap:7px; align-items:center;">${stageButtons}</div>
+
+                <div class="table-responsive" style="margin-top:6px;">
+                    <table class="custom-table" style="min-width:520px;">
+                        <tbody>
+                            <tr><td style="width:150px;"><strong>테이블</strong></td><td>${escapeHtml(order.tableId || '-')}</td></tr>
+                            <tr><td><strong>주문 시각</strong></td><td>${escapeHtml(fmtDateTime(order.orderedAt))} (경과 ${elapsedMinutes(order.orderedAt)}분)</td></tr>
+                            <tr><td><strong>고객</strong></td><td>${escapeHtml(order.userName || '고객')}</td></tr>
+                            <tr><td><strong>현재 상태</strong></td><td><span class="status-pill ${flow.pill}"><i class="bi ${flow.icon}"></i> ${flow.label}</span></td></tr>
+                            ${openStateRow}
+                            <tr><td><strong>결제</strong></td><td>${escapeHtml(order.paymentMethod === 'online_settlement' ? '온라인 정산 결제' : (order.paymentMethod === 'offline' ? '오프라인 결제' : '결제 대기'))}</td></tr>
+                            <tr><td><strong>1차 생고기 서빙</strong></td><td><strong style="color:#c62828;">+${est.firstServeMinutes}분</strong> <span style="color:var(--text-secondary);">(손님 체감 대기시간 · 굽지 않고 계량 후 바로 제공)</span></td></tr>
+                            <tr><td><strong>고기 인분 / 식사시간</strong></td><td>${est.meatServings}인분 · 예상 식사 ${est.totalMealMinutes}분</td></tr>
+                            ${est.accompanyServeMinutes !== null && est.accompanyServeMinutes !== undefined
+                                ? `<tr><td><strong>2차 곁들이 서빙</strong></td><td>+${est.accompanyServeMinutes}분</td></tr>` : ''}
+                            ${finaleGap !== null
+                                ? `<tr><td><strong>3차 마무리 서빙</strong></td><td>+${est.finaleServeMinutes}분 <span style="color:var(--text-secondary);">(생고기 서빙 후 ${finaleGap}분)</span>${finalized ? '' : ' <strong style="color:#92400e;">· 주문 마감 시 확정</strong>'}</td></tr>` : ''}
+                            <tr><td><strong>총 금액</strong></td><td><strong style="color:#c62828; font-family:'Outfit',sans-serif;">${currency.format(Number(order.total) || 0)}원</strong></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                ${rounds.length > 1 ? `
+                <div class="panel-header" style="border-bottom:none; padding-bottom:0;">
+                    <h2 style="font-size:0.98rem;"><i class="bi bi-layers-fill" style="color:#7c3aed;"></i> 주문 차수 이력 (${rounds.length}차)</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table" style="min-width:480px;">
+                        <thead><tr><th>차수</th><th>접수 시각</th><th>메뉴</th><th style="text-align:right;">금액</th></tr></thead>
+                        <tbody>${roundRows}</tbody>
+                    </table>
+                </div>` : ''}
+
+                <div class="panel-header" style="border-bottom:none; padding-bottom:0;">
+                    <h2 style="font-size:0.98rem;"><i class="bi bi-list-check" style="color:#2563eb;"></i> 주문 항목 및 메뉴별 기준</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="custom-table" style="min-width:560px;">
+                        <thead><tr><th>메뉴</th><th>차수</th><th>수량</th><th>준비시간</th><th>저울 중량</th><th style="text-align:right;">금액</th></tr></thead>
+                        <tbody>${itemRows}</tbody>
+                    </table>
+                </div>
+
+                <div class="panel-header" style="border-bottom:none; padding-bottom:0;">
+                    <h2 style="font-size:0.98rem;"><i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i> 자동 생성된 서빙 · 조리 순서</h2>
+                </div>
+                ${sequenceHtml(order)}
+
+                <div style="display:flex; gap:9px; justify-content:flex-end; flex-wrap:wrap; padding-top:6px; border-top:1px solid var(--border-color);">
+                    ${cancelBtn}${appendBtn}${finalizeBtn}${nextBtn}
+                    <button class="btn-action btn-outline" onclick="closeOrderModal()">닫기</button>
+                </div>`;
+
+            document.getElementById('order-modal').classList.add('active');
+        }
+
+        function closeOrderModal() {
+            selectedOrderNo = null;
+            document.getElementById('order-modal').classList.remove('active');
+        }
+
+        // ══════════════════════════════════════
+        //  알림
+        // ══════════════════════════════════════
+        function showToast(title, message) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <i class="bi bi-bell-fill"></i>
+                <div>
+                    <h4>${escapeHtml(title)}</h4>
+                    <p>${escapeHtml(message)}</p>
+                </div>
+                <button onclick="this.parentElement.remove()" aria-label="닫기">&times;</button>`;
+            container.appendChild(toast);
+            setTimeout(() => { if (toast.parentElement) toast.remove(); }, 4500);
+        }
+
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [784, 1046].forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.16);
+                    gain.gain.setValueAtTime(0.22, ctx.currentTime + i * 0.16);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.16 + 0.15);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.16);
+                    osc.stop(ctx.currentTime + i * 0.16 + 0.16);
+                });
+            } catch (e) {}
+        }
+
+        function detectNewOrders() {
+            const orders = getOrders();
+            const currentNos = new Set(orders.map(o => String(o.orderNo)));
+            const fresh = orders.filter(o => !knownOrderNos.has(String(o.orderNo)));
+
+            if (notifyReady && fresh.length > 0) {
+                fresh.forEach(o => {
+                    const items = Array.isArray(o.items) ? o.items : [];
+                    const label = items.length > 1
+                        ? `${items[0].name} 외 ${items.length - 1}개`
+                        : (items[0] ? items[0].name : '메뉴');
+                    const est = getEstimate(o);
+                    const hasMeat = est.courseCounts && est.courseCounts[1] > 0;
+                    showToast(
+                        `🔔 신규 주문 #${o.orderNo}`,
+                        `${o.tableId || '테이블'} · ${label} · ${currency.format(Number(o.total) || 0)}원`
+                        + (hasMeat ? ` · 생고기 ${est.firstServeMinutes}분 내 서빙` : ` · 마무리 +${est.totalMinutes}분`)
+                    );
+                });
+                playChime();
+            }
+
+            knownOrderNos = currentNos;
+            notifyReady = true;
+        }
+
+        // ══════════════════════════════════════
+        //  데모 주문 생성
+        // ══════════════════════════════════════
+        function createDemoOrder() {
+            const manuals = (window.MockData && window.MockData.kmeatMenuManuals) || {};
+            const meatIds = Object.keys(manuals).filter(k => manuals[k].group === 'meat');
+            const sideIds = Object.keys(manuals).filter(k => manuals[k].group === 'side');
+            if (meatIds.length === 0) return;
+
+            const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+            const chosen = [pick(meatIds), pick(sideIds)];
+            if (Math.random() > 0.5) chosen.push('rice');
+
+            const items = Array.from(new Set(chosen)).map(id => {
+                const m = manuals[id];
+                const qty = m.group === 'meat' ? (Math.random() > 0.6 ? 2 : 1) : 1;
+                return {
+                    id: id, name: m.name, price: m.price, quantity: qty,
+                    unit: m.unit, subtotal: m.price * qty
+                };
+            });
+            const total = items.reduce((s, i) => s + i.subtotal, 0);
+
+            const now = new Date();
+            const orderNo = `KM-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}${String(now.getMilliseconds()).padStart(3, '0')}`;
+            const tableNo = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+
+            const est = getEstimate({ items });
+            const seq = getSequence({ items });
+
+            const order = {
+                orderNo,
+                tableId: `테이블 A-${tableNo}`,
+                workId: WORK_ID,
+                brand: 'K-Meat',
+                storeName: '불고기구이 K-Meat',
+                items, total,
+                rounds: [{ round: 1, items: items, total: total, orderedAt: now.toISOString() }],
+                orderFinalized: false,
+                status: 'accepted',
+                kitchenStage: 'ordered',
+                estimatedMinutes: est.totalMinutes,
+                firstServeMinutes: est.firstServeMinutes,
+                cookingSequence: seq.sequence,
+                userId: 'kmanager-demo',
+                userName: '데모 고객',
+                paymentStatus: 'pending',
+                paymentMethod: null,
+                orderedAt: now.toISOString()
+            };
+
+            try {
+                let history = JSON.parse(localStorage.getItem('bulgogi_order_history') || '[]');
+                if (!Array.isArray(history)) history = [];
+                history.unshift(order);
+                localStorage.setItem('bulgogi_order_history', JSON.stringify(history));
+            } catch (e) {}
+
+            renderAll();
+            showToast(`데모 주문 생성 #${orderNo}`, `${order.tableId} · ${currency.format(total)}원 · 예측 ${est.totalMinutes}분`);
+        }
+
+        // 데모: K-Meat 주문 전체 삭제 (미러 레코드 · 정산 차감까지 함께 정리)
+        function clearAllOrders() {
+            const list = getOrders();
+            if (list.length === 0) {
+                showToast('삭제할 주문 없음', '현재 등록된 K-Meat 주문이 없습니다.');
+                return;
+            }
+
+            const active = list.filter(o => isActiveStage(getStageOf(o))).length;
+            const msg = `K-Meat 주문 ${list.length}건을 모두 삭제하시겠습니까?`
+                + (active > 0 ? `\n\n⚠️ 진행 중인 주문 ${active}건이 포함되어 있습니다.` : '')
+                + '\n\n함께 정리되는 항목:'
+                + '\n · 마이페이지 주문 내역(K-Meat)'
+                + '\n · 정산 차감 기록 → 정산금액 복구'
+                + '\n · 설겆이 대기열'
+                + '\n · 결제 이력'
+                + '\n\n이 작업은 되돌릴 수 없습니다.';
+            if (!confirm(msg)) return;
+
+            if (!window.MockData || typeof window.MockData.clearKmeatOrders !== 'function') {
+                showToast('삭제 실패', 'store.js의 clearKmeatOrders를 찾을 수 없습니다.');
+                return;
+            }
+
+            const r = window.MockData.clearKmeatOrders({ clearWorkerLogs: true });
+
+            // 메모리 상태도 최신 스토리지로 재동기화
+            if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+            }
+
+            // 신규 주문 알림이 재발생하지 않도록 감지 캐시 초기화
+            knownOrderNos = new Set();
+            notifyReady = true;
+            selectedOrderNo = null;
+            closeOrderModal();
+
+            renderAll();
+            showToast(
+                `주문 ${r.orders}건 삭제 완료`,
+                `주문내역 ${r.shopRecords}건 · 정산기록 ${r.settlements + r.settlementLogs}건 · 설겆이 ${r.dishes}개를 정리했습니다.`
+            );
+        }
+
+        function syncNow() {
+            if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+            }
+            renderAll();
+            showToast('동기화 완료', '주문 및 근무자 데이터를 최신 상태로 갱신했습니다.');
+        }
+
+        // ══════════════════════════════════════
+        //  탭 / 사이드바
+        // ══════════════════════════════════════
+        const TAB_TITLES = {
+            dashboard: '<i class="bi bi-grid-1x2-fill" style="color:#e0362c;"></i> K-Meat 주방 관제 대시보드',
+            orders:    '<i class="bi bi-receipt-cutoff" style="color:#e0362c;"></i> 실시간 주문 관리',
+            sequence:  '<i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i> 자동 조리순서',
+            manual:    '<i class="bi bi-journal-bookmark-fill" style="color:#2563eb;"></i> 메뉴별 조리 매뉴얼',
+            prep:      '<i class="bi bi-basket2-fill" style="color:#10b981;"></i> 반찬 · 쌈채소 기준',
+            staff:     '<i class="bi bi-people-fill" style="color:#7c3aed;"></i> 사원 관리',
+            settings:  '<i class="bi bi-sliders" style="color:#0891b2;"></i> 주문 접수 설정'
+        };
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.menu-item').forEach(el =>
+                el.classList.toggle('active', el.getAttribute('data-tab') === tab));
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+            const view = document.getElementById('view-' + tab) || document.getElementById('view-dashboard');
+            if (view) view.classList.add('active');
+
+            const title = document.getElementById('page-title');
+            if (title) title.innerHTML = TAB_TITLES[tab] || TAB_TITLES.dashboard;
+
+            const kpi = document.getElementById('kpi-grid');
+            if (kpi) kpi.style.display = (tab === 'dashboard' || tab === 'orders') ? 'grid' : 'none';
+
+            renderAll();
+            closeMobileSidebar();
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            const open = sidebar && sidebar.classList.toggle('mobile-open');
+            if (backdrop) backdrop.classList.toggle('active', !!open);
+        }
+
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+            if (backdrop) backdrop.classList.remove('active');
+        }
+
+        // ══════════════════════════════════════
+        //  통합 렌더
+        // ══════════════════════════════════════
+        function renderAll() {
+            renderKpis();
+            if (activeTab === 'dashboard') {
+                renderDashboardNewOrders();
+                renderDashboardSequence();
+                renderChart();
+            }
+            if (activeTab === 'orders') renderOrders();
+            if (activeTab === 'sequence') renderSequenceView();
+            if (activeTab === 'manual') renderManuals();
+            if (activeTab === 'prep') renderPrepView();
+            if (activeTab === 'staff') renderStaffView();
+            if (activeTab === 'settings') renderSettings();
+        }
+
+        // ══════════════════════════════════════
+        //  초기화
+        // ══════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!enforceManagerAccess()) return;
+
+            initChart();
+            renderSettings();
+            renderManuals();
+            renderPrepView();
+            switchTab('dashboard');
+
+            // 최초 로드 시 기존 주문은 알림 대상에서 제외
+            knownOrderNos = new Set(getOrders().map(o => String(o.orderNo)));
+            notifyReady = true;
+
+            if (window.FactoryStore && typeof window.FactoryStore.subscribe === 'function') {
+                window.FactoryStore.subscribe(function() { renderAll(); });
+            }
+
+            window.addEventListener('storage', function() {
+                detectNewOrders();
+                renderAll();
+            });
+
+            // 신규 주문 감지 및 경과시간 갱신 (3초)
+            setInterval(function() {
+                if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function'
+                    && !window.FactoryStore.isSaving()) {
+                    window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+                }
+                detectNewOrders();
+                renderAll();
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
