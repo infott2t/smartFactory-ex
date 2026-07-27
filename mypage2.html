@@ -242,7 +242,7 @@
         #reservations-container, #history-container {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+           
         }
 
         /* JS 주입용 카드 (.box-partner를 공유함) */
@@ -1179,6 +1179,9 @@
                         brandName = found.brand || brandName;
                     }
                 }
+                if (item.img) {
+                    pImg = item.img;
+                }
                 // 상품 마스터가 늦게 로드되거나 과거 주문 데이터인 경우에도 이미지가 흔들리지 않게 고정합니다.
                 if (pIdStr === '20002' || pIdStr === 'p2' || pNameStr.includes('간장') && pNameStr.includes('비빔면')) {
                     pImg = './images/somyeon_complete.png';
@@ -1198,6 +1201,10 @@
                     }
                 }
                 if ((pNameStr.includes("우동") && !pNameStr.includes("수제")) || pNameStr.includes("비빔면")) {
+                    isDelivery = false;
+                }
+
+                if (item.fulfillmentType === 'pickup' || item.orderType === 'dine_in') {
                     isDelivery = false;
                 }
 

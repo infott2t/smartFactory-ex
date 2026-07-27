@@ -241,8 +241,65 @@
                 const productId = String(item.productId || item.productCode || '').toLowerCase();
                 const menuType = String(item.menuType || '').toLowerCase();
                 return String(item.workId || '') === '2' ||
-                    ['20001', '20002', 'p1', 'p2'].includes(productId) ||
+                    ['20001', '20002', '200028', 'p1', 'p2'].includes(productId) ||
                     ['udon', 'bibim'].includes(menuType);
+            }
+
+            function getWorkProductClass(workId) {
+                const wId = String(workId || '');
+                const defaults = {
+                    '1': { fulfillmentType: 'delivery', thumbnailMode: 'product' },
+                    '2': { fulfillmentType: 'dine_in', thumbnailMode: 'product' },
+                    '6': { fulfillmentType: 'dine_in', thumbnailMode: 'work_icon' }
+                };
+                try {
+                    const works = JSON.parse((window.MockData && window.MockData.worksJSON) || '[]');
+                    const work = works.find(item => String(item.workId) === wId) || {};
+                    return Object.assign({}, defaults[wId] || { fulfillmentType: 'delivery', thumbnailMode: 'product' }, work);
+                } catch (e) {
+                    return defaults[wId] || { fulfillmentType: 'delivery', thumbnailMode: 'product' };
+                }
+            }
+
+            function resolveShopProductPresentation(item) {
+                const workId = String(item.workId || '');
+                const productId = String(item.productId || item.productCode || '').toLowerCase();
+                const productName = String(item.productName || '');
+                const workClass = getWorkProductClass(workId);
+                const products = (window.MockData && window.MockData.storeProducts) || [];
+                let product = products.find(p =>
+                    String(p.productId || '').toLowerCase() === productId ||
+                    String(p.productCode || '').toLowerCase() === productId ||
+                    String(p.name || '') === productName ||
+                    (productId === '200028' && String(p.productCode || '').toLowerCase() === 'p2')
+                );
+                if (!product && workId) {
+                    const workProducts = products.filter(p => String(p.workId || '') === workId && p.isDelivery === false);
+                    if (workProducts.length === 1) product = workProducts[0];
+                }
+
+                const fulfillmentType = item.fulfillmentType || workClass.fulfillmentType || (product && product.isDelivery ? 'delivery' : 'dine_in');
+                const isBibim = ['20002', '200028', 'p2'].includes(productId) || String(item.menuType || '').toLowerCase() === 'bibim' || productName.includes('비빔면') || (productName.includes('간장') && productName.includes('비빔'));
+                const isUdon = ['20001', 'p1'].includes(productId) || String(item.menuType || '').toLowerCase() === 'udon' || productName.includes('우동');
+                let pImg = './images/33.png';
+
+                if (workClass.thumbnailMode === 'work_icon') {
+                    pImg = workClass.iconUrl || pImg;
+                } else if (product && product.img) {
+                    pImg = product.img;
+                } else if (item.img) {
+                    pImg = item.img;
+                } else if (isBibim) {
+                    pImg = './images/somyeon_complete.png';
+                } else if (isUdon) {
+                    pImg = './images/udon_product.png';
+                }
+
+                return {
+                    pImg,
+                    brandName: (product && product.brand) || item.brandName || workClass.brandName || '상품',
+                    isDelivery: fulfillmentType === 'delivery'
+                };
             }
 
             function clearActiveShopOrderState(target, restoreOrderCount) {
@@ -791,7 +848,7 @@
                             }
 
                             // 상품 썸네일 이미지 및 브랜드 탐색
-                            let pImg = './images/kimchi_300g.png';
+                            let pImg = './images/33.png';
                             let brandName = item.brandName || 'AFood';
                             const pIdStr = String(item.productId || '');
                             const pNameStr = item.productName || '';
@@ -823,6 +880,12 @@
 
                             const qtyText = (item.qty || 1) + '개';
                             let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
+                            const productPresentation = resolveShopProductPresentation(item);
+                            pImg = productPresentation.pImg;
+                            brandName = productPresentation.brandName;
+                            isDelivery = productPresentation.isDelivery;
+                            if (!isDelivery) deliveryBadgeHtml = '';
+
                             let topRightHtml = isDelivery ? 
                                 `<div style="font-size: 11px; color: #cfcfcf; font-weight: 600; cursor: pointer;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>` : 
                                 `<div style="font-size: 11px; color: var(--text-sub);">주문번호: ${item.orderNo}번</div>`;

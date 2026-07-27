@@ -2693,6 +2693,8 @@ window.MockData = {
             "salary": 1.3, "salaryChange": 0.01, "taskCount": 6, "participants": 123, "createdAt": "2024-08-01",
             "region": "서울시 성동구 성수동", "categories": ["음식", "요리", "김치", "만들기"],
             "isNew": false,
+            "fulfillmentType": "delivery",
+            "thumbnailMode": "product",
             "exp": "kimp"
         },
         {
@@ -2700,6 +2702,8 @@ window.MockData = {
             "salary": 1.1, "salaryChange": -0.05, "taskCount": 4, "participants": 70, "createdAt": "2025-03-19",
             "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"],
             "isNew": false,
+            "fulfillmentType": "dine_in",
+            "thumbnailMode": "product",
             "exp": "uton"
         },
         {
@@ -2714,6 +2718,8 @@ window.MockData = {
             "salary": 1.5, "salaryChange": -0.02, "taskCount": 5, "participants": 80, "createdAt": "2026-06-20",
             "region": "서울시 종로구 연남동", "categories": ["음식", "요리", "불고기", "고기", "구이"],
             "isNew": true,
+            "fulfillmentType": "dine_in",
+            "thumbnailMode": "work_icon",
             "exp": null
         },
         {

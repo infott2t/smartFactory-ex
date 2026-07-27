@@ -799,6 +799,7 @@
         const BULGOGI_ORDER_HISTORY_KEY = 'bulgogi_order_history';
         const BULGOGI_PAYMENT_HISTORY_KEY = 'bulgogi_payment_history';
         const BULGOGI_SETTLEMENT_BALANCE_KEY = 'bulgogi_settlement_balance';
+        const KIMP_SHOP_HISTORY_KEY = 'kimp_shop_history';
         const DEMO_TABLE_ID = '테이블 A-07';
         const menuItems = [
             {
@@ -1109,6 +1110,7 @@
             }
             history.unshift(order);
             localStorage.setItem(BULGOGI_ORDER_HISTORY_KEY, JSON.stringify(history));
+            upsertShopOrderRecord(order);
         }
 
         function updateOrderRecord(orderNo, updates) {
@@ -1125,6 +1127,95 @@
                 return order;
             });
             localStorage.setItem(BULGOGI_ORDER_HISTORY_KEY, JSON.stringify(nextHistory));
+
+            const updatedOrder = nextHistory.find(order => order && order.orderNo === orderNo);
+            if (updatedOrder) upsertShopOrderRecord(updatedOrder);
+        }
+
+        function getCurrentOrderUserId() {
+            try {
+                const user = JSON.parse(sessionStorage.getItem('user') || 'null');
+                if (user && user.id !== undefined && user.id !== null) return String(user.id);
+            } catch (error) {}
+
+            const sessionUserId = sessionStorage.getItem('user-id');
+            return sessionUserId ? String(sessionUserId) : null;
+        }
+
+        function getShopOrderStatus(order) {
+            if (order.status === 'cancelled' || order.paymentStatus === 'cancelled') return 'cancelled';
+            if (order.paymentStatus === 'paid') return 'completed';
+            return 'pending';
+        }
+
+        function buildShopOrderRecord(order) {
+            const orderedAt = order.orderedAt || new Date().toISOString();
+            const orderedDate = new Date(orderedAt);
+            const isValidDate = Number.isFinite(orderedDate.getTime());
+            const yyyy = isValidDate ? orderedDate.getFullYear() : '';
+            const mm = isValidDate ? String(orderedDate.getMonth() + 1).padStart(2, '0') : '';
+            const dd = isValidDate ? String(orderedDate.getDate()).padStart(2, '0') : '';
+            const hh = isValidDate ? String(orderedDate.getHours()).padStart(2, '0') : '';
+            const min = isValidDate ? String(orderedDate.getMinutes()).padStart(2, '0') : '';
+            const items = Array.isArray(order.items) ? order.items : [];
+            const firstItem = items[0] || {};
+            const extraCount = Math.max(0, items.length - 1);
+            const productName = extraCount > 0
+                ? `${firstItem.name || 'K-Meat 매장 주문'} 외 ${extraCount}개`
+                : (firstItem.name || 'K-Meat 매장 주문');
+            const totalQty = items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 1;
+
+            const record = {
+                id: `bulgogi_${order.orderNo}`,
+                orderNo: order.orderNo,
+                orderDate: isValidDate ? `${yyyy}-${mm}-${dd}` : '',
+                orderTime: isValidDate ? `${hh}:${min}` : '',
+                dateStr: isValidDate ? `${yyyy}.${mm}.${dd}` : '',
+                productName,
+                productId: 'bulgogi_dine_in',
+                brandName: 'K-Meat',
+                workId: 6,
+                price: Number(order.total) || 0,
+                unitPrice: Number(firstItem.price) || Number(order.total) || 0,
+                qty: totalQty,
+                img: './images/beef_500.png',
+                payMethod: order.paymentMethod === 'online_settlement'
+                    ? '온라인 정산 금액 결제'
+                    : (order.paymentMethod === 'offline' ? '오프라인 결제' : '나중에 결제'),
+                status: getShopOrderStatus(order),
+                kitchenStatus: order.status === 'cancelled' ? 'cancelled' : 'queued',
+                orderType: 'dine_in',
+                fulfillmentType: 'pickup',
+                tableId: order.tableId,
+                createdAt: orderedAt,
+                orderedAt,
+                paidAt: order.paidAt || null,
+                paymentStatus: order.paymentStatus,
+                paymentMethod: order.paymentMethod,
+                shouldShowSpendAmount: order.status !== 'cancelled'
+            };
+
+            const userId = getCurrentOrderUserId();
+            if (userId) record.userId = userId;
+            return record;
+        }
+
+        function upsertShopOrderRecord(order) {
+            if (!order || !order.orderNo) return;
+
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem(KIMP_SHOP_HISTORY_KEY) || '[]');
+                if (!Array.isArray(history)) history = [];
+            } catch (error) {
+                history = [];
+            }
+
+            const record = buildShopOrderRecord(order);
+            const index = history.findIndex(item => item && String(item.id) === String(record.id));
+            if (index > -1) history[index] = Object.assign({}, history[index], record);
+            else history.unshift(record);
+            localStorage.setItem(KIMP_SHOP_HISTORY_KEY, JSON.stringify(history));
         }
 
         function getSettlementBalance() {
