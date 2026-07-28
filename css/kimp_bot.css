@@ -797,6 +797,9 @@ body, html {
 .interval-btn-group {
     display: flex;
     justify-content: flex-end;
+    /* 버튼이 늘어나도(1초/1분 추가) 좁은 화면에서 넘치지 않도록 줄바꿈 허용 */
+    flex-wrap: wrap;
+    row-gap: 6px;
     gap: 8px;
     margin-bottom: 8px;
     padding-right: 8px;

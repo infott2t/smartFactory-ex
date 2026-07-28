@@ -10,6 +10,7 @@ const CORE_ASSETS = [
   '/js/auth.js',
   '/js/auth-guard.js',
   '/js/pwa.js',
+  '/js/ratio-feed.js',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];

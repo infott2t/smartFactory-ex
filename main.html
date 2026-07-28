@@ -158,12 +158,14 @@
             // 만약 새로운 일이 없으면 전체에서 몇 개 가져오기
             const displayNewWorks = newWorks.length > 0 ? newWorks : works.slice(0, 3);
             
+            // 가중치는 렌더 직후 RatioFeed 가 현재 시각 기준으로 덮어쓴다.
+            // (RatioFeed 가 없으면 worksJSON 의 salary 가 그대로 남는다)
             let newHtml = "";
             displayNewWorks.forEach(work => {
                 newHtml += `
                 <a class="box" href="./work_detail.html?id=${work.workId}">
                     <div class="up"><img src="${work.iconUrl}" /><div class="texts"><span>${work.workName}</span><span>${work.brandName}</span></div></div>
-                    <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">${work.salary}</span></div>
+                    <div class="down"><div><span><i class="bi bi-caret-up-fill work-ratio-arrow" data-work-id="${work.workId}"></i></span><span class="val work-ratio" data-work-id="${work.workId}">${work.salary}</span></div>
                     <div><span class="val">${work.taskCount}</span><span>Task</span></div>
                     </div>
                 </a>
@@ -181,7 +183,7 @@
                 popHtml += `
                 <a class="box" href="./work_detail.html?id=${work.workId}">
                     <div class="up"><img src="${work.iconUrl}" /><div class="texts"><span>${work.workName}</span><span>${work.brandName}</span></div></div>
-                    <div class="down"><div><span><i class="bi bi-caret-up-fill"></i></span><span class="val">${work.salary}</span></div>
+                    <div class="down"><div><span><i class="bi bi-caret-up-fill work-ratio-arrow" data-work-id="${work.workId}"></i></span><span class="val work-ratio" data-work-id="${work.workId}">${work.salary}</span></div>
                     <div><span class="val">${work.taskCount}</span><span>Task</span></div>
                     </div>
                 </a>
@@ -189,6 +191,11 @@
             });
             if (popWorksContainer) popWorksContainer.innerHTML = popHtml;
         }
+
+        // 카드마다 자기 workId 의 가중치를 10초 단위로 갱신한다.
+        // 계산과 DOM 갱신은 공용 모듈(js/ratio-feed.js)이 담당하므로
+        // explore.html / work_detail.html 과 항상 같은 숫자가 나온다.
+        if (window.RatioFeed) window.RatioFeed.startListFeed();
     });
 </script>
 <div class="padding-20"></div>
@@ -224,6 +231,7 @@
 </div>
 
 <script src="./js/store.js"></script>
+<script src="./js/ratio-feed.js"></script>
 <script src="./js/jquery-3.7.1.min.js"></script>
 <script src="./js/simulator.js" type="text/javascript"></script>
 <script type="text/javascript">

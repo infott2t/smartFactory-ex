@@ -286,6 +286,7 @@
     </div>
 
     <script src="./js/store.js"></script>
+    <script src="./js/ratio-feed.js"></script>
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
         $(document).ready(function () {
@@ -343,6 +344,9 @@
                 categoryData = extractCategoryData(dbData);
                 hideLoading($firstTab);
                 renderWorkList(dbData, $firstTab);
+
+                // 일별 가중치를 10초 단위로 계속 갱신 (main.html 과 동일한 값)
+                if (window.RatioFeed) window.RatioFeed.startListFeed();
             }
 
             function extractCategoryData(data) {
@@ -401,13 +405,14 @@
                             let iconDir = item.salaryChange >= 0 ? 'up' : 'down';
                             let sign = item.salaryChange > 0 ? '+' : '';
 
+                            // 숫자/화살표/등락률은 렌더 직후 RatioFeed 가 10초 단위로 갱신한다
                             rightSideHtml = `
                 <div class="task-salary-col">
                     <div>
-                        <i class="bi bi-caret-${iconDir}-fill ${statusClass}"></i>
-                        <span class="val">${item.salary}</span>
+                        <i class="bi bi-caret-${iconDir}-fill ${statusClass} work-ratio-arrow" data-work-id="${item.workId}"></i>
+                        <span class="val work-ratio" data-work-id="${item.workId}">${item.salary}</span>
                     </div>
-                    <div class="change-rate ${statusClass}">${sign}${changePercent}%</div>
+                    <div class="change-rate ${statusClass} work-ratio-change" data-work-id="${item.workId}">${sign}${changePercent}%</div>
                 </div>`;
                         } else if (currentSortType === '지역') {
                             rightSideHtml = `<div class="task-info-row"><i class="bi bi-geo-alt-fill"></i><span class="val">${item.region}</span></div>`;
@@ -445,6 +450,9 @@
 
                 // ⭐️ 모아둔 데이터를 통째로 slider-box로 감싸서 한 번에 화면에 붙입니다
                 $targetTab.append(`<div class="slider-box">${innerHtml}</div>`);
+
+                // 새로 그린 목록의 가중치를 즉시 현재 값으로 맞춘다
+                if (window.RatioFeed) window.RatioFeed.refreshRatioElements();
             }
 
             // 카테고리 렌더링 함수
