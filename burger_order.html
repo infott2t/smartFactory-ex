@@ -25,6 +25,11 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .topbar h1{font-size:16px;font-weight:800;display:flex;align-items:center;gap:7px}
 .topbar .back{font-size:20px;color:var(--text)}
 .topbar .brand{margin-left:auto;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-dark));padding:4px 9px;border-radius:999px}
+.top-cart{margin-left:auto;display:flex;align-items:center;gap:5px;border:1px solid rgba(255,107,53,.3);background:rgba(255,107,53,.08);color:var(--brand-dark);padding:7px 9px;border-radius:10px;font-size:11px;font-weight:800;white-space:nowrap}
+.top-cart i{font-size:17px}.top-cart b{min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px}
+.top-cart.has-items{animation:cartPulse .45s ease}
+@keyframes cartPulse{50%{transform:scale(1.08)}}
+@media(max-width:380px){.top-cart span{display:none}}
 
 .hero{background:#fff;padding:16px 14px 18px;text-align:center;border-bottom:1px solid var(--border)}
 .hero img{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:cover;border-radius:18px;box-shadow:var(--shadow);background:#f1f2f4}
@@ -95,9 +100,24 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .menu-item .p{font-size:12px;color:var(--brand-dark);font-weight:800;margin-top:3px}
 .menu-item .s{font-size:11px;color:var(--text-sub);margin-top:2px}
 
+/* 장바구니 */
+.cart-line{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.cart-line:last-child{border-bottom:none}
+.cart-line img{width:52px;height:52px;border-radius:10px;object-fit:cover;background:#f1f2f4;flex-shrink:0}
+.cart-line .info{flex:1;min-width:0}
+.cart-line .n{font-size:13.5px;font-weight:800}
+.cart-line .d{font-size:11.5px;color:var(--text-sub);margin-top:3px}
+.cart-line .sub{font-size:14px;font-weight:800;color:var(--brand-dark);white-space:nowrap}
+.cart-qty{display:flex;align-items:center;gap:6px}
+.cart-qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:14px;font-weight:800}
+.cart-qty span{min-width:20px;text-align:center;font-size:13px;font-weight:800}
+.cart-del{color:var(--danger);font-size:11px;font-weight:800;padding:5px 8px;border:1px solid rgba(239,68,68,.3);border-radius:8px;background:#fff;display:inline-flex;align-items:center;gap:4px}
+
 .modal-back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;align-items:center;justify-content:center;padding:18px}
 .modal-back.show{display:flex}
 .modal{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
+.cart-modal-box{max-width:460px}
+.modal-x{font-size:28px;color:var(--text-sub);line-height:1;padding:2px 6px;border-radius:8px}.modal-x:active{background:var(--bg)}
 .modal h3{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .pay-choice{width:100%;border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;background:#fff;margin-bottom:9px}
 .pay-choice.selected{border-color:var(--brand);background:rgba(255,107,53,.06)}
@@ -106,7 +126,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .pay-choice:disabled{opacity:.5;cursor:not-allowed}
 .modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 
-.toast-wrap{position:fixed;top:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:120;align-items:center}
+.toast-wrap{position:fixed;top:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:120;align-items:center;pointer-events:none}
 .toast{background:#fff;border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:12px 14px;font-size:13px;font-weight:700;display:flex;gap:9px;align-items:center;border-left:4px solid var(--brand);max-width:520px;width:100%}
 </style>
 </head>
@@ -115,11 +135,45 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   <div class="topbar">
     <button class="back" onclick="goBack()" aria-label="뒤로"><i class="bi bi-chevron-left"></i></button>
     <h1><i class="bi bi-bag-check" style="color:var(--brand)"></i> <span id="page-title">버거 주문</span></h1>
-    <span class="brand">BurgerQueen</span>
+    <button class="top-cart" id="top-cart-btn" onclick="openCart()" aria-label="장바구니 보기">
+      <i class="bi bi-cart3"></i><span>장바구니</span><b id="top-cart-count">0</b>
+    </button>
   </div>
 
   <div class="hero">
-    <img id="p-img" src="./images/burger_500.png" alt="상품 사진">
+    <img id="p-img" alt="상품 사진" aria-busy="true" style="opacity:0;transition:opacity .12s ease">
+    <script>
+    // 기본 이미지를 먼저 그리지 않고, URL로 선택된 상품 이미지를 디코딩한 뒤 한 번에 표시한다.
+    (function preloadSelectedProductImage() {
+      var img = document.getElementById('p-img');
+      var requestedMenu = new URLSearchParams(location.search).get('menu');
+      var menuMeta = (window.MockData && window.MockData.burgerMenuMeta) || {};
+      var selectedMenu = menuMeta[requestedMenu] ? requestedMenu : '치즈버거';
+      var selectedSrc = (menuMeta[selectedMenu] && menuMeta[selectedMenu].img) || './images/burger_500.png';
+
+      function loadAndReveal(src, canFallback) {
+        var loader = new Image();
+        loader.onload = function () {
+          var reveal = function () {
+            img.src = src;
+            img.alt = selectedMenu;
+            img.style.opacity = '1';
+            img.setAttribute('aria-busy', 'false');
+            img.dataset.loadedSrc = src;
+          };
+          if (typeof loader.decode === 'function') loader.decode().then(reveal, reveal);
+          else reveal();
+        };
+        loader.onerror = function () {
+          if (canFallback) loadAndReveal('./images/burger_500.png', false);
+          else img.setAttribute('aria-busy', 'false');
+        };
+        loader.src = src;
+      }
+
+      loadAndReveal(selectedSrc, selectedSrc !== './images/burger_500.png');
+    })();
+    </script>
     <h2 id="p-name">치즈버거 세트</h2>
     <div class="sum" id="p-sum"></div>
     <div class="price" id="p-price">₩0<small id="p-price-sub"></small></div>
@@ -175,6 +229,23 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <div class="chips" style="margin-top:11px" id="d-chips"></div>
   </div>
 
+  <!-- 장바구니 -->
+  <div class="sec" id="cart-sec">
+    <h3><i class="bi bi-cart3" style="color:var(--brand)"></i> 장바구니 <span id="cart-count-pill" class="pill pill-wait">0개</span></h3>
+    <div id="cart-body"></div>
+    <div id="cart-foot" style="display:none">
+      <div class="row" style="border-top:2px solid var(--border);margin-top:6px;padding-top:10px">
+        <span class="k" style="font-size:14px;font-weight:800;color:var(--text)">합계</span>
+        <span class="v" id="cart-total" style="font-size:18px;color:var(--brand-dark)">₩0</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:11px">
+        <button class="btn btn-primary btn-sm" style="flex:2" id="btn-checkout" onclick="openConfirm()"><i class="bi bi-credit-card"></i> 전체 결제하기</button>
+        <button class="btn btn-line btn-sm" style="flex:1" onclick="clearCart()"><i class="bi bi-trash3"></i> 비우기</button>
+      </div>
+      <div class="notice info">여러 메뉴를 담아 <b>한 번에 결제</b>할 수 있습니다. 결제 전까지 담은 내용은 유지됩니다.</div>
+    </div>
+  </div>
+
   <div class="sec">
     <h3><i class="bi bi-grid" style="color:var(--brand)"></i> 다른 메뉴</h3>
     <div class="menu-list" id="other-menus"></div>
@@ -191,7 +262,29 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
     <div class="l" id="bar-label">세트 1개</div>
     <div class="v" id="bar-total">₩0</div>
   </div>
-  <button class="btn btn-primary" id="btn-order" onclick="openConfirm()"><i class="bi bi-bag-check-fill"></i> 주문하기</button>
+  <button class="btn btn-line" id="btn-add-cart" onclick="addCart()"><i class="bi bi-cart-plus"></i> 담기</button>
+  <button class="btn btn-primary" id="btn-order" onclick="orderNow()"><i class="bi bi-bag-check-fill"></i> 바로 주문</button>
+</div>
+
+<!-- 장바구니 상세 -->
+<div class="modal-back" id="cart-modal" onclick="if(event.target===this)closeCart()">
+  <div class="modal cart-modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0"><i class="bi bi-cart3" style="color:var(--brand)"></i> 장바구니 내역 <span id="modal-cart-count" class="pill pill-wait">0개</span></h3>
+      <button class="modal-x" onclick="closeCart()" aria-label="장바구니 닫기">&times;</button>
+    </div>
+    <div id="modal-cart-body"></div>
+    <div id="modal-cart-foot" style="display:none">
+      <div class="row" style="border-top:2px solid var(--border);margin-top:8px;padding-top:12px">
+        <span class="k" style="font-size:14px;font-weight:800;color:var(--text)">결제 예정 금액</span>
+        <span class="v" id="modal-cart-total" style="font-size:20px;color:var(--brand-dark)">₩0</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-block" onclick="checkoutCart()"><i class="bi bi-credit-card"></i> 장바구니 전체 결제</button>
+        <button class="btn btn-danger btn-block" onclick="clearCart()"><i class="bi bi-trash3"></i> 장바구니 전체 비우기</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 주문 확인 -->
@@ -241,7 +334,7 @@ let isSet = true;
 let drink = '콜라';
 let qty = 1;
 let payMethod = null;
-let myOrderId = null;      // 진행 중인 내 주문 id
+let myRecordId = null;     // 진행 중인 내 통합 주문(쇼핑 이력) id
 let notifiedReady = false;
 
 function $(id) { return document.getElementById(id); }
@@ -277,6 +370,106 @@ function balance() {
 function unitPrice() { return M().getBurgerUnitPrice(menuName, isSet); }
 function total() { return unitPrice() * qty; }
 
+// ── 장바구니 ──
+function cartSummary() { return M().getBurgerCartSummary(userId()); }
+function cartTotal() { return cartSummary().total; }
+// 결제 대상 금액: 장바구니가 비어 있으면 현재 선택분
+function payTarget() { const c = cartSummary(); return c.lines.length ? c.total : total(); }
+
+function cartLinesHtml(lines) {
+  return lines.map(l => `
+    <div class="cart-line" data-cart-key="${esc(l.key)}">
+      <img src="${esc(l.img)}" alt="${esc(l.name)}">
+      <div class="info">
+        <div class="n">${esc(l.name)}</div>
+        <div class="d">${l.isSet ? '세트 구성: 감자튀김 · ' + esc(l.drink) + '<br>' : '단품<br>'}단가 ${won(l.unitPrice)}</div>
+        <div class="cart-qty" style="margin-top:6px">
+          <button onclick="cartQty('${esc(l.key)}',${l.qty - 1})" aria-label="${esc(l.name)} 수량 감소">−</button>
+          <span>${l.qty}</span>
+          <button onclick="cartQty('${esc(l.key)}',${l.qty + 1})" aria-label="${esc(l.name)} 수량 증가">＋</button>
+          <button class="cart-del" onclick="cartRemove('${esc(l.key)}')" aria-label="${esc(l.name)} 삭제"><i class="bi bi-trash3"></i> 삭제</button>
+        </div>
+      </div>
+      <div class="sub">${won(l.subtotal)}</div>
+    </div>`).join('');
+}
+
+function renderCart() {
+  const c = cartSummary();
+  const countText = c.count + '개';
+  $('cart-count-pill').textContent = countText;
+  $('top-cart-count').textContent = c.count;
+  $('modal-cart-count').textContent = countText;
+
+  const emptyHtml = '<div style="font-size:12.5px;color:var(--text-sub);text-align:center;padding:24px 8px">'
+    + '<i class="bi bi-cart-x" style="display:block;font-size:38px;margin-bottom:8px;opacity:.45"></i>'
+    + '<b style="color:var(--text)">장바구니가 비어 있습니다.</b><br>상품의 세트/단품과 수량을 선택한 후 [담기]를 눌러주세요.</div>';
+
+  if (c.lines.length === 0) {
+    $('cart-body').innerHTML = emptyHtml;
+    $('modal-cart-body').innerHTML = emptyHtml;
+    $('cart-foot').style.display = 'none';
+    $('modal-cart-foot').style.display = 'none';
+    return;
+  }
+
+  const linesHtml = cartLinesHtml(c.lines);
+  $('cart-body').innerHTML = linesHtml;
+  $('modal-cart-body').innerHTML = linesHtml;
+  $('cart-total').textContent = won(c.total);
+  $('modal-cart-total').textContent = won(c.total);
+  $('cart-foot').style.display = '';
+  $('modal-cart-foot').style.display = '';
+}
+
+function openCart() {
+  renderCart();
+  $('cart-modal').classList.add('show');
+}
+function closeCart() { $('cart-modal').classList.remove('show'); }
+function checkoutCart() {
+  closeCart();
+  openConfirm();
+}
+
+function addCart() {
+  if (!userId()) { alert('로그인이 필요합니다.'); location.href = 'login.html'; return; }
+  M().addToBurgerCart(userId(), { menu: menuName, isSet: isSet, drink: drink, qty: qty });
+  toast('🛒 <b>' + esc(menuName + (isSet ? ' 세트' : ' 단품')) + ' ' + qty + '개</b> 를 장바구니에 담았습니다.');
+  qty = 1;
+  renderAll();
+  const top = $('top-cart-btn');
+  top.classList.remove('has-items');
+  void top.offsetWidth;
+  top.classList.add('has-items');
+  // 담은 즉시 내역을 보여줘 무엇이 들어갔는지 바로 확인·삭제할 수 있게 한다.
+  openCart();
+}
+
+function cartQty(key, next) {
+  M().updateBurgerCartQty(userId(), key, next);
+  renderAll();
+}
+function cartRemove(key) {
+  M().removeFromBurgerCart(userId(), key);
+  renderAll();
+  toast('장바구니에서 상품을 삭제했습니다.');
+}
+function clearCart() {
+  if (!confirm('장바구니의 모든 상품을 비우시겠습니까?')) return;
+  M().clearBurgerCart(userId());
+  renderAll();
+  toast('장바구니를 비웠습니다.');
+}
+
+// 현재 선택분을 담고 곧바로 결제 (장바구니에 담긴 다른 메뉴도 함께 결제)
+function orderNow() {
+  if (!userId()) { alert('로그인이 필요합니다.'); location.href = 'login.html'; return; }
+  M().addToBurgerCart(userId(), { menu: menuName, isSet: isSet, drink: drink, qty: qty });
+  renderCart();
+  openConfirm();
+}
+
 // ── 렌더 ──
 function renderProduct() {
   const meta = (M().burgerMenuMeta || {})[menuName] || {};
@@ -311,12 +504,15 @@ function renderProduct() {
   $('d-allergy').textContent = meta.allergy || '-';
   $('d-chips').innerHTML = (meta.components || []).map(c => '<span class="chip">' + esc(c) + '</span>').join('');
 
-  // 결제 안내 (정산금액이 주문금액보다 적으면 현장결제만)
+  // 결제 안내 (정산금액이 결제 대상 금액보다 적으면 현장결제만)
   const bal = balance();
-  $('pay-hint').className = 'notice ' + (bal >= total() ? 'info' : 'warn');
-  $('pay-hint').innerHTML = bal >= total()
+  const target = payTarget();
+  const cartCount = cartSummary().count;
+  $('pay-hint').className = 'notice ' + (bal >= target ? 'info' : 'warn');
+  $('pay-hint').innerHTML = (bal >= target
     ? '보유 정산금액 <b>' + won(bal) + '</b> · 정산금액 결제 또는 현장 결제를 선택할 수 있습니다.'
-    : '보유 정산금액 <b>' + won(bal) + '</b> 이 주문금액 <b>' + won(total()) + '</b> 보다 적어 <b>현장 결제만</b> 가능합니다.';
+    : '보유 정산금액 <b>' + won(bal) + '</b> 이 결제금액 <b>' + won(target) + '</b> 보다 적어 <b>현장 결제만</b> 가능합니다.')
+    + (cartCount > 0 ? '<br>장바구니 <b>' + cartCount + '개</b> 가 함께 결제됩니다.' : '');
 
   renderOtherMenus();
 }
@@ -350,27 +546,33 @@ function changeQty(delta) {
 // ── 주문 ──
 function openConfirm() {
   if (!userId()) { alert('로그인이 필요합니다.'); location.href = 'login.html'; return; }
-  if (myActiveOrder()) {
+  const c = cartSummary();
+  if (c.lines.length === 0) {
+    alert('장바구니가 비어 있습니다.\n[담기] 로 메뉴를 추가해주세요.');
+    return;
+  }
+  if (myActiveGroup()) {
     alert('진행 중인 주문이 있습니다.\n수령 또는 취소 후 다시 주문해주세요.');
     return;
   }
-  $('confirm-body').innerHTML = `
-    <div class="row"><span class="k">메뉴</span><span class="v">${esc(menuName)} ${isSet ? '세트' : '단품'}</span></div>
-    ${isSet ? `<div class="row"><span class="k">세트 구성</span><span class="v">감자튀김 · ${esc(drink)}</span></div>` : ''}
-    <div class="row"><span class="k">수량</span><span class="v">${qty}개</span></div>
-    <div class="row"><span class="k">단가</span><span class="v">${won(unitPrice())}</span></div>
-    <div class="row"><span class="k">결제 금액</span><span class="v" style="color:var(--brand-dark);font-size:16px">${won(total())}</span></div>
-    <div class="notice info">주문 접수 후 <b>조리 시작 전까지</b> 주문을 취소할 수 있습니다.</div>`;
+  $('confirm-body').innerHTML = c.lines.map(l => `
+    <div class="row"><span class="k">${esc(l.name)}${l.isSet ? ' (감자튀김·' + esc(l.drink) + ')' : ''} × ${l.qty}</span>
+      <span class="v">${won(l.subtotal)}</span></div>`).join('')
+    + `<div class="row"><span class="k" style="font-weight:800;color:var(--text)">총 ${c.count}개 · 결제 금액</span>
+        <span class="v" style="color:var(--brand-dark);font-size:16px">${won(c.total)}</span></div>
+       <div class="notice info">한 번의 결제로 <b>${c.lines.length}종</b> 이 주방에 함께 접수됩니다.
+       주문 접수 후 <b>조리 시작 전까지</b> 취소할 수 있습니다.</div>`;
   $('confirm-modal').classList.add('show');
 }
 
 function goPayment() {
   closeModal('confirm-modal');
   payMethod = null;
+  const amount = payTarget();
   const bal = balance();
-  const short = bal < total();
+  const short = bal < amount;
   $('pay-balance').className = 'notice ' + (short ? 'warn' : 'info');
-  $('pay-balance').innerHTML = '보유 정산금액 <b>' + won(bal) + '</b> · 주문금액 <b>' + won(total()) + '</b>'
+  $('pay-balance').innerHTML = '보유 정산금액 <b>' + won(bal) + '</b> · 주문금액 <b>' + won(amount) + '</b>'
     + (short ? '<br>정산금액이 부족합니다. <b>현장 결제만 가능</b>합니다.' : '');
   document.querySelectorAll('.pay-choice').forEach(b => {
     const isSettle = b.dataset.method === 'settlement';
@@ -389,58 +591,77 @@ function pickPay(m) {
 
 function submitPayment() {
   if (!payMethod) return;
-  const amount = total();
+  const c = cartSummary();
+  if (c.lines.length === 0) { closeModal('pay-modal'); return; }
+  const amount = c.total;
   const useSettlement = payMethod === 'settlement';
   if (useSettlement && balance() < amount) {
     alert('정산금액이 부족합니다. 현장 결제를 선택해주세요.');
     return;
   }
 
-  // 1) 주방 주문 생성 (bmanager.html · burger-real.html 로 즉시 전달)
-  const order = M().createBurgerOrder({
-    menu: menuName, isSet: isSet, drink: drink, qty: qty,
-    source: 'customer',
+  // 1) 장바구니 전체를 한 번에 접수 (메뉴별 주방 주문 + 통합 쇼핑 이력 1건)
+  const res = M().createBurgerCartOrder({
+    items: c.lines.map(l => ({ menu: l.menu, isSet: l.isSet, drink: l.drink, qty: l.qty })),
     userId: userId(),
     userName: (currentUser && currentUser.name) || '고객',
     tableId: '픽업 카운터',
     paymentMethod: useSettlement ? 'online_settlement' : 'offline',
     paymentStatus: useSettlement ? 'paid' : 'offline_waiting'
   });
+  if (!res.ok) { alert('주문 접수에 실패했습니다.'); return; }
 
   // 2) 나의 쇼핑 미러 레코드 (정산금액 차감은 FactoryStore 가 처리)
-  const record = M().buildBurgerShopRecord(order);
-  M().updateBurgerOrder(order.id, { shopRecordId: record.id });
   if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
-    window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: record });
+    window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: res.record });
   } else {
     const hist = M().getShopHistoryRaw();
-    hist.unshift(record);
+    hist.unshift(res.record);
     M().saveShopHistoryRaw(hist);
   }
 
-  myOrderId = order.id;
+  M().clearBurgerCart(userId());
+  myRecordId = res.record.id;
   notifiedReady = false;
-  sessionStorage.setItem('burger_my_order_id', order.id);
   closeModal('pay-modal');
 
   if (useSettlement) {
-    alert('정산금액 결제가 완료되었습니다.\n차감 ' + won(amount) + '\n남은 정산금액 ' + won(balance())
-      + '\n주문번호 ' + order.no);
+    alert('정산금액 결제가 완료되었습니다.\n' + c.lines.length + '종 · ' + c.count + '개\n차감 ' + won(amount)
+      + '\n남은 정산금액 ' + won(balance()) + '\n주문번호 ' + res.groupNo);
   } else {
-    alert('주문이 접수되었습니다.\n주문번호 ' + order.no + '\n카운터에서 ' + won(amount) + ' 을 결제해주세요.');
+    alert('주문이 접수되었습니다.\n주문번호 ' + res.groupNo + '\n카운터에서 ' + won(amount) + ' 을 결제해주세요.');
   }
   toast('🔔 주문이 접수되었습니다. 조리 시작 전까지 취소할 수 있습니다.');
   renderAll();
 }
 
-// ── 내 주문 현황 ──
+// ── 내 주문 현황 (장바구니 통합 주문 단위) ──
 function myOrders() {
   const uid = userId();
   return M().getBurgerOrders().filter(o => o && o.shopRecordId && String(o.userId) === String(uid));
 }
-function myActiveOrder() {
-  return myOrders().filter(o => o.status === 'ordered' || o.status === 'cooking' || o.status === 'done')
-    .sort((a, b) => Date.parse(b.orderedAt) - Date.parse(a.orderedAt))[0] || null;
+
+// shopRecordId 별 그룹 목록 (최신순)
+function myGroups() {
+  const groups = {};
+  myOrders().forEach(o => {
+    const k = String(o.shopRecordId);
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(o);
+  });
+  return Object.keys(groups).map(k => ({
+    recordId: k,
+    no: groups[k][0].groupNo || groups[k][0].no,
+    orders: groups[k],
+    orderedAt: groups[k][0].orderedAt,
+    total: groups[k].reduce((s, o) => s + (Number(o.total) || 0), 0),
+    paymentMethod: groups[k][0].paymentMethod,
+    state: M().mapBurgerGroupStatus(groups[k])
+  })).sort((a, b) => Date.parse(b.orderedAt) - Date.parse(a.orderedAt));
+}
+
+function myActiveGroup() {
+  return myGroups().filter(g => g.state.status === 'pending')[0] || null;
 }
 
 const STATUS_INFO = {
@@ -450,94 +671,103 @@ const STATUS_INFO = {
   received: { pill: '<span class="pill pill-done"><i class="bi bi-check2-circle"></i> 수령 완료</span>', step: 3 },
   cancelled:{ pill: '<span class="pill pill-cancel"><i class="bi bi-x-circle"></i> 주문 취소</span>', step: 0 }
 };
+const KITCHEN_INFO = {
+  queued:    { pill: STATUS_INFO.ordered.pill, step: 1 },
+  preparing: { pill: STATUS_INFO.cooking.pill, step: 2 },
+  ready:     { pill: STATUS_INFO.done.pill, step: 3 },
+  received:  { pill: STATUS_INFO.received.pill, step: 3 },
+  cancelled: { pill: STATUS_INFO.cancelled.pill, step: 0 }
+};
 
 function renderOrderStatus() {
-  const order = myActiveOrder();
+  const g = myActiveGroup();
   const sec = $('order-status-sec');
-  if (!order) { sec.style.display = 'none'; myOrderId = null; return; }
-  myOrderId = order.id;
+  if (!g) { sec.style.display = 'none'; myRecordId = null; return; }
+  myRecordId = g.recordId;
   sec.style.display = '';
 
-  const info = STATUS_INFO[order.status] || STATUS_INFO.ordered;
+  const info = KITCHEN_INFO[g.state.kitchenStatus] || KITCHEN_INFO.queued;
   $('os-pill').innerHTML = info.pill;
   Array.from($('os-track').children).forEach((el, i) => el.classList.toggle('on', i < info.step));
 
+  const lines = g.orders.map(o => `<div class="row">
+      <span class="k">${esc(o.menu)} ${o.isSet ? '세트' : '단품'} × ${Number(o.qty) || 1}</span>
+      <span class="v">${won(o.total)} ${(STATUS_INFO[o.status] || STATUS_INFO.ordered).pill}</span></div>`).join('');
+
+  const anyCooking = g.orders.some(o => o.status === 'cooking' || o.status === 'done' || o.status === 'received');
   $('os-body').innerHTML = `
-    <div class="row"><span class="k">주문번호</span><span class="v">${esc(order.no)}</span></div>
-    <div class="row"><span class="k">메뉴</span><span class="v">${esc(order.menu)} ${order.isSet ? '세트' : '단품'} · ${order.qty}개</span></div>
-    <div class="row"><span class="k">결제</span><span class="v">${order.paymentMethod === 'online_settlement' ? '정산금액 결제' : '현장 결제'} · ${won(order.total)}</span></div>
-    <div class="row"><span class="k">주문 시각</span><span class="v">${fmtTime(order.orderedAt)}</span></div>
-    ${order.status === 'done'
+    <div class="row"><span class="k">주문번호</span><span class="v">${esc(g.no)}</span></div>
+    ${lines}
+    <div class="row"><span class="k">결제</span><span class="v">${g.paymentMethod === 'online_settlement' ? '정산금액 결제' : '현장 결제'} · ${won(g.total)}</span></div>
+    <div class="row"><span class="k">주문 시각</span><span class="v">${fmtTime(g.orderedAt)}</span></div>
+    ${g.state.kitchenStatus === 'ready'
       ? '<div class="notice ok"><b>🔔 조리가 완료되었습니다!</b><br>카운터에서 상품을 받아가세요. 수령 후 아래 [수령 완료] 를 눌러주세요.</div>'
-      : (order.status === 'cooking'
+      : (anyCooking
         ? '<div class="notice warn">조리가 시작되어 <b>주문 취소가 불가</b>합니다. 잠시만 기다려주세요.</div>'
         : '<div class="notice info">주방에서 조리를 시작하기 전까지 <b>주문 취소</b>가 가능합니다.</div>')}`;
 
   let actions = '';
-  if (order.status === 'ordered') {
-    actions = `<button class="btn btn-danger btn-sm" style="flex:1" onclick="cancelMyOrder('${esc(order.id)}')"><i class="bi bi-x-lg"></i> 주문 취소</button>`;
-  } else if (order.status === 'done') {
-    actions = `<button class="btn btn-ok btn-sm" style="flex:1" onclick="receiveMyOrder('${esc(order.id)}')"><i class="bi bi-bag-check"></i> 수령 완료</button>`;
+  if (g.state.kitchenStatus === 'ready') {
+    actions = `<button class="btn btn-ok btn-sm" style="flex:1" onclick="receiveMyOrder('${esc(g.recordId)}')"><i class="bi bi-bag-check"></i> 수령 완료</button>`;
+  } else if (!anyCooking) {
+    actions = `<button class="btn btn-danger btn-sm" style="flex:1" onclick="cancelMyOrder('${esc(g.recordId)}')"><i class="bi bi-x-lg"></i> 주문 취소</button>`;
   }
   $('os-actions').innerHTML = actions;
 
   // 준비 완료 알림 (1회)
-  if (order.status === 'done' && !notifiedReady) {
+  if (g.state.kitchenStatus === 'ready' && !notifiedReady) {
     notifiedReady = true;
-    toast('🔔 <b>' + esc(order.no) + '</b> 조리가 완료되었습니다! 카운터에서 받아가세요.');
+    toast('🔔 <b>' + esc(g.no) + '</b> 조리가 완료되었습니다! 카운터에서 받아가세요.');
     try { if (navigator.vibrate) navigator.vibrate([40, 60, 40]); } catch (e) {}
   }
-  if (order.status !== 'done') notifiedReady = false;
+  if (g.state.kitchenStatus !== 'ready') notifiedReady = false;
 }
 
-function cancelMyOrder(id) {
-  const order = M().getBurgerOrder(id);
-  if (!order) return;
-  if (order.status !== 'ordered') {
-    alert('이미 조리가 시작되어 취소할 수 없습니다.');
+function cancelMyOrder(recordId) {
+  const res = M().cancelBurgerOrderGroup(recordId, '고객 취소');
+  if (!res.ok) {
+    alert(res.error === 'cooking' ? '이미 조리가 시작되어 취소할 수 없습니다.' : '취소할 주문이 없습니다.');
     renderAll();
     return;
   }
-  if (!confirm('주문 ' + order.no + ' 을 취소하시겠습니까?')) return;
-
-  M().cancelBurgerOrder(id, '고객 취소');
   if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
-    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: order.shopRecordId });
+    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: recordId });
   }
   M().syncBurgerShopRecords();
-  alert('주문이 취소되었습니다.'
-    + (order.paymentMethod === 'online_settlement' ? '\n정산금액이 복구되었습니다. 현재 ' + won(balance()) : ''));
+  alert('주문이 취소되었습니다.\n남은 정산금액 ' + won(balance()));
   renderAll();
 }
 
-function receiveMyOrder(id) {
-  const order = M().getBurgerOrder(id);
-  if (!order) return;
-  const res = M().receiveBurgerOrder(id);
+function receiveMyOrder(recordId) {
+  const res = M().receiveBurgerOrderGroup(recordId);
   if (!res.ok) { alert('아직 조리가 완료되지 않았습니다.'); renderAll(); return; }
   if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
-    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: order.shopRecordId });
+    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: recordId });
   }
   M().syncBurgerShopRecords();
-  alert('🔔 주문번호 ' + order.no + ' 수령 완료\n맛있게 드세요! 😀');
+  alert('🔔 수령 완료\n맛있게 드세요! 😀');
   renderAll();
 }
 
 function renderHistory() {
-  const list = myOrders().slice().sort((a, b) => Date.parse(b.orderedAt) - Date.parse(a.orderedAt)).slice(0, 6);
+  const list = myGroups().slice(0, 6);
   if (list.length === 0) {
     $('my-history').innerHTML = '<div style="font-size:12.5px;color:var(--text-sub);text-align:center;padding:12px">아직 주문 내역이 없습니다.</div>';
     return;
   }
-  $('my-history').innerHTML = list.map(o => {
-    const info = STATUS_INFO[o.status] || STATUS_INFO.ordered;
-    return `<div class="row"><span class="k">${fmtTime(o.orderedAt)} · ${esc(o.menu)} ${o.isSet ? '세트' : '단품'} ${o.qty}개</span>
-      <span class="v">${won(o.total)} ${info.pill}</span></div>`;
+  $('my-history').innerHTML = list.map(g => {
+    const info = KITCHEN_INFO[g.state.kitchenStatus] || KITCHEN_INFO.queued;
+    const label = g.orders.length > 1
+      ? `${g.orders[0].menu} 외 ${g.orders.length - 1}종`
+      : `${g.orders[0].menu} ${g.orders[0].isSet ? '세트' : '단품'} ${g.orders[0].qty}개`;
+    return `<div class="row"><span class="k">${fmtTime(g.orderedAt)} · ${esc(label)}</span>
+      <span class="v">${won(g.total)} ${info.pill}</span></div>`;
   }).join('');
 }
 
 function renderAll() {
   renderProduct();
+  renderCart();
   renderOrderStatus();
   renderHistory();
 }

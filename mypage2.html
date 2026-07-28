@@ -14,6 +14,7 @@
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
     <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/shop-order-detail.js?v=20260728b" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
 
     <style>
@@ -1165,6 +1166,14 @@
                     statusBadgeHtml = `<span style="background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.16); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">수령 완료</span>`;
                 } else {
                     statusBadgeHtml = `<span style="background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">상태 확인 중</span>`;
+                }
+
+                // 자세히는 항상 왼쪽, 주문 취소·수령은 기존처럼 오른쪽에 배치한다.
+                const detailButtonHtml = `<button type="button" class="shop-order-detail-trigger" onclick="event.stopPropagation(); openShopOrderDetail('${itemId}', this)"><i class="bi bi-list-ul"></i> 자세히</button>`;
+                if (btnHtml) {
+                    btnHtml = btnHtml.replace(/(<div class="res-btn-box"[^>]*>)/, '$1' + detailButtonHtml);
+                } else {
+                    btnHtml = `<div class="res-btn-box" style="margin-top: 12px;">${detailButtonHtml}</div>`;
                 }
 
                 // 상품 썸네일 이미지 및 브랜드 탐색
