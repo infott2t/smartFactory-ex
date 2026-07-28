@@ -105,6 +105,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (container) container.innerHTML = productHtml;
                     });
                 }
+            } else if (String(workId) === '7' && window.MockData && window.MockData.getBurgerProductCards) {
+                // 버거만들기: 관리자(bmanager)에서 매긴 세트/단품 가격으로 상품 카드를 만든다.
+                const cards = window.MockData.getBurgerProductCards();
+                const productHtml = cards.map(p => `
+                    <a class="box" href="burger_order.html?menu=${encodeURIComponent(p.menu)}&type=set" style="width: 220px; min-width: 220px; flex-shrink: 0; background: #1a1a33; border: 1px solid #2d2d5e; border-radius: 14px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; color: #fff; transition: transform 0.2s;">
+                        <div class="up" style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <img src="${p.img}" style="width: 80px; height: 80px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="${p.name}">
+                            <div class="texts" style="display: flex; flex-direction: column; position: static; margin-left: 12px; justify-content: center; height: 80px; flex-grow: 1;">
+                                <span style="position: static; white-space: normal; font-size: 13px; font-weight: 700; color: #fff; line-height: 1.4; word-break: keep-all;">${p.name}</span>
+                                <span style="position: static; font-size: 11px; color: #999; margin-top: 4px;">${p.brand}</span>
+                                <span style="position: static; font-size: 10px; color: #7b92ff; margin-top: 3px;">단품 ${p.single.toLocaleString('ko-KR')}원</span>
+                            </div>
+                        </div>
+                        <div class="down" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-top: 4px;">
+                            <div style="font-size: 14px; font-weight: 700; color: #a29bfe;">세트 ${p.set.toLocaleString('ko-KR')}원</div>
+                            <div style="font-size: 11px; color: #7b92ff; font-weight: 600;">${p.status}</div>
+                        </div>
+                    </a>
+                `).join('');
+
+                productContainers.forEach(container => {
+                    if (container) container.innerHTML = productHtml;
+                });
             } else if (data.products) {
                 // 기존 김치만들기 상품 렌더링 유지
                 const productHtml = data.products.map((p, i) => {

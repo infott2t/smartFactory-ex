@@ -840,7 +840,9 @@
                                     statusBadgeHtml = isPreparing
                                         ? `<span style="margin-left: 2px; background: rgba(99, 102, 241, 0.16); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 중</span>`
                                         : `<span style="margin-left: 2px; background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 대기</span>`;
-                                    inlineCancelButtonHtml = `
+                                    inlineCancelButtonHtml = (String(item.workId || '') === '7' && isPreparing)
+                                        ? `<button type="button" class="res-cancel-btn" disabled style="background: rgba(62,62,192,0.4); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.12); padding: 6px 12px; border-radius: 12px; font-size: 11px; cursor: not-allowed;">조리 중 · 취소 불가</button>`
+                                        : `
                                         <button type="button" class="res-cancel-btn" style="background: rgb(62 62 192); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 12px; font-size: 11px; cursor: pointer;" onclick="event.stopPropagation(); window.cancelShopOrder('${item.id}')">주문 취소</button>`;
                                 }
                             } else if (item.status === 'cancelled') {

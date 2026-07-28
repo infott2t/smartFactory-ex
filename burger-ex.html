@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ff6b35">
+<title>스마트팩토리 버거 체험</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<!-- 체험 완료(isExp) 상태를 store.js 의 userWorkProgress 테이블에 기록하기 위해 필요.
+     데이터를 수정했는데 반영되지 않으면 v 값을 올린다. -->
+<script src="./js/store.js?v=20260728b"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--primary:#ff6b35;--primary-dark:#e63946;--bg:#f5f5f7;--card:#fff;--text:#1a1a2e;--text-secondary:#6b7280;--border:#e5e7eb;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--shadow:0 2px 8px rgba(0,0,0,.08);--radius:12px;--tab-height:64px;--header-height:56px}
+body{font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);max-width:560px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;border:none;outline:none;-webkit-tap-highlight-color:transparent}
+.header{background:linear-gradient(135deg,#ff6b35,#e63946);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;height:var(--header-height)}
+.header h1{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header .badge{background:rgba(255,255,255,.25);font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+.header .timer-display{font-size:14px;font-weight:600;background:rgba(0,0,0,.2);padding:4px 10px;border-radius:8px}
+.progress-wrap{height:4px;background:rgba(0,0,0,.1);position:sticky;top:var(--header-height);z-index:99}
+.progress-bar{height:100%;background:linear-gradient(90deg,#fbbf24,#10b981);transition:width 1s linear;width:0%}
+.rest-banner{display:none;background:#fef3c7;color:#92400e;text-align:center;padding:8px;font-size:13px;font-weight:600}
+.rest-banner.active{display:block}
+.main-content{flex:1;overflow-y:auto;padding:12px 12px calc(var(--tab-height) + 16px)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;background:var(--card);border-top:1px solid var(--border);display:flex;height:var(--tab-height);z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,.05)}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--text-secondary);background:none;transition:color .2s;min-height:48px}
+.tab-btn i{font-size:20px}
+.tab-btn.active{color:var(--primary)}
+.tab-btn.active i{font-weight:700}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;min-height:48px;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:active{background:var(--primary-dark);transform:scale(.96)}
+.btn-primary:disabled{background:#d1d5db;color:#9ca3af;transform:none}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:active{transform:scale(.96)}
+.btn-success:disabled{background:#d1d5db;color:#9ca3af}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:active{transform:scale(.96)}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-warning:active{transform:scale(.96)}
+.btn-outline{background:transparent;border:2px solid var(--border);color:var(--text)}
+.btn-outline:active{background:var(--bg)}
+.btn-sm{padding:8px 14px;font-size:12px;min-height:36px;border-radius:8px}
+.btn-block{width:100%}
+.order-card{border-left:4px solid var(--primary)}
+.order-card .order-meta{font-size:12px;color:var(--text-secondary);margin-top:4px}
+.order-card .order-menu{font-size:16px;font-weight:700}
+.order-card .order-type{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-left:6px}
+.order-card .order-type.set{background:#dbeafe;color:#1d4ed8}
+.order-card .order-type.single{background:#f3f4f6;color:#6b7280}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-secondary)}
+.empty-state i{font-size:48px;margin-bottom:12px;opacity:.4}
+.empty-state p{font-size:14px}
+/* 조리탭 */
+.cook-section{margin-bottom:16px}
+.cook-section-title{font-size:13px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;letter-spacing:.3px}
+/* 사전조리(그릴) 안내 */
+.prep-grid{display:flex;flex-direction:column;gap:8px}
+.prep-card{display:flex;gap:10px;padding:12px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa}
+.prep-card .prep-icon{font-size:26px;line-height:1;flex-shrink:0}
+.prep-card .prep-body{flex:1;min-width:0}
+.prep-card .prep-name{font-size:14px;font-weight:700;margin-bottom:2px}
+.prep-card .prep-spec{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.spec-chip{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#fff;border:1px solid #fdba74;color:#c2410c;white-space:nowrap}
+.prep-card .prep-how{font-size:12px;line-height:1.65;color:#7c2d12}
+/* 조립 순서 다이어그램 (읽기 전용) */
+.stack-diagram{display:flex;flex-direction:column-reverse;gap:5px;padding:12px;background:#fafafa;border-radius:10px;border:1px solid var(--border)}
+.stack-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;border:1px solid rgba(0,0,0,.06)}
+.stack-row .stack-no{width:20px;height:20px;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,.75);color:#111;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.stack-row .stack-name{font-size:13px;font-weight:700;flex-shrink:0}
+.stack-row .stack-note{font-size:11px;opacity:.85;margin-left:auto;text-align:right;line-height:1.4}
+.stack-legend{font-size:11px;color:var(--text-secondary);text-align:center;padding:6px 0}
+/* 작업 요령 / 팁 */
+.tip-box{padding:11px 13px;border-radius:10px;font-size:12px;line-height:1.75;margin-top:8px}
+.tip-box.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+.tip-box.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.tip-box b{font-weight:800}
+.tip-box ul{padding-left:16px;margin-top:3px}
+.step-list{counter-reset:s;list-style:none;padding:0}
+.step-list li{position:relative;padding:7px 0 7px 30px;font-size:13px;line-height:1.6;border-bottom:1px dashed var(--border)}
+.step-list li:last-child{border-bottom:none}
+.step-list li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:8px;width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.done-banner{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:10px;background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;font-size:14px;font-weight:800}
+.side-task{display:flex;align-items:center;gap:12px;padding:12px;background:#fafafa;border-radius:10px;margin-bottom:8px}
+.side-task .task-icon{font-size:24px}
+.side-task .task-info{flex:1}
+.side-task .task-name{font-size:13px;font-weight:600}
+.side-task .task-status{font-size:12px;color:var(--text-secondary)}
+.timer-circle{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#fee2e2;color:var(--danger)}
+/* 매뉴얼 */
+.accordion{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px}
+.accordion-header{padding:14px 16px;background:var(--card);font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:48px}
+.accordion-header i{transition:transform .2s}
+.accordion-header.open i{transform:rotate(180deg)}
+.accordion-body{padding:0 16px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s;font-size:13px;line-height:1.8;color:var(--text-secondary)}
+.accordion-body.open{max-height:1600px;padding:12px 16px}
+.accordion-body ol,.accordion-body ul{padding-left:20px}
+/* 휴식QR */
+.rest-toggle{width:100%;padding:20px;border-radius:var(--radius);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;min-height:64px}
+.rest-toggle.start{background:#fef3c7;color:#92400e;border:2px solid #fbbf24}
+.rest-toggle.end{background:#fee2e2;color:#991b1b;border:2px solid #ef4444}
+.qr-sim{text-align:center;padding:24px;border:2px dashed var(--border);border-radius:var(--radius);margin-top:16px;cursor:pointer;transition:all .15s;user-select:none}
+.qr-sim:active{transform:scale(.98)}
+.qr-sim.enter{border-color:#6ee7b7;background:#f0fdf4}
+.qr-sim.enter i{color:var(--success)}
+.qr-sim-title{font-size:14px;font-weight:800;margin-top:6px}
+.qr-sim-desc{font-size:12px;color:var(--text-secondary);margin-top:4px;line-height:1.6}
+.qr-sim-demo{font-size:11px;color:var(--text-secondary);margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)}
+.rest-live{margin-top:12px;padding:14px;border-radius:10px;background:#fef3c7;border:1px solid #fbbf24;color:#92400e;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700}
+.rest-live b{font-size:24px;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.qr-sim i{font-size:64px;color:var(--text-secondary);margin-bottom:8px}
+/* 더보기 */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-item{background:var(--bg);padding:12px;border-radius:10px;text-align:center}
+.stat-item .stat-value{font-size:20px;font-weight:800;color:var(--primary)}
+.stat-item .stat-label{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.log-list{max-height:200px;overflow-y:auto;font-size:12px;line-height:2}
+.log-list .log-entry{padding:4px 8px;border-bottom:1px solid var(--border)}
+.log-list .log-time{color:var(--text-secondary);margin-right:8px}
+/* 데모 모드 */
+.demo-box{margin-top:12px;padding:12px;border-radius:10px;background:#f9fafb;border:1px dashed var(--border)}
+.demo-box .demo-label{font-size:11px;font-weight:800;color:var(--text-secondary);letter-spacing:.3px;display:flex;align-items:center;gap:5px}
+.demo-box .demo-desc{font-size:11px;color:var(--text-secondary);line-height:1.6;margin:4px 0 8px}
+.demo-box .btn-outline{border-color:#cbd5e1;color:var(--text-secondary)}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:24px;width:100%;max-width:400px;text-align:center}
+.modal h2{font-size:20px;margin-bottom:16px}
+.modal .result-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0}
+.modal .result-item .result-value{font-size:24px;font-weight:800;color:var(--primary)}
+.modal .result-item .result-label{font-size:11px;color:var(--text-secondary)}
+.modal .modal-actions{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+<header class="header">
+  <h1><i class="bi bi-fire"></i> 버거팩토리 <span class="badge">가상체험</span></h1>
+  <div class="timer-display" id="timerDisplay">03:00</div>
+</header>
+<div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+<div class="rest-banner" id="restBanner"><i class="bi bi-pause-circle"></i> 휴식 중 (작업장 외부) · <span id="restBannerTimer">00:00</span></div>
+
+<main class="main-content">
+  <!-- 주문확인 탭 -->
+  <div class="tab-panel active" id="panelOrder">
+    <div id="orderList">
+      <div class="empty-state"><i class="bi bi-receipt"></i><p>주문이 들어오면 여기에 표시됩니다</p></div>
+    </div>
+  </div>
+
+  <!-- 조리 탭 -->
+  <div class="tab-panel" id="panelCook">
+    <div id="cookEmpty" class="empty-state"><i class="bi bi-fire"></i><p>조리할 주문을 선택하세요</p></div>
+    <div id="cookArea" style="display:none">
+      <div class="card">
+        <div class="card-title"><i class="bi bi-clipboard-check"></i> 현재 주문: <span id="cookOrderName"></span></div>
+      </div>
+      <div class="cook-section" id="burgerSection">
+        <div class="cook-section-title">🔥 1단계 · 사전 조리 (그릴 / 토스터)</div>
+        <div class="prep-grid" id="prepGrid"></div>
+
+        <div class="cook-section-title" style="margin-top:16px">🍔 2단계 · 조립 순서 <span style="font-weight:600;color:var(--text-secondary)">(아래 → 위)</span></div>
+        <div class="stack-diagram" id="stackDiagram"></div>
+        <div class="stack-legend"><i class="bi bi-arrow-up"></i> 위 방향으로 쌓아 올립니다</div>
+
+        <div class="tip-box info" id="assembleTip"></div>
+
+        <div id="burgerDoneWrap" style="margin-top:12px"></div>
+      </div>
+      <div id="sideTaskArea" style="display:none">
+        <div class="cook-section">
+          <div class="cook-section-title">🍟 3단계 · 사이드 &amp; 음료</div>
+          <div id="sideTasks"></div>
+        </div>
+      </div>
+      <button class="btn btn-success btn-block" id="btnComplete" disabled><i class="bi bi-check-circle"></i> 주문 완성</button>
+    </div>
+  </div>
+
+  <!-- 매뉴얼 탭 -->
+  <div class="tab-panel" id="panelManual">
+    <div class="card">
+      <div class="card-title"><i class="bi bi-book"></i> 조리 매뉴얼</div>
+    </div>
+    <div id="manualAccordions"></div>
+  </div>
+
+  <!-- 휴식·QR 탭 -->
+  <div class="tab-panel" id="panelRest">
+    <div class="card">
+      <div class="card-title"><i class="bi bi-cup-hot"></i> 휴식 관리 (퇴실 · 입장 QR)</div>
+      <div class="tip-box warn" id="restGuide"></div>
+      <div class="qr-sim" id="qrSim">
+        <i class="bi bi-qr-code-scan"></i>
+        <p class="qr-sim-title" id="qrTitle">작업장 퇴실 QR 스캔</p>
+        <p class="qr-sim-desc" id="qrDesc">휴식을 시작합니다. QR코드를 찍어주세요.</p>
+        <p class="qr-sim-demo"><i class="bi bi-hand-index-fill"></i> 데모: 여기를 클릭하면 스캔됩니다</p>
+      </div>
+      <div class="rest-live" id="restLive" style="display:none">
+        <span><i class="bi bi-cup-hot-fill"></i> 휴식 시간</span>
+        <b id="restLiveTimer">00:00</b>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="bi bi-life-preserver"></i> 도움 요청</div>
+      <div id="helpIdle">
+        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px">
+          작업 중 문제가 생기면 매니저를 호출할 수 있습니다.
+        </p>
+        <button class="btn btn-warning btn-block" id="btnHelp"><i class="bi bi-life-preserver"></i> 도움 요청하기</button>
+      </div>
+      <div id="helpActive" style="display:none">
+        <div class="tip-box warn" id="helpStatus"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-success" style="flex:1" id="btnHelpDone"><i class="bi bi-check-circle"></i> 완료</button>
+          <button class="btn btn-outline" style="flex:1" id="btnHelpCancel"><i class="bi bi-x-circle"></i> 요청 취소</button>
+        </div>
+      </div>
+      <div class="demo-box">
+        <div class="demo-label"><i class="bi bi-lightning-charge-fill"></i> 가상체험</div>
+        <p class="demo-desc" style="margin-bottom:0">실제 매니저에게 알림이 전송되지는 않습니다. 요청 후 잠시 뒤 매니저 확인 응답이 시뮬레이션되며, 해결되면 [완료]를 눌러 종료합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 더보기 탭 -->
+  <div class="tab-panel" id="panelMore">
+    <div class="card">
+      <div class="card-title"><i class="bi bi-bar-chart"></i> 근무 현황</div>
+      <div class="stat-grid">
+        <div class="stat-item"><div class="stat-value" id="statTime">--:--</div><div class="stat-label">현재시간</div></div>
+        <div class="stat-item"><div class="stat-value" id="statWork">0분</div><div class="stat-label">근무시간</div></div>
+        <div class="stat-item"><div class="stat-value" id="statRest">0분</div><div class="stat-label">휴식시간</div></div>
+        <div class="stat-item"><div class="stat-value" id="statPay">₩0</div><div class="stat-label">예상급여</div></div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnFinish" disabled><i class="bi bi-trophy"></i> 체험 완료</button>
+      <div class="demo-box">
+        <div class="demo-label"><i class="bi bi-lightning-charge-fill"></i> 데모 모드</div>
+        <p class="demo-desc">3분을 기다리지 않고 바로 체험을 마칩니다. 시연·점검용입니다.</p>
+        <button class="btn btn-outline btn-block btn-sm" id="btnSkip"><i class="bi bi-fast-forward-fill"></i> 3분 건너뛰기 (데모)</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="bi bi-journal-text"></i> 업무 로그</div>
+      <div class="log-list" id="logList"></div>
+    </div>
+  </div>
+</main>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="panelOrder"><i class="bi bi-receipt"></i><span>주문확인</span></button>
+  <button class="tab-btn" data-tab="panelCook"><i class="bi bi-fire"></i><span>조리</span></button>
+  <button class="tab-btn" data-tab="panelManual"><i class="bi bi-book"></i><span>매뉴얼</span></button>
+  <button class="tab-btn" data-tab="panelRest"><i class="bi bi-cup-hot"></i><span>휴식·QR</span></button>
+  <button class="tab-btn" data-tab="panelMore"><i class="bi bi-three-dots"></i><span>더보기</span></button>
+</nav>
+
+<!-- 결과 모달 -->
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <h2>🎉 체험 완료!</h2>
+    <p style="color:var(--text-secondary);font-size:14px">수고하셨습니다!</p>
+    <div class="result-grid">
+      <div class="result-item"><div class="result-value" id="resOrders">0</div><div class="result-label">처리 주문</div></div>
+      <div class="result-item"><div class="result-value" id="resTime">3분</div><div class="result-label">근무시간</div></div>
+      <div class="result-item"><div class="result-value" id="resPay">₩0</div><div class="result-label">예상급여</div></div>
+    </div>
+    <p id="resNote" style="display:none;font-size:11px;color:var(--text-secondary);margin-bottom:12px"></p>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> 다시 체험하기</button>
+      <button class="btn btn-outline btn-block" onclick="app.goBack()"><i class="bi bi-arrow-left"></i> 전 화면으로 가기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// === DATA ===
+const RECIPES = {
+  '치즈버거': ['아랫빵','마요네즈','고기패티','치즈','피클','양상추','윗빵'],
+  '불고기버거': ['아랫빵','불고기소스','불고기패티','양상추','마요네즈','윗빵'],
+  '새우버거': ['아랫빵','타르타르소스','새우패티','양상추','피클','윗빵'],
+  '햄버거': ['아랫빵','마요네즈','고기패티','양상추','피클','윗빵']
+};
+
+// 메뉴별 사전 조리(그릴·토스터) 지시서
+const PREP_GUIDE = {
+  '고기패티': {
+    icon:'🥩', name:'고기패티 굽기',
+    spec:['그릴 180℃','앞 1분 30초','뒤 1분 30초','중심 74℃'],
+    how:'클램셸 그릴에 얼린 패티를 그대로 올립니다. 절대 누르지 마세요 — 육즙이 빠집니다. 뒤집은 뒤 소금·후추를 뿌리고, 중심온도 74℃ 이상을 탐침으로 확인합니다.'
+  },
+  '불고기패티': {
+    icon:'🍖', name:'불고기패티 굽기',
+    spec:['그릴 170℃','앞 2분','뒤 1분 30초','소스 마무리'],
+    how:'불고기패티는 양념이 있어 잘 타므로 온도를 조금 낮춥니다. 뒤집은 후 불고기소스를 한 스푼 끼얹어 30초간 졸여 광을 냅니다.'
+  },
+  '새우패티': {
+    icon:'🍤', name:'새우패티 튀기기',
+    spec:['튀김유 175℃','3분','드레인 10초','건지개 사용'],
+    how:'냉동 상태로 175℃ 기름에 넣습니다. 서로 붙지 않게 한 번에 2장까지만. 황금색이 되면 건져 10초간 기름을 뺍니다.'
+  },
+  '소시지': {
+    icon:'🌭', name:'소시지 굽기',
+    spec:['그릴 160℃','2분','굴려가며'],
+    how:'표면에 칼집을 얕게 넣고 굴려가며 고르게 굽습니다. 껍질이 터지면 육즙이 빠집니다.'
+  },
+  '빵': {
+    icon:'🍞', name:'빵 토스트',
+    spec:['토스터 210℃','20초','단면만'],
+    how:'빵은 자른 단면을 아래로 향하게 놓아 20초만 굽습니다. 겉은 바삭, 속은 촉촉해야 소스를 흡수하지 않습니다.'
+  },
+  '긴빵': {
+    icon:'🥖', name:'긴빵 토스트',
+    spec:['토스터 210℃','25초','단면만'],
+    how:'긴빵(핫도그번)은 면적이 넓어 5초 더 굽습니다. 반으로 완전히 자르지 말고 경첩처럼 남겨둡니다.'
+  }
+};
+
+// 메뉴별 사전 조리 대상
+const MENU_PREP = {
+  '치즈버거': ['빵','고기패티'],
+  '불고기버거': ['빵','불고기패티'],
+  '새우버거': ['빵','새우패티'],
+  '햄버거': ['빵','고기패티']
+};
+
+// 재료별 조립 요령 (읽기 전용 지시)
+const INGREDIENT_NOTE = {
+  '아랫빵':'구운 면을 위로',
+  '윗빵':'살짝 눌러 덮기',
+  '긴빵':'경첩 쪽을 뒤로',
+  '고기패티':'중심 74℃ 확인',
+  '불고기패티':'소스면을 위로',
+  '새우패티':'튀김옷 부서지지 않게',
+  '소시지':'가운데 정렬',
+  '양상추':'물기 제거 필수',
+  '피클':'3장 겹치지 않게',
+  '치즈':'패티 열로 녹이기',
+  '마요네즈':'15g 나선형',
+  '불고기소스':'20g 고르게',
+  '타르타르소스':'20g 중앙부터'
+};
+
+// 메뉴별 핵심 포인트
+const MENU_TIP = {
+  '치즈버거':'치즈는 <b>패티 바로 위</b>에 올려 잔열로 녹입니다. 피클은 치즈에 눌러 고정하면 흐르지 않습니다.',
+  '불고기버거':'소스가 빵에 스며들지 않도록 <b>아랫빵 → 소스 → 패티</b> 순서를 지킵니다. 소스는 빵 테두리 5mm를 남기고 바릅니다.',
+  '새우버거':'타르타르소스를 <b>먼저</b> 깔아야 튀김옷이 젖지 않습니다. 새우패티는 튀긴 뒤 30초 안에 조립합니다.',
+  '햄버거':'가장 기본 구성입니다. 치즈가 없으므로 <b>패티 온도</b>와 <b>양상추 물기</b>가 맛을 좌우합니다.'
+};
+
+const MENUS = Object.keys(RECIPES);
+const DRINKS = ['콜라','사이다'];
+const ALL_INGREDIENTS = ['윗빵','아랫빵','긴빵','고기패티','불고기패티','새우패티','소시지','양상추','피클','치즈','마요네즈','불고기소스','타르타르소스'];
+const INGREDIENT_COLORS = {
+  '윗빵':'#f4a460','아랫빵':'#d2691e','긴빵':'#deb887',
+  '고기패티':'#8b4513','불고기패티':'#a0522d','새우패티':'#ff8c69','소시지':'#cd853f',
+  '양상추':'#90ee90','피클':'#6b8e23','치즈':'#ffd700',
+  '마요네즈':'#fffacd','불고기소스':'#800000','타르타르소스':'#f5f5dc'
+};
+const HOURLY_WAGE = 9860;
+
+// === STATE ===
+let state = {
+  timer: 180,
+  timerInterval: null,
+  timerEnded: false,
+  demoSkipped: false,
+  orders: [],
+  orderIdSeq: 1,
+  currentCook: null,
+  burgerDone: false,
+  friesDone: false,
+  drinkDone: false,
+  friesTimer: null,
+  drainTimer: null,
+  completedOrders: 0,
+  isResting: false,
+  restStart: null,
+  totalRestSec: 0,
+  startTime: Date.now(),
+  logs: [],
+  helpActive: false,
+  helpStart: null,
+  helpAcked: false,
+  helpAckTimer: null,
+  helpCount: 0,
+  orderGenInterval: null
+};
+
+// === DOM REFS ===
+const $ = id => document.getElementById(id);
+const timerDisplay = $('timerDisplay');
+const progressBar = $('progressBar');
+const restBanner = $('restBanner');
+const orderList = $('orderList');
+const cookEmpty = $('cookEmpty');
+const cookArea = $('cookArea');
+const cookOrderName = $('cookOrderName');
+const prepGrid = $('prepGrid');
+const stackDiagram = $('stackDiagram');
+const assembleTip = $('assembleTip');
+const burgerDoneWrap = $('burgerDoneWrap');
+const burgerSection = $('burgerSection');
+const sideTaskArea = $('sideTaskArea');
+const sideTasks = $('sideTasks');
+const btnComplete = $('btnComplete');
+const manualAccordions = $('manualAccordions');
+const qrSim = $('qrSim');
+const qrTitle = $('qrTitle');
+const qrDesc = $('qrDesc');
+const restGuide = $('restGuide');
+const restLive = $('restLive');
+const restLiveTimer = $('restLiveTimer');
+const restBannerTimer = $('restBannerTimer');const helpIdle = $('helpIdle');
+const helpActive = $('helpActive');
+const helpStatus = $('helpStatus');
+const btnHelp = $('btnHelp');
+const btnHelpDone = $('btnHelpDone');
+const btnHelpCancel = $('btnHelpCancel');
+const btnFinish = $('btnFinish');
+const btnSkip = $('btnSkip');
+const logList = $('logList');
+const resultModal = $('resultModal');
+
+// === UTILS ===
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function timeStr(sec){const m=Math.floor(sec/60);const s=sec%60;return`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+function nowTimeStr(){const d=new Date();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`}
+function addLog(msg){state.logs.unshift({time:nowTimeStr(),msg});renderLogs();}
+
+// === TIMER ===
+function startMainTimer(){
+  state.timerInterval = setInterval(()=>{
+    if(state.timerEnded){clearInterval(state.timerInterval);return;}
+    state.timer--;
+    if(state.timer<=0){onTimerEnd();addLog('⏰ 3분 체험 종료!');return;}
+    timerDisplay.textContent = timeStr(state.timer);
+    progressBar.style.width = ((180-state.timer)/180*100)+'%';
+  },1000);
+}
+function onTimerEnd(){
+  if(state.timerEnded)return;
+  state.timerEnded=true;
+  clearInterval(state.timerInterval);
+  clearTimeout(state.orderGenInterval);
+  state.timer=0;
+  timerDisplay.textContent=timeStr(0);
+  progressBar.style.width='100%';
+  btnFinish.disabled=false;
+  btnFinish.innerHTML='<i class="bi bi-trophy-fill"></i> 체험 완료 (결과 보기)';
+}
+
+// 데모: 3분을 즉시 소진 (시연·점검용)
+function skipToEnd(){
+  if(state.timerEnded){switchTab('panelMore');return;}
+  const remain=state.timer;
+  // 근무 시작 시각을 3분 전으로 맞춰 전체 체험시간이 정확히 3분으로 집계되게 함
+  state.startTime=Date.now()-180000;
+  state.demoSkipped=true;
+  // 진행 중인 조리 타이머 정리
+  clearInterval(state.friesTimer);
+  clearInterval(state.drainTimer);
+  addLog(`⏩ 데모: 남은 ${timeStr(remain)} 건너뜀`);
+  onTimerEnd();
+  addLog('⏰ 3분 체험 종료!');
+  updateStats();
+  btnSkip.disabled=true;
+  btnSkip.innerHTML='<i class="bi bi-check2"></i> 건너뛰기 완료';
+  switchTab('panelMore');
+}
+
+// === ORDER GENERATION ===
+function generateOrder(){
+  if(state.timerEnded||state.timer<=0)return;
+  const menu = MENUS[randInt(0,MENUS.length-1)];
+  const isSet = Math.random()>0.4;
+  const drink = isSet?DRINKS[randInt(0,1)]:null;
+  // 가끔 감자튀김 단품 또는 음료 단품
+  let type='burger';
+  const r=Math.random();
+  let orderMenu=menu, orderIsSet=isSet, orderDrink=drink;
+  if(r<0.08){orderMenu='감자튀김';type='fries';orderIsSet=false;orderDrink=null;}
+  else if(r<0.14){orderMenu=DRINKS[randInt(0,1)];type='drink';orderIsSet=false;orderDrink=null;}
+  const order={id:state.orderIdSeq++,menu:orderMenu,isSet:orderIsSet,drink:orderDrink,type,time:nowTimeStr()};
+  state.orders.push(order);
+  renderOrders();
+  addLog(`📋 새 주문: ${order.menu}${order.isSet?' (세트)':''}`);
+  scheduleNextOrder();
+}
+function scheduleNextOrder(){
+  if(state.timerEnded)return;
+  const delay=randInt(20000,35000);
+  state.orderGenInterval=setTimeout(generateOrder,delay);
+}
+
+// === RENDER ORDERS ===
+function renderOrders(){
+  if(state.orders.length===0){
+    orderList.innerHTML='<div class="empty-state"><i class="bi bi-receipt"></i><p>주문이 들어오면 여기에 표시됩니다</p></div>';
+    return;
+  }
+  orderList.innerHTML=state.orders.map(o=>`
+    <div class="card order-card">
+      <div class="order-menu">${o.menu}<span class="order-type ${o.isSet?'set':'single'}">${o.isSet?'세트':'단품'}</span></div>
+      ${o.drink?`<div class="order-meta">음료: ${o.drink}</div>`:''}
+      <div class="order-meta">주문시각: ${o.time}</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="app.startCook(${o.id})"><i class="bi bi-fire"></i> 조리 시작</button>
+    </div>
+  `).join('');
+}
+
+// === COOKING ===
+function startCook(orderId){
+  const idx=state.orders.findIndex(o=>o.id===orderId);
+  if(idx===-1)return;
+  state.currentCook=state.orders.splice(idx,1)[0];
+  state.burgerDone=false;
+  state.friesDone=!state.currentCook.isSet&&state.currentCook.type!=='fries';
+  state.drinkDone=!state.currentCook.isSet&&state.currentCook.type!=='drink';
+  if(state.currentCook.type==='fries'){state.burgerDone=true;state.drinkDone=true;state.friesDone=false;}
+  if(state.currentCook.type==='drink'){state.burgerDone=true;state.friesDone=true;state.drinkDone=false;}
+  renderOrders();
+  renderCook();
+  switchTab('panelCook');
+  addLog(`🍳 조리 시작: ${state.currentCook.menu}`);
+}
+
+function renderCook(){
+  const c=state.currentCook;
+  if(!c){cookEmpty.style.display='';cookArea.style.display='none';return;}
+  cookEmpty.style.display='none';cookArea.style.display='';
+  cookOrderName.textContent=`${c.menu}${c.isSet?' (세트)':''}`;
+
+  const isBurger=!!RECIPES[c.menu];
+  if(isBurger){
+    burgerSection.style.display='';
+    renderPrep(c.menu);
+    renderStack(c.menu);
+    assembleTip.innerHTML=`<b>💡 이 메뉴의 핵심</b><br>${MENU_TIP[c.menu]||''}`;
+    renderBurgerDone();
+  } else {
+    burgerSection.style.display='none';
+  }
+
+  // 사이드 & 음료
+  const needFries=c.isSet||c.type==='fries';
+  const needDrink=c.isSet||c.type==='drink';
+  if(needFries||needDrink){
+    sideTaskArea.style.display='';
+    let html='';
+    if(needFries){
+      html+=`<div class="side-task">
+        <div class="task-icon">🍟</div>
+        <div class="task-info"><div class="task-name">감자튀김</div><div class="task-status" id="friesStatus">${state.friesDone?'✅ 완료':'대기중 · 175℃ 3분 + 드레인 10초'}</div></div>
+        ${!state.friesDone?'<button class="btn btn-warning btn-sm" id="btnFries" onclick="app.startFries()">튀기기</button>':''}
+      </div>`;
+      if(!state.friesDone){
+        html+=`<div class="tip-box warn"><b>🍟 감자튀김 작업 요령</b>
+          <ul>
+            <li>바스켓의 <b>1/2 이하</b>만 채웁니다 — 많이 넣으면 기름 온도가 떨어져 축축해집니다.</li>
+            <li>얼린 상태로 그대로 투입. 해동하면 기름이 튀어 위험합니다.</li>
+            <li><b>3분</b> 튀긴 뒤 바스켓을 걸어 <b>10초 드레인</b> — 이 10초가 바삭함을 결정합니다.</li>
+            <li>드레인 후 소금은 <b>30cm 위에서</b> 흩뿌려 고르게 묻힙니다.</li>
+          </ul></div>`;
+      }
+    }
+    if(needDrink){
+      const drinkName=c.drink||c.menu;
+      html+=`<div class="side-task">
+        <div class="task-icon">🥤</div>
+        <div class="task-info"><div class="task-name">${drinkName}</div><div class="task-status" id="drinkStatus">${state.drinkDone?'✅ 완료':'대기중 · 얼음 2/3 → 음료'}</div></div>
+        ${!state.drinkDone?`<button class="btn btn-primary btn-sm" onclick="app.pourDrink()">담기</button>`:''}
+      </div>`;
+      if(!state.drinkDone){
+        html+=`<div class="tip-box info"><b>🥤 음료 작업 요령</b><br>
+          컵에 얼음을 <b>2/3</b>까지 채우고 컵을 45° 기울여 따릅니다. 거품이 넘치지 않게 마지막에 세워서 마무리하고 뚜껑을 <b>딸깍</b> 소리가 날 때까지 눌러 닫습니다.</div>`;
+      }
+    }
+    sideTasks.innerHTML=html;
+  } else {
+    sideTaskArea.style.display='none';
+  }
+  checkCookComplete();
+}
+
+// 사전 조리(그릴/토스터) 지시서 렌더
+function renderPrep(menu){
+  const items=MENU_PREP[menu]||[];
+  prepGrid.innerHTML=items.map(key=>{
+    const g=PREP_GUIDE[key];
+    if(!g)return'';
+    return`<div class="prep-card">
+      <div class="prep-icon">${g.icon}</div>
+      <div class="prep-body">
+        <div class="prep-name">${g.name}</div>
+        <div class="prep-spec">${g.spec.map(s=>`<span class="spec-chip">${s}</span>`).join('')}</div>
+        <div class="prep-how">${g.how}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 조립 순서 다이어그램 렌더 (읽기 전용)
+function renderStack(menu){
+  const recipe=RECIPES[menu]||[];
+  stackDiagram.innerHTML=recipe.map((ing,i)=>{
+    const color=INGREDIENT_COLORS[ing]||'#e5e7eb';
+    const dark=isDarkColor(color);
+    return`<div class="stack-row" style="background:${color};color:${dark?'#fff':'#1a1a2e'}">
+      <span class="stack-no">${i+1}</span>
+      <span class="stack-name">${ing}</span>
+      <span class="stack-note">${INGREDIENT_NOTE[ing]||''}</span>
+    </div>`;
+  }).join('');
+}
+
+function isDarkColor(hex){
+  const h=hex.replace('#','');
+  const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
+  return (0.299*r+0.587*g+0.114*b)<150;
+}
+
+// 버거 조립 확인 (클릭 1회)
+function renderBurgerDone(){
+  if(state.burgerDone){
+    burgerDoneWrap.innerHTML='<div class="done-banner"><i class="bi bi-check-circle-fill"></i> 버거 조립 확인 완료</div>';
+  } else {
+    burgerDoneWrap.innerHTML='<button class="btn btn-primary btn-block" onclick="app.confirmBurger()"><i class="bi bi-hand-thumbs-up"></i> 위 순서대로 조립 완료</button>';
+  }
+}
+
+function confirmBurger(){
+  if(!state.currentCook||state.burgerDone)return;
+  state.burgerDone=true;
+  addLog('🍔 버거 조립 완료');
+  renderCook();
+}
+
+function startFries(){
+  const btn=document.getElementById('btnFries');
+  if(btn)btn.disabled=true;
+  const statusEl=document.getElementById('friesStatus');
+  let sec=10; // 실제 3분 → 체험 10초로 단축
+  if(statusEl)statusEl.textContent=`🔥 튀기는 중 ${sec}초 (실제 3분)`;
+  addLog('🍟 감자튀김 튀기기 시작 (175℃)');
+  state.friesTimer=setInterval(()=>{
+    sec--;
+    if(statusEl)statusEl.textContent=`🔥 튀기는 중 ${sec}초 (실제 3분)`;
+    if(sec<=0){
+      clearInterval(state.friesTimer);
+      startDrain();
+    }
+  },1000);
+}
+
+function startDrain(){
+  const statusEl=document.getElementById('friesStatus');
+  let sec=5; // 실제 10초 → 체험 5초로 단축
+  if(statusEl)statusEl.textContent=`💧 드레인 중 ${sec}초 (실제 10초)`;
+  addLog('🍟 드레인 시작 — 기름 빼기');
+  state.drainTimer=setInterval(()=>{
+    sec--;
+    if(statusEl)statusEl.textContent=`💧 드레인 중 ${sec}초 (실제 10초)`;
+    if(sec<=0){
+      clearInterval(state.drainTimer);
+      state.friesDone=true;
+      addLog('🍟 감자튀김 완료 — 소금 뿌리기');
+      renderCook();
+    }
+  },1000);
+}
+
+function pourDrink(){
+  state.drinkDone=true;
+  addLog('🥤 음료 준비 완료!');
+  renderCook();
+}
+
+function checkCookComplete(){
+  const allDone=state.burgerDone&&state.friesDone&&state.drinkDone;
+  btnComplete.disabled=!allDone;
+}
+
+function completeCook(){
+  if(!state.currentCook)return;
+  state.completedOrders++;
+  addLog(`✅ 주문 완성: ${state.currentCook.menu}`);
+  state.currentCook=null;
+  renderCook();
+}
+
+// === MANUAL ===
+function renderManual(){
+  let html='';
+  for(const[menu,recipe] of Object.entries(RECIPES)){
+    const preps=(MENU_PREP[menu]||[]).map(k=>PREP_GUIDE[k]).filter(Boolean);
+    html+=`<div class="accordion">
+      <div class="accordion-header" onclick="app.toggleAccordion(this)"><span>🍔 ${menu}</span><i class="bi bi-chevron-down"></i></div>
+      <div class="accordion-body">
+        <b style="color:var(--text)">🔥 사전 조리</b>
+        ${preps.map(g=>`<div style="margin:6px 0 10px">
+          <div style="font-weight:700;color:var(--text)">${g.icon} ${g.name}</div>
+          <div style="margin:3px 0">${g.spec.map(s=>`<span class="spec-chip">${s}</span>`).join(' ')}</div>
+          <div>${g.how}</div>
+        </div>`).join('')}
+        <b style="color:var(--text)">🍔 조립 순서 (아래 → 위)</b>
+        <ol class="step-list" style="margin:6px 0 10px">
+          ${recipe.map(r=>`<li><b style="color:var(--text)">${r}</b>${INGREDIENT_NOTE[r]?` — ${INGREDIENT_NOTE[r]}`:''}</li>`).join('')}
+        </ol>
+        <div class="tip-box info" style="margin:0">💡 ${MENU_TIP[menu]||''}</div>
+      </div>
+    </div>`;
+  }
+  html+=`<div class="accordion">
+    <div class="accordion-header" onclick="app.toggleAccordion(this)"><span>🍟 감자튀김 조리법</span><i class="bi bi-chevron-down"></i></div>
+    <div class="accordion-body">
+      <div style="margin-bottom:6px">${['튀김유 175℃','튀김 3분','드레인 10초'].map(s=>`<span class="spec-chip">${s}</span>`).join(' ')}</div>
+      <ol class="step-list">
+        <li>냉동 감자를 <b style="color:var(--text)">해동하지 않고</b> 바스켓에 담습니다. 바스켓의 1/2 이하만 채웁니다.</li>
+        <li>175℃ 기름에 천천히 내립니다. 한꺼번에 넣으면 기름이 넘칩니다.</li>
+        <li><b style="color:var(--text)">3분간</b> 튀깁니다. 중간에 한 번 흔들어 서로 붙지 않게 합니다.</li>
+        <li>건져 올려 <b style="color:var(--text)">10초간 드레인</b>합니다. 이 10초가 바삭함을 결정합니다.</li>
+        <li>소금을 30cm 위에서 흩뿌리고 두 번 털어 고르게 묻힙니다.</li>
+        <li>완성 후 <b style="color:var(--text)">7분 이내</b>에 제공합니다.</li>
+      </ol>
+      <div class="tip-box warn" style="margin-bottom:0">⚠️ 기름 온도가 165℃ 아래로 떨어지면 감자가 기름을 흡수해 축축해집니다. 연속 작업 시 온도 회복을 기다리세요.</div>
+    </div>
+  </div>`;
+  html+=`<div class="accordion">
+    <div class="accordion-header" onclick="app.toggleAccordion(this)"><span>🥤 음료 제조</span><i class="bi bi-chevron-down"></i></div>
+    <div class="accordion-body">
+      <ol class="step-list">
+        <li>컵 사이즈를 주문과 대조합니다 (세트 = 미디엄).</li>
+        <li>얼음을 <b style="color:var(--text)">컵의 2/3</b>까지 채웁니다.</li>
+        <li>컵을 45° 기울여 따르다가 마지막에 세워 거품을 정리합니다.</li>
+        <li>뚜껑을 딸깍 소리가 날 때까지 눌러 닫고 빨대를 함께 제공합니다.</li>
+      </ol>
+      <div class="tip-box info" style="margin-bottom:0">콜라·사이다 <b>디스펜서 노즐이 다릅니다</b>. 주문서의 음료 종류를 반드시 확인하세요.</div>
+    </div>
+  </div>`;
+  html+=`<div class="accordion">
+    <div class="accordion-header" onclick="app.toggleAccordion(this)"><span>🧾 전체 재료 &amp; 취급 요령</span><i class="bi bi-chevron-down"></i></div>
+    <div class="accordion-body">
+      <div class="stack-diagram" style="flex-direction:column;background:transparent;border:none;padding:0">
+        ${ALL_INGREDIENTS.map(ing=>{
+          const color=INGREDIENT_COLORS[ing]||'#e5e7eb';
+          const dark=isDarkColor(color);
+          return`<div class="stack-row" style="background:${color};color:${dark?'#fff':'#1a1a2e'}">
+            <span class="stack-name">${ing}</span>
+            <span class="stack-note">${INGREDIENT_NOTE[ing]||''}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+  html+=`<div class="accordion">
+    <div class="accordion-header" onclick="app.toggleAccordion(this)"><span>🧺 재료 보관 기준</span><i class="bi bi-chevron-down"></i></div>
+    <div class="accordion-body">
+      <ul style="padding-left:16px">
+        <li><b style="color:var(--text)">냉동 (-18℃)</b> — 고기패티, 불고기패티, 새우패티, 감자</li>
+        <li><b style="color:var(--text)">냉장 (0~4℃)</b> — 치즈, 소시지, 양상추, 피클, 소스류</li>
+        <li><b style="color:var(--text)">실온</b> — 빵, 긴빵 (당일 소진, 밀봉 보관)</li>
+        <li>개봉한 소스는 <b style="color:var(--text)">개봉일 기재</b> 후 3일 이내 사용</li>
+        <li>양상추는 세척 후 탈수하여 물기를 완전히 제거해 보관</li>
+        <li>모든 재료는 <b style="color:var(--text)">선입선출(FIFO)</b> 원칙을 따릅니다</li>
+      </ul>
+    </div>
+  </div>`;
+  html+=`<div class="accordion">
+    <div class="accordion-header" onclick="app.toggleAccordion(this)"><span>🧼 위생 수칙</span><i class="bi bi-chevron-down"></i></div>
+    <div class="accordion-body">
+      <ul style="padding-left:16px">
+        <li>조리 전 손 세정제로 <b style="color:var(--text)">30초 이상</b> 세척</li>
+        <li>조립 시 위생장갑 착용 필수, 다른 작업 후에는 교체</li>
+        <li>교차오염 방지 — 생고기 ↔ 채소 도구·도마 분리</li>
+        <li>조리대는 <b style="color:var(--text)">매시간</b> 소독제로 닦기</li>
+        <li>패티 중심온도 <b style="color:var(--text)">74℃ 이상</b> 확인 후 조립</li>
+        <li>유통기한 확인 후 선입선출</li>
+      </ul>
+    </div>
+  </div>`;
+  manualAccordions.innerHTML=html;
+}
+function toggleAccordion(header){
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+// === REST (퇴실/입장 QR 스캔 기반) ===
+function mmssStr(sec){
+  const s=Math.max(0,Math.floor(sec));
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+// 현재 휴식 누적 초 (휴식 중이면 진행분 포함)
+function currentRestSec(){
+  let sec=state.totalRestSec;
+  if(state.isResting&&state.restStart)sec+=Math.floor((Date.now()-state.restStart)/1000);
+  return sec;
+}
+
+function renderRest(){
+  if(state.isResting){
+    restGuide.className='tip-box warn';
+    restGuide.innerHTML='<b>🚪 현재 작업장 밖에서 휴식 중입니다.</b><br>자리로 돌아오면 <b>입장 QR</b>을 찍어야 휴식이 종료되고 업무가 재개됩니다.';
+    qrSim.className='qr-sim enter';
+    qrTitle.textContent='작업장 입장 QR 스캔';
+    qrDesc.textContent='복귀하셨다면 QR코드를 찍어주세요. 휴식이 종료됩니다.';
+    restLive.style.display='';
+    restBanner.classList.add('active');
+  } else {
+    restGuide.className='tip-box info';
+    restGuide.innerHTML='<b>☕ 휴식하려면 작업장 밖으로 나가야 합니다.</b><br>안전을 위해 <b>퇴실 QR</b>을 찍고 나가면 휴식 시간이 초 단위로 집계됩니다.';
+    qrSim.className='qr-sim';
+    qrTitle.textContent='작업장 퇴실 QR 스캔';
+    qrDesc.textContent='휴식을 시작합니다. QR코드를 찍어주세요.';
+    restLive.style.display='none';
+    restBanner.classList.remove('active');
+  }
+  updateRestTimers();
+}
+
+function updateRestTimers(){
+  const txt=mmssStr(currentRestSec());
+  restLiveTimer.textContent=txt;
+  restBannerTimer.textContent=txt;
+}
+
+// QR 스캔 (데모: 클릭 = 스캔)
+function scanRestQR(){
+  if(!state.isResting){
+    state.isResting=true;
+    state.restStart=Date.now();
+    addLog('📱 퇴실 QR 스캔 · 휴식 시작 (급여 계산 일시정지)');
+  } else {
+    const sec=Math.floor((Date.now()-state.restStart)/1000);
+    state.totalRestSec+=sec;
+    state.isResting=false;
+    state.restStart=null;
+    addLog(`📱 입장 QR 스캔 · 휴식 종료 (이번 휴식 ${mmssStr(sec)}) · 업무 복귀`);
+  }
+  renderRest();
+}
+
+// === HELP REQUEST (가상체험 시뮬레이션) ===
+function helpElapsedSec(){
+  return state.helpStart ? Math.floor((Date.now()-state.helpStart)/1000) : 0;
+}
+
+function renderHelp(){
+  if(!state.helpActive){
+    helpIdle.style.display='';
+    helpActive.style.display='none';
+    return;
+  }
+  helpIdle.style.display='none';
+  helpActive.style.display='';
+  const sec=helpElapsedSec();
+  const el=`${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;
+  helpStatus.className=state.helpAcked?'tip-box info':'tip-box warn';
+  helpStatus.innerHTML=state.helpAcked
+    ? `<b>🧑‍🍳 매니저가 요청을 확인했습니다.</b><br>곧 도착합니다. 문제가 해결되면 <b>완료</b>를 눌러주세요. · 경과 ${el}`
+    : `<b>🆘 도움 요청 중 · 매니저 확인 대기</b><br>잠시만 기다려주세요. · 경과 ${el}`;
+}
+
+function requestHelp(){
+  if(state.helpActive) return;
+  if(!confirm('도움 요청하시겠습니까?')) return;
+  state.helpActive=true;
+  state.helpAcked=false;
+  state.helpStart=Date.now();
+  state.helpCount++;
+  addLog('🆘 도움 요청 전송 (매니저 호출)');
+  renderHelp();
+  // 매니저 확인 응답 시뮬레이션
+  state.helpAckTimer=setTimeout(()=>{
+    if(!state.helpActive) return;
+    state.helpAcked=true;
+    addLog('🧑‍🍳 매니저가 도움 요청을 확인했습니다');
+    renderHelp();
+  },4000);
+}
+
+function completeHelp(){
+  if(!state.helpActive) return;
+  if(!confirm('도움 요청이 해결되었습니까?\n완료 처리하면 요청이 종료됩니다.')) return;
+  const sec=helpElapsedSec();
+  clearTimeout(state.helpAckTimer);
+  state.helpActive=false;
+  state.helpAcked=false;
+  state.helpStart=null;
+  addLog(`✅ 도움 요청 해결 완료 (소요 ${Math.floor(sec/60)}분 ${sec%60}초)`);
+  renderHelp();
+}
+
+function cancelHelp(){
+  if(!state.helpActive) return;
+  if(!confirm('도움 요청을 취소하시겠습니까?')) return;
+  clearTimeout(state.helpAckTimer);
+  state.helpActive=false;
+  state.helpAcked=false;
+  state.helpStart=null;
+  addLog('↩️ 도움 요청 취소');
+  renderHelp();
+}
+
+// === MORE TAB ===
+function updateStats(){
+  const now=new Date();
+  $('statTime').textContent=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const elapsed=Math.floor((Date.now()-state.startTime)/1000);
+  const workMin=Math.floor(elapsed/60);
+  $('statWork').textContent=`${workMin}분`;
+  const restSec=currentRestSec();
+  $('statRest').textContent=mmssStr(restSec);
+  updateRestTimers();
+  const pay=Math.round((elapsed-restSec)/3600*HOURLY_WAGE);
+  $('statPay').textContent=`₩${pay.toLocaleString()}`;
+  if(state.helpActive) renderHelp();
+}
+
+function renderLogs(){
+  logList.innerHTML=state.logs.slice(0,50).map(l=>`<div class="log-entry"><span class="log-time">${l.time}</span>${l.msg}</div>`).join('');
+}
+
+// === FINISH ===
+function finishExperience(){
+  const elapsed=Math.floor((Date.now()-state.startTime)/1000);
+  const restSec=currentRestSec();
+  const pay=Math.round((elapsed-restSec)/3600*HOURLY_WAGE);
+  $('resOrders').textContent=state.completedOrders;
+  $('resTime').textContent=`${Math.floor(elapsed/60)}분 ${elapsed%60}초`;
+  $('resPay').textContent=`₩${pay.toLocaleString()}`;
+  const note=$('resNote');
+  if(note){
+    note.style.display=state.demoSkipped?'':'none';
+    note.textContent='⏩ 데모 모드로 시간을 건너뛴 결과입니다.';
+  }
+  markExperienceCompleted();
+  resultModal.classList.add('active');
+}
+
+// === 체험 완료(isExp) 기록 ===
+// 세션에는 'local-<email>' 같은 문자열 id 가 들어있을 수 있으므로,
+// kimp_ex0.html 과 동일하게 이름·이메일로 store.js 의 진짜 숫자 ID를 찾는다.
+function resolveNumericUserId(){
+  let sessionUser=null;
+  try{
+    const raw=sessionStorage.getItem('user');
+    if(raw)sessionUser=JSON.parse(raw);
+  }catch(e){}
+  const users=(window.MockData&&window.MockData.users)||[];
+  if(sessionUser&&users.length){
+    const matched=users.find(u=>u.name===sessionUser.name||u.email===sessionUser.email);
+    if(matched)return matched.id;
+  }
+  if(sessionUser&&typeof sessionUser.id==='number')return sessionUser.id;
+  return 2; // 기본값: 최수아
+}
+
+// store.js 의 공식 API(MockData.setExpCompleted)로 isExp 를 갱신한다.
+// userWorkProgress 테이블에 {userId, workId, isExp, expCompletedAt} 형태로 저장되고,
+// work_detail.html 의 checkExperienceStatus() 가 이 값을 읽어 '체험 완료' 뱃지를 띄운다.
+function markExperienceCompleted(){
+  const userId=resolveNumericUserId();
+  try{
+    if(window.MockData&&typeof window.MockData.setExpCompleted==='function'){
+      window.MockData.setExpCompleted(userId,WORK_ID);
+      addLog(`🏅 체험 완료 기록 (userId ${userId} · workId ${WORK_ID})`);
+      return;
+    }
+  }catch(e){}
+  // store.js 를 못 불러온 경우의 폴백 (형식은 동일)
+  try{
+    const rows=JSON.parse(localStorage.getItem('userWorkProgress')||'[]');
+    const list=Array.isArray(rows)?rows:[];
+    const today=new Date().toISOString().split('T')[0];
+    const i=list.findIndex(p=>p&&p.userId==userId&&String(p.workId)===String(WORK_ID));
+    if(i>-1){list[i].isExp=true;list[i].expCompletedAt=today;}
+    else{list.push({userId,workId:WORK_ID,isExp:true,expCompletedAt:today});}
+    localStorage.setItem('userWorkProgress',JSON.stringify(list));
+  }catch(e){}
+}
+
+// === NAVIGATION ===
+const WORK_ID=7;                                 // 버거만들기
+const DETAIL_URL='work_detail.html?id='+WORK_ID; // 그래프가 있는 일 상세 화면
+
+// 전 화면(일 상세)으로 돌아가기.
+// history.back() 을 쓰면 브라우저가 이전 페이지를 bfcache 에서 그대로 복원해
+// 떠날 때 열려 있던 '가상체험 선택 모달'이 다시 떠 있는 상태로 보인다.
+// kimp_ex0.html 과 동일하게 새로 불러와 그래프 화면부터 보이게 한다.
+function goBack(){
+  // 체험 중 돌아가는 경우에도 타이머가 남지 않도록 정리
+  clearInterval(state.timerInterval);
+  clearTimeout(state.orderGenInterval);
+  clearInterval(state.friesTimer);
+  clearInterval(state.drainTimer);
+  addLog('↩️ 일 상세 화면으로 돌아갑니다.');
+  location.replace(DETAIL_URL);
+}
+
+// === TAB SWITCHING ===
+function switchTab(tabId){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tabId));
+}
+
+// === INIT ===
+function init(){
+  // Tab bar
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>switchTab(btn.dataset.tab));
+  });
+  // Rest / QR (퇴실·입장 QR 스캔으로 휴식 시작·종료)
+  qrSim.addEventListener('click',scanRestQR);
+  renderRest();
+  // Help request
+  btnHelp.addEventListener('click',requestHelp);
+  btnHelpDone.addEventListener('click',completeHelp);
+  btnHelpCancel.addEventListener('click',cancelHelp);
+  renderHelp();
+  // Complete cook
+  btnComplete.addEventListener('click',completeCook);
+  // Finish
+  btnFinish.addEventListener('click',finishExperience);
+  // Demo skip
+  btnSkip.addEventListener('click',skipToEnd);
+  // Manual
+  renderManual();
+  // Start timer
+  startMainTimer();
+  // Start order gen
+  state.orderGenInterval=setTimeout(generateOrder,randInt(3000,6000));
+  // Stats updater
+  setInterval(updateStats,1000);
+  updateStats();
+  addLog('🏭 버거팩토리 체험 시작!');
+}
+
+// Expose to global for onclick handlers
+window.app={startCook,confirmBurger,startFries,pourDrink,toggleAccordion,goBack};
+
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff6b35">
+<title>버거퀸 주문 | BurgerQueen</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="./js/auth.js"></script>
+<script src="./js/auth-guard.js"></script>
+<script src="./js/store.js?v=20260728d"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --brand:#ff6b35;--brand-dark:#e63946;--bg:#f5f5f7;--card:#fff;
+  --text:#1a1a2e;--text-sub:#6b7280;--border:#e5e7eb;
+  --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--info:#2563eb;
+  --shadow:0 2px 10px rgba(0,0,0,.07);--radius:14px;
+}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);padding-bottom:120px;-webkit-text-size-adjust:100%}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.wrap{max-width:560px;margin:0 auto;background:var(--bg);min-height:100vh}
+.topbar{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:12px 14px}
+.topbar h1{font-size:16px;font-weight:800;display:flex;align-items:center;gap:7px}
+.topbar .back{font-size:20px;color:var(--text)}
+.topbar .brand{margin-left:auto;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-dark));padding:4px 9px;border-radius:999px}
+
+.hero{background:#fff;padding:16px 14px 18px;text-align:center;border-bottom:1px solid var(--border)}
+.hero img{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:cover;border-radius:18px;box-shadow:var(--shadow);background:#f1f2f4}
+.hero h2{font-size:21px;font-weight:800;margin-top:14px}
+.hero .sum{font-size:13px;color:var(--text-sub);line-height:1.7;margin-top:7px}
+.hero .price{margin-top:11px;font-size:24px;font-weight:800;color:var(--brand-dark)}
+.hero .price small{font-size:12px;color:var(--text-sub);font-weight:600;display:block;margin-top:3px}
+
+.sec{margin:12px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:15px}
+.sec h3{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px;margin-bottom:11px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--text-sub);font-weight:600}
+.row .v{font-weight:700;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:999px;background:#f4f5f7;color:var(--text-sub)}
+
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;transition:.15s;background:#fff}
+.opt.active{border-color:var(--brand);background:rgba(255,107,53,.06)}
+.opt .t{font-size:14px;font-weight:800;display:flex;align-items:center;gap:6px}
+.opt .p{font-size:17px;font-weight:800;color:var(--brand-dark);margin-top:5px}
+.opt .d{font-size:11px;color:var(--text-sub);margin-top:4px;line-height:1.5}
+.opt:disabled{opacity:.45;cursor:not-allowed}
+
+.qty{display:flex;align-items:center;gap:12px}
+.qty button{width:42px;height:42px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:18px;font-weight:800}
+.qty span{font-size:18px;font-weight:800;min-width:34px;text-align:center}
+.drink-row{display:flex;gap:8px;margin-top:10px}
+.drink{flex:1;border:2px solid var(--border);border-radius:12px;padding:10px;font-size:13px;font-weight:700;background:#fff}
+.drink.active{border-color:var(--info);color:var(--info)}
+
+.notice{border-radius:11px;padding:11px 12px;font-size:12px;line-height:1.7;margin-top:10px}
+.notice.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+.notice.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.notice.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+
+.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:11px 14px;display:flex;align-items:center;gap:12px;z-index:70}
+.bar .tot{flex:1;min-width:0}
+.bar .tot .l{font-size:11px;color:var(--text-sub);font-weight:700}
+.bar .tot .v{font-size:20px;font-weight:800;color:var(--brand-dark)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:13px 18px;border-radius:12px;font-size:15px;font-weight:800;min-height:52px;border:1px solid transparent}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff}
+.btn-line{background:#fff;color:var(--text);border-color:var(--border)}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-danger{background:#fff;color:var(--danger);border-color:rgba(239,68,68,.4)}
+.btn-block{width:100%}
+.btn-sm{min-height:42px;padding:9px 14px;font-size:13px;border-radius:10px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.pill{font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px}
+.pill-wait{background:rgba(245,158,11,.14);color:#b45309}
+.pill-cook{background:rgba(37,99,235,.1);color:#1d4ed8}
+.pill-ready{background:rgba(16,185,129,.13);color:#047857}
+.pill-done{background:rgba(100,116,139,.13);color:#475569}
+.pill-cancel{background:rgba(148,163,184,.16);color:#475569}
+
+.track{display:flex;gap:6px;margin:11px 0}
+.track div{flex:1;height:6px;border-radius:999px;background:#e9ebef}
+.track div.on{background:linear-gradient(90deg,var(--brand),var(--brand-dark))}
+
+.menu-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.menu-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;text-align:left;text-decoration:none;color:inherit;display:block}
+.menu-item img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#f1f2f4}
+.menu-item .b{padding:9px 10px}
+.menu-item .n{font-size:13px;font-weight:800}
+.menu-item .p{font-size:12px;color:var(--brand-dark);font-weight:800;margin-top:3px}
+.menu-item .s{font-size:11px;color:var(--text-sub);margin-top:2px}
+
+.modal-back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;align-items:center;justify-content:center;padding:18px}
+.modal-back.show{display:flex}
+.modal{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pay-choice{width:100%;border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;background:#fff;margin-bottom:9px}
+.pay-choice.selected{border-color:var(--brand);background:rgba(255,107,53,.06)}
+.pay-choice .t{font-size:14px;font-weight:800}
+.pay-choice .d{font-size:11.5px;color:var(--text-sub);margin-top:4px;line-height:1.5}
+.pay-choice:disabled{opacity:.5;cursor:not-allowed}
+.modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+
+.toast-wrap{position:fixed;top:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:120;align-items:center}
+.toast{background:#fff;border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:12px 14px;font-size:13px;font-weight:700;display:flex;gap:9px;align-items:center;border-left:4px solid var(--brand);max-width:520px;width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <button class="back" onclick="goBack()" aria-label="뒤로"><i class="bi bi-chevron-left"></i></button>
+    <h1><i class="bi bi-bag-check" style="color:var(--brand)"></i> <span id="page-title">버거 주문</span></h1>
+    <span class="brand">BurgerQueen</span>
+  </div>
+
+  <div class="hero">
+    <img id="p-img" src="./images/burger_500.png" alt="상품 사진">
+    <h2 id="p-name">치즈버거 세트</h2>
+    <div class="sum" id="p-sum"></div>
+    <div class="price" id="p-price">₩0<small id="p-price-sub"></small></div>
+  </div>
+
+  <!-- 주문 현황 (진행 중 주문이 있을 때만) -->
+  <div class="sec" id="order-status-sec" style="display:none">
+    <h3><i class="bi bi-receipt" style="color:var(--brand)"></i> 내 주문 현황 <span id="os-pill"></span></h3>
+    <div class="track" id="os-track"><div></div><div></div><div></div></div>
+    <div id="os-body"></div>
+    <div id="os-actions" style="display:flex;gap:8px;margin-top:11px"></div>
+  </div>
+
+  <div class="sec">
+    <h3><i class="bi bi-ui-checks" style="color:var(--brand)"></i> 구매 옵션</h3>
+    <div class="opt-grid">
+      <button class="opt" id="opt-set" onclick="pickType('set')">
+        <div class="t"><i class="bi bi-basket2-fill"></i> 세트</div>
+        <div class="p" id="opt-set-price">₩0</div>
+        <div class="d">버거 + 감자튀김 + 음료</div>
+      </button>
+      <button class="opt" id="opt-single" onclick="pickType('single')">
+        <div class="t"><i class="bi bi-egg-fried"></i> 단품</div>
+        <div class="p" id="opt-single-price">₩0</div>
+        <div class="d">버거 단품만</div>
+      </button>
+    </div>
+    <div id="drink-wrap" style="margin-top:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-sub);margin-bottom:2px">세트 음료 선택</div>
+      <div class="drink-row">
+        <button class="drink active" data-drink="콜라" onclick="pickDrink('콜라')">🥤 콜라</button>
+        <button class="drink" data-drink="사이다" onclick="pickDrink('사이다')">🥤 사이다</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+      <div style="font-size:13px;font-weight:800">수량</div>
+      <div class="qty">
+        <button onclick="changeQty(-1)" aria-label="수량 감소">−</button>
+        <span id="qty-val">1</span>
+        <button onclick="changeQty(1)" aria-label="수량 증가">＋</button>
+      </div>
+    </div>
+    <div class="notice info" id="pay-hint"></div>
+  </div>
+
+  <div class="sec">
+    <h3><i class="bi bi-journal-text" style="color:var(--info)"></i> 상품 상세</h3>
+    <div class="row"><span class="k">구성</span><span class="v" id="d-components"></span></div>
+    <div class="row"><span class="k">조리 안내</span><span class="v" id="d-cook" style="font-weight:600;color:var(--text-sub);max-width:64%"></span></div>
+    <div class="row"><span class="k">알레르기</span><span class="v" id="d-allergy"></span></div>
+    <div class="row"><span class="k">수령 방식</span><span class="v">매장 픽업 (조리 완료 후 알림)</span></div>
+    <div class="row"><span class="k">매장</span><span class="v">BurgerQueen · 서울시 용산구 이태원</span></div>
+    <div class="chips" style="margin-top:11px" id="d-chips"></div>
+  </div>
+
+  <div class="sec">
+    <h3><i class="bi bi-grid" style="color:var(--brand)"></i> 다른 메뉴</h3>
+    <div class="menu-list" id="other-menus"></div>
+  </div>
+
+  <div class="sec">
+    <h3><i class="bi bi-clock-history" style="color:var(--text-sub)"></i> 최근 주문 내역</h3>
+    <div id="my-history"></div>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="tot">
+    <div class="l" id="bar-label">세트 1개</div>
+    <div class="v" id="bar-total">₩0</div>
+  </div>
+  <button class="btn btn-primary" id="btn-order" onclick="openConfirm()"><i class="bi bi-bag-check-fill"></i> 주문하기</button>
+</div>
+
+<!-- 주문 확인 -->
+<div class="modal-back" id="confirm-modal">
+  <div class="modal">
+    <h3><i class="bi bi-clipboard-check" style="color:var(--brand)"></i> 주문 확인</h3>
+    <div id="confirm-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="goPayment()"><i class="bi bi-credit-card"></i> 결제 진행</button>
+      <button class="btn btn-line btn-block" onclick="closeModal('confirm-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결제 -->
+<div class="modal-back" id="pay-modal">
+  <div class="modal">
+    <h3><i class="bi bi-credit-card-2-front" style="color:var(--brand)"></i> 결제 방법 선택</h3>
+    <div class="notice info" id="pay-balance"></div>
+    <div style="margin-top:12px">
+      <button class="pay-choice" data-method="settlement" onclick="pickPay('settlement')">
+        <div class="t">💳 정산금액 결제</div>
+        <div class="d">보유한 정산 금액에서 즉시 차감됩니다. (정산 내역에 기록)</div>
+      </button>
+      <button class="pay-choice" data-method="offline" onclick="pickPay('offline')">
+        <div class="t">🏪 일반(현장) 결제</div>
+        <div class="d">카운터에서 카드·현금으로 결제합니다. 정산금액은 차감되지 않습니다.</div>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" id="pay-submit" onclick="submitPayment()" disabled>결제하고 주문 접수</button>
+      <button class="btn btn-line btn-block" onclick="closeModal('pay-modal')">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+'use strict';
+const M = () => window.MockData || {};
+const SET_MENUS = ['치즈버거', '불고기버거', '햄버거', '새우버거'];
+
+let currentUser = null;
+let menuName = '치즈버거';
+let isSet = true;
+let drink = '콜라';
+let qty = 1;
+let payMethod = null;
+let myOrderId = null;      // 진행 중인 내 주문 id
+let notifiedReady = false;
+
+function $(id) { return document.getElementById(id); }
+function esc(v) { return String(v === undefined || v === null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+function won(n) { return '₩' + (Number(n) || 0).toLocaleString(); }
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return Number.isFinite(d.getTime())
+    ? String(d.getMonth() + 1).padStart(2, '0') + '/' + String(d.getDate()).padStart(2, '0') + ' '
+      + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '-';
+}
+function toast(msg) {
+  const w = $('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = '<i class="bi bi-bell-fill" style="color:var(--brand)"></i><div>' + msg + '</div>';
+  w.appendChild(el);
+  setTimeout(() => { if (el.parentElement) el.remove(); }, 4200);
+}
+function closeModal(id) { $(id).classList.remove('show'); }
+function goBack() { location.href = 'work_detail.html?id=7'; }
+
+function userId() {
+  if (currentUser && currentUser.id !== undefined && currentUser.id !== null) return String(currentUser.id);
+  const sid = sessionStorage.getItem('user-id');
+  return sid ? String(sid) : null;
+}
+function balance() {
+  const uid = userId();
+  if (uid && M().getUserSettlementBalance) return M().getUserSettlementBalance(uid);
+  return 0;
+}
+function unitPrice() { return M().getBurgerUnitPrice(menuName, isSet); }
+function total() { return unitPrice() * qty; }
+
+// ── 렌더 ──
+function renderProduct() {
+  const meta = (M().burgerMenuMeta || {})[menuName] || {};
+  const prices = M().getBurgerMenuPrices()[menuName] || { single: 0, set: null };
+  const canSet = M().isBurgerSetMenu(menuName);
+  if (!canSet) isSet = false;
+
+  $('page-title').textContent = menuName + ' 주문';
+  $('p-img').src = meta.img || './images/burger_500.png';
+  $('p-img').alt = menuName;
+  $('p-name').textContent = menuName + (isSet ? ' 세트' : ' 단품');
+  $('p-sum').textContent = meta.summary || '';
+  $('p-price').innerHTML = won(unitPrice()) + '<small id="p-price-sub">'
+    + (isSet ? '세트 가격 (버거+감자튀김+음료)' : '단품 가격') + '</small>';
+
+  $('opt-set').disabled = !canSet;
+  $('opt-set-price').textContent = canSet ? won(prices.set) : '판매 안함';
+  $('opt-single-price').textContent = won(prices.single);
+  $('opt-set').classList.toggle('active', isSet);
+  $('opt-single').classList.toggle('active', !isSet);
+  $('drink-wrap').style.display = isSet ? '' : 'none';
+
+  $('qty-val').textContent = qty;
+  $('bar-label').textContent = menuName + ' ' + (isSet ? '세트' : '단품') + ' ' + qty + '개';
+  $('bar-total').textContent = won(total());
+
+  const comp = isSet
+    ? (M().BURGER_SET_COMPONENTS || []).join(' · ') + ' (' + drink + ')'
+    : (meta.components || []).join(' · ');
+  $('d-components').textContent = comp;
+  $('d-cook').textContent = meta.cook || '';
+  $('d-allergy').textContent = meta.allergy || '-';
+  $('d-chips').innerHTML = (meta.components || []).map(c => '<span class="chip">' + esc(c) + '</span>').join('');
+
+  // 결제 안내 (정산금액이 주문금액보다 적으면 현장결제만)
+  const bal = balance();
+  $('pay-hint').className = 'notice ' + (bal >= total() ? 'info' : 'warn');
+  $('pay-hint').innerHTML = bal >= total()
+    ? '보유 정산금액 <b>' + won(bal) + '</b> · 정산금액 결제 또는 현장 결제를 선택할 수 있습니다.'
+    : '보유 정산금액 <b>' + won(bal) + '</b> 이 주문금액 <b>' + won(total()) + '</b> 보다 적어 <b>현장 결제만</b> 가능합니다.';
+
+  renderOtherMenus();
+}
+
+function renderOtherMenus() {
+  const cards = M().getBurgerProductCards();
+  $('other-menus').innerHTML = cards.map(c => `
+    <a class="menu-item" href="burger_order.html?menu=${encodeURIComponent(c.menu)}&type=set">
+      <img src="${c.img}" alt="${esc(c.name)}">
+      <div class="b"><div class="n">${esc(c.name)}</div>
+        <div class="p">세트 ${won(c.set)}</div>
+        <div class="s">단품 ${won(c.single)}</div></div>
+    </a>`).join('');
+}
+
+function pickType(t) {
+  if (t === 'set' && !M().isBurgerSetMenu(menuName)) return;
+  isSet = (t === 'set');
+  renderProduct();
+}
+function pickDrink(d) {
+  drink = d;
+  document.querySelectorAll('.drink').forEach(b => b.classList.toggle('active', b.dataset.drink === d));
+  renderProduct();
+}
+function changeQty(delta) {
+  qty = Math.min(20, Math.max(1, qty + delta));
+  renderProduct();
+}
+
+// ── 주문 ──
+function openConfirm() {
+  if (!userId()) { alert('로그인이 필요합니다.'); location.href = 'login.html'; return; }
+  if (myActiveOrder()) {
+    alert('진행 중인 주문이 있습니다.\n수령 또는 취소 후 다시 주문해주세요.');
+    return;
+  }
+  $('confirm-body').innerHTML = `
+    <div class="row"><span class="k">메뉴</span><span class="v">${esc(menuName)} ${isSet ? '세트' : '단품'}</span></div>
+    ${isSet ? `<div class="row"><span class="k">세트 구성</span><span class="v">감자튀김 · ${esc(drink)}</span></div>` : ''}
+    <div class="row"><span class="k">수량</span><span class="v">${qty}개</span></div>
+    <div class="row"><span class="k">단가</span><span class="v">${won(unitPrice())}</span></div>
+    <div class="row"><span class="k">결제 금액</span><span class="v" style="color:var(--brand-dark);font-size:16px">${won(total())}</span></div>
+    <div class="notice info">주문 접수 후 <b>조리 시작 전까지</b> 주문을 취소할 수 있습니다.</div>`;
+  $('confirm-modal').classList.add('show');
+}
+
+function goPayment() {
+  closeModal('confirm-modal');
+  payMethod = null;
+  const bal = balance();
+  const short = bal < total();
+  $('pay-balance').className = 'notice ' + (short ? 'warn' : 'info');
+  $('pay-balance').innerHTML = '보유 정산금액 <b>' + won(bal) + '</b> · 주문금액 <b>' + won(total()) + '</b>'
+    + (short ? '<br>정산금액이 부족합니다. <b>현장 결제만 가능</b>합니다.' : '');
+  document.querySelectorAll('.pay-choice').forEach(b => {
+    const isSettle = b.dataset.method === 'settlement';
+    b.disabled = isSettle && short;
+    b.classList.remove('selected');
+  });
+  $('pay-submit').disabled = true;
+  $('pay-modal').classList.add('show');
+}
+
+function pickPay(m) {
+  payMethod = m;
+  document.querySelectorAll('.pay-choice').forEach(b => b.classList.toggle('selected', b.dataset.method === m));
+  $('pay-submit').disabled = false;
+}
+
+function submitPayment() {
+  if (!payMethod) return;
+  const amount = total();
+  const useSettlement = payMethod === 'settlement';
+  if (useSettlement && balance() < amount) {
+    alert('정산금액이 부족합니다. 현장 결제를 선택해주세요.');
+    return;
+  }
+
+  // 1) 주방 주문 생성 (bmanager.html · burger-real.html 로 즉시 전달)
+  const order = M().createBurgerOrder({
+    menu: menuName, isSet: isSet, drink: drink, qty: qty,
+    source: 'customer',
+    userId: userId(),
+    userName: (currentUser && currentUser.name) || '고객',
+    tableId: '픽업 카운터',
+    paymentMethod: useSettlement ? 'online_settlement' : 'offline',
+    paymentStatus: useSettlement ? 'paid' : 'offline_waiting'
+  });
+
+  // 2) 나의 쇼핑 미러 레코드 (정산금액 차감은 FactoryStore 가 처리)
+  const record = M().buildBurgerShopRecord(order);
+  M().updateBurgerOrder(order.id, { shopRecordId: record.id });
+  if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+    window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: record });
+  } else {
+    const hist = M().getShopHistoryRaw();
+    hist.unshift(record);
+    M().saveShopHistoryRaw(hist);
+  }
+
+  myOrderId = order.id;
+  notifiedReady = false;
+  sessionStorage.setItem('burger_my_order_id', order.id);
+  closeModal('pay-modal');
+
+  if (useSettlement) {
+    alert('정산금액 결제가 완료되었습니다.\n차감 ' + won(amount) + '\n남은 정산금액 ' + won(balance())
+      + '\n주문번호 ' + order.no);
+  } else {
+    alert('주문이 접수되었습니다.\n주문번호 ' + order.no + '\n카운터에서 ' + won(amount) + ' 을 결제해주세요.');
+  }
+  toast('🔔 주문이 접수되었습니다. 조리 시작 전까지 취소할 수 있습니다.');
+  renderAll();
+}
+
+// ── 내 주문 현황 ──
+function myOrders() {
+  const uid = userId();
+  return M().getBurgerOrders().filter(o => o && o.shopRecordId && String(o.userId) === String(uid));
+}
+function myActiveOrder() {
+  return myOrders().filter(o => o.status === 'ordered' || o.status === 'cooking' || o.status === 'done')
+    .sort((a, b) => Date.parse(b.orderedAt) - Date.parse(a.orderedAt))[0] || null;
+}
+
+const STATUS_INFO = {
+  ordered:  { pill: '<span class="pill pill-wait"><i class="bi bi-hourglass"></i> 접수 · 조리 대기</span>', step: 1 },
+  cooking:  { pill: '<span class="pill pill-cook"><i class="bi bi-fire"></i> 조리 중</span>', step: 2 },
+  done:     { pill: '<span class="pill pill-ready"><i class="bi bi-bell-fill"></i> 준비 완료</span>', step: 3 },
+  received: { pill: '<span class="pill pill-done"><i class="bi bi-check2-circle"></i> 수령 완료</span>', step: 3 },
+  cancelled:{ pill: '<span class="pill pill-cancel"><i class="bi bi-x-circle"></i> 주문 취소</span>', step: 0 }
+};
+
+function renderOrderStatus() {
+  const order = myActiveOrder();
+  const sec = $('order-status-sec');
+  if (!order) { sec.style.display = 'none'; myOrderId = null; return; }
+  myOrderId = order.id;
+  sec.style.display = '';
+
+  const info = STATUS_INFO[order.status] || STATUS_INFO.ordered;
+  $('os-pill').innerHTML = info.pill;
+  Array.from($('os-track').children).forEach((el, i) => el.classList.toggle('on', i < info.step));
+
+  $('os-body').innerHTML = `
+    <div class="row"><span class="k">주문번호</span><span class="v">${esc(order.no)}</span></div>
+    <div class="row"><span class="k">메뉴</span><span class="v">${esc(order.menu)} ${order.isSet ? '세트' : '단품'} · ${order.qty}개</span></div>
+    <div class="row"><span class="k">결제</span><span class="v">${order.paymentMethod === 'online_settlement' ? '정산금액 결제' : '현장 결제'} · ${won(order.total)}</span></div>
+    <div class="row"><span class="k">주문 시각</span><span class="v">${fmtTime(order.orderedAt)}</span></div>
+    ${order.status === 'done'
+      ? '<div class="notice ok"><b>🔔 조리가 완료되었습니다!</b><br>카운터에서 상품을 받아가세요. 수령 후 아래 [수령 완료] 를 눌러주세요.</div>'
+      : (order.status === 'cooking'
+        ? '<div class="notice warn">조리가 시작되어 <b>주문 취소가 불가</b>합니다. 잠시만 기다려주세요.</div>'
+        : '<div class="notice info">주방에서 조리를 시작하기 전까지 <b>주문 취소</b>가 가능합니다.</div>')}`;
+
+  let actions = '';
+  if (order.status === 'ordered') {
+    actions = `<button class="btn btn-danger btn-sm" style="flex:1" onclick="cancelMyOrder('${esc(order.id)}')"><i class="bi bi-x-lg"></i> 주문 취소</button>`;
+  } else if (order.status === 'done') {
+    actions = `<button class="btn btn-ok btn-sm" style="flex:1" onclick="receiveMyOrder('${esc(order.id)}')"><i class="bi bi-bag-check"></i> 수령 완료</button>`;
+  }
+  $('os-actions').innerHTML = actions;
+
+  // 준비 완료 알림 (1회)
+  if (order.status === 'done' && !notifiedReady) {
+    notifiedReady = true;
+    toast('🔔 <b>' + esc(order.no) + '</b> 조리가 완료되었습니다! 카운터에서 받아가세요.');
+    try { if (navigator.vibrate) navigator.vibrate([40, 60, 40]); } catch (e) {}
+  }
+  if (order.status !== 'done') notifiedReady = false;
+}
+
+function cancelMyOrder(id) {
+  const order = M().getBurgerOrder(id);
+  if (!order) return;
+  if (order.status !== 'ordered') {
+    alert('이미 조리가 시작되어 취소할 수 없습니다.');
+    renderAll();
+    return;
+  }
+  if (!confirm('주문 ' + order.no + ' 을 취소하시겠습니까?')) return;
+
+  M().cancelBurgerOrder(id, '고객 취소');
+  if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: order.shopRecordId });
+  }
+  M().syncBurgerShopRecords();
+  alert('주문이 취소되었습니다.'
+    + (order.paymentMethod === 'online_settlement' ? '\n정산금액이 복구되었습니다. 현재 ' + won(balance()) : ''));
+  renderAll();
+}
+
+function receiveMyOrder(id) {
+  const order = M().getBurgerOrder(id);
+  if (!order) return;
+  const res = M().receiveBurgerOrder(id);
+  if (!res.ok) { alert('아직 조리가 완료되지 않았습니다.'); renderAll(); return; }
+  if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: order.shopRecordId });
+  }
+  M().syncBurgerShopRecords();
+  alert('🔔 주문번호 ' + order.no + ' 수령 완료\n맛있게 드세요! 😀');
+  renderAll();
+}
+
+function renderHistory() {
+  const list = myOrders().slice().sort((a, b) => Date.parse(b.orderedAt) - Date.parse(a.orderedAt)).slice(0, 6);
+  if (list.length === 0) {
+    $('my-history').innerHTML = '<div style="font-size:12.5px;color:var(--text-sub);text-align:center;padding:12px">아직 주문 내역이 없습니다.</div>';
+    return;
+  }
+  $('my-history').innerHTML = list.map(o => {
+    const info = STATUS_INFO[o.status] || STATUS_INFO.ordered;
+    return `<div class="row"><span class="k">${fmtTime(o.orderedAt)} · ${esc(o.menu)} ${o.isSet ? '세트' : '단품'} ${o.qty}개</span>
+      <span class="v">${won(o.total)} ${info.pill}</span></div>`;
+  }).join('');
+}
+
+function renderAll() {
+  renderProduct();
+  renderOrderStatus();
+  renderHistory();
+}
+
+// ── 초기화 ──
+document.addEventListener('DOMContentLoaded', function () {
+  let u = window.AuthManager && typeof window.AuthManager.getCurrentUser === 'function'
+    ? window.AuthManager.getCurrentUser() : null;
+  if (!u) { try { const raw = sessionStorage.getItem('user'); if (raw) u = JSON.parse(raw); } catch (e) {} }
+  if (!u) { alert('로그인이 필요합니다.'); location.href = 'login.html'; return; }
+  currentUser = u;
+
+  const params = new URLSearchParams(location.search);
+  const m = params.get('menu');
+  if (m && (M().burgerMenuPriceDefaults || {})[m]) menuName = m;
+  const t = params.get('type');
+  isSet = t !== 'single' && M().isBurgerSetMenu(menuName);   // 클릭 시 기본은 세트 선택
+
+  M().syncBurgerShopRecords();
+  renderAll();
+
+  window.addEventListener('storage', function () { M().syncBurgerShopRecords(); renderAll(); });
+  setInterval(function () {
+    if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function'
+      && !window.FactoryStore.isSaving()) {
+      window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+    }
+    M().syncBurgerShopRecords();
+    renderAll();
+  }, 2500);
+});
+</script>
+</body>
+</html>

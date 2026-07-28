@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff6b35">
+<title>버거팩토리 관리자 콘솔 | BurgerQueen</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="./js/auth.js"></script>
+<script src="./js/auth-guard.js"></script>
+<script src="./js/store.js?v=20260728c"></script>
+<link rel="manifest" href="/manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --brand:#ff6b35;--brand-dark:#e63946;--bg:#f4f5f7;--card:#fff;
+  --text:#1a1a2e;--text-sub:#6b7280;--border:#e5e7eb;
+  --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--info:#2563eb;--purple:#7c3aed;
+  --shadow:0 2px 10px rgba(0,0,0,.06);--radius:14px;--sidebar:248px;
+}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;-webkit-text-size-adjust:100%}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+a{color:inherit}
+
+/* 접근 제한 */
+.access-denied{display:none;position:fixed;inset:0;background:var(--bg);z-index:900;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+.access-denied.show{display:flex}
+.access-denied i{font-size:60px;color:var(--danger)}
+.access-denied h2{font-size:22px}
+.access-denied p{font-size:14px;color:var(--text-sub);line-height:1.7}
+
+/* 사이드바 */
+.sidebar{width:var(--sidebar);position:fixed;top:0;bottom:0;left:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:800}
+.sidebar-brand{padding:18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar-brand img{width:38px;height:38px;border-radius:10px;object-fit:cover}
+.sidebar-brand-title{font-size:15px;font-weight:800}
+.sidebar-brand-sub{font-size:11px;color:var(--text-sub);font-weight:600}
+.sidebar-menu{list-style:none;padding:12px 10px;flex:1;overflow-y:auto}
+.menu-item{display:flex;align-items:center;gap:10px;padding:12px 12px;border-radius:10px;font-size:13.5px;font-weight:700;color:var(--text-sub);cursor:pointer;margin-bottom:4px;min-height:46px}
+.menu-item:hover{background:#f9fafb;color:var(--text)}
+.menu-item.active{background:rgba(255,107,53,.1);color:var(--brand-dark)}
+.menu-item i{font-size:17px}
+.badge-count{margin-left:auto;background:var(--danger);color:#fff;font-size:11px;padding:2px 7px;border-radius:999px;font-weight:800}
+.badge-count.pulse{animation:pulse-red 1.5s infinite}
+@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}70%{box-shadow:0 0 0 8px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.sidebar-foot{padding:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:790}
+.sidebar-backdrop.active{display:block}
+
+/* 메인 */
+.main{margin-left:var(--sidebar);flex:1;padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.header{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header h1{font-size:17px;display:flex;align-items:center;gap:9px}
+.header-user{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:var(--text-sub)}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.menu-toggle{display:none;font-size:22px}
+
+.quick{display:flex;gap:9px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700;border:1px solid transparent;min-height:40px;transition:.15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff}
+.btn-green{background:var(--ok);color:#fff}
+.btn-amber{background:var(--warn);color:#fff}
+.btn-blue{background:var(--info);color:#fff}
+.btn-line{background:#fff;color:var(--text);border-color:var(--border)}
+.btn-danger{background:#fff;color:var(--danger);border-color:rgba(239,68,68,.4)}
+.btn-sm{padding:6px 10px;font-size:12px;min-height:34px;border-radius:8px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px;display:flex;align-items:center;gap:12px}
+.kpi-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.k-red{background:rgba(239,68,68,.1);color:#c62828}
+.k-amber{background:rgba(245,158,11,.13);color:#b45309}
+.k-green{background:rgba(16,185,129,.12);color:#047857}
+.k-blue{background:rgba(37,99,235,.1);color:#1d4ed8}
+.k-purple{background:rgba(124,58,237,.1);color:#6d28d9}
+.kpi-label{font-size:12px;color:var(--text-sub);font-weight:600}
+.kpi-value{font-size:21px;font-weight:800}
+
+.view{display:none}
+.view.active{display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:17px;min-width:0}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--border)}
+.panel-head h2{font-size:15px;display:flex;align-items:center;gap:8px}
+.pill{font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px}
+.pill-wait{background:rgba(124,58,237,.1);color:#6d28d9}
+.pill-cook{background:rgba(245,158,11,.13);color:#b45309}
+.pill-done{background:rgba(16,185,129,.12);color:#047857}
+.pill-cancel{background:rgba(100,116,139,.12);color:#475569}
+.pill-danger{background:rgba(239,68,68,.1);color:#c62828}
+
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
+.mini-card{border:1px solid var(--border);border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.mini-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mini-title{font-size:14.5px;font-weight:800}
+.mini-meta{font-size:11.5px;color:var(--text-sub);line-height:1.6}
+.mini-actions{display:flex;gap:7px;flex-wrap:wrap}
+
+.table-wrap{width:100%;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 11px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{background:#f9fafb;font-size:11.5px;color:var(--text-sub);font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+tbody tr:hover{background:#fcfcfd}
+td.num,th.num{text-align:right}
+.low-row{background:rgba(239,68,68,.05)}
+
+.form-row{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px;min-width:130px}
+.field label{font-size:11.5px;font-weight:700;color:var(--text-sub)}
+input,select{padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;font-weight:600;min-height:40px;background:#fff;color:var(--text)}
+.chk{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;min-height:40px}
+.chk input{min-height:auto;width:17px;height:17px}
+
+.summary{background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;line-height:1.75;color:var(--text-sub)}
+.empty{padding:34px 16px;text-align:center;color:var(--text-sub)}
+.empty i{font-size:40px;opacity:.4;display:block;margin-bottom:9px}
+.bar-wrap{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:96px minmax(0,1fr) 74px;gap:9px;align-items:center;font-size:12.5px;font-weight:700}
+.bar{height:12px;border-radius:999px;background:#eef0f3;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-dark))}
+.pl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px}
+.pl-item{border:1px solid var(--border);border-radius:12px;padding:13px}
+.pl-item .lbl{font-size:11.5px;color:var(--text-sub);font-weight:700}
+.pl-item .val{font-size:19px;font-weight:800;margin-top:4px}
+.plus{color:var(--ok)}.minus{color:var(--danger)}
+
+.toast-wrap{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:9px;z-index:950;max-width:330px}
+.toast{background:var(--card);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.16);padding:13px 14px;display:flex;gap:10px;align-items:flex-start;border-left:4px solid var(--brand);animation:slide .25s ease}
+@keyframes slide{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+.toast h4{font-size:13px;margin-bottom:3px}
+.toast p{font-size:12px;color:var(--text-sub);line-height:1.55}
+.toast button{margin-left:auto;color:var(--text-sub);font-size:17px;line-height:1}
+
+@media (max-width:1024px){
+  .sidebar{transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.15)}
+  .sidebar.open{transform:none}
+  .main{margin-left:0;padding:13px}
+  .menu-toggle{display:block}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .grid-cards{grid-template-columns:1fr}
+  table{min-width:600px}
+  .toast-wrap{left:12px;right:12px;max-width:none}
+}
+@media (max-width:520px){ .kpi-grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<div class="access-denied" id="access-denied">
+  <i class="bi bi-shield-lock-fill"></i>
+  <h2>관리자 전용 페이지입니다</h2>
+  <p id="access-denied-msg">버거팩토리 관리자 콘솔은 매니저 등급만 접근할 수 있습니다.</p>
+  <div style="display:flex;gap:9px;flex-wrap:wrap;justify-content:center">
+    <a href="./main.html" class="btn btn-primary"><i class="bi bi-house-door"></i> 메인으로</a>
+    <a href="./mypage2.html" class="btn btn-line"><i class="bi bi-person"></i> 마이페이지</a>
+  </div>
+</div>
+
+<!-- 사이드바 -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <img src="./images/burger_500.png" alt="BurgerQueen" onerror="this.style.display='none'">
+    <div>
+      <div class="sidebar-brand-title">Burger Console</div>
+      <div class="sidebar-brand-sub">버거팩토리 매장 관제</div>
+    </div>
+  </div>
+  <ul class="sidebar-menu">
+    <li class="menu-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <i class="bi bi-grid-1x2-fill"></i><span>통합 대시보드</span>
+    </li>
+    <li class="menu-item" data-tab="orders" onclick="switchTab('orders')">
+      <i class="bi bi-receipt-cutoff" style="color:var(--brand)"></i><span>현재 주문</span>
+      <span class="badge-count" id="badge-orders">0</span>
+    </li>
+    <li class="menu-item" data-tab="menu" onclick="switchTab('menu')">
+      <i class="bi bi-tags-fill" style="color:var(--brand-dark)"></i><span>메뉴 · 가격</span>
+    </li>
+    <li class="menu-item" data-tab="staff" onclick="switchTab('staff')">
+      <i class="bi bi-people-fill" style="color:var(--purple)"></i><span>현재 인원</span>
+      <span class="badge-count" id="badge-staff" style="background:var(--purple)">0</span>
+    </li>
+    <li class="menu-item" data-tab="stock" onclick="switchTab('stock')">
+      <i class="bi bi-box-seam-fill" style="color:var(--info)"></i><span>재고 관리</span>
+      <span class="badge-count" id="badge-stock">0</span>
+    </li>
+    <li class="menu-item" data-tab="finance" onclick="switchTab('finance')">
+      <i class="bi bi-graph-up-arrow" style="color:var(--ok)"></i><span>손익 관리</span>
+    </li>
+    <li class="menu-item" data-tab="help" onclick="switchTab('help')">
+      <i class="bi bi-life-preserver" style="color:var(--warn)"></i><span>도움 요청</span>
+      <span class="badge-count" id="badge-help">0</span>
+    </li>
+  </ul>
+  <div class="sidebar-foot">
+    <a href="./burger-real.html" class="btn btn-line"><i class="bi bi-tools"></i> 작업자 단말 (주방)</a>
+    <a href="./main.html" class="btn btn-line"><i class="bi bi-arrow-left-circle"></i> 메인으로</a>
+  </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+<!-- 메인 -->
+<main class="main">
+  <header class="header">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0">
+      <button class="menu-toggle" onclick="toggleSidebar()" aria-label="메뉴"><i class="bi bi-list"></i></button>
+      <h1 id="page-title"><i class="bi bi-grid-1x2-fill" style="color:var(--brand)"></i> 버거팩토리 관제 대시보드</h1>
+    </div>
+    <div class="header-user">
+      <div class="avatar" id="header-avatar">MG</div>
+      <span id="header-username">매니저</span>
+    </div>
+  </header>
+
+  <section class="quick">
+    <button class="btn btn-primary" onclick="switchTab('orders')"><i class="bi bi-plus-circle"></i> 주문 접수</button>
+    <button class="btn btn-line" onclick="renderAll()"><i class="bi bi-arrow-repeat"></i> 지금 동기화</button>
+    <button class="btn btn-danger" onclick="clearOrders()"><i class="bi bi-trash3"></i> 주문 전체 삭제</button>
+  </section>
+
+  <section class="kpi-grid" id="kpi-grid">
+    <div class="kpi"><div class="kpi-icon k-red"><i class="bi bi-receipt"></i></div>
+      <div><div class="kpi-label">진행 중 주문</div><div class="kpi-value" id="kpi-active">0 건</div></div></div>
+    <div class="kpi"><div class="kpi-icon k-green"><i class="bi bi-check2-circle"></i></div>
+      <div><div class="kpi-label">오늘 완성</div><div class="kpi-value" id="kpi-done">0 건</div></div></div>
+    <div class="kpi"><div class="kpi-icon k-blue"><i class="bi bi-cash-coin"></i></div>
+      <div><div class="kpi-label">오늘 매출</div><div class="kpi-value" id="kpi-sales">₩0</div></div></div>
+    <div class="kpi"><div class="kpi-icon k-purple"><i class="bi bi-people"></i></div>
+      <div><div class="kpi-label">근무 인원</div><div class="kpi-value" id="kpi-staff">0 명</div></div></div>
+    <div class="kpi"><div class="kpi-icon k-amber"><i class="bi bi-graph-up"></i></div>
+      <div><div class="kpi-label">오늘 영업이익</div><div class="kpi-value" id="kpi-profit">₩0</div></div></div>
+  </section>
+
+  <!-- 대시보드 -->
+  <div class="view active" id="view-dashboard">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-life-preserver" style="color:var(--warn)"></i> 작업자 도움 요청</h2>
+        <span class="pill pill-cook" id="dash-help-pill">요청 없음</span>
+      </div>
+      <div class="grid-cards" id="dash-help"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-bell-fill" style="color:var(--brand)"></i> 진행 중 주문</h2>
+        <span class="pill pill-wait" id="dash-order-pill">0건</span>
+      </div>
+      <div class="grid-cards" id="dash-orders"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-exclamation-triangle-fill" style="color:var(--danger)"></i> 재고 부족 알림</h2>
+        <span class="pill pill-danger" id="dash-stock-pill">정상</span>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>자재</th><th class="num">현재고</th><th class="num">안전재고</th><th>조치</th></tr></thead>
+        <tbody id="dash-stock"></tbody></table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-journal-text" style="color:var(--info)"></i> 작업자 활동 로그</h2>
+        <span class="pill pill-wait" id="dash-log-pill">0건</span></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>시각</th><th>작업자</th><th>내용</th></tr></thead>
+        <tbody id="dash-logs"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 현재 주문 -->
+  <div class="view" id="view-orders">
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-plus-circle" style="color:var(--brand)"></i> 주문 접수 (카운터)</h2></div>
+      <div class="form-row">
+        <div class="field">
+          <label for="new-menu">메뉴</label>
+          <select id="new-menu" onchange="onMenuChange()"></select>
+        </div>
+        <div class="field" style="min-width:110px">
+          <label for="new-drink">세트 음료</label>
+          <select id="new-drink"><option value="콜라">콜라</option><option value="사이다">사이다</option></select>
+        </div>
+        <label class="chk"><input type="checkbox" id="new-set" onchange="onMenuChange()"> 세트 (+₩3,000)</label>
+        <div class="field" style="min-width:120px">
+          <label for="new-table">테이블</label>
+          <input type="text" id="new-table" placeholder="테이블 1">
+        </div>
+        <button class="btn btn-primary" id="btn-create-order" onclick="createOrder()"><i class="bi bi-receipt"></i> 주문 접수</button>
+      </div>
+      <div class="summary" id="new-summary" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-receipt-cutoff" style="color:var(--brand)"></i> 주문 현황</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="order-filter" onchange="renderOrders()">
+            <option value="active">진행 중만</option>
+            <option value="all">전체</option>
+            <option value="ordered">접수</option>
+            <option value="cooking">조리중</option>
+            <option value="done">완성</option>
+            <option value="cancelled">취소</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-cards" id="orders-list"></div>
+    </div>
+  </div>
+
+  <!-- 메뉴 · 가격 -->
+  <div class="view" id="view-menu">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-tags-fill" style="color:var(--brand-dark)"></i> 메뉴 · 가격 관리</h2>
+        <button class="btn btn-line btn-sm" onclick="resetPrices()"><i class="bi bi-arrow-counterclockwise"></i> 기본가 복원</button>
+      </div>
+      <div class="summary">
+        여기서 매긴 <b>단품 / 세트 가격</b>이 고객 주문 화면(burger_order.html)과
+        일 상세(work_detail.html?id=7) 상품 카드에 즉시 반영됩니다.
+        음료·감자튀김은 단품 가격만 사용합니다.
+      </div>
+      <div class="table-wrap" style="margin-top:13px">
+        <table>
+          <thead><tr><th>메뉴</th><th>상품 사진</th><th class="num">단품가</th><th class="num">세트가</th>
+            <th class="num">세트 자재원가</th><th class="num">세트 마진</th><th>저장</th></tr></thead>
+          <tbody id="price-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-image"></i> 고객 화면 상품 카드 미리보기</h2></div>
+      <div class="grid-cards" id="price-preview"></div>
+    </div>
+  </div>
+
+  <!-- 현재 인원 -->
+  <div class="view" id="view-staff">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-people-fill" style="color:var(--purple)"></i> 현재 근무 인원</h2>
+        <span class="pill pill-done" id="staff-pill">0명 근무</span>
+      </div>
+      <div class="summary">
+        작업자 단말(burger-real.html)이 3초마다 상태를 전송합니다.
+        60초 이상 신호가 없으면 <b>오프라인</b>으로 표시됩니다.
+      </div>
+      <div class="grid-cards" id="staff-cards" style="margin-top:13px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-table"></i> 근무 상세</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>근무자</th><th>상태</th><th>출근</th><th class="num">근무</th><th class="num">휴식</th>
+            <th class="num">완성</th><th>현재 작업</th><th class="num">예상 급여</th><th>조치</th></tr></thead>
+          <tbody id="staff-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 재고 관리 -->
+  <div class="view" id="view-stock">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-box-seam-fill" style="color:var(--info)"></i> 자재 재고</h2>
+        <span class="pill pill-danger" id="stock-pill">부족 0종</span>
+      </div>
+      <div class="summary">
+        주문이 <b>완성</b>되면 메뉴별 소요량(BOM)만큼 자동 차감됩니다.
+        안전재고 이하 품목은 붉게 표시되며 대시보드에 알림이 뜹니다.
+      </div>
+      <div class="table-wrap" style="margin-top:13px">
+        <table>
+          <thead><tr><th>자재</th><th class="num">현재고</th><th class="num">안전재고</th><th class="num">단가</th>
+            <th class="num">재고금액</th><th>입고 / 조정</th></tr></thead>
+          <tbody id="stock-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-arrow-left-right"></i> 입출고 이력</h2>
+        <button class="btn btn-line btn-sm" onclick="resetStock()"><i class="bi bi-arrow-counterclockwise"></i> 재고 초기화</button></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>시각</th><th>구분</th><th>자재</th><th class="num">수량</th><th class="num">금액</th><th>메모</th></tr></thead>
+        <tbody id="stock-log-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 손익 관리 -->
+  <div class="view" id="view-finance">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-graph-up-arrow" style="color:var(--ok)"></i> 손익 요약</h2>
+        <select id="fin-range" onchange="renderFinance()">
+          <option value="today">오늘</option>
+          <option value="all">누적 전체</option>
+        </select>
+      </div>
+      <div class="pl-grid" id="fin-cards"></div>
+      <div class="summary" id="fin-note" style="margin-top:13px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-bar-chart-fill" style="color:var(--brand)"></i> 메뉴별 판매</h2>
+        <span class="pill pill-done" id="fin-menu-pill">0건</span></div>
+      <div class="bar-wrap" id="fin-bars"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-list-columns-reverse"></i> 완성 주문 내역</h2></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>완성시각</th><th>주문번호</th><th>메뉴</th><th>담당</th>
+          <th class="num">매출</th><th class="num">자재원가</th><th class="num">이익</th></tr></thead>
+        <tbody id="fin-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 도움 요청 -->
+  <div class="view" id="view-help">
+    <div class="panel">
+      <div class="panel-head">
+        <h2><i class="bi bi-life-preserver" style="color:var(--warn)"></i> 진행 중 도움 요청</h2>
+        <span class="pill pill-cook" id="help-pill">0건 대기</span>
+      </div>
+      <div class="summary">
+        작업자 단말의 <b>[휴식·QR] 탭 → 도움 요청하기</b>로 접수된 호출입니다.
+        현장에서 문제를 해결한 뒤 <b>완료</b>를 누르면 요청이 종료되고 아래 이력에 기록됩니다.
+      </div>
+      <div class="grid-cards" id="help-list" style="margin-top:13px"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2><i class="bi bi-journal-text" style="color:var(--info)"></i> 도움 요청 로그</h2>
+        <span class="pill pill-done" id="help-log-pill">0건</span></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>요청시각</th><th>작업자</th><th>포지션</th><th>상태</th><th>완료시각</th><th class="num">소요</th><th>처리자</th></tr></thead>
+        <tbody id="help-log-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+'use strict';
+const M = () => window.MockData || {};
+let currentUser = null;
+let activeTab = 'dashboard';
+let knownOrderIds = new Set();
+let knownHelpIds = new Set();
+let notifyReady = false;
+
+const TAB_TITLES = {
+  dashboard: '<i class="bi bi-grid-1x2-fill" style="color:var(--brand)"></i> 버거팩토리 관제 대시보드',
+  orders:    '<i class="bi bi-receipt-cutoff" style="color:var(--brand)"></i> 현재 주문',
+  menu:      '<i class="bi bi-tags-fill" style="color:var(--brand-dark)"></i> 메뉴 · 가격 관리',
+  staff:     '<i class="bi bi-people-fill" style="color:var(--purple)"></i> 현재 인원',
+  stock:     '<i class="bi bi-box-seam-fill" style="color:var(--info)"></i> 재고 관리',
+  finance:   '<i class="bi bi-graph-up-arrow" style="color:var(--ok)"></i> 손익 관리',
+  help:      '<i class="bi bi-life-preserver" style="color:var(--warn)"></i> 도움 요청'
+};
+
+const STATUS_PILL = {
+  ordered:   '<span class="pill pill-wait"><i class="bi bi-hourglass"></i> 접수</span>',
+  cooking:   '<span class="pill pill-cook"><i class="bi bi-fire"></i> 조리중</span>',
+  done:      '<span class="pill pill-done"><i class="bi bi-bell"></i> 준비완료</span>',
+  received:  '<span class="pill pill-done"><i class="bi bi-check-circle-fill"></i> 수령완료</span>',
+  cancelled: '<span class="pill pill-cancel"><i class="bi bi-x-circle"></i> 취소</span>'
+};
+
+// ── 유틸 ──
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v===undefined||v===null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+function won(n){return '₩'+(Number(n)||0).toLocaleString()}
+function fmtTime(iso){const d=new Date(iso);return Number.isFinite(d.getTime())
+  ? String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0') : '-'}
+function fmtDateTime(iso){const d=new Date(iso);return Number.isFinite(d.getTime())
+  ? String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+' '+fmtTime(iso) : '-'}
+function hhmm(sec){const s=Math.max(0,Math.floor(Number(sec)||0));
+  return Math.floor(s/3600)+'시간 '+Math.floor((s%3600)/60)+'분'}
+function durText(sec){const s=Math.max(0,Math.floor(Number(sec)||0));
+  return s>=60 ? Math.floor(s/60)+'분 '+(s%60)+'초' : s+'초'}
+function elapsedMin(iso){const t=Date.parse(iso);return Number.isFinite(t)?Math.floor((Date.now()-t)/60000):0}
+function isToday(iso){const d=new Date(iso);if(!Number.isFinite(d.getTime()))return false;const n=new Date();
+  return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()}
+
+// ── 권한 ──
+function resolveUser(){
+  let u = window.AuthManager && typeof window.AuthManager.getCurrentUser==='function'
+    ? window.AuthManager.getCurrentUser() : null;
+  if(!u){ try{const raw=sessionStorage.getItem('user'); if(raw)u=JSON.parse(raw);}catch(e){} }
+  return u;
+}
+function isManager(u){
+  if(!u)return false;
+  const role=String(u.role||'').toUpperCase();
+  if(role==='MANAGER'||role==='ROLE_MANAGER')return true;
+  if(u.roleName==='매니저')return true;
+  if(u.name==='최현일'||u.email==='tt2t2am1118@naver.com')return true;
+  const email=String(u.email||'').toLowerCase(), name=String(u.name||'').toLowerCase();
+  if(email.includes('manager')||name.includes('manager'))return true;
+  if(window.FactoryStore&&typeof window.FactoryStore.getWorkHours==='function'){
+    const h=Number(window.FactoryStore.getWorkHours(u.id||u.email||u.name,7))||0;
+    if(h>=50)return true;
+  }
+  return false;
+}
+function enforceAccess(){
+  currentUser=resolveUser();
+  if(!currentUser){ alert('로그인이 필요합니다.'); location.href='./login.html'; return false; }
+  if(!isManager(currentUser)){
+    const msg=$('access-denied-msg');
+    if(msg)msg.innerHTML=esc(currentUser.name||'사용자')+' 님은 현재 매니저 등급이 아닙니다.<br>버거팩토리 누적 근무 50시간 이상이면 매니저로 승급됩니다.';
+    $('access-denied').classList.add('show');
+    document.querySelector('.sidebar').style.display='none';
+    document.querySelector('.main').style.display='none';
+    return false;
+  }
+  const nm=currentUser.name||'매니저';
+  $('header-username').textContent=nm+' 님 · 매니저';
+  $('header-avatar').textContent=nm.substring(0,2);
+  return true;
+}
+
+// ── 알림 ──
+function showToast(title,msg){
+  const wrap=$('toast-wrap'); if(!wrap)return;
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML='<i class="bi bi-bell-fill" style="color:var(--brand)"></i><div><h4>'+esc(title)+'</h4><p>'+esc(msg)+'</p></div>'
+    +'<button onclick="this.parentElement.remove()" aria-label="닫기">&times;</button>';
+  wrap.appendChild(el);
+  setTimeout(()=>{ if(el.parentElement)el.remove(); },5000);
+}
+function chime(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [784,1046].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(f,ctx.currentTime+i*0.16);
+      g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.16);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.16+0.15);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ctx.currentTime+i*0.16); o.stop(ctx.currentTime+i*0.16+0.16);
+    });
+  }catch(e){}
+}
+
+// ══════════════ 주문 ══════════════
+function orders(){ return M().getBurgerOrders?M().getBurgerOrders():[] }
+function activeOrders(){ return orders().filter(o=>o.status==='ordered'||o.status==='cooking') }
+function doneToday(){ return orders().filter(o=>(o.status==='done'||o.status==='received')&&isToday(o.doneAt||o.orderedAt)) }
+
+function fillMenuSelect(){
+  const sel=$('new-menu'); if(!sel)return;
+  const prices=M().getBurgerMenuPrices()||{};
+  sel.innerHTML=Object.keys(prices).map(k=>
+    `<option value="${esc(k)}">${esc(k)} · 단품 ${won(prices[k].single)}${prices[k].set!==null?' / 세트 '+won(prices[k].set):''}</option>`).join('');
+  onMenuChange();
+}
+function onMenuChange(){
+  const name=$('new-menu').value;
+  const canSet=M().isBurgerSetMenu(name);
+  const setChk=$('new-set');
+  setChk.disabled=!canSet;
+  if(!canSet)setChk.checked=false;
+  $('new-drink').disabled=!setChk.checked;
+  const total=M().getBurgerUnitPrice(name,setChk.checked);
+  $('new-summary').innerHTML=`선택: <b>${esc(name)}</b>${setChk.checked?' 세트(감자튀김·음료 포함)':' 단품'}`
+    +` · 결제금액 <b style="color:var(--brand-dark)">${won(total)}</b>`
+    +(canSet?'':'<br><span style="font-size:11.5px">단품 메뉴는 세트 구성이 없습니다.</span>');
+}
+function createOrder(){
+  const menu=$('new-menu').value;
+  const isSet=$('new-set').checked;
+  const drink=$('new-drink').value;
+  const table=$('new-table').value.trim();
+  const order=M().createBurgerOrder({menu,isSet,drink,tableId:table||undefined,source:'counter'});
+  knownOrderIds.add(String(order.id));
+  showToast('주문 접수 '+order.no, `${order.menu}${order.isSet?' (세트)':''} · ${order.tableId} · ${won(order.total)}`);
+  $('new-table').value='';
+  renderAll();
+}
+function advanceOrder(id){
+  const o=M().getBurgerOrder(id); if(!o)return;
+  if(o.status==='ordered'){
+    M().startBurgerOrder(id,{id:'manager',name:(currentUser&&currentUser.name)||'매니저'});
+    showToast('조리 지시','주문 '+o.no+' 을 조리중으로 변경했습니다.');
+  } else if(o.status==='cooking'){
+    const res=M().completeBurgerOrder(id,{id:'manager',name:(currentUser&&currentUser.name)||'매니저'});
+    if(res.ok){
+      let m=`매출 ${won(res.order.total)} · 자재원가 ${won(res.cost)}`;
+      if(res.shortages&&res.shortages.length)m+=' · 자재부족 '+res.shortages.map(s=>s.name).join(',');
+      showToast('완성 처리 '+o.no,m);
+    }
+  }
+  renderAll();
+}
+function cancelOrder(id){
+  const o=M().getBurgerOrder(id); if(!o)return;
+  if(o.shopRecordId&&o.status!=='ordered'){
+    showToast('취소 불가','고객 주문은 조리 착수 전까지만 취소할 수 있습니다.');
+    return;
+  }
+  if(!confirm(`주문 ${o.no} (${o.menu}) 을 취소하시겠습니까?`))return;
+  M().cancelBurgerOrder(id,'관리자 취소');
+  // 고객 주문이면 쇼핑 이력·정산금액도 함께 되돌린다
+  if(o.shopRecordId&&window.FactoryStore&&typeof window.FactoryStore.dispatch==='function'){
+    window.FactoryStore.dispatch({type:'CANCEL_SHOP_ORDER',payload:o.shopRecordId});
+  }
+  M().syncBurgerShopRecords();
+  showToast('주문 취소',o.no+' 주문을 취소했습니다.'+(o.paymentMethod==='online_settlement'?' 정산금액이 복구되었습니다.':''));
+  renderAll();
+}
+function clearOrders(){
+  const n=orders().length;
+  if(n===0){ showToast('삭제할 주문 없음','현재 저장된 주문이 없습니다.'); return; }
+  if(!confirm(`주문 ${n}건을 모두 삭제하시겠습니까?\n(재고·입출고 이력은 유지됩니다)`))return;
+  M().clearBurgerOrders();
+  knownOrderIds=new Set();
+  showToast('주문 삭제',n+'건의 주문을 삭제했습니다.');
+  renderAll();
+}
+
+function orderCard(o){
+  const isCustomer=!!o.shopRecordId;
+  const stageBtn = o.status==='ordered'
+    ? `<button class="btn btn-amber btn-sm" onclick="advanceOrder('${esc(o.id)}')"><i class="bi bi-fire"></i> 조리 지시</button>`
+    : (o.status==='cooking'
+      ? `<button class="btn btn-green btn-sm" onclick="advanceOrder('${esc(o.id)}')"><i class="bi bi-check2"></i> 완성 처리</button>` : '');
+  // 고객 주문은 "만들기 전(접수 상태)" 까지만 취소할 수 있다
+  const canCancel = isCustomer ? (o.status==='ordered') : (o.status==='ordered'||o.status==='cooking');
+  const cancelBtn = canCancel
+    ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder('${esc(o.id)}')"><i class="bi bi-x-lg"></i> 취소</button>` : '';
+  const payLabel = o.paymentMethod==='online_settlement' ? '정산금액 결제'
+    : (o.paymentMethod==='offline' ? '현장 결제' : '카운터 접수');
+  return `<div class="mini-card">
+    <div class="mini-top">
+      <div style="min-width:0">
+        <div class="mini-title">${esc(o.menu)}${o.isSet?' <span style="font-size:11px;color:var(--brand-dark)">세트</span>':' <span style="font-size:11px;color:var(--text-sub)">단품</span>'}
+          ${(Number(o.qty)||1)>1?` <span style="font-size:12px">×${Number(o.qty)}</span>`:''}</div>
+        <div class="mini-meta">${esc(o.no||o.id)} · ${esc(o.tableId||'')}<br>
+          접수 ${fmtTime(o.orderedAt)}${o.status==='ordered'||o.status==='cooking'?` · 경과 ${elapsedMin(o.orderedAt)}분`:''}
+          ${isCustomer?`<br><i class="bi bi-person-fill"></i> ${esc(o.userName||'고객')} · ${payLabel}`:''}
+          ${o.assignedName?`<br>담당 ${esc(o.assignedName)}`:''}
+          ${o.doneAt?`<br>완성 ${fmtTime(o.doneAt)}`:''}
+          ${o.receivedAt?`<br>수령 ${fmtTime(o.receivedAt)}`:''}</div>
+      </div>
+      ${STATUS_PILL[o.status]||''}
+    </div>
+    <div class="mini-meta">결제금액 <b style="color:var(--brand-dark);font-size:13.5px">${won(o.total)}</b>
+      ${o.drink?` · 음료 ${esc(o.drink)}`:''}</div>
+    <div class="mini-actions">${stageBtn}${cancelBtn}</div>
+  </div>`;
+}
+
+function renderOrders(){
+  const filter=($('order-filter')||{}).value||'active';
+  let list=orders().slice().reverse();
+  if(filter==='active')list=list.filter(o=>o.status==='ordered'||o.status==='cooking');
+  else if(filter==='done')list=list.filter(o=>o.status==='done'||o.status==='received');
+  else if(filter!=='all')list=list.filter(o=>o.status===filter);
+  const box=$('orders-list');
+  box.innerHTML=list.length?list.map(orderCard).join('')
+    :'<div class="empty"><i class="bi bi-receipt"></i><p>해당 조건의 주문이 없습니다.</p></div>';
+}
+
+// ══════════════ 메뉴 · 가격 ══════════════
+// ⚠️ 3초 폴링(renderAll)이 입력 중인 텍스트필드를 덮어쓰지 않도록,
+//    가격 표는 탭 진입 · 저장 · 복원 시(force)에만 다시 그린다.
+let priceTableBuilt=false;
+
+function renderPrices(force){
+  const prices=M().getBurgerMenuPrices();
+  const meta=M().burgerMenuMeta||{};
+  const inv=M().getBurgerInventory?M().getBurgerInventory():[];
+  const costOf=(menu,isSet)=>{
+    const need=M().getBurgerOrderBOM({menu,isSet,qty:1,drink:'콜라'});
+    return Object.keys(need).reduce((sum,id)=>{
+      const it=inv.filter(x=>x.id===id)[0];
+      return sum+(it?need[id]*(Number(it.unitCost)||0):0);
+    },0);
+  };
+
+  // 미리보기는 항상 최신값으로 갱신 (입력값과 무관)
+  const cards=M().getBurgerProductCards();
+  $('price-preview').innerHTML=cards.map(c=>`
+    <div class="mini-card">
+      <img src="${esc(c.img)}" alt="${esc(c.name)}" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px">
+      <div class="mini-title">${esc(c.name)}</div>
+      <div class="mini-meta">세트 <b style="color:var(--brand-dark)">${won(c.set)}</b> · 단품 ${won(c.single)}<br>${esc(c.summary)}</div>
+    </div>`).join('');
+
+  // 편집 중이면 표는 그대로 둔다
+  if(priceTableBuilt&&!force)return;
+
+  $('price-tbody').innerHTML=Object.keys(prices).map(menu=>{
+    const p=prices[menu];
+    const hasSet=p.set!==null;
+    const cost=costOf(menu,hasSet);
+    const margin=hasSet?p.set-cost:p.single-costOf(menu,false);
+    return `<tr>
+      <td><b>${esc(menu)}</b></td>
+      <td><img src="${esc((meta[menu]&&meta[menu].img)||'./images/burger_500.png')}" alt="${esc(menu)}"
+          style="width:46px;height:46px;border-radius:9px;object-fit:cover"></td>
+      <td class="num"><input type="number" id="ps-${esc(menu)}" min="0" step="100" value="${p.single}" style="width:96px;min-height:34px;padding:6px 8px;text-align:right"></td>
+      <td class="num">${hasSet
+        ? `<input type="number" id="pt-${esc(menu)}" min="0" step="100" value="${p.set}" style="width:96px;min-height:34px;padding:6px 8px;text-align:right">`
+        : '<span style="color:var(--text-sub)">-</span>'}</td>
+      <td class="num">${won(cost)}</td>
+      <td class="num ${margin>=0?'plus':'minus'}">${won(margin)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="savePrice('${esc(menu)}')"><i class="bi bi-check2"></i> 저장</button></td>
+    </tr>`;
+  }).join('');
+  priceTableBuilt=true;
+}
+
+function savePrice(menu){
+  const single=($('ps-'+menu)||{}).value;
+  const setEl=$('pt-'+menu);
+  const res=M().setBurgerMenuPrice(menu,single,setEl?setEl.value:null);
+  if(res.ok){
+    showToast('가격 저장',`${menu} · 단품 ${won(res.price.single)}`
+      +(res.price.set!==null?` / 세트 ${won(res.price.set)}`:'')+' 로 변경되었습니다.');
+    try{ window.dispatchEvent(new Event('storage')); }catch(e){}
+  }
+  fillMenuSelect();
+  renderAll();
+  renderPrices(true);
+}
+
+function resetPrices(){
+  if(!confirm('메뉴 가격을 기본값으로 되돌리시겠습니까?'))return;
+  M().resetBurgerMenuPrices();
+  showToast('기본가 복원','메뉴 가격을 기본값으로 되돌렸습니다.');
+  fillMenuSelect();
+  renderAll();
+  renderPrices(true);
+}
+
+function renderDashOrders(){
+  const list=activeOrders().slice().reverse();
+  $('dash-order-pill').textContent=list.length+'건';
+  $('dash-orders').innerHTML=list.length?list.map(orderCard).join('')
+    :'<div class="empty"><i class="bi bi-emoji-smile"></i><p>진행 중인 주문이 없습니다.</p></div>';
+}
+
+// ══════════════ 인원 ══════════════
+function staffList(){ return M().getBurgerStaffList?M().getBurgerStaffList():[] }
+
+function renderStaff(){
+  const list=staffList();
+  const online=list.filter(s=>s.online);
+  $('staff-pill').textContent=online.length+'명 근무';
+  const badge=$('badge-staff');
+  badge.textContent=String(online.length);
+  badge.style.display=online.length?'':'none';
+
+  $('staff-cards').innerHTML=list.length?list.map(s=>{
+    const pill=!s.online?'<span class="pill pill-cancel">오프라인</span>'
+      :(s.status==='resting'?'<span class="pill pill-cook"><i class="bi bi-cup-hot"></i> 휴식</span>'
+        :'<span class="pill pill-done"><i class="bi bi-broadcast"></i> 근무중</span>');
+    return `<div class="mini-card">
+      <div class="mini-top">
+        <div><div class="mini-title">${esc(s.name)}</div>
+          <div class="mini-meta">출근 ${fmtTime(s.startedAt)} · 갱신 ${s.staleSec}초 전</div></div>
+        ${pill}
+      </div>
+      <div class="mini-meta">근무 <b>${hhmm(s.workSec)}</b> · 휴식 <b>${durText(s.restSec)}</b><br>
+        완성 주문 <b>${s.completed}건</b>${s.currentOrder?`<br>현재 작업: ${esc(s.currentOrder)}`:''}</div>
+    </div>`;
+  }).join('') : '<div class="empty"><i class="bi bi-person-x"></i><p>근무 중인 작업자가 없습니다.</p><span style="font-size:12px">작업자가 burger-real.html 에 접속하면 표시됩니다.</span></div>';
+
+  const wage=M().BURGER_HOURLY_WAGE||9860;
+  $('staff-tbody').innerHTML=list.length?list.map(s=>`
+    <tr>
+      <td><b>${esc(s.name)}</b></td>
+      <td>${s.online?(s.status==='resting'?'휴식':'근무중'):'오프라인'}</td>
+      <td>${fmtTime(s.startedAt)}</td>
+      <td class="num">${hhmm(s.workSec)}</td>
+      <td class="num">${durText(s.restSec)}</td>
+      <td class="num">${s.completed}</td>
+      <td>${esc(s.currentOrder||'-')}</td>
+      <td class="num">${won(Math.round(s.workSec/3600*wage))}</td>
+      <td><button class="btn btn-line btn-sm" onclick="removeStaff('${esc(s.userId)}')">기록 삭제</button></td>
+    </tr>`).join('')
+    :'<tr><td colspan="9" style="text-align:center;color:var(--text-sub)">근무 기록이 없습니다.</td></tr>';
+}
+function removeStaff(userId){
+  if(!confirm('이 근무자의 현황 기록을 삭제하시겠습니까?'))return;
+  M().removeBurgerStaff(userId);
+  renderAll();
+}
+
+// ══════════════ 재고 ══════════════
+function renderStock(){
+  const inv=M().getBurgerInventory?M().getBurgerInventory():[];
+  const low=inv.filter(i=>(Number(i.stock)||0)<=(Number(i.safety)||0));
+  $('stock-pill').textContent='부족 '+low.length+'종';
+  const badge=$('badge-stock');
+  badge.textContent=String(low.length);
+  badge.style.display=low.length?'':'none';
+
+  $('stock-tbody').innerHTML=inv.map(i=>{
+    const isLow=(Number(i.stock)||0)<=(Number(i.safety)||0);
+    return `<tr class="${isLow?'low-row':''}">
+      <td><b>${esc(i.name)}</b>${isLow?' <span class="pill pill-danger">부족</span>':''}</td>
+      <td class="num">${Number(i.stock).toLocaleString()} ${esc(i.unit)}</td>
+      <td class="num">${Number(i.safety).toLocaleString()} ${esc(i.unit)}</td>
+      <td class="num">${won(i.unitCost)}</td>
+      <td class="num">${won((Number(i.stock)||0)*(Number(i.unitCost)||0))}</td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="number" id="in-${esc(i.id)}" min="1" step="1" value="50" style="width:86px;min-height:34px;padding:6px 8px">
+          <button class="btn btn-blue btn-sm" onclick="restock('${esc(i.id)}')"><i class="bi bi-box-arrow-in-down"></i> 입고</button>
+          <button class="btn btn-line btn-sm" onclick="adjust('${esc(i.id)}')">실사 조정</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const logs=(M().getBurgerInventoryLog?M().getBurgerInventoryLog():[]).slice().reverse().slice(0,60);
+  const kind={in:'<span class="pill pill-done">입고</span>',out:'<span class="pill pill-cook">소진</span>',adjust:'<span class="pill pill-wait">조정</span>'};
+  $('stock-log-tbody').innerHTML=logs.length?logs.map(l=>`
+    <tr>
+      <td>${fmtDateTime(l.at)}</td>
+      <td>${kind[l.type]||esc(l.type)}</td>
+      <td>${esc(l.itemName||'-')}</td>
+      <td class="num">${l.qty?Number(l.qty).toLocaleString()+' '+esc(l.unit||''):'-'}</td>
+      <td class="num">${l.cost?won(l.cost):'-'}</td>
+      <td>${esc(l.memo||'')}</td>
+    </tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;color:var(--text-sub)">입출고 이력이 없습니다.</td></tr>';
+
+  // 대시보드 부족 알림
+  $('dash-stock-pill').textContent=low.length?('부족 '+low.length+'종'):'정상';
+  $('dash-stock').innerHTML=low.length?low.map(i=>`
+    <tr class="low-row">
+      <td><b>${esc(i.name)}</b></td>
+      <td class="num">${Number(i.stock).toLocaleString()} ${esc(i.unit)}</td>
+      <td class="num">${Number(i.safety).toLocaleString()} ${esc(i.unit)}</td>
+      <td><button class="btn btn-blue btn-sm" onclick="switchTab('stock')">재고 관리로</button></td>
+    </tr>`).join('')
+    :'<tr><td colspan="4" style="text-align:center;color:var(--text-sub)">모든 자재가 안전재고 이상입니다.</td></tr>';
+}
+function restock(itemId){
+  const input=$('in-'+itemId);
+  const qty=Math.floor(Number(input&&input.value)||0);
+  if(qty<=0){ showToast('입고 실패','입고 수량을 1 이상으로 입력하세요.'); return; }
+  const res=M().restockBurgerItem(itemId,qty,'관리자 입고');
+  if(res.ok)showToast('입고 완료',`${res.item.name} +${qty}${res.item.unit} · 매입비 ${won(res.cost)}`);
+  renderAll();
+}
+function adjust(itemId){
+  const item=M().getBurgerInventoryItem(itemId); if(!item)return;
+  const v=prompt(`${item.name} 실사 재고를 입력하세요 (현재 ${item.stock}${item.unit})`,String(item.stock));
+  if(v===null)return;
+  const res=M().adjustBurgerStock(itemId,v,'실사 조정');
+  if(res.ok)showToast('재고 조정',`${item.name} → ${res.item.stock}${item.unit} (${res.delta>=0?'+':''}${res.delta})`);
+  renderAll();
+}
+function resetStock(){
+  if(!confirm('재고와 입출고 이력을 기본값으로 초기화하시겠습니까?'))return;
+  M().resetBurgerInventory();
+  showToast('재고 초기화','재고를 기본값으로 되돌렸습니다.');
+  renderAll();
+}
+
+// ══════════════ 손익 ══════════════
+function renderFinance(){
+  const todayOnly=(($('fin-range')||{}).value||'today')==='today';
+  const f=M().getBurgerFinance?M().getBurgerFinance({todayOnly}):null;
+  if(!f)return;
+
+  $('fin-cards').innerHTML=[
+    {l:'매출',v:won(f.revenue),c:'plus',s:f.orderCount+'건 완성'},
+    {l:'자재원가',v:'-'+won(f.materialCost),c:'minus',s:'BOM 기준 소진'},
+    {l:'인건비',v:'-'+won(f.laborCost),c:'minus',s:hhmm(f.laborSec)+' 근무'},
+    {l:'폐기·손실',v:'-'+won(f.wasteCost),c:'minus',s:'실사 조정 차액'},
+    {l:'매출총이익',v:won(f.grossProfit),c:f.grossProfit>=0?'plus':'minus',s:'매출 - 자재원가'},
+    {l:'영업이익',v:won(f.operatingProfit),c:f.operatingProfit>=0?'plus':'minus',s:'이익률 '+f.margin+'%'},
+    {l:'금일 매입비',v:won(f.purchaseCost),c:'minus',s:'입고 결제액 (현금흐름)'}
+  ].map(x=>`<div class="pl-item"><div class="lbl">${x.l}</div>
+      <div class="val ${x.c}">${x.v}</div>
+      <div class="lbl" style="margin-top:3px">${x.s}</div></div>`).join('');
+
+  $('fin-note').innerHTML=`영업이익 = 매출 − 자재원가 − 인건비 − 폐기손실.
+    인건비는 근무자 현황의 누적 근무시간 × 시급 ${won(M().BURGER_HOURLY_WAGE||9860)} 로 계산합니다.
+    매입비는 손익이 아닌 <b>현금흐름</b> 지표로 별도 표기합니다 (원가는 소진 시점에 인식).`;
+
+  const counts=f.menuCount||{};
+  const keys=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  const max=keys.length?counts[keys[0]]:0;
+  $('fin-menu-pill').textContent=f.orderCount+'건';
+  $('fin-bars').innerHTML=keys.length?keys.map(k=>`
+    <div class="bar-row"><span>${esc(k)}</span>
+      <span class="bar"><span style="width:${max?Math.round(counts[k]/max*100):0}%"></span></span>
+      <span style="text-align:right">${counts[k]}건</span></div>`).join('')
+    :'<div class="empty"><i class="bi bi-bar-chart"></i><p>완성된 주문이 없습니다.</p></div>';
+
+  const list=orders().filter(o=>o.status==='done'&&(!todayOnly||isToday(o.doneAt||o.orderedAt))).slice().reverse();
+  $('fin-tbody').innerHTML=list.length?list.map(o=>{
+    const cost=Number(o.materialCost)||0;
+    const profit=(Number(o.total)||0)-cost;
+    return `<tr>
+      <td>${fmtDateTime(o.doneAt)}</td><td>${esc(o.no||o.id)}</td>
+      <td>${esc(o.menu)}${o.isSet?' (세트)':''}</td><td>${esc(o.assignedName||'-')}</td>
+      <td class="num">${won(o.total)}</td><td class="num">${won(cost)}</td>
+      <td class="num ${profit>=0?'plus':'minus'}">${won(profit)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--text-sub)">완성 주문이 없습니다.</td></tr>';
+}
+
+// ══════════════ 도움 요청 ══════════════
+function helpAll(){ return M().getBurgerHelpRequests?M().getBurgerHelpRequests():[] }
+function helpPending(){ return helpAll().filter(r=>r.status==='pending') }
+
+function helpCard(r){
+  const waited=elapsedMin(r.createdAt);
+  const urgent=waited>=3;
+  return `<div class="mini-card" style="border-color:${urgent?'rgba(239,68,68,.5)':'rgba(245,158,11,.5)'};background:${urgent?'rgba(239,68,68,.04)':'rgba(245,158,11,.05)'}">
+    <div class="mini-top">
+      <div><div class="mini-title"><i class="bi bi-life-preserver" style="color:var(--warn)"></i> ${esc(r.workerName)}</div>
+        <div class="mini-meta">${esc(r.position||'조리 라인')}${r.orderNo?' · 주문 '+esc(r.orderNo):''}<br>
+          요청 ${fmtDateTime(r.createdAt)} · 대기 <b>${waited}분</b></div></div>
+      <span class="pill ${urgent?'pill-danger':'pill-cook'}">${urgent?'지연':'대기'}</span>
+    </div>
+    <div class="mini-meta">${esc(r.reason||'작업 도움 요청')}</div>
+    <div class="mini-actions">
+      <button class="btn btn-green btn-sm" onclick="resolveHelp('${esc(r.id)}')"><i class="bi bi-check-circle"></i> 완료</button>
+    </div>
+  </div>`;
+}
+
+function renderHelp(){
+  const all=helpAll(), pending=all.filter(r=>r.status==='pending');
+  const badge=$('badge-help');
+  badge.textContent=String(pending.length);
+  badge.classList.toggle('pulse',pending.length>0);
+  badge.style.display=pending.length?'':'none';
+
+  $('help-pill').textContent=pending.length+'건 대기';
+  $('help-list').innerHTML=pending.length?pending.slice().reverse().map(helpCard).join('')
+    :'<div class="empty"><i class="bi bi-check2-circle"></i><p>진행 중인 도움 요청이 없습니다.</p><span style="font-size:12px">작업자가 요청하면 알림과 함께 표시됩니다.</span></div>';
+
+  $('dash-help-pill').textContent=pending.length?(pending.length+'건 대기'):'요청 없음';
+  $('dash-help').innerHTML=pending.length?pending.slice().reverse().map(helpCard).join('')
+    :'<div class="empty"><i class="bi bi-emoji-smile"></i><p>대기 중인 도움 요청이 없습니다.</p></div>';
+
+  const pillMap={
+    pending:'<span class="pill pill-cook">요청 중</span>',
+    resolved:'<span class="pill pill-done">해결 완료</span>',
+    cancelled:'<span class="pill pill-cancel">취소</span>'
+  };
+  $('help-log-pill').textContent=all.length+'건';
+  $('help-log-tbody').innerHTML=all.length?all.slice().reverse().map(r=>`
+    <tr>
+      <td>${fmtDateTime(r.createdAt)}</td><td><b>${esc(r.workerName)}</b></td>
+      <td>${esc(r.position||'-')}</td><td>${pillMap[r.status]||esc(r.status)}</td>
+      <td>${r.status==='resolved'?fmtDateTime(r.resolvedAt):'-'}</td>
+      <td class="num">${r.status==='resolved'?durText(r.durationSec):'-'}</td>
+      <td>${esc(r.resolvedBy||'-')}</td>
+    </tr>`).join('')
+    :'<tr><td colspan="7" style="text-align:center;color:var(--text-sub)">기록된 도움 요청이 없습니다.</td></tr>';
+}
+
+function resolveHelp(id){
+  const r=M().getBurgerHelpRequest(id); if(!r)return;
+  if(!confirm(`${r.workerName} 님의 도움 요청을 완료 처리하시겠습니까?`))return;
+  const by=(currentUser&&currentUser.name)?currentUser.name+' 매니저':'매니저';
+  const res=M().resolveBurgerHelpRequest(id,by);
+  if(!res.ok){ showToast('처리할 수 없습니다','이미 종료된 요청입니다.'); renderAll(); return; }
+  knownHelpIds.add(String(id));
+  showToast('도움 요청 완료',`${r.workerName} · ${durText(res.request.durationSec)} 소요 · 로그에 기록되었습니다.`);
+  renderAll();
+}
+
+// ── 작업자 로그 ──
+function renderWorkerLogs(){
+  const logs=(M().getBurgerWorkerLogs?M().getBurgerWorkerLogs():[]).slice().reverse().slice(0,40);
+  $('dash-log-pill').textContent=logs.length+'건';
+  $('dash-logs').innerHTML=logs.length?logs.map(l=>`
+    <tr><td>${esc(l.time)}</td><td>${esc(l.workerName||'작업자')}</td><td>${esc(l.text)}</td></tr>`).join('')
+    :'<tr><td colspan="3" style="text-align:center;color:var(--text-sub)">활동 로그가 없습니다.</td></tr>';
+}
+
+// ── 감지 (신규 주문 · 신규 도움요청) ──
+function detectChanges(){
+  const acts=activeOrders();
+  const freshOrders=acts.filter(o=>!knownOrderIds.has(String(o.id)));
+  const pend=helpPending();
+  const freshHelp=pend.filter(r=>!knownHelpIds.has(String(r.id)));
+
+  if(notifyReady){
+    freshOrders.forEach(o=>showToast('🔔 신규 주문 '+(o.no||''),
+      `${o.menu}${o.isSet?' (세트)':''} · ${o.tableId||''} · ${won(o.total)}`));
+    freshHelp.forEach(r=>showToast('🆘 도움 요청 · '+r.workerName,
+      `${r.position||'조리 라인'} · ${r.reason||'작업 도움 요청'}`));
+    if(freshOrders.length||freshHelp.length)chime();
+  }
+  acts.forEach(o=>knownOrderIds.add(String(o.id)));
+  pend.forEach(r=>knownHelpIds.add(String(r.id)));
+  notifyReady=true;
+}
+
+// ── KPI · 렌더 ──
+function renderKpis(){
+  const act=activeOrders(), done=doneToday();
+  const f=M().getBurgerFinance?M().getBurgerFinance({todayOnly:true}):{revenue:0,operatingProfit:0};
+  const online=staffList().filter(s=>s.online);
+  $('kpi-active').textContent=act.length+' 건';
+  $('kpi-done').textContent=done.length+' 건';
+  $('kpi-sales').textContent=won(f.revenue);
+  $('kpi-staff').textContent=online.length+' 명';
+  $('kpi-profit').textContent=won(f.operatingProfit);
+  const badge=$('badge-orders');
+  badge.textContent=String(act.length);
+  badge.classList.toggle('pulse',act.length>0);
+  badge.style.display=act.length?'':'none';
+}
+
+function renderAll(){
+  if(M().syncBurgerShopRecords)M().syncBurgerShopRecords();
+  renderKpis();
+  renderHelp();
+  renderStock();
+  renderStaff();
+  if(activeTab==='dashboard'){ renderDashOrders(); renderWorkerLogs(); }
+  if(activeTab==='orders')renderOrders();
+  if(activeTab==='menu')renderPrices(false);
+  if(activeTab==='finance')renderFinance();
+}
+
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.menu-item').forEach(el=>el.classList.toggle('active',el.getAttribute('data-tab')===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const view=$('view-'+tab)||$('view-dashboard');
+  view.classList.add('active');
+  $('page-title').innerHTML=TAB_TITLES[tab]||TAB_TITLES.dashboard;
+  $('kpi-grid').style.display=(tab==='dashboard'||tab==='orders'||tab==='finance')?'grid':'none';
+  renderAll();
+  if(tab==='menu')renderPrices(true);   // 탭 진입 시에는 저장된 값으로 새로 그린다
+  closeSidebar();
+}
+function toggleSidebar(){
+  const s=$('sidebar'), b=$('sidebar-backdrop');
+  const open=s.classList.toggle('open');
+  b.classList.toggle('active',open);
+}
+function closeSidebar(){
+  $('sidebar').classList.remove('open');
+  $('sidebar-backdrop').classList.remove('active');
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  if(!enforceAccess())return;
+  fillMenuSelect();
+  knownOrderIds=new Set(activeOrders().map(o=>String(o.id)));
+  knownHelpIds=new Set(helpPending().map(r=>String(r.id)));
+  notifyReady=true;
+  switchTab('dashboard');
+
+  window.addEventListener('storage',function(){ detectChanges(); renderAll(); });
+  setInterval(function(){
+    if(window.FactoryStore&&typeof window.FactoryStore.dispatch==='function'&&!window.FactoryStore.isSaving()){
+      window.FactoryStore.dispatch({type:'SYNC_FROM_STORAGE'});
+    }
+    detectChanges();
+    renderAll();
+  },3000);
+});
+</script>
+</body>
+</html>

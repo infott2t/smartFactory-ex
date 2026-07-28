@@ -843,6 +843,10 @@
             <li class="menu-item" data-tab="prep" onclick="switchTab('prep')">
                 <i class="bi bi-basket2-fill" style="color:#10b981;"></i><span>반찬 · 쌈채소 기준</span>
             </li>
+            <li class="menu-item" data-tab="help" onclick="switchTab('help')">
+                <i class="bi bi-life-preserver" style="color:#f59e0b;"></i><span>도움 요청</span>
+                <span class="badge-count" id="help-badge">0</span>
+            </li>
             <li class="menu-item" data-tab="staff" onclick="switchTab('staff')">
                 <i class="bi bi-people-fill" style="color:#7c3aed;"></i><span>사원 관리</span>
             </li>
@@ -926,6 +930,14 @@
         <!-- 대시보드 -->
         <div id="view-dashboard" class="tab-view active">
             <div class="view-stack">
+                <div class="panel-card" id="dashboard-help-panel">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-life-preserver" style="color:#f59e0b;"></i> 작업자 도움 요청</h2>
+                        <span class="status-pill pill-queued" id="dashboard-help-badge">요청 없음</span>
+                    </div>
+                    <div class="order-grid" id="dashboard-help-list"></div>
+                </div>
+
                 <div class="panel-card">
                     <div class="panel-header">
                         <h2><i class="bi bi-bell-fill" style="color:#e0362c;"></i> 신규 주문 알림</h2>
@@ -1092,6 +1104,38 @@
             </div>
         </div>
 
+        <!-- 도움 요청 -->
+        <div id="view-help" class="tab-view">
+            <div class="view-stack">
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-life-preserver" style="color:#f59e0b;"></i> 진행 중 도움 요청</h2>
+                        <span class="status-pill pill-queued" id="help-pending-badge">0건 대기</span>
+                    </div>
+                    <div class="info-summary">
+                        <i class="bi bi-info-circle-fill"></i> 작업자 단말의 <strong>[휴식·QR] 탭 → 도움 요청하기</strong>로 접수된 호출입니다.
+                        현장에서 문제를 해결한 뒤 <strong>완료</strong>를 누르면 요청이 종료되고 아래 이력에 기록됩니다.
+                    </div>
+                    <div class="order-grid" id="help-pending-list"></div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <h2><i class="bi bi-journal-text" style="color:#2563eb;"></i> 도움 요청 로그</h2>
+                        <span class="status-pill pill-received" id="help-log-badge">0건</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr><th>요청 시각</th><th>작업자</th><th>스테이션</th><th>상태</th><th>완료 시각</th><th>소요</th><th>처리자</th></tr>
+                            </thead>
+                            <tbody id="help-log-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 사원 관리 -->
         <div id="view-staff" class="tab-view">
             <div class="view-stack">
@@ -1200,6 +1244,8 @@
         let menuChart = null;
         let knownOrderNos = new Set();
         let notifyReady = false;
+        let knownHelpIds = new Set();
+        let helpNotifyReady = false;
         let selectedOrderNo = null;
 
         const WORK_ID = 6;
@@ -2146,6 +2192,171 @@
         // ══════════════════════════════════════
         //  렌더링 - 설정
         // ══════════════════════════════════════
+        // ══════════════════════════════════════
+        //  도움 요청 (작업자 단말 호출)
+        // ══════════════════════════════════════
+        function getHelpRequests() {
+            return (window.MockData && window.MockData.getKmeatHelpRequests)
+                ? window.MockData.getKmeatHelpRequests() : [];
+        }
+
+        function getHelpPending() {
+            return getHelpRequests().filter(r => r && r.status === 'pending');
+        }
+
+        function helpModeLabel(mode) {
+            return (mode === 'ex') ? '가상체험' : '실제근무';
+        }
+
+        function helpDurationText(sec) {
+            const s = Math.max(0, Math.floor(Number(sec) || 0));
+            const m = Math.floor(s / 60);
+            return m > 0 ? `${m}분 ${s % 60}초` : `${s}초`;
+        }
+
+        function helpCardHtml(req) {
+            const waited = elapsedMinutes(req.createdAt);
+            const urgent = waited >= 3;
+            return `
+                <div class="order-card" style="border-color:${urgent ? 'rgba(224,54,44,0.5)' : 'rgba(245,158,11,0.45)'};
+                     background:${urgent ? 'rgba(224,54,44,0.04)' : 'rgba(245,158,11,0.05)'}; cursor:default;">
+                    <div class="order-card-top">
+                        <div style="min-width:0;">
+                            <div class="order-no"><i class="bi bi-life-preserver" style="color:#b45309;"></i>
+                                ${escapeHtml(req.workerName || '작업자')}</div>
+                            <div class="order-meta">
+                                ${escapeHtml(req.stationLabel || '스테이션 미지정')} · ${helpModeLabel(req.mode)}<br>
+                                요청 ${fmtDateTime(req.createdAt)} · 대기 <strong>${waited}분</strong>
+                            </div>
+                        </div>
+                        <span class="status-pill ${urgent ? 'pill-cooked' : 'pill-queued'}">
+                            <i class="bi bi-hourglass-split"></i> ${urgent ? '지연' : '대기'}
+                        </span>
+                    </div>
+                    <div class="order-items">
+                        <div class="order-item-row"><span>${escapeHtml(req.reason || '작업 도움 요청')}</span></div>
+                    </div>
+                    <div class="order-card-bottom">
+                        <button class="btn-action btn-green" type="button"
+                            onclick="completeHelpRequest('${escapeHtml(req.id)}', event)">
+                            <i class="bi bi-check-circle"></i> 완료
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        function renderHelpBadges() {
+            const pending = getHelpPending();
+            const badge = document.getElementById('help-badge');
+            if (badge) {
+                badge.textContent = String(pending.length);
+                badge.classList.toggle('pulse', pending.length > 0);
+                badge.style.display = pending.length > 0 ? '' : 'none';
+            }
+        }
+
+        function renderDashboardHelp() {
+            const pending = getHelpPending();
+            const badge = document.getElementById('dashboard-help-badge');
+            if (badge) {
+                badge.textContent = pending.length > 0 ? `${pending.length}건 대기` : '요청 없음';
+                badge.className = 'status-pill ' + (pending.length > 0 ? 'pill-cooked' : 'pill-queued');
+            }
+            const box = document.getElementById('dashboard-help-list');
+            if (!box) return;
+            box.innerHTML = pending.length === 0
+                ? `<div class="empty-state"><i class="bi bi-emoji-smile"></i>
+                       <p>대기 중인 도움 요청이 없습니다.</p></div>`
+                : pending.slice().reverse().map(helpCardHtml).join('');
+        }
+
+        function renderHelpView() {
+            const all = getHelpRequests();
+            const pending = all.filter(r => r && r.status === 'pending');
+
+            const pBadge = document.getElementById('help-pending-badge');
+            if (pBadge) {
+                pBadge.textContent = `${pending.length}건 대기`;
+                pBadge.className = 'status-pill ' + (pending.length > 0 ? 'pill-cooked' : 'pill-queued');
+            }
+
+            const list = document.getElementById('help-pending-list');
+            if (list) {
+                list.innerHTML = pending.length === 0
+                    ? `<div class="empty-state"><i class="bi bi-check2-circle"></i>
+                           <p>진행 중인 도움 요청이 없습니다.</p>
+                           <span>작업자가 도움을 요청하면 알림과 함께 여기에 표시됩니다.</span></div>`
+                    : pending.slice().reverse().map(helpCardHtml).join('');
+            }
+
+            const lBadge = document.getElementById('help-log-badge');
+            if (lBadge) lBadge.textContent = `${all.length}건`;
+
+            const tbody = document.getElementById('help-log-tbody');
+            if (!tbody) return;
+            if (all.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-secondary);">
+                    기록된 도움 요청이 없습니다.</td></tr>`;
+                return;
+            }
+            const statusPill = {
+                pending:   '<span class="status-pill pill-queued"><i class="bi bi-hourglass-split"></i> 요청 중</span>',
+                resolved:  '<span class="status-pill pill-received"><i class="bi bi-check-circle-fill"></i> 해결 완료</span>',
+                cancelled: '<span class="status-pill pill-cancel"><i class="bi bi-x-circle"></i> 취소</span>'
+            };
+            tbody.innerHTML = all.slice().reverse().map(r => `
+                <tr>
+                    <td>${fmtDateTime(r.createdAt)}</td>
+                    <td><strong>${escapeHtml(r.workerName || '작업자')}</strong>
+                        <div style="font-size:0.74rem; color:var(--text-secondary);">${helpModeLabel(r.mode)}</div></td>
+                    <td>${escapeHtml(r.stationLabel || '-')}</td>
+                    <td>${statusPill[r.status] || escapeHtml(r.status)}</td>
+                    <td>${r.status === 'resolved' ? fmtDateTime(r.resolvedAt) : '-'}</td>
+                    <td>${r.status === 'resolved' ? helpDurationText(r.durationSec) : '-'}</td>
+                    <td>${escapeHtml(r.resolvedBy || '-')}</td>
+                </tr>`).join('');
+        }
+
+        function completeHelpRequest(id, evt) {
+            if (evt) evt.stopPropagation();
+            if (!window.MockData || !window.MockData.resolveKmeatHelpRequest) return;
+            const req = window.MockData.getKmeatHelpRequest(id);
+            if (!req) return;
+            if (!confirm(`${req.workerName || '작업자'} 님의 도움 요청을 완료 처리하시겠습니까?`)) return;
+
+            const by = (currentUser && currentUser.name) ? `${currentUser.name} 매니저` : '매니저';
+            const res = window.MockData.resolveKmeatHelpRequest(id, by);
+            if (!res.ok) {
+                showToast('처리할 수 없습니다', '이미 종료된 요청입니다.');
+                renderAll();
+                return;
+            }
+            knownHelpIds.add(String(id));
+            showToast('도움 요청 완료',
+                `${req.workerName || '작업자'} · ${helpDurationText(res.request.durationSec)} 소요 · 로그에 기록되었습니다.`);
+            renderAll();
+        }
+
+        function detectHelpRequests() {
+            const pending = getHelpPending();
+            const fresh = pending.filter(r => !knownHelpIds.has(String(r.id)));
+
+            if (helpNotifyReady && fresh.length > 0) {
+                fresh.forEach(r => {
+                    showToast(
+                        `🆘 도움 요청 · ${r.workerName || '작업자'}`,
+                        `${r.stationLabel || '스테이션 미지정'} · ${helpModeLabel(r.mode)} · ${r.reason || '작업 도움 요청'}`
+                    );
+                });
+                playChime();
+            }
+
+            getHelpRequests().forEach(r => {
+                if (r && r.status === 'pending') knownHelpIds.add(String(r.id));
+            });
+            helpNotifyReady = true;
+        }
+
         function getOrderSettings() {
             if (window.MockData && typeof window.MockData.getKmeatOrderSettings === 'function') {
                 return window.MockData.getKmeatOrderSettings();
@@ -2590,6 +2801,7 @@
             sequence:  '<i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i> 자동 조리순서',
             manual:    '<i class="bi bi-journal-bookmark-fill" style="color:#2563eb;"></i> 메뉴별 조리 매뉴얼',
             prep:      '<i class="bi bi-basket2-fill" style="color:#10b981;"></i> 반찬 · 쌈채소 기준',
+            help:      '<i class="bi bi-life-preserver" style="color:#f59e0b;"></i> 작업자 도움 요청',
             staff:     '<i class="bi bi-people-fill" style="color:#7c3aed;"></i> 사원 관리',
             settings:  '<i class="bi bi-sliders" style="color:#0891b2;"></i> 주문 접수 설정'
         };
@@ -2631,12 +2843,15 @@
         // ══════════════════════════════════════
         function renderAll() {
             renderKpis();
+            renderHelpBadges();
             if (activeTab === 'dashboard') {
                 renderDashboardNewOrders();
+                renderDashboardHelp();
                 renderDashboardSequence();
                 renderChart();
             }
             if (activeTab === 'orders') renderOrders();
+            if (activeTab === 'help') renderHelpView();
             if (activeTab === 'sequence') renderSequenceView();
             if (activeTab === 'manual') renderManuals();
             if (activeTab === 'prep') renderPrepView();
@@ -2660,12 +2875,18 @@
             knownOrderNos = new Set(getOrders().map(o => String(o.orderNo)));
             notifyReady = true;
 
+            // 최초 로드 시 이미 접수된 도움 요청은 재알림하지 않음
+            knownHelpIds = new Set(getHelpPending().map(r => String(r.id)));
+            helpNotifyReady = true;
+            renderHelpBadges();
+
             if (window.FactoryStore && typeof window.FactoryStore.subscribe === 'function') {
                 window.FactoryStore.subscribe(function() { renderAll(); });
             }
 
             window.addEventListener('storage', function() {
                 detectNewOrders();
+                detectHelpRequests();
                 renderAll();
             });
 
@@ -2676,6 +2897,7 @@
                     window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
                 }
                 detectNewOrders();
+                detectHelpRequests();
                 renderAll();
             }, 3000);
         });

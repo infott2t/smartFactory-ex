@@ -1147,7 +1147,14 @@
                         statusBadgeHtml = isPreparing
                             ? `<span style="background: rgba(99, 102, 241, 0.16); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 중</span>`
                             : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 대기</span>`;
-                        btnHtml = `
+                        // 버거 주문(workId 7)은 조리가 시작되면 취소할 수 없습니다.
+                        const burgerCookingLocked = String(item.workId || '') === '7' && isPreparing;
+                        btnHtml = burgerCookingLocked
+                            ? `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-cancel-btn" disabled style="opacity:0.5; cursor:not-allowed;">조리 중 · 취소 불가</button>
+                        </div>`
+                            : `
                         <div class="res-btn-box" style="margin-top: 12px;">
                             <button type="button" class="res-cancel-btn" onclick="event.stopPropagation(); cancelShopOrder('${itemId}')">주문 취소</button>
                         </div>`;

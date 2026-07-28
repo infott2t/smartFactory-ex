@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartfactory-pv-v2';
+const CACHE_NAME = 'smartfactory-pv-v4';
 
 const CORE_ASSETS = [
   '/',
@@ -53,6 +53,39 @@ self.addEventListener('activate', (event) => {
 });
 
 /*
+ * 네트워크 요청 시 브라우저 HTTP 캐시를 우회한다.
+ *
+ * 개발 서버가 `Cache-Control: max-age=3600` 을 보내면 서비스 워커의
+ * fetch(request) 조차 디스크 캐시의 낡은 파일을 그대로 받는다. 그러면
+ * js/store.js 처럼 데이터가 들어있는 파일을 수정해도 최대 1시간 동안
+ * 화면에 반영되지 않는다(예: workDetailJSON 의 expPage 를 추가했는데도
+ * work_detail.html 이 체험 페이지를 못 찾는 문제).
+ *
+ * navigate 요청은 RequestInit 를 덧붙여 재구성할 수 없으므로 그대로 보낸다.
+ * (문서 요청은 새로고침 시 브라우저가 이미 재검증한다.)
+ */
+function fetchFresh(request) {
+  /*
+   * navigate 요청은 mode 를 바꿀 수 없어 new Request(request, init) 가 TypeError 를 낸다.
+   * (링크나 location.href 로 이동하는 문서 요청은 재검증 없이 디스크 캐시를 쓰기 때문에,
+   *  이 경우도 우회해야 수정한 HTML 이 바로 보인다.)
+   * 그래서 URL 문자열로 새 요청을 만들어 캐시를 우회한다.
+   */
+  if (request.mode === 'navigate') {
+    return fetch(request.url, {
+      cache: 'reload',
+      credentials: 'same-origin',
+      redirect: 'follow'
+    });
+  }
+  try {
+    return fetch(new Request(request, { cache: 'reload' }));
+  } catch (error) {
+    return fetch(request);
+  }
+}
+
+/*
  * 네트워크 우선 + 캐시 폴백.
  * 오프라인 상태의 문서 요청에는 캐시된 화면을 돌려주어, 설치형 앱으로서
  * 최소한의 오프라인 동작을 보장한다.
@@ -72,7 +105,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     (async () => {
       try {
-        const response = await fetch(request);
+        const response = await fetchFresh(request);
 
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();

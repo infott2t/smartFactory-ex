@@ -2781,7 +2781,9 @@ window.MockData = {
             "salary": 1.25, "salaryChange": 0.01, "taskCount": 4, "participants": 55, "createdAt": "2026-06-25",
             "region": "서울시 용산구 이태원", "categories": ["음식", "요리", "버거", "만들기", "패스트푸드"],
             "isNew": true,
-            "exp": null
+            "exp": "burger",
+            "managerLink": "bmanager.html",
+            "workerLink": "burger-real.html"
         }
     ]`,
     // 2. 신규 추가: 통합된 사용자(Users) 데이터
@@ -3274,7 +3276,7 @@ window.MockData = {
         },
         "7": {
             "title": "버거만들기",
-            "expPage": null,
+            "expPage": "burger-ex.html",
             "iconUrl": "./images/burger_500.png",
             "value": 1.25,
             "change": "+0.01%",
@@ -3282,9 +3284,10 @@ window.MockData = {
             "workTime": "2시간 30분 작업",
             "productSlogan": "신선한 재료로 바로 만든 수제 버거. 🍔",
             "products": [
-                { "id": "burger_01", "name": "클래식 치즈버거 단품", "brand": "BurgerQueen", "imgUrl": "./images/burger_cheese.png", "price": "5,500원", "status": "생산 중" },
-                { "id": "burger_02", "name": "더블 패티 시그니처 버거", "brand": "BurgerQueen", "imgUrl": "./images/burger_signature.png", "price": "8,000원", "status": "30 남음" },
-                { "id": "burger_03", "name": "패밀리 버거 세트 (버거4+감튀+음료)", "brand": "BurgerQueen", "imgUrl": "./images/burger_family.png", "price": "24,000원", "status": "생산 중" }
+                { "id": "burger_set_cheese", "name": "치즈버거 세트", "brand": "BurgerQueen", "imgUrl": "./images/burger_cheese.png", "price": "4,000원", "status": "판매 중" },
+                { "id": "burger_set_bulgogi", "name": "불고기버거 세트", "brand": "BurgerQueen", "imgUrl": "./images/burger_signature.png", "price": "4,000원", "status": "판매 중" },
+                { "id": "burger_set_hamburger", "name": "햄버거 세트", "brand": "BurgerQueen", "imgUrl": "./images/burger_500.png", "price": "3,000원", "status": "판매 중" },
+                { "id": "burger_set_shrimp", "name": "새우버거 세트", "brand": "BurgerQueen", "imgUrl": "./images/burger_family.png", "price": "4,000원", "status": "판매 중" }
             ],
             "chart": {
                 "1h": {
@@ -3796,7 +3799,59 @@ window.MockData.getWorkProgress = function(userId, workId) {
     }) || null;
 };
 
+// 체험 진행 기록(isExp)이 저장되는 localStorage 키.
+// 두 가지 키가 같은 형식으로 쓰이고 있어 양쪽을 모두 인식한다.
+//   userWorkProgress       : store.js / work_detail.html / burger-ex.html
+//   app_user_work_progress : kimp_ex0.html
+window.MockData.workProgressKeys = ['userWorkProgress', 'app_user_work_progress'];
+
+// 저장된 모든 진행 기록을 한 배열로 읽어온다.
+window.MockData.readStoredWorkProgress = function() {
+    var rows = [];
+    this.workProgressKeys.forEach(function(key) {
+        try {
+            var parsed = JSON.parse(localStorage.getItem(key) || '[]');
+            if (Array.isArray(parsed)) rows = rows.concat(parsed);
+        } catch (e) {}
+    });
+    return rows;
+};
+
+// 체험 완료 여부 판정. userId 를 알 수 없으면(null) 작업 기준으로만 판정한다.
+window.MockData.isExpCompleted = function(userId, workId) {
+    var rows = this.readStoredWorkProgress()
+        .concat(Array.isArray(this.userWorkProgress) ? this.userWorkProgress : []);
+    return rows.some(function(p) {
+        if (!p || p.isExp !== true) return false;
+        if (String(p.workId) !== String(workId)) return false;
+        if (userId === undefined || userId === null || userId === '') return true;
+        return p.userId == userId;
+    });
+};
+
+// localStorage 에 저장된 체험 기록을 메모리 테이블(userWorkProgress)에 병합한다.
+// 이 파일 상단에서 로드 시 한 번 복원하지만, 로드 이후에 다른 스크립트가
+// localStorage['userWorkProgress'] 를 직접 갱신한 경우(work_detail.html 의
+// completeExperienceNow 등) 메모리 테이블은 그 변경을 모른다. setExpCompleted 는
+// 테이블 전체를 덮어쓰므로, 병합하지 않으면 그 기록이 지워진다.
+window.MockData.hydrateWorkProgress = function() {
+    var saved = this.readStoredWorkProgress();
+    if (!Array.isArray(saved) || !Array.isArray(this.userWorkProgress)) return this.userWorkProgress;
+
+    var table = this.userWorkProgress;
+    saved.forEach(function(row) {
+        if (!row) return;
+        var index = table.findIndex(function(p) {
+            return p && p.userId == row.userId && String(p.workId) === String(row.workId);
+        });
+        if (index > -1) table[index] = Object.assign({}, table[index], row);
+        else table.push(row);
+    });
+    return table;
+};
+
 window.MockData.setExpCompleted = function(userId, workId) {
+    this.hydrateWorkProgress();
     var progress = this.userWorkProgress.find(function(p) {
         return p.userId == userId && p.workId == workId;
     });
@@ -3813,8 +3868,12 @@ window.MockData.setExpCompleted = function(userId, workId) {
             expCompletedAt: today
         });
     }
-    // localStorage에 persist (새로고침 후에도 유지)
-    localStorage.setItem('userWorkProgress', JSON.stringify(this.userWorkProgress));
+    // localStorage에 persist (새로고침 후에도 유지).
+    // 두 키를 함께 갱신해, 어느 쪽을 읽는 화면에서도 같은 상태가 보이게 한다.
+    var payload = JSON.stringify(this.userWorkProgress);
+    this.workProgressKeys.forEach(function(key) {
+        try { localStorage.setItem(key, payload); } catch (e) {}
+    });
 };
 
 // ==========================================
@@ -5423,6 +5482,150 @@ window.MockData.clearKmeatWorkerLogs = function(mode) {
     return [];
 };
 
+// ══════════════════════════════════════════════════════════════
+//  도움 요청 (작업자 단말 → 매니저 콘솔)
+//  kmeat-real / kmeat-ex 의 [휴식·QR] 탭에서 요청 → kmanager 에서 완료 처리
+// ══════════════════════════════════════════════════════════════
+window.MockData.KMEAT_HELP_KEY = 'kmeat_help_requests';
+
+window.MockData.getKmeatHelpRequests = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.KMEAT_HELP_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.saveKmeatHelpRequests = function(list) {
+    var arr = Array.isArray(list) ? list : [];
+    if (arr.length > 200) arr = arr.slice(arr.length - 200);
+    try { localStorage.setItem(this.KMEAT_HELP_KEY, JSON.stringify(arr)); } catch (e) {}
+    return arr;
+};
+
+// 진행 중(미해결) 요청 목록
+window.MockData.getKmeatHelpPending = function() {
+    return this.getKmeatHelpRequests().filter(function(r) {
+        return r && r.status === 'pending';
+    });
+};
+
+// 특정 작업자의 진행 중 요청 (중복 요청 방지 · 작업자 화면 상태 표시용)
+window.MockData.getKmeatHelpPendingFor = function(mode, workerId) {
+    var m = mode || 'real';
+    var wid = String(workerId === undefined || workerId === null ? '' : workerId);
+    var hit = this.getKmeatHelpRequests().filter(function(r) {
+        return r && r.status === 'pending' && (r.mode || 'real') === m && String(r.workerId) === wid;
+    });
+    return hit.length ? hit[hit.length - 1] : null;
+};
+
+window.MockData.getKmeatHelpRequest = function(id) {
+    var hit = this.getKmeatHelpRequests().filter(function(r) { return r && r.id === id; });
+    return hit.length ? hit[0] : null;
+};
+
+/**
+ * 도움 요청 생성
+ * @param {Object} payload { mode, workerId, workerName, station, stationLabel, reason }
+ * @returns {Object} { ok, request, error }
+ */
+window.MockData.createKmeatHelpRequest = function(payload) {
+    var p = payload || {};
+    var mode = p.mode || 'real';
+    var workerId = String(p.workerId === undefined || p.workerId === null ? 'guest' : p.workerId);
+
+    var already = this.getKmeatHelpPendingFor(mode, workerId);
+    if (already) return { ok: false, error: 'pending', request: already };
+
+    var now = new Date();
+    var req = {
+        id: 'help-' + now.getTime() + '-' + Math.floor(Math.random() * 1000),
+        mode: mode,
+        workerId: workerId,
+        workerName: p.workerName || '작업자',
+        station: p.station || null,
+        stationLabel: p.stationLabel || '',
+        reason: p.reason || '작업 도움 요청',
+        status: 'pending',
+        createdAt: now.toISOString(),
+        resolvedAt: null,
+        resolvedBy: null,
+        durationSec: null
+    };
+
+    var list = this.getKmeatHelpRequests();
+    list.push(req);
+    this.saveKmeatHelpRequests(list);
+
+    if (this.addKmeatWorkerLog) {
+        this.addKmeatWorkerLog(mode, {
+            text: '[도움요청] 매니저에게 도움을 요청했습니다.'
+                + (req.stationLabel ? ' (' + req.stationLabel + ')' : ''),
+            kind: 'warn'
+        });
+    }
+    return { ok: true, request: req };
+};
+
+/**
+ * 도움 요청 해결(완료) 처리 — 매니저 콘솔 또는 작업자 단말에서 호출
+ * @param {String} id
+ * @param {String} by 처리자 표기 (예: '매니저 김철수')
+ */
+window.MockData.resolveKmeatHelpRequest = function(id, by) {
+    var list = this.getKmeatHelpRequests();
+    var target = null;
+    for (var i = 0; i < list.length; i++) {
+        if (list[i] && list[i].id === id) { target = list[i]; break; }
+    }
+    if (!target) return { ok: false, error: 'notfound' };
+    if (target.status !== 'pending') return { ok: false, error: 'already', request: target };
+
+    var now = new Date();
+    target.status = 'resolved';
+    target.resolvedAt = now.toISOString();
+    target.resolvedBy = by || '매니저';
+    target.durationSec = Math.max(0, Math.floor((now.getTime() - new Date(target.createdAt).getTime()) / 1000));
+    this.saveKmeatHelpRequests(list);
+
+    if (this.addKmeatWorkerLog) {
+        this.addKmeatWorkerLog(target.mode || 'real', {
+            text: '[도움요청] 해결 완료 처리 (' + target.resolvedBy + ') · 소요 '
+                + Math.floor(target.durationSec / 60) + '분 ' + (target.durationSec % 60) + '초',
+            kind: 'ok'
+        });
+    }
+    return { ok: true, request: target };
+};
+
+// 작업자가 잘못 눌렀을 때 요청 취소
+window.MockData.cancelKmeatHelpRequest = function(id) {
+    var list = this.getKmeatHelpRequests();
+    var target = null;
+    for (var i = 0; i < list.length; i++) {
+        if (list[i] && list[i].id === id) { target = list[i]; break; }
+    }
+    if (!target) return { ok: false, error: 'notfound' };
+    if (target.status !== 'pending') return { ok: false, error: 'already', request: target };
+
+    target.status = 'cancelled';
+    target.resolvedAt = new Date().toISOString();
+    this.saveKmeatHelpRequests(list);
+
+    if (this.addKmeatWorkerLog) {
+        this.addKmeatWorkerLog(target.mode || 'real', {
+            text: '[도움요청] 요청을 취소했습니다.',
+            kind: 'info'
+        });
+    }
+    return { ok: true, request: target };
+};
+
+window.MockData.clearKmeatHelpRequests = function() {
+    try { localStorage.removeItem(this.KMEAT_HELP_KEY); } catch (e) {}
+    return [];
+};
+
 // 저울 계량 판정
 window.MockData.judgeKmeatWeight = function(menuId, grams) {
     var manual = this.getKmeatMenuManual(menuId);
@@ -5600,4 +5803,878 @@ window.MockData.clearKmeatOrders = function(options) {
     } catch (e) {}
 
     return removed;
+};
+
+
+// ══════════════════════════════════════════════════════════════
+//  🍔 버거팩토리 (BurgerQueen · workId 7) 공용 데이터 레이어
+//  burger-real.html (작업자 단말) ↔ bmanager.html (관리자 콘솔) 공유
+// ══════════════════════════════════════════════════════════════
+window.MockData.BURGER_WORK_ID = 7;
+window.MockData.BURGER_ORDER_KEY = 'burger_order_history';
+window.MockData.BURGER_INVENTORY_KEY = 'burger_inventory';
+window.MockData.BURGER_INVENTORY_LOG_KEY = 'burger_inventory_log';
+window.MockData.BURGER_STAFF_KEY = 'burger_staff_status';
+window.MockData.BURGER_HELP_KEY = 'burger_help_requests';
+window.MockData.BURGER_WORKER_LOG_KEY = 'burger_worker_logs';
+window.MockData.BURGER_HOURLY_WAGE = 9860;
+
+// 판매 메뉴 · 가격
+window.MockData.burgerMenus = {
+    '치즈버거':   { price: 5500, type: 'burger' },
+    '불고기버거': { price: 5000, type: 'burger' },
+    '새우버거':   { price: 5800, type: 'burger' },
+    '햄버거':     { price: 4500, type: 'burger' },
+    '감자튀김':   { price: 2500, type: 'fries'  },
+    '콜라':       { price: 1800, type: 'drink'  },
+    '사이다':     { price: 1800, type: 'drink'  }
+};
+window.MockData.BURGER_SET_EXTRA = 3000; // (구) 세트 추가금 · 현재는 세트 가격을 직접 관리한다
+window.MockData.BURGER_PRICE_KEY = 'burger_menu_prices';
+
+// 메뉴 기본 가격 (bmanager.html [메뉴·가격] 에서 변경 가능 · 단품 / 세트)
+window.MockData.burgerMenuPriceDefaults = {
+    '치즈버거':   { single: 3000, set: 4000 },
+    '불고기버거': { single: 3000, set: 4000 },
+    '햄버거':     { single: 2000, set: 3000 },
+    '새우버거':   { single: 3000, set: 4000 },
+    '감자튀김':   { single: 2000, set: null },
+    '콜라':       { single: 1500, set: null },
+    '사이다':     { single: 1500, set: null }
+};
+
+// 고객 주문 화면(burger_order.html) 용 메뉴 정보
+window.MockData.burgerMenuMeta = {
+    '치즈버거': {
+        img: './images/burger_cheese.png',
+        summary: '두툼한 소고기 패티에 체다치즈를 녹여 얹은 버거퀸의 기본기.',
+        components: ['버거번', '소고기 패티 1장', '체다치즈', '양상추', '피클 3장', '마요네즈'],
+        cook: '그릴 180℃에서 앞뒤 1분 30초씩 구워 중심온도 74℃를 확인한 뒤 조립합니다.',
+        allergy: '밀 · 우유 · 대두 · 계란 함유'
+    },
+    '불고기버거': {
+        img: './images/burger_signature.png',
+        summary: '달콤한 불고기 양념 패티에 특제 소스를 끼얹은 인기 메뉴.',
+        components: ['버거번', '불고기 패티 1장', '양상추', '불고기소스', '마요네즈'],
+        cook: '그릴 170℃에서 구운 뒤 불고기소스를 끼얹어 30초간 졸여 광을 냅니다.',
+        allergy: '밀 · 대두 · 계란 함유'
+    },
+    '햄버거': {
+        img: './images/burger_500.png',
+        summary: '기본에 충실한 소고기 패티 버거. 가장 합리적인 가격.',
+        components: ['버거번', '소고기 패티 1장', '양상추', '피클 3장', '마요네즈'],
+        cook: '그릴 180℃에서 앞뒤 1분 30초씩 구워 중심온도 74℃를 확인합니다.',
+        allergy: '밀 · 대두 · 계란 함유'
+    },
+    '새우버거': {
+        img: './images/burger_family.png',
+        summary: '통새우살 패티를 바삭하게 튀겨 타르타르소스와 맞춘 버거.',
+        components: ['버거번', '새우 패티 1장', '양상추', '피클 3장', '타르타르소스'],
+        cook: '175℃ 기름에 3분 튀긴 뒤 10초 드레인해 튀김옷을 살립니다.',
+        allergy: '밀 · 새우 · 계란 함유'
+    },
+    '감자튀김': {
+        img: './images/burger_family.png',
+        summary: '175℃에서 3분 튀긴 뒤 10초 드레인한 바삭한 감자튀김.',
+        components: ['냉동감자 150g', '소금'],
+        cook: '바스켓의 1/2 이하만 채워 3분 튀기고 10초 드레인합니다.',
+        allergy: '밀 함유 가능'
+    },
+    '콜라': {
+        img: './images/burger_500.png',
+        summary: '얼음을 2/3까지 채워 제공하는 시원한 콜라.',
+        components: ['콜라 300ml', '얼음'],
+        cook: '컵을 45° 기울여 따르고 마지막에 세워 거품을 정리합니다.',
+        allergy: '-'
+    },
+    '사이다': {
+        img: './images/burger_500.png',
+        summary: '깔끔한 청량감의 사이다.',
+        components: ['사이다 300ml', '얼음'],
+        cook: '컵을 45° 기울여 따르고 마지막에 세워 거품을 정리합니다.',
+        allergy: '-'
+    }
+};
+
+// 세트 구성 (버거 + 감자튀김 + 음료)
+window.MockData.BURGER_SET_COMPONENTS = ['버거 1개', '감자튀김', '음료 1잔'];
+
+window.MockData.getBurgerMenuPrices = function() {
+    var defaults = this.burgerMenuPriceDefaults;
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(this.BURGER_PRICE_KEY) || 'null'); } catch (e) {}
+    var out = {};
+    Object.keys(defaults).forEach(function(k) {
+        var d = defaults[k];
+        var s = (saved && saved[k]) || {};
+        out[k] = {
+            single: Number.isFinite(Number(s.single)) ? Number(s.single) : d.single,
+            set: (d.set === null) ? null
+                : (Number.isFinite(Number(s.set)) ? Number(s.set) : d.set)
+        };
+    });
+    return out;
+};
+
+window.MockData.saveBurgerMenuPrices = function(prices) {
+    try { localStorage.setItem(this.BURGER_PRICE_KEY, JSON.stringify(prices || {})); } catch (e) {}
+    return this.getBurgerMenuPrices();
+};
+
+window.MockData.setBurgerMenuPrice = function(menu, single, set) {
+    var prices = this.getBurgerMenuPrices();
+    if (!prices[menu]) return { ok: false, error: 'notfound' };
+    var s = Math.max(0, Math.floor(Number(single) || 0));
+    prices[menu].single = s;
+    if (prices[menu].set !== null) {
+        prices[menu].set = Math.max(0, Math.floor(Number(set) || 0));
+    }
+    this.saveBurgerMenuPrices(prices);
+    return { ok: true, price: prices[menu] };
+};
+
+window.MockData.resetBurgerMenuPrices = function() {
+    try { localStorage.removeItem(this.BURGER_PRICE_KEY); } catch (e) {}
+    return this.getBurgerMenuPrices();
+};
+
+// 단품/세트 단가
+window.MockData.getBurgerUnitPrice = function(menu, isSet) {
+    var p = this.getBurgerMenuPrices()[menu];
+    if (!p) return 0;
+    if (isSet && p.set !== null) return p.set;
+    return p.single;
+};
+
+// 세트 판매 가능한 버거 메뉴인지
+window.MockData.isBurgerSetMenu = function(menu) {
+    var p = this.getBurgerMenuPrices()[menu];
+    return !!(p && p.set !== null);
+};
+
+/**
+ * work_detail.html?id=7 상품 카드 · burger_order.html 목록용 데이터
+ * 관리자가 가격을 바꾸면 이 값이 함께 바뀐다.
+ */
+window.MockData.getBurgerProductCards = function() {
+    var prices = this.getBurgerMenuPrices();
+    var meta = this.burgerMenuMeta;
+    var self = this;
+    return ['치즈버거', '불고기버거', '햄버거', '새우버거'].map(function(menu) {
+        return {
+            menu: menu,
+            name: menu + ' 세트',
+            brand: 'BurgerQueen',
+            img: (meta[menu] && meta[menu].img) || './images/burger_500.png',
+            single: prices[menu].single,
+            set: prices[menu].set,
+            summary: (meta[menu] && meta[menu].summary) || '',
+            status: self.getBurgerLowStock().length > 0 ? '재고 확인 중' : '판매 중'
+        };
+    });
+};
+
+// 재고 기본값 (원가 = 1단위 매입원가)
+window.MockData.burgerInventoryDefaults = [
+    { id: 'bun',           name: '버거번',        unit: '개',   stock: 200,   safety: 40,   unitCost: 450 },
+    { id: 'patty_beef',    name: '고기패티',      unit: '장',   stock: 150,   safety: 30,   unitCost: 1200 },
+    { id: 'patty_bulgogi', name: '불고기패티',    unit: '장',   stock: 100,   safety: 20,   unitCost: 1150 },
+    { id: 'patty_shrimp',  name: '새우패티',      unit: '장',   stock: 80,    safety: 20,   unitCost: 1300 },
+    { id: 'cheese',        name: '체다치즈',      unit: '장',   stock: 180,   safety: 30,   unitCost: 300 },
+    { id: 'lettuce',       name: '양상추',        unit: 'g',    stock: 5000,  safety: 800,  unitCost: 6 },
+    { id: 'pickle',        name: '피클',          unit: '장',   stock: 400,   safety: 60,   unitCost: 60 },
+    { id: 'mayo',          name: '마요네즈',      unit: 'g',    stock: 3000,  safety: 500,  unitCost: 8 },
+    { id: 'bulgogi_sauce', name: '불고기소스',    unit: 'g',    stock: 2500,  safety: 400,  unitCost: 9 },
+    { id: 'tartar',        name: '타르타르소스',  unit: 'g',    stock: 2000,  safety: 400,  unitCost: 10 },
+    { id: 'potato',        name: '냉동감자',      unit: 'g',    stock: 12000, safety: 2000, unitCost: 3 },
+    { id: 'cola',          name: '콜라 원액',     unit: 'ml',   stock: 6000,  safety: 1000, unitCost: 2 },
+    { id: 'cider',         name: '사이다 원액',   unit: 'ml',   stock: 6000,  safety: 1000, unitCost: 2 },
+    { id: 'pack',          name: '포장지 · 컵',   unit: '세트', stock: 300,   safety: 50,   unitCost: 200 }
+];
+
+// 메뉴별 소요 자재 (BOM)
+window.MockData.burgerBOM = {
+    '치즈버거':   { bun: 1, patty_beef: 1, cheese: 1, pickle: 3, lettuce: 20, mayo: 15, pack: 1 },
+    '불고기버거': { bun: 1, patty_bulgogi: 1, lettuce: 20, mayo: 15, bulgogi_sauce: 20, pack: 1 },
+    '새우버거':   { bun: 1, patty_shrimp: 1, lettuce: 20, pickle: 3, tartar: 20, pack: 1 },
+    '햄버거':     { bun: 1, patty_beef: 1, lettuce: 20, pickle: 3, mayo: 15, pack: 1 },
+    '감자튀김':   { potato: 150, pack: 1 },
+    '콜라':       { cola: 300, pack: 1 },
+    '사이다':     { cider: 300, pack: 1 }
+};
+
+window.MockData.BURGER_STAGES = [
+    { key: 'ordered', label: '접수', next: 'cooking',   nextLabel: '조리 지시' },
+    { key: 'cooking', label: '조리중', next: 'done',    nextLabel: '완성 처리' },
+    { key: 'done',    label: '완성',  next: null,       nextLabel: null }
+];
+
+// ── 주문 금액 계산 (관리자가 설정한 단품/세트 가격 기준) ──
+window.MockData.calcBurgerOrderTotal = function(order) {
+    if (!order) return 0;
+    var unit = this.getBurgerUnitPrice(order.menu, order.isSet);
+    var qty = Math.max(1, Math.floor(Number(order.qty) || 1));
+    return unit * qty;
+};
+
+// ── 주문 소요 자재 계산 (세트 · 수량 포함) ──
+window.MockData.getBurgerOrderBOM = function(order) {
+    var need = {};
+    var self = this;
+    var add = function(name, times) {
+        var bom = self.burgerBOM[name];
+        if (!bom) return;
+        Object.keys(bom).forEach(function(k) { need[k] = (need[k] || 0) + bom[k] * times; });
+    };
+    if (!order) return need;
+    var qty = Math.max(1, Math.floor(Number(order.qty) || 1));
+    add(order.menu, qty);
+    if (order.isSet) {
+        add('감자튀김', qty);
+        add(order.drink || '콜라', qty);
+    }
+    return need;
+};
+
+// ── 주문 ──
+window.MockData.getBurgerOrders = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.BURGER_ORDER_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.saveBurgerOrders = function(list) {
+    var arr = Array.isArray(list) ? list : [];
+    if (arr.length > 300) arr = arr.slice(arr.length - 300);
+    try { localStorage.setItem(this.BURGER_ORDER_KEY, JSON.stringify(arr)); } catch (e) {}
+    return arr;
+};
+
+window.MockData.getBurgerOrder = function(id) {
+    var hit = this.getBurgerOrders().filter(function(o) { return o && String(o.id) === String(id); });
+    return hit.length ? hit[0] : null;
+};
+
+/**
+ * 주문 생성 (관리자 카운터 접수 / 고객 주문 화면 공용)
+ * @param {Object} payload { menu, isSet, drink, qty, tableId, source, userId, userName,
+ *                           paymentMethod, paymentStatus, shopRecordId }
+ */
+window.MockData.createBurgerOrder = function(payload) {
+    var p = payload || {};
+    var menuName = p.menu && this.burgerMenus[p.menu] ? p.menu : '치즈버거';
+    var menu = this.burgerMenus[menuName];
+    var isSet = this.isBurgerSetMenu(menuName) ? !!p.isSet : false;
+    var now = new Date();
+    var order = {
+        id: 'BQ-' + now.getTime() + '-' + Math.floor(Math.random() * 100),
+        no: 'BQ' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0')
+            + String(now.getSeconds()).padStart(2, '0'),
+        menu: menuName,
+        type: menu.type,
+        isSet: isSet,
+        qty: Math.max(1, Math.floor(Number(p.qty) || 1)),
+        drink: isSet ? (p.drink || '콜라') : (menu.type === 'drink' ? menuName : null),
+        tableId: p.tableId || ('테이블 ' + (Math.floor(Math.random() * 12) + 1)),
+        source: p.source || 'counter',
+        userId: p.userId !== undefined && p.userId !== null ? String(p.userId) : null,
+        userName: p.userName || null,
+        paymentMethod: p.paymentMethod || null,     // online_settlement | offline | null
+        paymentStatus: p.paymentStatus || null,     // paid | offline_waiting | pending
+        shopRecordId: p.shopRecordId || null,
+        status: 'ordered',
+        assignedTo: null,
+        assignedName: null,
+        orderedAt: now.toISOString(),
+        cookStartedAt: null,
+        doneAt: null,
+        receivedAt: null,
+        cancelledAt: null
+    };
+    order.unitPrice = this.getBurgerUnitPrice(menuName, isSet);
+    order.total = this.calcBurgerOrderTotal(order);
+    var list = this.getBurgerOrders();
+    list.push(order);
+    this.saveBurgerOrders(list);
+    return order;
+};
+
+window.MockData.updateBurgerOrder = function(id, updates) {
+    var list = this.getBurgerOrders();
+    var target = null;
+    for (var i = 0; i < list.length; i++) {
+        if (list[i] && String(list[i].id) === String(id)) { target = list[i]; break; }
+    }
+    if (!target) return { ok: false, error: 'notfound' };
+    Object.keys(updates || {}).forEach(function(k) { target[k] = updates[k]; });
+    this.saveBurgerOrders(list);
+    return { ok: true, order: target };
+};
+
+// 작업자가 조리 착수
+window.MockData.startBurgerOrder = function(id, worker) {
+    var w = worker || {};
+    return this.updateBurgerOrder(id, {
+        status: 'cooking',
+        assignedTo: w.id === undefined ? null : String(w.id),
+        assignedName: w.name || '작업자',
+        cookStartedAt: new Date().toISOString()
+    });
+};
+
+/**
+ * 주문 완성 처리 — 자재를 차감하고 매출을 확정한다.
+ * @returns { ok, order, consumed, shortages }
+ */
+window.MockData.completeBurgerOrder = function(id, worker) {
+    var order = this.getBurgerOrder(id);
+    if (!order) return { ok: false, error: 'notfound' };
+    if (order.status === 'done' || order.status === 'received') return { ok: false, error: 'already', order: order };
+    if (order.status === 'cancelled') return { ok: false, error: 'cancelled', order: order };
+
+    var need = this.getBurgerOrderBOM(order);
+    var res = this.consumeBurgerInventory(need, '주문 완성 #' + (order.no || order.id));
+    var w = worker || {};
+    var upd = this.updateBurgerOrder(id, {
+        status: 'done',
+        doneAt: new Date().toISOString(),
+        assignedTo: order.assignedTo || (w.id === undefined ? null : String(w.id)),
+        assignedName: order.assignedName || w.name || '작업자',
+        materialCost: res.cost,
+        shortages: res.shortages
+    });
+    return { ok: true, order: upd.order, consumed: res.consumed, shortages: res.shortages, cost: res.cost };
+};
+
+window.MockData.cancelBurgerOrder = function(id, reason) {
+    return this.updateBurgerOrder(id, {
+        status: 'cancelled',
+        cancelledAt: new Date().toISOString(),
+        cancelReason: reason || '관리자 취소'
+    });
+};
+
+window.MockData.getBurgerActiveOrders = function() {
+    return this.getBurgerOrders().filter(function(o) {
+        return o && (o.status === 'ordered' || o.status === 'cooking');
+    });
+};
+
+window.MockData.clearBurgerOrders = function() {
+    try { localStorage.removeItem(this.BURGER_ORDER_KEY); } catch (e) {}
+    return [];
+};
+
+// ══════════════════════════════════════════════════════════════
+//  고객 주문 ↔ 나의 쇼핑(kimp_shop_history) 미러 동기화
+//  burger_order.html 에서 주문하면 주방 주문(burger_order_history)과
+//  쇼핑 이력(kimp_shop_history)이 함께 만들어지고, 이후 상태가 서로 반영된다.
+// ══════════════════════════════════════════════════════════════
+window.MockData.BURGER_SHOP_PREFIX = 'burger_';
+
+// 주방 상태 → 쇼핑 이력 상태
+window.MockData.mapBurgerStatusToShop = function(order) {
+    if (!order) return { status: 'pending', kitchenStatus: 'queued' };
+    if (order.status === 'cancelled') return { status: 'cancelled', kitchenStatus: 'cancelled' };
+    if (order.status === 'received') return { status: 'completed', kitchenStatus: 'received' };
+    if (order.status === 'done') return { status: 'pending', kitchenStatus: 'ready' };
+    if (order.status === 'cooking') return { status: 'pending', kitchenStatus: 'preparing' };
+    return { status: 'pending', kitchenStatus: 'queued' };
+};
+
+// 고객 주문의 쇼핑 이력 레코드 생성용 데이터
+window.MockData.buildBurgerShopRecord = function(order) {
+    var map = this.mapBurgerStatusToShop(order);
+    var meta = this.burgerMenuMeta[order.menu] || {};
+    var name = order.menu + (order.isSet ? ' 세트' : ' 단품');
+    return {
+        id: this.BURGER_SHOP_PREFIX + order.no,
+        orderNo: order.no,
+        productName: name,
+        productId: 'burger_' + (order.isSet ? 'set' : 'single'),
+        brandName: 'BurgerQueen',
+        workId: 7,
+        price: Number(order.total) || 0,
+        unitPrice: Number(order.unitPrice) || Number(order.total) || 0,
+        qty: Math.max(1, Number(order.qty) || 1),
+        img: meta.img || './images/burger_500.png',
+        payMethod: order.paymentMethod === 'online_settlement' ? '온라인 정산 금액 결제'
+            : (order.paymentMethod === 'offline' ? '현장 결제' : '나중에 결제'),
+        status: map.status,
+        kitchenStatus: map.kitchenStatus,
+        orderType: 'dine_in',
+        fulfillmentType: 'pickup',
+        tableId: order.tableId,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        userId: order.userId || null,
+        orderedAt: order.orderedAt,
+        createdAt: order.orderedAt,
+        shouldShowSpendAmount: order.status !== 'cancelled'
+    };
+};
+
+window.MockData.getShopHistoryRaw = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem('kimp_shop_history') || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.saveShopHistoryRaw = function(list) {
+    try { localStorage.setItem('kimp_shop_history', JSON.stringify(list || [])); } catch (e) {}
+    return list || [];
+};
+
+/**
+ * 주방 주문 상태를 쇼핑 이력에 반영하고,
+ * 쇼핑 이력(마이페이지 · 탐색)에서 취소/수령한 결과를 주방 주문에 반영한다.
+ * @returns { updatedShop, cancelledOrders, receivedOrders }
+ */
+window.MockData.syncBurgerShopRecords = function() {
+    var orders = this.getBurgerOrders();
+    var customerOrders = orders.filter(function(o) { return o && o.shopRecordId; });
+    if (customerOrders.length === 0) return { updatedShop: 0, cancelledOrders: 0, receivedOrders: 0 };
+
+    var history = this.getShopHistoryRaw();
+    var byId = {};
+    history.forEach(function(h) { if (h && h.id) byId[String(h.id)] = h; });
+
+    var self = this;
+    var updatedShop = 0, cancelledOrders = 0, receivedOrders = 0, ordersDirty = false;
+
+    customerOrders.forEach(function(o) {
+        var rec = byId[String(o.shopRecordId)];
+        if (!rec) return;
+
+        // 1) 쇼핑 이력에서 먼저 취소된 경우 → 주방 주문도 취소 (조리 착수 전만 허용)
+        if (rec.status === 'cancelled' && o.status !== 'cancelled') {
+            if (o.status === 'ordered') {
+                o.status = 'cancelled';
+                o.cancelledAt = rec.cancelledAt || new Date().toISOString();
+                o.cancelReason = '고객 취소';
+                cancelledOrders++;
+                ordersDirty = true;
+            } else {
+                // 이미 조리에 들어갔으면 취소 불가 → 쇼핑 이력을 되돌린다
+                var back = self.mapBurgerStatusToShop(o);
+                rec.status = back.status;
+                rec.kitchenStatus = back.kitchenStatus;
+                rec.shouldShowSpendAmount = true;
+                rec.paymentDisplayLabel = '';
+                delete rec.cancelledAt;
+                updatedShop++;
+            }
+            return;
+        }
+
+        // 2) 쇼핑 이력에서 수령 완료한 경우 → 주방 주문도 수령 완료
+        if (rec.status === 'completed' && o.status === 'done') {
+            o.status = 'received';
+            o.receivedAt = rec.completedAt || new Date().toISOString();
+            receivedOrders++;
+            ordersDirty = true;
+            return;
+        }
+
+        // 3) 그 외에는 주방 상태를 쇼핑 이력에 반영
+        var map = self.mapBurgerStatusToShop(o);
+        if (rec.status !== map.status || rec.kitchenStatus !== map.kitchenStatus) {
+            rec.status = map.status;
+            rec.kitchenStatus = map.kitchenStatus;
+            rec.shouldShowSpendAmount = o.status !== 'cancelled';
+            if (o.status === 'cancelled') {
+                rec.cancelledAt = rec.cancelledAt || o.cancelledAt;
+                rec.paymentDisplayLabel = '주문취소됨';
+            }
+            updatedShop++;
+        }
+    });
+
+    if (updatedShop > 0) {
+        this.saveShopHistoryRaw(history);
+        // FactoryStore 메모리 상태도 함께 갱신
+        try {
+            if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function'
+                && !window.FactoryStore.isSaving()) {
+                window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+            }
+        } catch (e) {}
+    }
+    if (ordersDirty) this.saveBurgerOrders(orders);
+    return { updatedShop: updatedShop, cancelledOrders: cancelledOrders, receivedOrders: receivedOrders };
+};
+
+// 고객이 상품을 수령 완료 (주문 화면 · 마이페이지 공용)
+window.MockData.receiveBurgerOrder = function(id) {
+    var order = this.getBurgerOrder(id);
+    if (!order) return { ok: false, error: 'notfound' };
+    if (order.status !== 'done') return { ok: false, error: 'notready', order: order };
+    var upd = this.updateBurgerOrder(id, { status: 'received', receivedAt: new Date().toISOString() });
+    return { ok: true, order: upd.order };
+};
+
+// ── 재고 ──
+window.MockData.getBurgerInventory = function() {
+    var defaults = this.burgerInventoryDefaults;
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(this.BURGER_INVENTORY_KEY) || 'null'); } catch (e) {}
+    if (!Array.isArray(saved)) {
+        var init = defaults.map(function(d) { return Object.assign({}, d); });
+        this.saveBurgerInventory(init);
+        return init;
+    }
+    // 기본 품목이 추가된 경우 병합
+    var byId = {};
+    saved.forEach(function(s) { if (s && s.id) byId[s.id] = s; });
+    var merged = defaults.map(function(d) {
+        return Object.assign({}, d, byId[d.id] || {});
+    });
+    return merged;
+};
+
+window.MockData.saveBurgerInventory = function(list) {
+    try { localStorage.setItem(this.BURGER_INVENTORY_KEY, JSON.stringify(list || [])); } catch (e) {}
+    return list || [];
+};
+
+window.MockData.getBurgerInventoryItem = function(itemId) {
+    var hit = this.getBurgerInventory().filter(function(i) { return i.id === itemId; });
+    return hit.length ? hit[0] : null;
+};
+
+window.MockData.getBurgerInventoryLog = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.BURGER_INVENTORY_LOG_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.addBurgerInventoryLog = function(entry) {
+    var logs = this.getBurgerInventoryLog();
+    logs.push(Object.assign({ at: new Date().toISOString() }, entry || {}));
+    if (logs.length > 400) logs.shift();
+    try { localStorage.setItem(this.BURGER_INVENTORY_LOG_KEY, JSON.stringify(logs)); } catch (e) {}
+    return logs;
+};
+
+// 입고 (매입) — 매입비용이 손익에 반영된다
+window.MockData.restockBurgerItem = function(itemId, qty, memo) {
+    var n = Math.floor(Number(qty) || 0);
+    if (n <= 0) return { ok: false, error: 'qty' };
+    var inv = this.getBurgerInventory();
+    var target = null;
+    for (var i = 0; i < inv.length; i++) { if (inv[i].id === itemId) { target = inv[i]; break; } }
+    if (!target) return { ok: false, error: 'notfound' };
+    target.stock = Math.max(0, Number(target.stock) || 0) + n;
+    this.saveBurgerInventory(inv);
+    var cost = n * (Number(target.unitCost) || 0);
+    this.addBurgerInventoryLog({
+        type: 'in', itemId: itemId, itemName: target.name,
+        qty: n, unit: target.unit, cost: cost, memo: memo || '입고'
+    });
+    return { ok: true, item: target, cost: cost };
+};
+
+// 수동 조정 (폐기 · 실사 반영)
+window.MockData.adjustBurgerStock = function(itemId, newStock, memo) {
+    var inv = this.getBurgerInventory();
+    var target = null;
+    for (var i = 0; i < inv.length; i++) { if (inv[i].id === itemId) { target = inv[i]; break; } }
+    if (!target) return { ok: false, error: 'notfound' };
+    var before = Number(target.stock) || 0;
+    var after = Math.max(0, Math.floor(Number(newStock) || 0));
+    target.stock = after;
+    this.saveBurgerInventory(inv);
+    this.addBurgerInventoryLog({
+        type: 'adjust', itemId: itemId, itemName: target.name,
+        qty: after - before, unit: target.unit,
+        cost: (after - before) < 0 ? (after - before) * (Number(target.unitCost) || 0) : 0,
+        memo: memo || '재고 조정'
+    });
+    return { ok: true, item: target, delta: after - before };
+};
+
+/**
+ * 자재 소진 (주문 완성 시)
+ * @param {Object} need { itemId: qty }
+ * @returns { consumed, shortages, cost }
+ */
+window.MockData.consumeBurgerInventory = function(need, memo) {
+    var inv = this.getBurgerInventory();
+    var byId = {};
+    inv.forEach(function(i) { byId[i.id] = i; });
+    var consumed = {}, shortages = [], cost = 0;
+
+    Object.keys(need || {}).forEach(function(id) {
+        var item = byId[id];
+        var want = Number(need[id]) || 0;
+        if (!item || want <= 0) return;
+        var have = Number(item.stock) || 0;
+        var take = Math.min(have, want);
+        item.stock = have - take;
+        consumed[id] = take;
+        cost += take * (Number(item.unitCost) || 0);
+        if (take < want) shortages.push({ itemId: id, name: item.name, short: want - take, unit: item.unit });
+    });
+
+    this.saveBurgerInventory(inv);
+    this.addBurgerInventoryLog({
+        type: 'out', itemId: null, itemName: '주문 소진',
+        qty: 0, cost: cost, memo: memo || '주문 완성 자재 소진',
+        detail: consumed
+    });
+    return { consumed: consumed, shortages: shortages, cost: cost };
+};
+
+// 부족 · 임박 자재
+window.MockData.getBurgerLowStock = function() {
+    return this.getBurgerInventory().filter(function(i) {
+        return (Number(i.stock) || 0) <= (Number(i.safety) || 0);
+    });
+};
+
+window.MockData.resetBurgerInventory = function() {
+    try {
+        localStorage.removeItem(this.BURGER_INVENTORY_KEY);
+        localStorage.removeItem(this.BURGER_INVENTORY_LOG_KEY);
+    } catch (e) {}
+    return this.getBurgerInventory();
+};
+
+// ── 근무자 현황 (작업자 단말이 주기적으로 갱신) ──
+window.MockData.getBurgerStaffMap = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.BURGER_STAFF_KEY) || '{}');
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) { return {}; }
+};
+
+window.MockData.upsertBurgerStaff = function(payload) {
+    var p = payload || {};
+    var key = String(p.userId === undefined || p.userId === null ? 'guest' : p.userId);
+    var map = this.getBurgerStaffMap();
+    map[key] = Object.assign({}, map[key], {
+        userId: key,
+        name: p.name || '작업자',
+        status: p.status || 'working',      // working | resting
+        startedAt: p.startedAt || (map[key] && map[key].startedAt) || new Date().toISOString(),
+        workSec: Number(p.workSec) || 0,
+        restSec: Number(p.restSec) || 0,
+        completed: Number(p.completed) || 0,
+        currentOrder: p.currentOrder || null,
+        updatedAt: new Date().toISOString()
+    });
+    try { localStorage.setItem(this.BURGER_STAFF_KEY, JSON.stringify(map)); } catch (e) {}
+    return map[key];
+};
+
+window.MockData.removeBurgerStaff = function(userId) {
+    var map = this.getBurgerStaffMap();
+    delete map[String(userId)];
+    try { localStorage.setItem(this.BURGER_STAFF_KEY, JSON.stringify(map)); } catch (e) {}
+    return map;
+};
+
+/**
+ * 근무자 목록. 60초 이상 갱신이 없으면 offline 로 표시한다.
+ */
+window.MockData.getBurgerStaffList = function() {
+    var map = this.getBurgerStaffMap();
+    var now = Date.now();
+    return Object.keys(map).map(function(k) {
+        var s = map[k];
+        var age = Math.floor((now - new Date(s.updatedAt).getTime()) / 1000);
+        return Object.assign({}, s, { staleSec: age, online: age <= 60 });
+    }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name)); });
+};
+
+// ── 손익 ──
+/**
+ * 손익 집계
+ * @param {Object} opts { todayOnly: true }
+ * @returns 매출 / 자재원가 / 매입비 / 인건비 / 영업이익
+ */
+window.MockData.getBurgerFinance = function(opts) {
+    var o = opts || {};
+    var todayOnly = o.todayOnly !== false;
+    var self = this;
+    var isToday = function(iso) {
+        if (!iso) return false;
+        var d = new Date(iso), n = new Date();
+        return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+    };
+
+    var orders = this.getBurgerOrders().filter(function(x) {
+        if (!x || (x.status !== 'done' && x.status !== 'received')) return false;
+        return todayOnly ? isToday(x.doneAt || x.orderedAt) : true;
+    });
+
+    var revenue = 0, materialCost = 0, menuCount = {};
+    orders.forEach(function(x) {
+        revenue += Number(x.total) || self.calcBurgerOrderTotal(x);
+        if (Number.isFinite(Number(x.materialCost))) {
+            materialCost += Number(x.materialCost);
+        } else {
+            var need = self.getBurgerOrderBOM(x);
+            Object.keys(need).forEach(function(id) {
+                var it = self.getBurgerInventoryItem(id);
+                if (it) materialCost += need[id] * (Number(it.unitCost) || 0);
+            });
+        }
+        menuCount[x.menu] = (menuCount[x.menu] || 0) + 1;
+    });
+
+    var purchaseCost = 0;
+    this.getBurgerInventoryLog().forEach(function(l) {
+        if (!l || l.type !== 'in') return;
+        if (todayOnly && !isToday(l.at)) return;
+        purchaseCost += Number(l.cost) || 0;
+    });
+
+    var wasteCost = 0;
+    this.getBurgerInventoryLog().forEach(function(l) {
+        if (!l || l.type !== 'adjust') return;
+        if (todayOnly && !isToday(l.at)) return;
+        if ((Number(l.cost) || 0) < 0) wasteCost += Math.abs(Number(l.cost));
+    });
+
+    var laborSec = 0;
+    this.getBurgerStaffList().forEach(function(s) {
+        laborSec += Math.max(0, Number(s.workSec) || 0);
+    });
+    var laborCost = Math.round(laborSec / 3600 * this.BURGER_HOURLY_WAGE);
+
+    var operatingProfit = revenue - materialCost - laborCost - wasteCost;
+    return {
+        orderCount: orders.length,
+        revenue: revenue,
+        materialCost: materialCost,
+        purchaseCost: purchaseCost,
+        wasteCost: wasteCost,
+        laborSec: laborSec,
+        laborCost: laborCost,
+        grossProfit: revenue - materialCost,
+        operatingProfit: operatingProfit,
+        margin: revenue > 0 ? Math.round(operatingProfit / revenue * 1000) / 10 : 0,
+        menuCount: menuCount
+    };
+};
+
+// ── 작업자 활동 로그 (bmanager 에서도 열람) ──
+window.MockData.getBurgerWorkerLogs = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.BURGER_WORKER_LOG_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.addBurgerWorkerLog = function(entry) {
+    var logs = this.getBurgerWorkerLogs();
+    var now = new Date();
+    logs.push(Object.assign({
+        time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
+            + ':' + String(now.getSeconds()).padStart(2, '0'),
+        createdAt: now.toISOString()
+    }, entry || {}));
+    if (logs.length > 300) logs.shift();
+    try { localStorage.setItem(this.BURGER_WORKER_LOG_KEY, JSON.stringify(logs)); } catch (e) {}
+    return logs;
+};
+
+// ── 도움 요청 (작업자 → 관리자) ──
+window.MockData.getBurgerHelpRequests = function() {
+    try {
+        var parsed = JSON.parse(localStorage.getItem(this.BURGER_HELP_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+};
+
+window.MockData.saveBurgerHelpRequests = function(list) {
+    var arr = Array.isArray(list) ? list : [];
+    if (arr.length > 200) arr = arr.slice(arr.length - 200);
+    try { localStorage.setItem(this.BURGER_HELP_KEY, JSON.stringify(arr)); } catch (e) {}
+    return arr;
+};
+
+window.MockData.getBurgerHelpPending = function() {
+    return this.getBurgerHelpRequests().filter(function(r) { return r && r.status === 'pending'; });
+};
+
+window.MockData.getBurgerHelpPendingFor = function(workerId) {
+    var wid = String(workerId === undefined || workerId === null ? '' : workerId);
+    var hit = this.getBurgerHelpRequests().filter(function(r) {
+        return r && r.status === 'pending' && String(r.workerId) === wid;
+    });
+    return hit.length ? hit[hit.length - 1] : null;
+};
+
+window.MockData.getBurgerHelpRequest = function(id) {
+    var hit = this.getBurgerHelpRequests().filter(function(r) { return r && r.id === id; });
+    return hit.length ? hit[0] : null;
+};
+
+window.MockData.createBurgerHelpRequest = function(payload) {
+    var p = payload || {};
+    var workerId = String(p.workerId === undefined || p.workerId === null ? 'guest' : p.workerId);
+    var already = this.getBurgerHelpPendingFor(workerId);
+    if (already) return { ok: false, error: 'pending', request: already };
+
+    var now = new Date();
+    var req = {
+        id: 'bhelp-' + now.getTime() + '-' + Math.floor(Math.random() * 1000),
+        workerId: workerId,
+        workerName: p.workerName || '작업자',
+        position: p.position || '조리 라인',
+        reason: p.reason || '작업 도움 요청',
+        orderNo: p.orderNo || null,
+        status: 'pending',
+        createdAt: now.toISOString(),
+        resolvedAt: null,
+        resolvedBy: null,
+        durationSec: null
+    };
+    var list = this.getBurgerHelpRequests();
+    list.push(req);
+    this.saveBurgerHelpRequests(list);
+    this.addBurgerWorkerLog({
+        text: '[도움요청] 관리자에게 도움을 요청했습니다.' + (req.orderNo ? ' (주문 ' + req.orderNo + ')' : ''),
+        kind: 'warn', workerName: req.workerName
+    });
+    return { ok: true, request: req };
+};
+
+window.MockData.resolveBurgerHelpRequest = function(id, by) {
+    var list = this.getBurgerHelpRequests();
+    var target = null;
+    for (var i = 0; i < list.length; i++) { if (list[i] && list[i].id === id) { target = list[i]; break; } }
+    if (!target) return { ok: false, error: 'notfound' };
+    if (target.status !== 'pending') return { ok: false, error: 'already', request: target };
+
+    var now = new Date();
+    target.status = 'resolved';
+    target.resolvedAt = now.toISOString();
+    target.resolvedBy = by || '관리자';
+    target.durationSec = Math.max(0, Math.floor((now.getTime() - new Date(target.createdAt).getTime()) / 1000));
+    this.saveBurgerHelpRequests(list);
+    this.addBurgerWorkerLog({
+        text: '[도움요청] 해결 완료 처리 (' + target.resolvedBy + ') · 소요 '
+            + Math.floor(target.durationSec / 60) + '분 ' + (target.durationSec % 60) + '초',
+        kind: 'ok', workerName: target.workerName
+    });
+    return { ok: true, request: target };
+};
+
+window.MockData.cancelBurgerHelpRequest = function(id) {
+    var list = this.getBurgerHelpRequests();
+    var target = null;
+    for (var i = 0; i < list.length; i++) { if (list[i] && list[i].id === id) { target = list[i]; break; } }
+    if (!target) return { ok: false, error: 'notfound' };
+    if (target.status !== 'pending') return { ok: false, error: 'already', request: target };
+    target.status = 'cancelled';
+    target.resolvedAt = new Date().toISOString();
+    this.saveBurgerHelpRequests(list);
+    this.addBurgerWorkerLog({ text: '[도움요청] 요청을 취소했습니다.', kind: 'info', workerName: target.workerName });
+    return { ok: true, request: target };
 };

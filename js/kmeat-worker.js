@@ -47,6 +47,7 @@
     let notifyArmed = false;
     let leaveTimer = null;
     let leaveLeft = 300;
+    let helpWatchId = null;  // 내가 올린 도움 요청 id (매니저 완료 처리 감시용)
 
     const M = () => window.MockData || {};
 
@@ -159,6 +160,8 @@
         const n = nowDate();
         const cur = $('st-clock');
         if (cur) cur.textContent = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+
+        watchHelp();
 
         const perf = performance.now();
         const delta = (perf - lastTick) / 1000;
@@ -1217,6 +1220,8 @@
                     <div style="margin-top:10px;font-size:0.78rem;color:var(--text-sub);text-align:center;line-height:1.55;">
                         QR 스캔 또는 위 버튼을 누르면 휴식이 종료됩니다.
                     </div>
+
+                    ${helpCardHtml()}
                 </div>`;
             return;
         }
@@ -1244,6 +1249,7 @@
                     <i class="bi bi-qr-code"></i> ${esc(station().label)} 위치 QR 찍기
                 </button>
             </div>
+            ${helpCardHtml()}
             <div class="card">
                 <div style="font-size:0.9rem;font-weight:800;margin-bottom:9px;">
                     <i class="bi bi-house-heart-fill" style="color:#ec4899;"></i> 조퇴하기
@@ -1257,6 +1263,132 @@
                 </button>
             </div>
         </div>`;
+    }
+
+    // ── 도움 요청 (매니저 호출) ──
+    function helpPending() {
+        return M().getKmeatHelpPendingFor ? M().getKmeatHelpPendingFor(MODE, numericUserId()) : null;
+    }
+
+    function helpElapsedSec(req) {
+        if (!req || !req.createdAt) return 0;
+        return Math.max(0, Math.floor((nowDate().getTime() - new Date(req.createdAt).getTime()) / 1000));
+    }
+
+    // 휴식·QR 탭에 들어가는 도움 요청 카드 (요청 전 / 요청 중 두 가지 상태)
+    function helpCardHtml() {
+        const req = helpPending();
+        if (req) {
+            return `<div class="card" style="border:1px solid rgba(245,158,11,0.45);background:rgba(245,158,11,0.06);">
+                <div style="font-size:0.9rem;font-weight:800;margin-bottom:9px;color:#92400e;">
+                    <i class="bi bi-life-preserver"></i> 도움 요청 중 · 매니저 확인 대기
+                </div>
+                <div style="font-size:0.8rem;color:var(--text-sub);line-height:1.6;margin-bottom:11px;">
+                    요청 시각 <b>${esc(req.createdAt ? new Date(req.createdAt).toTimeString().slice(0, 8) : '')}</b>
+                    · 경과 <b id="help-elapsed">${hhmmss(helpElapsedSec(req))}</b><br>
+                    매니저가 도착해 문제가 해결되면 <b>완료</b>를 눌러주세요.
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-ok btn-sm" onclick="KmeatWorker.completeHelp()">
+                        <i class="bi bi-check-circle-fill"></i> 완료
+                    </button>
+                    <button class="btn btn-line btn-sm" onclick="KmeatWorker.cancelHelp()">
+                        <i class="bi bi-x-circle"></i> 요청 취소
+                    </button>
+                </div>
+            </div>`;
+        }
+        return `<div class="card">
+            <div style="font-size:0.9rem;font-weight:800;margin-bottom:9px;">
+                <i class="bi bi-life-preserver" style="color:var(--warn);"></i> 도움 요청
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-sub);line-height:1.6;margin-bottom:11px;">
+                작업 중 문제가 생기면 매니저를 호출할 수 있습니다.
+                요청하면 관리자 콘솔에 즉시 알림이 표시됩니다.
+            </div>
+            <button class="btn btn-warn" onclick="KmeatWorker.requestHelp()">
+                <i class="bi bi-life-preserver"></i> 도움 요청하기
+            </button>
+        </div>`;
+    }
+
+    function requestHelp() {
+        const already = helpPending();
+        if (already) {
+            toast('이미 도움 요청이 접수되어 있습니다.', 'warn', 'bi-life-preserver');
+            renderAll();
+            return;
+        }
+        if (!confirm('도움 요청하시겠습니까?')) return;
+
+        const s = station();
+        const res = M().createKmeatHelpRequest ? M().createKmeatHelpRequest({
+            mode: MODE,
+            workerId: numericUserId(),
+            workerName: (currentUser && currentUser.name) || '작업자',
+            station: s.key,
+            stationLabel: s.label,
+            reason: '작업 도움 요청'
+        }) : { ok: false };
+
+        if (!res.ok) {
+            toast('이미 도움 요청이 접수되어 있습니다.', 'warn', 'bi-life-preserver');
+            renderAll();
+            return;
+        }
+
+        helpWatchId = res.request.id;
+        beep([880, 660, 880]);
+        vibrate([50, 60, 50]);
+        toast('도움 요청이 매니저에게 전달되었습니다.', 'warn', 'bi-life-preserver');
+        if (activeTab === 'more') renderMore();
+        renderAll();
+    }
+
+    function completeHelp() {
+        const req = helpPending();
+        if (!req) { renderAll(); return; }
+        if (!confirm('도움 요청이 해결되었습니까?\n완료 처리하면 요청이 종료됩니다.')) return;
+
+        if (M().resolveKmeatHelpRequest) {
+            M().resolveKmeatHelpRequest(req.id, ((currentUser && currentUser.name) || '작업자') + ' (작업자 확인)');
+        }
+        helpWatchId = null;
+        beep([1046, 1318]);
+        vibrate(40);
+        toast('도움 요청이 완료 처리되었습니다.', 'ok', 'bi-check-circle-fill');
+        renderAll();
+    }
+
+    function cancelHelp() {
+        const req = helpPending();
+        if (!req) { renderAll(); return; }
+        if (!confirm('도움 요청을 취소하시겠습니까?')) return;
+        if (M().cancelKmeatHelpRequest) M().cancelKmeatHelpRequest(req.id);
+        helpWatchId = null;
+        toast('도움 요청을 취소했습니다.', 'warn', 'bi-x-circle');
+        renderAll();
+    }
+
+    // 매니저가 완료 처리했는지 감시 (1초 tick 에서 호출)
+    function watchHelp() {
+        const el = $('help-elapsed');
+        if (el) {
+            const cur = helpPending();
+            if (cur) el.textContent = hhmmss(helpElapsedSec(cur));
+        }
+        if (!helpWatchId) return;
+        const req = M().getKmeatHelpRequest ? M().getKmeatHelpRequest(helpWatchId) : null;
+        if (!req || req.status === 'pending') return;
+
+        helpWatchId = null;
+        if (req.status === 'resolved') {
+            beep([1046, 1318, 1568]);
+            vibrate([40, 50, 40]);
+            toast(`도움 요청이 <b>완료 처리</b>되었습니다.<br>처리자: ${esc(req.resolvedBy || '매니저')}`,
+                'ok', 'bi-check-circle-fill');
+        }
+        renderAll();
     }
 
     function scanExit() {
@@ -1556,6 +1688,7 @@
         openCook, startCook, stopCook,
         doneTask, undoTask, serveCourse, wash,
         scanExit, scanEnter, scanStation,
+        requestHelp, completeHelp, cancelHelp,
         openLeave, pickReason, requestLeave, cancelLeave, skipLeave, leaveExitScan,
         showSummary, goMypage, completeExperience
     };
@@ -1580,6 +1713,10 @@
 
         knownOrderNos = new Set(orders().map(o => String(o.orderNo)));
         notifyArmed = true;
+
+        // 새로고침해도 진행 중인 도움 요청을 계속 감시
+        const myHelp = helpPending();
+        if (myHelp) helpWatchId = myHelp.id;
 
         if (IS_EX) startExpTimer();
 

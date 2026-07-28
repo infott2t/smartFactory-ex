@@ -34,7 +34,10 @@
     <link href="./css/underCover.css" rel="stylesheet" type="text/css">
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
-    <script src="./js/store.js" type="text/javascript"></script>
+    <!-- 개발 서버가 max-age=3600 을 보내므로, 목업 데이터(store.js)를 수정했을 때
+         브라우저가 낡은 파일을 계속 쓰지 않도록 버전 쿼리를 붙인다.
+         store.js 의 데이터를 바꿨는데 화면에 반영되지 않으면 이 값을 올린다. -->
+    <script src="./js/store.js?v=20260728b" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
     <script src="./js/ratio-feed.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1427,7 +1430,11 @@
                 ? JSON.parse(window.MockData.workDetailJSON) : {};
             var targetPage = detailMap[workId] && detailMap[workId].expPage;
             if (targetPage) {
-                window.location.href = targetPage;
+                // 개발 서버가 max-age=3600 을 보내므로, JS 내비게이션은 재검증 없이
+                // 캐시된 낡은 체험 페이지를 그대로 띄운다. goToCheckInPrep() 과 동일하게
+                // 타임스탬프를 붙여 항상 최신 페이지를 받도록 한다.
+                var sep = targetPage.indexOf('?') > -1 ? '&' : '?';
+                window.location.href = targetPage + sep + 't=' + Date.now();
             } else {
                 alert("해당 체험은 아직 준비 중입니다.");
             }
@@ -1520,6 +1527,29 @@
         $(document).ready(function () {
             applyWorkTitle();
             renderWorkFlow();
+
+            // ── 체험 완료(isExp) 검출 ──
+            // window.load 는 모든 리소스를 기다리고, 같은 핸들러 앞부분에서 예외가 나면
+            // 검출 자체가 실행되지 않는다. DOM 이 준비된 이 시점에서 먼저 판정한다.
+            try {
+                seedUserWorkProgress();
+                checkExperienceStatus();
+            } catch (e) {
+                console.warn('[체험상태] ready 검출 실패:', e);
+            }
+
+            // 다른 탭(체험 페이지)에서 완료 처리하면 즉시 반영
+            window.addEventListener('storage', function (event) {
+                if (!event.key || (window.MockData && window.MockData.workProgressKeys
+                        && window.MockData.workProgressKeys.indexOf(event.key) > -1)) {
+                    checkExperienceStatus();
+                }
+            });
+
+            // 체험 페이지에서 돌아와 탭이 다시 활성화될 때도 재검출
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) checkExperienceStatus();
+            });
 
             // 💡 [수정] My Page(mypage2.html) 이동을 지원하는 badge-name 뱃지 렌더링 및 클릭 이벤트 바인딩
             const user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
@@ -1656,19 +1686,27 @@
                 if (matched) numericUserId = matched.id;
             }
 
-            // 3. LocalStorage 및 MockData에서 isExp 확인
+            // 3. isExp 확인 - store.js 의 통합 판정 함수를 사용한다.
+            //    (userWorkProgress / app_user_work_progress 두 저장 키를 모두 확인)
             var isCompleted = false;
-            try {
-                var progressDb = JSON.parse(localStorage.getItem('userWorkProgress') || '[]');
-                var rec = progressDb.find(function(p) {
-                    return (p.userId == numericUserId || p.userId == 2) && String(p.workId) === String(workId);
-                });
-                if (rec && rec.isExp) isCompleted = true;
-            } catch(e) {}
+            if (window.MockData && typeof window.MockData.isExpCompleted === 'function') {
+                isCompleted = window.MockData.isExpCompleted(numericUserId, workId);
+            } else {
+                // store.js 가 구버전일 때의 폴백
+                try {
+                    var progressDb = JSON.parse(localStorage.getItem('userWorkProgress') || '[]');
+                    var rec = progressDb.find(function(p) {
+                        return (p.userId == numericUserId || p.userId == 2) && String(p.workId) === String(workId);
+                    });
+                    if (rec && rec.isExp) isCompleted = true;
+                } catch(e) {}
+            }
 
-            if (!isCompleted && numericUserId && window.MockData && window.MockData.getWorkProgress) {
-                var progress = window.MockData.getWorkProgress(numericUserId, parseInt(workId));
-                isCompleted = progress && progress.isExp === true;
+            // 판정 결과가 바뀔 때만 로그 (ready/load/탭 복귀에서 여러 번 호출되므로)
+            var statusKey = workId + '|' + numericUserId + '|' + isCompleted;
+            if (window.__lastExpStatusKey !== statusKey) {
+                window.__lastExpStatusKey = statusKey;
+                console.log('[체험상태]', { workId: workId, userId: numericUserId, isExp: isCompleted, expPage: expPage });
             }
 
             // 항상 예약할 수 있도록 experienceCompleted는 true로 설정
@@ -2093,13 +2131,23 @@
 
         //뒤로가기
         window.addEventListener('load', function () {
+            // 💡 뒤로가기 버튼이 없는 경우 여기서 TypeError 가 나면
+            //    아래 checkExperienceStatus() 까지 실행되지 않으므로 null 검사를 둔다.
             var header = document.querySelector('.bi.bi-chevron-left.back');
-            header.addEventListener('click', function () {
-                document.location.href = "main.html";
-            });
+            if (header) {
+                header.addEventListener('click', function () {
+                    document.location.href = "main.html";
+                });
+            }
 
-            // 체험 상태 체크
+            // 체험 상태 체크 (ready 에서 이미 1차 검출, 여기서 최종 확인)
             checkExperienceStatus();
+
+            // 체험 페이지에서 뒤로 가기로 복귀하면 이 페이지가 bfcache 에서 복원되어
+            // ready 코드가 다시 돌지 않는다. 그때도 체험 완료 뱃지를 갱신한다.
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) checkExperienceStatus();
+            });
 
             // 작업 시작일 표시
             updateJobStartDate();
