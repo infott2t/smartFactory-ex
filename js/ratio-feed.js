@@ -119,6 +119,8 @@
      *
      * data-ratio-digits 로 소수 자릿수를 지정할 수 있다 (기본 2).
      * ------------------------------------------------------------------ */
+    var refreshing = false;
+
     function refreshRatioElements(root) {
         var scope = root || document;
         var stepMs = STEPS[LIST_KEY].stepMs;
@@ -158,9 +160,38 @@
                 node.style.color = up ? COLOR_UP : COLOR_DOWN;
             });
         });
+
+        // 콜백이 다시 refreshRatioElements() 를 부르더라도 무한 재귀에 빠지지 않게 막는다
+        if (!refreshing) {
+            refreshing = true;
+            try {
+                notifyRefresh();
+            } finally {
+                refreshing = false;
+            }
+        }
     }
 
     var listTimer = null;
+    var refreshListeners = [];
+
+    /**
+     * 값이 갱신된 직후 실행할 콜백을 등록한다.
+     * 목록을 값 기준으로 정렬해 두는 화면(explore.html)이 순서를 다시 맞추는 데 쓴다.
+     */
+    function onRefresh(fn) {
+        if (typeof fn === 'function') refreshListeners.push(fn);
+    }
+
+    function notifyRefresh() {
+        for (var i = 0; i < refreshListeners.length; i++) {
+            try {
+                refreshListeners[i]();
+            } catch (e) {
+                console.warn('[RatioFeed] onRefresh 콜백 오류:', e);
+            }
+        }
+    }
 
     /**
      * 목록 화면의 가중치를 10초 버킷 경계에 맞춰 계속 갱신한다.
@@ -202,6 +233,7 @@
         listValue: listValue,
         msUntilNext: msUntilNext,
         refreshRatioElements: refreshRatioElements,
-        startListFeed: startListFeed
+        startListFeed: startListFeed,
+        onRefresh: onRefresh
     };
 })(window);

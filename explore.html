@@ -311,6 +311,73 @@
             let currentSortType = '급여';
 
             // -------------------------
+            // 실시간 급여(가중치) 정렬 유지
+            //
+            // 급여 값은 10초마다 바뀌므로, 정적인 item.salary 로 정렬하면
+            // 화면에 보이는 숫자와 순서가 어긋난다. 그래서
+            //  1) 정렬 비교도 실시간 값으로 하고
+            //  2) 값이 갱신될 때마다 현재 정렬 상태(오름/내림)로 다시 줄을 세운다.
+            // -------------------------
+
+            // 현재 화면에 표시되는 실시간 가중치
+            function getLiveRatio(workId) {
+                return (window.RatioFeed)
+                    ? window.RatioFeed.listValue(workId)
+                    : 0;
+            }
+
+            // 활성 탭에서 선택된 정렬 항목과 방향을 DOM 에서 읽는다.
+            // 정렬 상태는 탭별로 .sort-item 의 클래스에 남아 있으므로,
+            // 탭을 옮겨도 그 탭의 정렬 상태를 그대로 인식할 수 있다.
+            function getActiveSortState() {
+                let $activeTab = $('.tab-content.active');
+                let $selected = $activeTab.find('.sort-item.sort-up, .sort-item.sort-down').first();
+                if (!$selected.length) return null;
+                return {
+                    type: $selected.find('.lspace').text().trim(),
+                    isAscending: $selected.hasClass('sort-up')
+                };
+            }
+
+            // 급여 정렬 비교 함수 (실시간 값 기준).
+            // 값이 같을 때는 workId 로 갈라서 순서가 흔들리지 않게 한다(안정 정렬).
+            function compareByLiveRatio(aId, bId, isAscending) {
+                let va = getLiveRatio(aId);
+                let vb = getLiveRatio(bId);
+                if (va === vb) {
+                    return parseInt(aId, 10) - parseInt(bId, 10);
+                }
+                return isAscending ? va - vb : vb - va;
+            }
+
+            /*
+             * 이미 그려진 목록의 순서만 현재 값 기준으로 다시 맞춘다.
+             * DOM 을 새로 만들지 않고 기존 노드를 옮기기 때문에
+             * 탭 전환 애니메이션이 다시 재생되거나 스크롤이 튀지 않는다.
+             */
+            function resortVisibleList() {
+                let state = getActiveSortState();
+                if (!state || state.type !== '급여') return;
+
+                let $box = $('.tab-content.active').find('.slider-box').first();
+                if (!$box.length) return;
+
+                let items = $box.children('.task-item').get();
+                if (items.length < 2) return;
+
+                items.sort(function (a, b) {
+                    return compareByLiveRatio(
+                        a.getAttribute('data-id'),
+                        b.getAttribute('data-id'),
+                        state.isAscending
+                    );
+                });
+
+                let box = $box[0];
+                items.forEach(function (el) { box.appendChild(el); });
+            }
+
+            // -------------------------
             // 유틸 함수 (이메일 가져오기)
             // -------------------------
             function getCurrentUserEmail() {
@@ -346,7 +413,11 @@
                 renderWorkList(dbData, $firstTab);
 
                 // 일별 가중치를 10초 단위로 계속 갱신 (main.html 과 동일한 값)
-                if (window.RatioFeed) window.RatioFeed.startListFeed();
+                if (window.RatioFeed) {
+                    // 값이 바뀔 때마다 현재 정렬 상태로 순서를 다시 맞춘다
+                    window.RatioFeed.onRefresh(resortVisibleList);
+                    window.RatioFeed.startListFeed();
+                }
             }
 
             function extractCategoryData(data) {
@@ -451,8 +522,12 @@
                 // ⭐️ 모아둔 데이터를 통째로 slider-box로 감싸서 한 번에 화면에 붙입니다
                 $targetTab.append(`<div class="slider-box">${innerHtml}</div>`);
 
-                // 새로 그린 목록의 가중치를 즉시 현재 값으로 맞춘다
-                if (window.RatioFeed) window.RatioFeed.refreshRatioElements();
+                // 새로 그린 목록의 가중치를 즉시 현재 값으로 맞추고,
+                // 그 값 기준으로 정렬 상태도 다시 적용한다.
+                if (window.RatioFeed) {
+                    window.RatioFeed.refreshRatioElements();
+                    resortVisibleList();
+                }
             }
 
             // 카테고리 렌더링 함수
@@ -511,10 +586,14 @@
                 } else { // 그 외 탭 정렬
                     currentSortType = sortType;
                     dbData.sort((a, b) => {
+                        // 급여는 화면에 보이는 실시간 값으로 비교해야 순서가 맞는다
+                        if (sortType === '급여') {
+                            return compareByLiveRatio(a.workId, b.workId, isAscending);
+                        }
+
                         let result = 0;
                         switch (sortType) {
                             case '지역': result = a.region.localeCompare(b.region); break;
-                            case '급여': result = a.salary - b.salary; break;
                             case 'Task 수': result = a.taskCount - b.taskCount; break;
                             case '참여자': result = a.participants - b.participants; break;
                             case '생성일': result = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(); break;
