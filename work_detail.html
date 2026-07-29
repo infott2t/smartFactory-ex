@@ -44,10 +44,6 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        .badge-name {
-            padding: 2px 8px;
-        }
-
         /* 토스트 알림창 스타일 */
         .toast-message {
             position: fixed;
@@ -180,6 +176,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="/js/pwa.js" defer></script>
+    <link rel="stylesheet" href="./css/app-footer.css?v=1.0.0">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.1">
+    <script src="./js/app-footer.js?v=1.0.0" defer></script>
+    <script src="./js/app-notifications.js?v=1.0.1" defer></script>
 </head>
 
 <body>
@@ -190,9 +190,6 @@
                     <i class="bi bi-chevron-left back"></i><img src="./images/k-icon_150x150.png" /><span
                         class="cursor-pointer" onclick="openStatusPage()">김치만들기</span><i id="work-stars"
                         class="bi bi-star"></i>
-                    <button type="button" class="h-open-btn"
-                        style="margin-left: auto; background: none; border: none; padding: 0; outline: none; cursor: pointer; display: flex; align-items: center;"><i
-                            class="bi bi-person-circle" style="font-size: 24px; color: #fff;"></i></button>
                 </div>
                 <div class="text0">
                     <i class="bi bi-caret-up-fill"></i><span>1.3</span><span class="ratio">+0.03%</span>
@@ -1411,6 +1408,12 @@
         }
 
         function goToCheckInPrep() {
+            // 체험 출근 진입: 다음 페이지(kimp_ex0.html)를 store.js 데이터로 결정하도록 모드를 저장한다.
+            var prepParams = new URLSearchParams(window.location.search);
+            var prepWorkId = prepParams.get('id') || '1';
+            if (window.MockData && typeof window.MockData.setWorkEntryContext === 'function') {
+                window.MockData.setWorkEntryContext(prepWorkId, 'experience');
+            }
             window.location.href = "kimp_virt.html?t=" + Date.now();
         }
 
@@ -1430,6 +1433,10 @@
                 ? JSON.parse(window.MockData.workDetailJSON) : {};
             var targetPage = detailMap[workId] && detailMap[workId].expPage;
             if (targetPage) {
+                // 체험 진입 모드 저장 (이후 위생체크 페이지에서 목적지를 잘못 잡지 않도록)
+                if (window.MockData && typeof window.MockData.setWorkEntryContext === 'function') {
+                    window.MockData.setWorkEntryContext(workId, 'experience');
+                }
                 // 개발 서버가 max-age=3600 을 보내므로, JS 내비게이션은 재검증 없이
                 // 캐시된 낡은 체험 페이지를 그대로 띄운다. goToCheckInPrep() 과 동일하게
                 // 타임스탬프를 붙여 항상 최신 페이지를 받도록 한다.
@@ -1549,26 +1556,6 @@
             // 체험 페이지에서 돌아와 탭이 다시 활성화될 때도 재검출
             document.addEventListener('visibilitychange', function () {
                 if (!document.hidden) checkExperienceStatus();
-            });
-
-            // 💡 [수정] My Page(mypage2.html) 이동을 지원하는 badge-name 뱃지 렌더링 및 클릭 이벤트 바인딩
-            const user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-            if (user) {
-                if (user.picture) {
-                    $(".h-open-btn").html('<img src="' + user.picture + '" style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ffffff; object-fit: cover; vertical-align: middle;" alt="' + user.name + '" />');
-                } else {
-                    $(".h-open-btn").html('<span class="badge-name">' + user.name + '</span>');
-                }
-            }
-
-            $(".h-open-btn").click(function (e) {
-                e.stopPropagation();
-                const isLoggedIn = window.AuthManager ? !!window.AuthManager.getCurrentUser() : !!sessionStorage.getItem("user");
-                if (isLoggedIn) {
-                    location.href = "./mypage2.html";
-                } else {
-                    location.href = "./login.html";
-                }
             });
 
             var urlParams = new URLSearchParams(window.location.search);

@@ -76,7 +76,7 @@
                     </div>
                     <div class="box-value res-btn-box reverse">
                         
-                        <button type="button" class="res-check-in-btn" onclick="location.href='kimp_virt2.html'">입장하기</button>
+                        <button type="button" class="res-check-in-btn" onclick="enterWorkPlace('kimp_virt2.html', 1)">입장하기</button>
                         <button type="button" class="res-cancel-btn" onclick="">예약 취소</button>
                     </div>
                  
@@ -353,6 +353,11 @@
                 } catch(e) {}
             }
 
+            // 김치만들기 업무는 역할이나 저장된 링크와 관계없이 새 작업 페이지로 입장한다.
+            if (workId === 1) {
+                expPage = "kimp_virt2.html";
+            }
+
             // 상단 Profile Info Box 업데이트
             $('#info-icon').attr('src', iconUrl);
             $('#info-brand').text(brandName);
@@ -380,15 +385,27 @@
                     </div>
                 </div>
                 <div class="box-value res-btn-box reverse">
-                    <button type="button" class="res-check-in-btn" onclick="location.href='${expPage}'">입장하기</button>
+                    <button type="button" class="res-check-in-btn" onclick="enterWorkPlace('${expPage}', ${workId})">입장하기</button>
                     <button type="button" class="res-cancel-btn" onclick="cancelReservationInAnnounce(${res.id})">예약 취소</button>
                 </div>
             `;
             container.html(html);
         }
 
-        function cancelReservationInAnnounce(id) {
-            if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
+        /**
+         * 실제 근무 출근 입장.
+         * store.js 에 '실제 근무' 진입 모드를 저장해 두어, 위생체크 페이지
+         * (kimp_virt2.html) 다음 단계에서 체험 페이지(kimp_ex0.html)가 아닌
+         * 실제 근무 페이지(kimp_ex1.html)로 가도록 한다.
+         */
+        function enterWorkPlace(page, workId) {
+            if (window.MockData && typeof window.MockData.setWorkEntryContext === 'function') {
+                window.MockData.setWorkEntryContext(workId || 1, 'real');
+            }
+            window.location.href = page;
+        }
+
+        function cancelReservationInAnnounce(id) {            if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
 
             let db = FactoryStore.getState().reservations;
             const targetRes = db.find(r => r.id === id);

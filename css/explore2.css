@@ -1,11 +1,7 @@
-  .header {
-      padding-bottom: 34px;
-      padding-top: 16px;
-  }
+  /* 헤더 크기와 뒤로가기 정렬은 explore.css의 공통 규칙을 사용합니다. */
 
-  .task-item:first-child {
-    padding-top: 19px !important;
-}
+  /* .task-item:first-child 의 padding-top 보정 제거
+     (첫 항목이 fixed sort-row에 가려지던 문제는 #history-container 의 margin-top 으로 해결) */
 
   /* 기본 탭 설정 및 여백 조정 */
   .content-area {
@@ -147,7 +143,7 @@
 .sort-row {
     padding: 10px 15px;
     border-bottom: 1px solid #2a2a35;
-    height: 42px !important; /* 높이를 정확한 픽셀로 고정 */
+    top:139px;
     box-sizing: border-box;
     display: flex;
     align-items: center;

@@ -1767,13 +1767,16 @@
 
                 advanceToNextStep(7, 'Workshop 입장 완료');
 
-                // 페이지 이동
+                // 페이지 이동 (체험 진입: store.js 의 expPage 데이터를 사용)
                 const userInfo = JSON.parse(sessionStorage.getItem("user"));
                 setTimeout(() => {
                     if (userInfo.role === '헬퍼') {
                         window.location.href = "kimp_helper.html";
                     } else {
-                        window.location.href = "kimp_ex0.html";
+                        const targetPage = (window.MockData && typeof window.MockData.resolveWorkEntryPage === 'function')
+                            ? window.MockData.resolveWorkEntryPage('experience', 1)
+                            : "kimp_ex0.html";
+                        window.location.href = targetPage;
                     }
                 }, 500);
             });

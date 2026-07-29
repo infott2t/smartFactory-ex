@@ -1,0 +1,106 @@
+:root {
+    --app-footer-height: 68px;
+    --app-footer-bg: rgba(10, 8, 31, 0.96);
+    --app-footer-border: rgba(255, 255, 255, 0.1);
+    --app-footer-text: #8f8ca3;
+    --app-footer-active: #a99cff;
+}
+
+body.app-footer-enabled {
+    padding-bottom: calc(var(--app-footer-height) + env(safe-area-inset-bottom)) !important;
+    box-sizing: border-box;
+}
+
+body.app-footer-enabled .main,
+body.app-footer-enabled .main-mypage,
+body.app-footer-enabled .main-settings {
+    padding-bottom: calc(var(--app-footer-height) + 24px + env(safe-area-inset-bottom)) !important;
+    box-sizing: border-box;
+}
+
+.app-footer-shell {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    z-index: 9000;
+    width: 100%;
+    max-width: 800px;
+    transform: translateX(-50%);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--app-footer-bg);
+    border-top: 1px solid var(--app-footer-border);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.app-footer-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: var(--app-footer-height);
+    margin: 0;
+}
+
+.app-footer-item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--app-footer-text);
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.app-footer-item i {
+    font-size: 21px;
+    line-height: 1;
+}
+
+.app-footer-item::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 28px;
+    height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: transparent;
+}
+
+.app-footer-item:hover,
+.app-footer-item:focus-visible,
+.app-footer-item.is-active {
+    color: var(--app-footer-active);
+}
+
+.app-footer-item:active {
+    transform: translateY(1px);
+}
+
+.app-footer-item.is-active::before {
+    background: var(--app-footer-active);
+    box-shadow: 0 0 10px rgba(169, 156, 255, 0.7);
+}
+
+.app-footer-item:focus-visible {
+    outline: 2px solid var(--app-footer-active);
+    outline-offset: -4px;
+    border-radius: 8px;
+}
+
+@media (max-width: 360px) {
+    .app-footer-item {
+        font-size: 10px;
+    }
+
+    .app-footer-item i {
+        font-size: 19px;
+    }
+}

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
     <script src="./js/store.js" type="text/javascript"></script>
     <script src="./js/shop-order-detail.js?v=20260728b" type="text/javascript"></script>
     <link rel="manifest" href="/manifest.json">
@@ -18,6 +19,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="/js/pwa.js" defer></script>
+    <link rel="stylesheet" href="./css/app-footer.css?v=1.0.0">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.1">
+    <script src="./js/app-footer.js?v=1.0.0" defer></script>
+    <script src="./js/app-notifications.js?v=1.0.1" defer></script>
 </head>
 
 <body>
@@ -29,6 +34,7 @@
             <div class="title"><span>나의 활동 내역</span></div>
         </div>
 
+        <div class="padding-20"></div>
         <div class="tabs">
             <ul class="tab-list">
                 <li class="tab-item active" data-target="partner">파트너 등급</li>
@@ -60,7 +66,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="partner-container" style="margin-top: 47px;">
+                    <div id="partner-container" style="margin-top: 63px;">
                     </div>
                 </section>
 
@@ -81,7 +87,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="reservation-container" style="margin-top: 42px;">
+                    <div id="reservation-container" style="margin-top: 63px;">
                     </div>
                 </section>
 
@@ -102,7 +108,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="history-container" style="margin-top: 42px;">
+                    <div id="history-container" style="margin-top: 63px;">
                     </div>
                 </section>
 
@@ -120,7 +126,7 @@
                             <i class="bi bi-heart-fill" style="color: #ff3366; font-size: 12px; vertical-align: middle;"></i>
                         </div>
                     </div>
-                    <div id="shopping-container" style="">
+                    <div id="shopping-container" style="margin-top: 12px;">
                     </div>
                 </section>
 
@@ -391,6 +397,83 @@
                 return fallback;
             }
 
+            function normalizeReservationDate(reservation) {
+                const source = reservation || {};
+                const rawDate = source.date ?? source.reservationDate ?? source.reservedDate
+                    ?? source.workDate ?? source.scheduleDate ?? source.selectedDate;
+                let year;
+                let month;
+                let day;
+
+                if (rawDate instanceof Date && !Number.isNaN(rawDate.getTime())) {
+                    year = rawDate.getFullYear();
+                    month = rawDate.getMonth() + 1;
+                    day = rawDate.getDate();
+                } else if (rawDate && typeof rawDate === 'object') {
+                    year = Number(rawDate.year ?? rawDate.y);
+                    month = Number(rawDate.month ?? rawDate.m);
+                    day = Number(rawDate.day ?? rawDate.date ?? rawDate.d);
+                } else if (typeof rawDate === 'number' && Number.isFinite(rawDate)) {
+                    const parsedTimestamp = new Date(rawDate);
+                    if (!Number.isNaN(parsedTimestamp.getTime())) {
+                        year = parsedTimestamp.getFullYear();
+                        month = parsedTimestamp.getMonth() + 1;
+                        day = parsedTimestamp.getDate();
+                    }
+                } else if (rawDate !== undefined && rawDate !== null) {
+                    const dateText = String(rawDate).trim();
+                    let match = dateText.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+                    if (!match) match = dateText.match(/^(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+                    if (!match) match = dateText.match(/^(\d{4})(\d{2})(\d{2})$/);
+                    if (match) {
+                        year = Number(match[1]);
+                        month = Number(match[2]);
+                        day = Number(match[3]);
+                    } else {
+                        const parsedText = new Date(dateText);
+                        if (!Number.isNaN(parsedText.getTime())) {
+                            year = parsedText.getFullYear();
+                            month = parsedText.getMonth() + 1;
+                            day = parsedText.getDate();
+                        }
+                    }
+                }
+
+                const parsedDate = new Date(year, Number(month) - 1, day);
+                const isValid = Number.isInteger(year) && Number.isInteger(month) && Number.isInteger(day)
+                    && year >= 1900 && year <= 2200
+                    && parsedDate.getFullYear() === year
+                    && parsedDate.getMonth() === month - 1
+                    && parsedDate.getDate() === day;
+                if (!isValid) {
+                    return { valid: false, key: '', display: '날짜 미정', dayName: '', sortValue: null };
+                }
+
+                const monthText = String(month).padStart(2, '0');
+                const dayText = String(day).padStart(2, '0');
+                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                return {
+                    valid: true,
+                    key: `${year}-${monthText}-${dayText}`,
+                    display: `${year}.${monthText}.${dayText}`,
+                    dayName: dayNames[parsedDate.getDay()],
+                    sortValue: parsedDate.getTime()
+                };
+            }
+
+            function compareReservationDates(a, b, direction) {
+                const dateA = normalizeReservationDate(a);
+                const dateB = normalizeReservationDate(b);
+                if (dateA.valid !== dateB.valid) return dateA.valid ? -1 : 1;
+                if (!dateA.valid && !dateB.valid) return 0;
+
+                let comparison = dateA.sortValue - dateB.sortValue;
+                if (comparison === 0) {
+                    comparison = (Number(a.slot) || 0) - (Number(b.slot) || 0);
+                }
+                return direction === 'asc' ? comparison : -comparison;
+            }
+
             // 렌더링 함수
             function renderCurrentTab(index) {
                 const user = getCurrentUser();
@@ -463,10 +546,7 @@
                             let payB = Math.floor(minWage * 2 * (b.ratio ? Number(b.ratio) : 1.2));
                             return currentSortDir === 'asc' ? (payA - payB) : (payB - payA);
                         } else {
-                            let dateA = (a.date || '') + '_' + String(a.slot || 0);
-                            let dateB = (b.date || '') + '_' + String(b.slot || 0);
-                            let cmp = dateA.localeCompare(dateB);
-                            return currentSortDir === 'asc' ? cmp : -cmp;
+                            return compareReservationDates(a, b, currentSortDir);
                         }
                     });
 
@@ -480,13 +560,7 @@
                     } else {
                         let html = '';
                         myReservations.forEach(r => {
-                            const parts = r.date.split('-');
-                            let dayName = '';
-                            if (parts.length === 3) {
-                                const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-                                dayName = dayNames[d.getDay()];
-                            }
+                            const normalizedDate = normalizeReservationDate(r);
 
                             const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
                             const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
@@ -544,7 +618,7 @@
                                                 ${displayRatio}x
                                             </span>
                                             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center;">
-                                                <span class="date-text" style="margin-bottom: 4px; font-size: 12px; color: #979797;">${parts[0]}.${parts[1]}.${parts[2]}</span>
+                                                <span class="date-text" data-date-key="${normalizedDate.key}" data-date-valid="${normalizedDate.valid}" style="margin-bottom: 4px; font-size: 12px; color: #979797;">${normalizedDate.display}</span>
                                                 <span class="pay-text" style="color: #ccc; font-size:12px; white-space: nowrap;">예정 +₩ ${expectedPay.toLocaleString()}</span>  
                                             </div>
                                         </div>

@@ -1837,11 +1837,15 @@
             setPartitionedItem('kimp_checkin_prep_completed', 'true');
             completeStep(7);
             
+            // 체험/실제 근무 구분에 따라 다음 페이지를 결정한다. (store.js 의 expPage / realPage)
             setTimeout(() => {
                 if (sessionUser && sessionUser.role === '헬퍼') {
                     window.location.href = "kimp_helper.html";
                 } else {
-                    window.location.href = "kimp_ex1.html";
+                    const targetPage = (window.MockData && typeof window.MockData.resolveWorkEntryPage === 'function')
+                        ? window.MockData.resolveWorkEntryPage('real', 1)
+                        : "kimp_ex1.html";
+                    window.location.href = targetPage;
                 }
             }, 500);
         }

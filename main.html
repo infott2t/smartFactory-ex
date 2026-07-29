@@ -108,24 +108,62 @@
             transform: translateY(-2px);
         }
     }
+
+    .main-member-control {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        padding-left: 10px;
+    }
+
+    .main-member-control .h-open-btn {
+        display: inline-flex;
+        min-width: 34px;
+        height: 34px;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        border-radius: 17px;
+    }
+
+    .main-member-control .h-open-btn > i {
+        font-size: 18px;
+    }
+
+    .main-page-title {
+        box-sizing: border-box;
+        padding: 18px 15px 14px;
+    }
+
+    .main-page-title {
+        margin: 0;
+        color: #fff;
+        font-size: 18px;
+      
+        line-height: 1.35;
+    }
 </style>
+<link rel="stylesheet" href="./css/app-footer.css?v=1.0.0">
+<link rel="stylesheet" href="./css/app-notifications.css?v=1.0.1">
+<script src="./js/app-footer.js?v=1.0.0" defer></script>
+<script src="./js/app-notifications.js?v=1.0.1" defer></script>
 </head>
 <body>
     <div class="header-wrap">
         <header class="header">
-            <div class="h-logo">
-                <h3>스마트 팩토리</h3>
+            <div class="h-logo main-member-control">
+                <button type="button" class="h-open-btn" aria-label="마이페이지"><i class="bi bi-person-circle"></i></button>
             </div>
 
             <div class="h-bar">
                 <input type="text" class="h-search" placeholder="Search">
-                <button type="button" class="h-open-btn"><i class="bi bi-person-circle"></i></button>
             </div>
         </header>
     </div>
 <div class="main-wrap">
 <main class="main">
-<div class="padding-20"></div>    
+<div class="main-page-title">스마트 팩토리</div>    
 <div class="comment"><div><span>오늘의 새로운 일 <i class="bi bi-stars"></i> </span></div>
 <div><a href="./explore.html">더 보기</a></div>
 </div>
@@ -149,8 +187,11 @@
 </div>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        if (window.MockData && window.MockData.worksJSON) {
-            const works = JSON.parse(window.MockData.worksJSON);
+        const works = (window.FactoryStore && typeof window.FactoryStore.getWorks === "function")
+            ? window.FactoryStore.getWorks()
+            : ((window.MockData && window.MockData.worksJSON) ? JSON.parse(window.MockData.worksJSON) : []);
+
+        if (works.length > 0) {
             
             // 1. 오늘의 새로운 일 (isNew === true)
             const newWorksContainer = document.getElementById("new-works-container");
@@ -257,33 +298,85 @@ function resetSession() {
     }
 }
 
-$(document).ready(function(){
-    // Check logged in status for header display
-    const user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
-    if (user) {
-        // Replace profile icon with a small round profile picture if exists, else name/default icon
-        if (user.picture) {
-            $(".h-open-btn").html('<img src="' + user.picture + '" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #ffffff; object-fit: cover; vertical-align: middle;" alt="' + user.name + '" />');
-        } else {
-            $(".h-open-btn").html('<span class="badge-name" >' + user.name + '</span>');
-        }
-        if (user.name === '최현일' || 
-            user.email === 'tt2t2am1118@naver.com' || 
-            user.role === 'MANAGER' || 
-            user.email === 'manager' ||
-            (user.email && user.email.toLowerCase().includes('manager')) ||
-            (user.name && user.name.toLowerCase().includes('manager'))) {
-            $("#fab-manager-console").css("display", "flex");
-            $("#fab-manager-console").css("transform", "translateX(-50%)");
-        } else {
-            $("#fab-manager-console").hide();
-        }
-    } else {
-        $("#fab-manager-console").hide();
+function resolveMainCurrentUser() {
+    let sessionUser = null;
+
+    if (window.AuthManager && typeof window.AuthManager.getCurrentUser === "function") {
+        sessionUser = window.AuthManager.getCurrentUser();
     }
 
+    if (!sessionUser) {
+        try {
+            sessionUser = JSON.parse(sessionStorage.getItem("user") || "null");
+        } catch (error) {
+            sessionUser = null;
+        }
+    }
+
+    if (!sessionUser) {
+        try {
+            const userInfo = JSON.parse(sessionStorage.getItem("user_info") || "null");
+            sessionUser = userInfo && (userInfo.user || userInfo);
+        } catch (error) {
+            sessionUser = null;
+        }
+    }
+
+    const sessionId = sessionStorage.getItem("user-id");
+    const needsDirectoryLookup = !sessionUser || !sessionUser.name;
+    if (needsDirectoryLookup && sessionId && sessionId !== "guest") {
+        let users = [];
+        if (window.FactoryStore && typeof window.FactoryStore.getUsers === "function") {
+            users = window.FactoryStore.getUsers();
+        } else if (window.MockData && Array.isArray(window.MockData.users)) {
+            users = window.MockData.users;
+        }
+
+        const normalizedId = String(sessionId).replace(/^local-/, "");
+        const matchedUser = users.find(function(candidate) {
+            return String(candidate.id) === String(sessionId)
+                || String(candidate.email || "") === String(sessionId)
+                || String(candidate.email || "") === normalizedId;
+        });
+        if (matchedUser) sessionUser = Object.assign({}, matchedUser, sessionUser || {});
+    }
+
+    return sessionUser;
+}
+
+function renderMainMemberControl() {
+    const user = resolveMainCurrentUser();
+    const button = $(".main-member-control .h-open-btn");
+    if (!user || button.length === 0) return user;
+
+    button.empty();
+    if (user.picture) {
+        const image = document.createElement("img");
+        image.src = user.picture;
+        image.alt = (user.name || "회원") + " 프로필";
+        Object.assign(image.style, {
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            border: "2px solid #ffffff",
+            objectFit: "cover",
+            verticalAlign: "middle"
+        });
+        button[0].appendChild(image);
+    } else {
+        const nameBadge = document.createElement("span");
+        nameBadge.className = "badge-name";
+        nameBadge.textContent = user.name || "회원";
+        button[0].appendChild(nameBadge);
+    }
+    return user;
+}
+
+$(document).ready(function(){
+    renderMainMemberControl();
+
     function checkLoginAndRedirect(targetUrl) {
-        const user = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+        const user = resolveMainCurrentUser();
         if (!user) {
             alert("로그인이 필요합니다. 로그인 페이지로 이동합니다.");
             window.location.href = "./login.html";
@@ -316,7 +409,7 @@ $(document).ready(function(){
     // 프로필 버튼 클릭 시 마이페이지(로그인 상태) 또는 로그인 페이지로 전환
     $(".h-open-btn").click(function(e) {
         e.stopPropagation();
-        const isLoggedIn = window.AuthManager ? !!window.AuthManager.getCurrentUser() : !!sessionStorage.getItem("user");
+        const isLoggedIn = !!resolveMainCurrentUser();
         if (isLoggedIn) {
             location.href = "./mypage2.html";
         } else {
@@ -326,11 +419,6 @@ $(document).ready(function(){
 });
 </script>
 
-<!-- 매니저 콘솔 플로팅 버튼 -->
-<a href="./manager.html" id="fab-manager-console" style="display: none; position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #00b894, #00d2d3); color: #fff; border: none; border-radius: 30px; padding: 12px 20px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 25px rgba(0, 184, 148, 0.4); align-items: center; gap: 8px; cursor: pointer; z-index: 9999; text-decoration: none; transition: all 0.25s;">
-    <i class="bi bi-speedometer2"></i>
-    <span>매니저 콘솔</span>
-</a>
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {

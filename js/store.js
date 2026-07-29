@@ -2750,7 +2750,7 @@ window.MockData = {
         },
         {
             "workId": 2, "workName": "우동만들기", "brandName": "Uton", "iconUrl": "./images/Uton_150x150.png",
-            "salary": 1.1, "salaryChange": -0.05, "taskCount": 4, "participants": 70, "createdAt": "2025-03-19",
+            "salary": 1.1, "salaryChange": -0.05, "taskCount": 2, "participants": 70, "createdAt": "2025-03-19",
             "region": "서울시 강남구 역삼동", "categories": ["음식", "요리", "우동", "만들기"],
             "isNew": false,
             "fulfillmentType": "dine_in",
@@ -2944,7 +2944,8 @@ window.MockData = {
     workDetailJSON: `{
         "1": {
             "title": "김치만들기",
-            "expPage": "kimp_ex1.html",
+            "expPage": "kimp_ex0.html",
+            "realPage": "kimp_ex1.html",
             "iconUrl": "./images/k-icon_150x150.png",
             "value": 1.3,
             "change": "+0.03%",
@@ -6920,4 +6921,95 @@ window.MockData.cancelBurgerHelpRequest = function(id) {
     this.saveBurgerHelpRequests(list);
     this.addBurgerWorkerLog({ text: '[도움요청] 요청을 취소했습니다.', kind: 'info', workerName: target.workerName });
     return { ok: true, request: target };
+};
+
+/* ============================================================
+ * 작업 진입 페이지(체험/실제 근무) 단일 관리
+ *
+ * 위생 체크 페이지(kimp_virt.html / kimp_virt2.html)에서 다음 페이지로
+ * 넘어갈 때 체험용(kimp_ex0.html)과 실제 근무용(kimp_ex1.html)을 혼동하지
+ * 않도록, 목적지를 workDetailJSON 의 expPage / realPage 로 데이터화하고
+ * 진입 모드를 sessionStorage 에 저장해 두었다가 그대로 사용한다.
+ * ============================================================ */
+window.MockData.WORK_ENTRY_MODES = { EXPERIENCE: 'experience', REAL: 'real' };
+window.MockData.WORK_ENTRY_CONTEXT_KEY = 'work_entry_context';
+
+// 데이터가 비어 있을 때의 최종 폴백
+window.MockData.WORK_ENTRY_FALLBACK = { experience: 'kimp_ex0.html', real: 'kimp_ex1.html' };
+
+window.MockData.normalizeWorkEntryMode = function(mode) {
+    return String(mode) === this.WORK_ENTRY_MODES.REAL
+        ? this.WORK_ENTRY_MODES.REAL
+        : this.WORK_ENTRY_MODES.EXPERIENCE;
+};
+
+/**
+ * 진입 모드/작업 ID 저장. (체험 출근인지, 실제 근무 출근인지)
+ */
+window.MockData.setWorkEntryContext = function(workId, mode) {
+    var context = {
+        workId: String(workId || '1'),
+        mode: this.normalizeWorkEntryMode(mode),
+        savedAt: new Date().toISOString()
+    };
+    try {
+        sessionStorage.setItem(this.WORK_ENTRY_CONTEXT_KEY, JSON.stringify(context));
+    } catch (e) {}
+    return context;
+};
+
+window.MockData.getWorkEntryContext = function() {
+    try {
+        var raw = sessionStorage.getItem(this.WORK_ENTRY_CONTEXT_KEY);
+        if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.mode) {
+                return {
+                    workId: String(parsed.workId || '1'),
+                    mode: this.normalizeWorkEntryMode(parsed.mode)
+                };
+            }
+        }
+    } catch (e) {}
+    return null;
+};
+
+window.MockData.clearWorkEntryContext = function() {
+    try {
+        sessionStorage.removeItem(this.WORK_ENTRY_CONTEXT_KEY);
+    } catch (e) {}
+};
+
+/**
+ * workDetailJSON 의 expPage(체험) / realPage(실제 근무) 를 읽어 목적지 반환.
+ */
+window.MockData.getWorkEntryPage = function(workId, mode) {
+    var resolvedMode = this.normalizeWorkEntryMode(mode);
+    var detail = null;
+    try {
+        var detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+            ? window.FactoryStore.getWorkDetails()
+            : JSON.parse(this.workDetailJSON);
+        detail = detailMap[String(workId || '1')] || null;
+    } catch (e) {}
+
+    if (detail) {
+        if (resolvedMode === this.WORK_ENTRY_MODES.REAL && detail.realPage) return detail.realPage;
+        if (resolvedMode === this.WORK_ENTRY_MODES.EXPERIENCE && detail.expPage) return detail.expPage;
+        // 한쪽만 등록된 작업은 등록된 페이지를 그대로 사용한다.
+        if (detail.realPage) return detail.realPage;
+        if (detail.expPage) return detail.expPage;
+    }
+    return this.WORK_ENTRY_FALLBACK[resolvedMode];
+};
+
+/**
+ * 저장된 진입 모드로 목적지를 결정한다.
+ * 저장값이 없으면 호출한 페이지가 넘긴 기본 모드/작업 ID 를 사용한다.
+ */
+window.MockData.resolveWorkEntryPage = function(defaultMode, defaultWorkId) {
+    var context = this.getWorkEntryContext();
+    var mode = context ? context.mode : this.normalizeWorkEntryMode(defaultMode);
+    var workId = context ? context.workId : String(defaultWorkId || '1');
+    return this.getWorkEntryPage(workId, mode);
 };
