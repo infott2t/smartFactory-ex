@@ -243,16 +243,26 @@ body {
 }
 .t-com > .right {
     font-size: 15px;
+    /* 숫자 2줄(배율 / 참가자)을 오른쪽 정렬 */
+    text-align: right;
 }
 .t-com > .right > div {
     display: flex;
     flex-direction: row;
+    justify-content: flex-end;
     position: relative;
 }
 .t-com > .right > .u > i{
+    /* 색은 실제 등락에 따라 .status-up / .status-down 이 결정한다 (a.box 와 동일 규칙) */
     color: var(--upfill);
     white-space: nowrap;
     padding-right: 2px;
+}
+.t-com > .right > .u > i.status-up {
+    color: #00b894;
+}
+.t-com > .right > .u > i.status-down {
+    color: #ff6b6b;
 }
 .t-com > .right > .d > i {
     visibility: hidden;

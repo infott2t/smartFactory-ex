@@ -335,6 +335,9 @@
     <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- store.js 를 auth.js 보다 먼저 로드해야 AuthManager 가 MockData.users 를 참조할 수 있고,
+         이 페이지의 FactoryStore.dispatch(예약/이력/생산품 동기화)도 실제로 동작한다. -->
+    <script src="./js/store.js" type="text/javascript"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
 </head>
@@ -541,6 +544,23 @@
                 <button type="button" class="menu-btn" onclick="showLeaveForm()">
                     <i class="bi bi-house-heart" style="color: #ec4899;"></i> 조퇴 하기
                 </button>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" class="menu-btn" id="btn-finish-work-menu" style="flex: 1;" disabled
+                            onclick="showWorkFinishGuide()">
+                        <i class="bi bi-box-arrow-right" style="color: #10b981;"></i>
+                        <span id="btn-finish-work-label">근무 종료하기 (종료 10분 전 활성화)</span>
+                    </button>
+                    <button type="button" class="menu-btn" aria-label="근무 종료 활성화 안내"
+                            style="flex: 0 0 46px; justify-content: center;"
+                            onclick="toggleWorkFinishHint()">
+                        <i class="bi bi-info-circle" style="color: #0ea5e9;"></i>
+                    </button>
+                </div>
+                <div id="work-finish-hint"
+                     style="display: none; font-size: 13px; line-height: 1.6; color: var(--text-secondary); background: rgba(14,165,233,0.08); border: 1px dashed #0ea5e9; border-radius: 10px; padding: 10px 12px;">
+                    <b style="color: var(--text-primary);">ℹ️ 근무 종료 10분 전에 활성화됩니다.</b><br>
+                    <span id="work-finish-hint-detail">예정 종료 시각까지 10분 이상 남아 있으면 버튼이 비활성화됩니다.</span>
+                </div>
                 <button type="button" class="menu-btn" onclick="showChatBox()">
                     <i class="bi bi-chat-quote" style="color: #64748b;"></i> 관리자와의 따뜻한 소통 (건의/문의)
                 </button>
@@ -726,26 +746,16 @@
         }
 
         function performLogin(userId) {
-            let email = "";
-            let name = "";
-            let role = "";
-            let certImage = null;
-            let certStatus = null;
-            let workedHours = 0;
-
-            if (userId === 1) {
-                email = "tt2t2am1118@naver.com"; name = "최현일"; role = "ROLE_MANAGER";
-                certImage = "choi_cert.png"; certStatus = "approved"; workedHours = 133;
-            } else if (userId === 2) {
-                email = "capegon21@gmail.com"; name = "최수아"; role = "ROLE_USER";
-                certImage = "sua_cert.png"; certStatus = "approved"; workedHours = 22;
-            } else if (userId === 3) {
-                email = "capegon23@gmail.com"; name = "김수민"; role = "ROLE_USER";
-                certImage = null; certStatus = null; workedHours = 0;
-            } else if (userId === 4) {
-                email = "younghee@naver.com"; name = "김영희"; role = "ROLE_HELPER";
-                certImage = "younghee_cert.png"; certStatus = "approved"; workedHours = 45;
-            }
+            // 테스트 계정 정보는 store.js 의 users 테이블에서 조회한다. (중복 하드코딩 제거)
+            const testProfile = (window.MockData && typeof window.MockData.getTestLoginProfile === 'function')
+                ? window.MockData.getTestLoginProfile(userId)
+                : { email: '', name: '', role: '', certImage: null, certStatus: null, workedHours: 0 };
+            let email = testProfile.email;
+            let name = testProfile.name;
+            let role = testProfile.role;
+            let certImage = testProfile.certImage;
+            let certStatus = testProfile.certStatus;
+            let workedHours = testProfile.workedHours;
 
             const loginTime = new Date().toLocaleTimeString();
             const userData = { id: email, email: email, name: name, role: role, loginTime: loginTime };
@@ -970,7 +980,11 @@
                         const isSaltingMatured = matchedBatch && (matchedBatch.status === "matured" || matchedBatch.cheated);
                         const isS2Submitted = !!(o.stages && o.stages[2] && o.stages[2].statusSubmitted);
                         const isProgressDone = o.progressStatus && (o.progressStatus.includes("Stage2 완료") || o.progressStatus.includes("Stage2완료"));
-                        const isSaltingGone = !matchedBatch && o.status === 'in_progress';
+                        // 💡 [수정] 절임 배치 데이터가 유실된 경우의 구제는 이미 Stage 3 이상으로
+                        //    진행된 지시서에만 적용한다. (이전에는 currentTask 검사를 무조건 우회해서
+                        //    Stage 1 진행 중인 지시서도 Stage 3 에 배정 가능하게 보였다.)
+                        const isPastStage2 = String(o.currentTask) === "3" || Number(o.currentTask) >= 3;
+                        const isSaltingGone = !matchedBatch && o.status === 'in_progress' && isPastStage2;
 
                         if (isSaltingMatured || isS2Submitted || isProgressDone || isSaltingGone) {
                             o.status = 'in_progress';
@@ -1361,6 +1375,11 @@
             forceSetWorkingStep();
             updateHeaderInfo();
             setInterval(updateClocks, 1000);
+            // 라운지 '근무 종료하기' 버튼 활성화 상태 갱신 (종료 10분 전부터 활성화)
+            if (typeof refreshWorkFinishMenu === 'function') {
+                refreshWorkFinishMenu();
+                setInterval(refreshWorkFinishMenu, 1000);
+            }
 
             // 💡 체험 완료 3분 타이머 로직
             const is3min = localStorage.getItem('kimp_ex0_is3min') === 'true';
@@ -2810,18 +2829,16 @@
             }
             // ==========================================================
 
-            // 급여 계산
-            let ratio = 1.2;
-            try {
-                const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
-                if (selRes && selRes.ratio !== undefined) ratio = Number(selRes.ratio);
-            } catch (e) { }
-
-            const hourlyWage = 10320 * ratio;
+            // 급여 계산 (시급/비율은 getCurrentWageRatio / getCurrentHourlyWage 로 통일)
+            let ratio = getCurrentWageRatio();
+            const hourlyWage = getCurrentHourlyWage();
             const wageRatePerSecond = hourlyWage / 3600;
 
             let baseSalary = actualWorkSecs * wageRatePerSecond;
-            let totalBonus = (detailHelpGiven * 500) + detailShiftBonus;
+            // 💡 순위 보너스는 '시급 +N원'이지만 시간 단위 올림으로 지급한다.
+            //    (1시간 미만 → 3,000원 / 1시간 10분 → 6,000원 / 2시간 → 6,000원)
+            let rankBonusAmount = getMyRankBonusAmount(actualWorkSecs);
+            let totalBonus = (detailHelpGiven * 500) + detailShiftBonus + rankBonusAmount;
             accumSalary = Math.max(0, baseSalary - detailShiftDeduct + totalBonus);
 
             // UI 업데이트
@@ -2851,7 +2868,10 @@
         // 5. 작업 로그 및 라운지 모달 제어 (충돌 방지 350ms 딜레이 적용)
         // ============================================================
 
-        function openMoreMenu() { document.getElementById('more-menu-modal').classList.add('open'); }
+        function openMoreMenu() {
+            document.getElementById('more-menu-modal').classList.add('open');
+            if (typeof refreshWorkFinishMenu === 'function') refreshWorkFinishMenu();
+        }
         function closeMoreMenu() { document.getElementById('more-menu-modal').classList.remove('open'); }
 
         function showWorkRules() {
@@ -3371,6 +3391,71 @@
             document.getElementById('action-modal-body').innerHTML = content;
         }
 
+        /* ── 라운지: 근무 종료하기 (예정 종료 10분 전부터 활성화) ────────────
+           김치·우동·불고기·버거가 store.js 의 getShiftEndInfo() 로 같은 규칙을 쓴다. */
+        function getWorkFinishGate() {
+            if (window.MockData && typeof window.MockData.getShiftEndInfo === 'function') {
+                let checkInAt;
+                try {
+                    const res = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null');
+                    if (res && (res.checkInAt || res.workStartedAt)) checkInAt = res.checkInAt || res.workStartedAt;
+                } catch (e) { }
+                if (!checkInAt) {
+                    const ts = parseInt(localStorage.getItem('kimp_check_in_timestamp_' + (sessionStorage.getItem('user-id') || 'guest')) || '', 10);
+                    if (Number.isFinite(ts)) checkInAt = new Date(ts);
+                }
+                return window.MockData.getShiftEndInfo({ workId: 1, checkInAt: checkInAt });
+            }
+            return { canFinish: true, hasSchedule: false, label: null, minutesLeft: null, thresholdMinutes: 10 };
+        }
+
+        function refreshWorkFinishMenu() {
+            const btn = document.getElementById('btn-finish-work-menu');
+            if (!btn) return;
+            const gate = getWorkFinishGate();
+            const enabled = gate.canFinish && !isWorkFinished;
+            btn.disabled = !enabled;
+            btn.style.opacity = enabled ? '' : '0.55';
+            const label = document.getElementById('btn-finish-work-label');
+            if (label) label.textContent = enabled ? '근무 종료하기' : '근무 종료하기 (종료 10분 전 활성화)';
+            const detail = document.getElementById('work-finish-hint-detail');
+            if (detail) {
+                const waitMin = (gate.minutesLeft === null || gate.minutesLeft === undefined)
+                    ? null : Math.max(0, gate.minutesLeft - (gate.thresholdMinutes || 10));
+                detail.textContent = !gate.hasSchedule
+                    ? '예정 종료 시각 정보가 없어 바로 종료할 수 있습니다.'
+                    : (gate.canFinish
+                        ? `지금 근무를 종료할 수 있습니다. (예정 종료 ${gate.label || ''})`
+                        : `예정 종료 ${gate.label || ''} · 약 ${waitMin === null ? '-' : waitMin}분 후 활성화됩니다.`);
+            }
+        }
+
+        function toggleWorkFinishHint() {
+            const el = document.getElementById('work-finish-hint');
+            if (!el) return;
+            refreshWorkFinishMenu();
+            el.style.display = el.style.display === 'none' ? '' : 'none';
+        }
+
+        // 라운지 → 근무 종료하기: 안내 후 퇴근 정산 화면으로
+        function showWorkFinishGuide() {
+            const gate = getWorkFinishGate();
+            if (!gate.canFinish) {
+                const el = document.getElementById('work-finish-hint');
+                if (el) el.style.display = '';
+                refreshWorkFinishMenu();
+                showHmiToast(`<i class="bi bi-lock-fill" style="color:#0ea5e9;"></i> ${(window.MockData && window.MockData.WORK_FINISH_HINT) || '근무 종료 10분 전에 활성화됩니다.'}`);
+                return;
+            }
+            if (!confirm('근무를 종료하시겠습니까?\n인수인계와 간단한 청소를 마친 뒤 퇴근 정산이 진행됩니다.')) return;
+            closeMoreMenu();
+            addLog('[퇴근] 근무 종료 10분 전 안내 확인 · 인수인계 및 청소 후 퇴근 정산을 시작합니다.');
+            isWorkFinished = true;
+            isEarlyLeave = false;   // 조퇴가 아닌 정상 퇴근
+            document.body.classList.add('work-finished');
+            setTimeout(showFinalLeaveSummary, 250);
+        }
+
         // 6. 퇴실 QR 스캔 완료 -> 최종 정산 화면 표출
         function simulateLeaveExitQR() {
             playShutterSound();
@@ -3383,6 +3468,102 @@
             showFinalLeaveSummary();
         }
 
+        // 💡 지시서 stages[stageId] 의 특정 필드를 localStorage 와 메모리에 함께 저장한다.
+        function findOrderInStore(ordersObj, orderId) {
+            const normId = String(orderId || '').replace(/^(SALT-|ORD-)/, "");
+            if (Array.isArray(ordersObj)) {
+                return ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normId) || null;
+            }
+            if (ordersObj && typeof ordersObj === 'object') {
+                const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normId);
+                return key ? ordersObj[key] : null;
+            }
+            return null;
+        }
+
+        function saveStageField(orderId, stageId, field, value) {
+            if (!orderId || stageId === undefined || stageId === null) return;
+            const sid = String(stageId);
+            if (appData.currentOrder) {
+                if (!appData.currentOrder.stages) appData.currentOrder.stages = {};
+                if (!appData.currentOrder.stages[sid]) appData.currentOrder.stages[sid] = {};
+                appData.currentOrder.stages[sid][field] = value;
+            }
+            try {
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (!ordersRaw) return;
+                const ordersObj = JSON.parse(ordersRaw);
+                const targetOrder = findOrderInStore(ordersObj, orderId);
+                if (!targetOrder) return;
+                if (!targetOrder.stages) targetOrder.stages = {};
+                if (!targetOrder.stages[sid]) targetOrder.stages[sid] = {};
+                targetOrder.stages[sid][field] = value;
+                localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
+            } catch (e) { }
+        }
+
+        function getLoadedQtyForStage(orderId, stageId) {
+            const sid = String(stageId);
+            if (appData.currentOrder && appData.currentOrder.stages
+                && appData.currentOrder.stages[sid] && appData.currentOrder.stages[sid].loadedQty !== undefined) {
+                return appData.currentOrder.stages[sid].loadedQty;
+            }
+            try {
+                const ordersRaw = localStorage.getItem('kimp_production_orders');
+                if (!ordersRaw) return 0;
+                const targetOrder = findOrderInStore(JSON.parse(ordersRaw), orderId);
+                if (targetOrder && targetOrder.stages && targetOrder.stages[sid]) {
+                    const v = targetOrder.stages[sid].loadedQty;
+                    if (v !== undefined) return v;
+                }
+            } catch (e) { }
+            return 0;
+        }
+
+        // 💡 급여비율/시급은 한 곳에서만 계산한다. (예약 정보의 ratio, 없으면 기본 1.2배)
+        function getCurrentWageRatio() {
+            let ratio = 1.2;
+            try {
+                const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
+                if (selRes && selRes.ratio !== undefined && Number(selRes.ratio) > 0) ratio = Number(selRes.ratio);
+            } catch (e) { }
+            return ratio;
+        }
+
+        function getCurrentHourlyWage() {
+            const ratio = getCurrentWageRatio();
+            return (window.MockData && typeof window.MockData.getHourlyWage === 'function')
+                ? window.MockData.getHourlyWage(ratio)
+                : 10320 * ratio;
+        }
+
+        /* 💡 월간 순위 보너스 (store.js monthlyWorkRankings).
+         *    '시급 +3,000원' 방식이지만 시간 단위로 올림 지급한다.
+         *      - 1시간 미만 근무      → 1시간분 (3,000원)
+         *      - 1시간 10분 근무      → 2시간분 (6,000원)
+         *      - 2시간 근무           → 2시간분 (6,000원)
+         *    즉 지급액 = ceil(근무시간) × 시급 보너스. 상한은 두지 않는다. */
+        function getMyRankBonusPerHour() {
+            try {
+                const name = appData && appData.user ? appData.user.name : null;
+                if (!name || !window.MockData || typeof window.MockData.getWorkRankingByName !== 'function') return 0;
+                const row = window.MockData.getWorkRankingByName(1, name);
+                return row ? (Number(row.bonus) || 0) : 0;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        /** 실제 근무 초 → 시간 단위 올림으로 계산한 순위 보너스 금액 */
+        function getMyRankBonusAmount(workedSeconds) {
+            const perHour = getMyRankBonusPerHour();
+            if (!(perHour > 0)) return 0;
+            let seconds = Number(workedSeconds);
+            if (!isFinite(seconds) || seconds <= 0) return 0;
+            const billableHours = Math.ceil(seconds / 3600); // 시간을 넘기면 다음 시간분까지 지급
+            return perHour * billableHours;
+        }
+
         // 7. 최종 정산 요약 화면
         function showFinalLeaveSummary() {
             // 일한 시간 계산 (7200초에서 남은 시간을 뺌)
@@ -3391,9 +3572,22 @@
             const workSecs = workedSeconds % 60;
 
             const finalSalary = Math.floor(accumSalary).toLocaleString();
+            // 급여 계산에 실제로 쓰인 시급을 그대로 표기한다. (기존에는 13,416 원이 하드코딩되어 불일치)
+            //   적용 시급 = 최저시급 × 급여비율 + 순위 보너스(시간 단위 올림 지급)
+            const baseHourlyWage = getCurrentHourlyWage();
+            const rankBonusPerHour = getMyRankBonusPerHour();
+            const appliedHourlyWage = Math.floor(baseHourlyWage + rankBonusPerHour).toLocaleString();
+            const hourlyBreakdown = rankBonusPerHour > 0
+                ? `<span style="font-size:12px; color:var(--text-secondary);">(기본 ${Math.floor(baseHourlyWage).toLocaleString()} + 보너스 ${rankBonusPerHour.toLocaleString()})</span>`
+                : '';
 
             const content = `
         <div style="text-align: center; padding: 10px 0;">
+            ${isEarlyLeave ? '' : `
+            <div style="text-align:left; background: rgba(14,165,233,0.08); border: 1px solid #0ea5e9; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 15px; line-height: 1.7; color: var(--text-primary);">
+                <b>⏰ 10분 전입니다.</b><br>
+                인수인계를 하고, 청소를 간단히 하고 퇴근하시면 됩니다.
+            </div>`}
             <p style="font-size: 24px; font-weight: bold; color: var(--primary); margin-bottom: 24px;">이용해 주셔서 감사합니다!</p>
             
             <div style="background: var(--bg-main); border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 24px; border: 1px solid var(--border-color);">
@@ -3403,7 +3597,7 @@
                 </p>
                 <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 8px;">
                     <i class="bi bi-currency-dollar"></i> 적용 시급: 
-                    <strong style="color: var(--text-primary); float: right;">13,416 원</strong>
+                    <strong style="color: var(--text-primary); float: right;">${appliedHourlyWage} 원 ${hourlyBreakdown}</strong>
                 </p>
                 <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 12px 0;">
                 <p style="font-size: 18px; font-weight: bold; color: var(--text-primary); margin: 0;">
@@ -3423,7 +3617,7 @@
 </div>
         </div>
     `;
-            document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-receipt" style="color: var(--text-primary);"></i> 조퇴 정산 내역`;
+            document.getElementById('action-modal-title').innerHTML = `<i class="bi bi-receipt" style="color: var(--text-primary);"></i> ${isEarlyLeave ? '조퇴' : '퇴근'} 정산 내역`;
             document.getElementById('action-modal-body').innerHTML = content;
 
             // 💡 [핵심 추가] 조퇴 정산 화면에서는 우측 상단의 'X' 버튼을 숨겨서 완전히 화면에 갇히게 만듭니다.
@@ -3639,18 +3833,14 @@
                 try {
                     const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
                     if (selRes && selRes.slot !== undefined) {
-                        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                        const slotLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
                         workTimeStr = slotLabels[selRes.slot] || "10:00 ~ 12:00";
                     } else {
                         workTimeStr = `${checkInTimeStr} ~ ${checkOutTimeShort}`;
                     }
                 } catch (e) { }
 
-                let ratio = 1.2;
-                try {
-                    const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
-                    if (selRes && selRes.ratio !== undefined) ratio = Number(selRes.ratio);
-                } catch (e) { }
+                let ratio = getCurrentWageRatio();
 
                 let actualWorkMin = 120;
                 try {
@@ -3725,7 +3915,14 @@
                     job: "김치만들기",
                     role: userRole,
                     pay: Math.floor(accumSalary) || 0,
-                    locker: `${lockerGender} Safe 사물함 ${lockerNumber}번 (${lockerSize})`,
+                    // 순위 보너스는 이미 pay 에 포함돼 있다. (explore_detail.html 이 중복 가산하지 않도록 함께 저장)
+                    // bonus = 적용된 실제 금액(시급 보너스 × 근무시간), bonusPerHour = 시급 가산액
+                    bonus: Math.floor(getMyRankBonusAmount(
+                        (typeof getElapsedSecondsFromCheckIn === 'function' ? getElapsedSecondsFromCheckIn() : (Number(actualWorkMin) || 0) * 60)
+                    )),
+                    bonusPerHour: getMyRankBonusPerHour(),
+                    // 화면 표기(`${lockerGender} 사물함 N번 (사이즈)`)와 동일한 문자열로 저장한다.
+                    locker: `${lockerGender} 사물함 ${lockerNumber}번 (${lockerSize})`,
                     logs: formattedLogs,
                     coworkers: coworkers,
                     helpGiven: detailHelpGiven,
@@ -3745,6 +3942,76 @@
 
                 history.push(historyItem);
                 localStorage.setItem("mypage_history_" + userId, JSON.stringify(history));
+
+                // 💡 실제 참여 완료 → 김치만들기(workId 1) 월별 참가자 +1
+                //    (같은 예약 1건은 store.js 참여 키로 중복 차단)
+                if (window.MockData && typeof window.MockData.recordWorkParticipation === 'function') {
+                    let participationRes = null;
+                    try { participationRes = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null'); } catch (e) { }
+                    const participationDate = (participationRes && participationRes.date) || new Date().toISOString().slice(0, 10);
+                    const participationSlot = participationRes ? participationRes.slot : null;
+                    window.MockData.recordWorkParticipation({
+                        workId: 1,
+                        userId: userId,
+                        userName: appData && appData.user ? appData.user.name : null,
+                        date: participationDate,
+                        slot: participationSlot,
+                        source: 'kimp_ex1_checkout'
+                    });
+
+                    // 💡 퇴근/조퇴로 근로가 끝나면 실제 근무시간을 누적 근무시간에 +
+                    //    (explore2.html 파트너 등급 탭의 'Nh' 와 등급 판정에 쓰인다)
+                    if (typeof window.MockData.addWorkedHours === 'function') {
+                        // 실제 근무 초를 그대로 넘겨 누적한다. (분 단위로 내림하면 1분 미만 근무가 사라진다)
+                        let workedSeconds = 0;
+                        try {
+                            if (typeof getElapsedSecondsFromCheckIn === 'function') {
+                                workedSeconds = getElapsedSecondsFromCheckIn();
+                            }
+                        } catch (e) { }
+                        if (!(workedSeconds > 0)) workedSeconds = Math.max(0, Number(actualWorkMin) || 0) * 60;
+                        window.MockData.addWorkedHours({
+                            workId: 1,
+                            userId: userId,
+                            userName: appData && appData.user ? appData.user.name : null,
+                            seconds: workedSeconds,
+                            date: participationDate,
+                            slot: participationSlot,
+                            source: isEarlyLeave ? 'kimp_ex1_early_leave' : 'kimp_ex1_checkout'
+                        });
+                    }
+
+                    // 💡 근로 급여를 정산 자산에 입금한다. (마이페이지 '나의 정산 자산')
+                    if (typeof window.MockData.addWorkEarningSettlement === 'function') {
+                        window.MockData.addWorkEarningSettlement({
+                            userId: userId,
+                            userName: appData && appData.user ? appData.user.name : null,
+                            workId: 1,
+                            amount: historyItem.pay,
+                            date: participationDate,
+                            slot: participationSlot,
+                            slotLabel: historyItem.time,
+                            historyId: historyItem.id,
+                            checkoutType: isEarlyLeave ? '조퇴' : '퇴근',
+                            source: isEarlyLeave ? 'kimp_ex1_early_leave' : 'kimp_ex1_checkout'
+                        });
+                    }
+
+                    // 💡 '일이 끝났습니다.' 알림 → 누르면 해당 근로 상세로 이동
+                    if (typeof window.MockData.notifyWorkFinished === 'function') {
+                        window.MockData.notifyWorkFinished({
+                            userId: userId,
+                            workId: 1,
+                            workName: historyItem.job,
+                            timeLabel: historyItem.time,
+                            pay: historyItem.pay,
+                            historyId: historyItem.id,
+                            date: participationDate,
+                            slot: participationSlot,
+                            checkoutType: isEarlyLeave ? '조퇴' : '퇴근'
+                        });
+                    }
+                }
 
                 if (window.FactoryStore) {
                     window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: filteredReservations });
@@ -4144,7 +4411,16 @@
 
                 let initialGoodQty = 0;
                 const orderId = appData.currentOrder ? appData.currentOrder.id : "";
-                if (orderId) {
+                // 1순위: 상차 단계에서 실제 입력한 수량
+                const loadedQty = Number(getLoadedQtyForStage(orderId, appData.activeStageId));
+                if (Number.isFinite(loadedQty) && loadedQty > 0) initialGoodQty = loadedQty;
+                // 2순위: 지시서에 저장된 수량 필드 (지시서 ID 포맷에 의존하지 않는다)
+                if (!initialGoodQty && appData.currentOrder) {
+                    const orderQty = Number(appData.currentOrder.qty !== undefined ? appData.currentOrder.qty : appData.currentOrder.quantity);
+                    if (Number.isFinite(orderQty) && orderQty > 0) initialGoodQty = orderQty;
+                }
+                // 3순위(레거시): 지시서 ID 중간 세그먼트(YYMMDD-수량-순번)에서 파싱
+                if (!initialGoodQty && orderId) {
                     const parts = orderId.split('-');
                     if (parts.length === 3) {
                         initialGoodQty = parseInt(parts[1]) || 0;
@@ -4610,6 +4886,10 @@
                     }
                 } else {
                     addLog(`${logPrefix}상차 수량 ${qty}포기 입력 완료.`);
+                    // 💡 [수정] 상차 수량이 로그에만 남고 유실되던 문제 → 지시서에 저장한다.
+                    if (appData.currentOrder) {
+                        saveStageField(appData.currentOrder.id, appData.activeStageId, 'loadedQty', qty);
+                    }
                 }
             } else if (step.type === 'info' && step.title.includes('작업대')) {
                 addLog(`${logPrefix}작업대 복귀를 완료했습니다.`);
@@ -4739,6 +5019,11 @@
                                 targetOrder.stages[targetStageId].statusSubmitted = true;
                                 targetOrder.stages[targetStageId].endTime = new Date().toLocaleTimeString();
                                 targetOrder.stages[targetStageId].postWorkQty = goodQty;
+                            // Stage 1 은 store.js 가 step1_cutting.yieldQty 로 미러링하므로 함께 맞춘다.
+                            if (String(targetStageId) === '1') {
+                                if (!targetOrder.stages['1'].step1_cutting) targetOrder.stages['1'].step1_cutting = {};
+                                targetOrder.stages['1'].step1_cutting.yieldQty = goodQty;
+                            }
                                 targetOrder.stages[targetStageId].defectQty = defectQty;
                                 targetOrder.stages[targetStageId].postWorkWeight = weightVal;
                             }
@@ -4788,7 +5073,10 @@
                                 products = JSON.parse(localStorage.getItem("kimp_factory_products") || "{}");
                             } catch (e) { }
 
-                            const mappingKeys = { "300g": "p300g", "1kg": "p1kg", "3kg": "p3kg", "5kg": "p5kg", "10kg": "p10kg" };
+                            // 포장 규격 ↔ 제품 코드 매핑은 store.js 를 사용한다.
+                            const mappingKeys = (window.MockData && window.MockData.packagingSizeToProductCode)
+                                ? window.MockData.packagingSizeToProductCode
+                                : { "300g": "p300g", "1kg": "p1kg", "3kg": "p3kg", "5kg": "p5kg", "10kg": "p10kg" };
                             Object.keys(myPkg.targets).forEach(k => {
                                 const prodKey = mappingKeys[k];
                                 const qty = parseInt(myPkg.targets[k]) || 0;
@@ -5122,6 +5410,27 @@
                             targetOrder.stages[targetStageId].workLogs.push(logStr);
                             targetOrder.stages[targetStageId].statusSubmitted = true;
                             targetOrder.stages[targetStageId].endTime = new Date().toLocaleTimeString();
+                            // 💡 [수정] 실적(양품/불량/무게)을 지시서에도 반영한다.
+                            //    이전에는 저장하지 않아 store.js 가 지시서 수량으로 채워 넣어(postWorkQty=quantity)
+                            //    실제 등록한 양품 수와 어긋났다.
+                            targetOrder.stages[targetStageId].postWorkQty = goodQty;
+                            // Stage 1 은 store.js 가 step1_cutting.yieldQty 로 미러링하므로 함께 맞춘다.
+                            if (String(targetStageId) === '1') {
+                                if (!targetOrder.stages['1'].step1_cutting) targetOrder.stages['1'].step1_cutting = {};
+                                targetOrder.stages['1'].step1_cutting.yieldQty = goodQty;
+                            }
+                            targetOrder.stages[targetStageId].defectQty = defectQty;
+                            targetOrder.stages[targetStageId].defectCount = defectQty;
+                            targetOrder.stages[targetStageId].postWorkWeight = weightVal;
+                            // 메모리(appData.currentOrder)에도 반영해야 이후 저장 시 예전 값으로 되돌아가지 않는다.
+                            if (appData.currentOrder) {
+                                if (!appData.currentOrder.stages) appData.currentOrder.stages = {};
+                                if (!appData.currentOrder.stages[targetStageId]) appData.currentOrder.stages[targetStageId] = {};
+                                appData.currentOrder.stages[targetStageId].postWorkQty = goodQty;
+                                appData.currentOrder.stages[targetStageId].defectQty = defectQty;
+                                appData.currentOrder.stages[targetStageId].defectCount = defectQty;
+                                appData.currentOrder.stages[targetStageId].postWorkWeight = weightVal;
+                            }
 
                             // 💡 다음 스테이지 전이 로직 추가 (중복 진행 방지 및 정상 진행)
                             let nextTask = null;
@@ -5726,188 +6035,13 @@
             renderCurrentStep();
         }
 
+        // 공정 완료 처리는 completeStageFinish 하나로 통일한다.
+        // (기존에는 같은 200여 줄이 completeStageFinish / finishStage 로 복제돼 있어
+        //  실적 저장 로직을 수정할 때 양쪽을 모두 고쳐야 했다.)
         function finishStage() {
-            const stageId = appData.activeStageId;
-            if (stageId !== 0 && stageId !== "0") {
-                // 첫 로그와 마지막 로그 시간으로 경과 시간 계산
-                const stageLogs = appData.logs.filter(l => l.stageId === stageId);
-                let elapsedMin = 0;
-                let startTimeStr = '';
-                if (stageLogs.length >= 2) {
-                    const firstLog = stageLogs[0];
-                    const lastLog = stageLogs[stageLogs.length - 1];
-                    const elapsedMs = lastLog.timestamp - firstLog.timestamp;
-                    elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
-
-                    let firstTimeSplit = firstLog.time.split(':');
-                    startTimeStr = `${firstTimeSplit[0]}:${firstTimeSplit[1]}`;
-                } else if (stageLogs.length === 1) {
-                    elapsedMin = 1;
-                    const firstLog = stageLogs[0];
-                    let firstTimeSplit = firstLog.time.split(':');
-                    startTimeStr = `${firstTimeSplit[0]}:${firstTimeSplit[1]}`;
-                }
-
-                let perfs = JSON.parse(localStorage.getItem('kimp_ex0_performance') || '[]');
-                const now = new Date();
-                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                perfs.push({
-                    time: timeStr,
-                    startTime: startTimeStr || timeStr,
-                    stage: stageId,
-                    elapsed: elapsedMin,
-                    orderId: appData.currentOrder.id
-                });
-                localStorage.setItem('kimp_ex0_performance', JSON.stringify(perfs));
-
-                // 해당 스테이지 타이머 초기화 (다음 수행을 위해)
-                if (window.stageStartTimes) window.stageStartTimes[stageId] = null;
-
-                // 💡 생산지시서 DB에 실적 로그 밀어넣기
-                const ordersRaw = localStorage.getItem('kimp_production_orders');
-                if (ordersRaw) {
-                    try {
-                        let ordersObj = JSON.parse(ordersRaw);
-                        const currentOrderId = appData.currentOrder.id;
-                        const normCurrentId = currentOrderId.replace(/^(SALT-|ORD-)/, "");
-                        let targetOrder = null;
-                        if (Array.isArray(ordersObj)) {
-                            targetOrder = ordersObj.find(o => o && (o.orderId || "").replace(/^(SALT-|ORD-)/, "") === normCurrentId);
-                        } else if (typeof ordersObj === 'object' && ordersObj !== null) {
-                            const key = Object.keys(ordersObj).find(k => k.replace(/^(SALT-|ORD-)/, "") === normCurrentId);
-                            if (key) targetOrder = ordersObj[key];
-                        }
-
-                        if (targetOrder) {
-                            if (!targetOrder.stages) targetOrder.stages = {};
-                            let targetStageId = stageId;
-                            if (String(stageId) === "3" && (currentStepIndex >= 5 || (targetOrder.stages[3] && targetOrder.stages[3].dryingStatus === "ready_for_3_2"))) {
-                                targetStageId = "3-2";
-                            }
-                            if (!targetOrder.stages[targetStageId]) targetOrder.stages[targetStageId] = {};
-                            if (!targetOrder.stages[targetStageId].workLogs) {
-                                targetOrder.stages[targetStageId].workLogs = [];
-                            }
-
-                            // 실적 로그 파싱
-                            let goodQty = 0;
-                            let defectQty = 0;
-                            let weightVal = window.tempWeight || 0;
-
-                            const perfLogs = appData.logs.filter(l => l.text.includes('실적'));
-                            if (perfLogs.length > 0) {
-                                const latestLog = perfLogs[perfLogs.length - 1];
-                                const matchGood = latestLog.text.match(/양품:\s*(\d+)/);
-                                if (matchGood) goodQty = parseInt(matchGood[1], 10);
-
-                                const matchDefect = latestLog.text.match(/불량:\s*(\d+)/);
-                                if (matchDefect) defectQty = parseInt(matchDefect[1], 10);
-
-                                const matchWeight = latestLog.text.match(/무게:\s*([\d.]+)/);
-                                if (matchWeight) weightVal = parseFloat(matchWeight[1]);
-                            } else {
-                                goodQty = appData.currentOrder.qty || 15;
-                            }
-
-                            const nowTime = new Date();
-                            const timeStrHHMMSS = `${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}:${String(nowTime.getSeconds()).padStart(2, '0')}`;
-                            const logStr = `${currentOrderId} Stage${targetStageId} ${timeStrHHMMSS} ${appData.user.name}작업 실적등록 (양품:${goodQty} | 불량:${defectQty} | 무게:${weightVal}kg)`;
-
-                            targetOrder.stages[targetStageId].workLogs.push(logStr);
-                            targetOrder.stages[targetStageId].statusSubmitted = true;
-                            targetOrder.stages[targetStageId].endTime = new Date().toLocaleTimeString();
-
-                            // 💡 다음 스테이지 전이 로직 추가 (중복 진행 방지 및 정상 진행)
-                            let nextTask = null;
-                            if (String(stageId) === "1") nextTask = "2";
-                            else if (String(stageId) === "2") nextTask = "2";
-                            else if (String(stageId) === "3") nextTask = "4";
-                            else if (String(stageId) === "4") {
-                                nextTask = "5-2";
-                                if (!targetOrder.stages[4]) targetOrder.stages[4] = {};
-                                targetOrder.stages[4].statusSubmitted = true;
-                            } else if (String(stageId) === "5-1") {
-                                nextTask = "5-1-completed"; // 5-1 완료용 task
-                                let stock = [];
-                                try {
-                                    stock = JSON.parse(localStorage.getItem('kimp_seasoning_stock') || '[]');
-                                } catch (e) { }
-                                if (!stock.some(s => s.id === currentOrderId)) {
-                                    stock.push({
-                                        id: currentOrderId,
-                                        quantity: targetOrder.quantity || 1000,
-                                        entryTime: Date.now()
-                                    });
-                                    localStorage.setItem('kimp_seasoning_stock', JSON.stringify(stock));
-                                }
-                            } else if (String(stageId) === "5-2") {
-                                nextTask = "5-2-completed"; // Stage 5-2 완료 후 포장 지시서 발행 대기
-                                if (!targetOrder.stages["5-2"]) targetOrder.stages["5-2"] = {};
-                                targetOrder.stages["5-2"].statusSubmitted = true;
-                                targetOrder.stages["5-2"].endTime = new Date().toLocaleTimeString();
-                            }
-
-                            if (nextTask) {
-                                if (nextTask === "5-1-completed") {
-                                    targetOrder.currentTask = "5-1-completed";
-                                    targetOrder.progressStatus = "숙성실";
-                                    if (!targetOrder.stages["5-1"]) targetOrder.stages["5-1"] = {};
-                                    targetOrder.stages["5-1"].statusSubmitted = true;
-                                    targetOrder.stages["5-1"].endTime = new Date().toLocaleTimeString();
-                                } else if (nextTask === "5-2-completed") {
-                                    targetOrder.currentTask = "5-2-completed";
-                                    targetOrder.progressStatus = "생산중(Stage 5-2완료)";
-                                    if (!targetOrder.stages["5-2"]) targetOrder.stages["5-2"] = {};
-                                    targetOrder.stages["5-2"].statusSubmitted = true;
-                                    targetOrder.stages["5-2"].endTime = new Date().toLocaleTimeString();
-                                } else {
-                                    targetOrder.currentTask = nextTask;
-                                    if (!targetOrder.stages[nextTask]) targetOrder.stages[nextTask] = {};
-                                    targetOrder.stages[nextTask].operator = ""; // 다음 스테이지 연계 대기 상태
-
-                                    // 💡 매니저 대시보드 상태 동기화
-                                    if (String(stageId) === "3") {
-                                        if (targetStageId === "3-2") {
-                                            targetOrder.progressStatus = "생산중 (Stage 3-2 완료)";
-                                        } else {
-                                            targetOrder.progressStatus = "생산중 (Stage 3 완료)";
-                                            if (!targetOrder.stages[3]) targetOrder.stages[3] = {};
-                                            targetOrder.stages[3].dryingStatus = "completed";
-                                            targetOrder.stages[3].sentToStage4 = true;
-                                        }
-                                    } else {
-                                        targetOrder.progressStatus = `생산중 (Stage ${stageId} 완료)`;
-                                    }
-                                }
-                            } else {
-                                targetOrder.status = "completed"; // Stage 6 등 최종 공정 종료 시 전체 지시 완료
-                                targetOrder.progressStatus = "생산 완료";
-                            }
-
-                            localStorage.setItem('kimp_production_orders', JSON.stringify(ordersObj));
-                        }
-                    } catch (e) {
-                        console.error("Failed to update workLogs in kimp_production_orders:", e);
-                    }
-                }
-
-                // 💡 작업 완료 후 내 점유 상태 해제 (타입 호환성 비교로 버그 수정)
-                const myStage = appData.stages.find(s => String(s.id) === String(stageId));
-                if (myStage && myStage.spots && appData.activeSpotId) {
-                    const spot = myStage.spots[appData.activeSpotId];
-                    if (spot && spot.worker === appData.user.name) {
-                        spot.worker = "";
-                        spot.status = "empty";
-                        syncStagesToStorage();
-                    }
-                }
-            }
-
+            completeStageFinish();
             currentStepIndex = 0;
-            appData.activeSpotId = null;
             isCompleted = true;
-            moveToStage(0, '대기장소');
         }
 
         function completeExperience() {

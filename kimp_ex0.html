@@ -2221,7 +2221,7 @@
                 try {
                     const selRes = JSON.parse(sessionStorage.getItem("selected_reservation") || "null");
                     if (selRes && selRes.slot !== undefined) {
-                        const slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                        const slotLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
                         workTimeStr = slotLabels[selRes.slot] || "10:00 ~ 12:00";
                     } else {
                         let checkInTime = "";

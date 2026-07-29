@@ -133,6 +133,31 @@
         return 1.5; // 불고기구이 기본 배율
     }
 
+    /* ── 순위 보너스 (월간 랭킹 시급 가산) ──────────────────
+       적용 시급 = 최저시급 × 급여배율 + 시급 보너스
+       보너스 금액 = 시급 보너스 × ceil(근무시간)  ← 1시간 미만도 1시간분
+       계산은 store.js(MockData)에 모아 두었고, 김치·우동·버거와 같은 규칙을 쓴다. */
+    function workerName() {
+        if (currentUser && currentUser.name) return currentUser.name;
+        try { return (JSON.parse(sessionStorage.getItem('user') || '{}') || {}).name || null; } catch (e) { return null; }
+    }
+
+    function rankBonusPerHour() {
+        const md = window.MockData;
+        return (md && typeof md.getRankBonusPerHour === 'function')
+            ? (Number(md.getRankBonusPerHour(WORK_ID, workerName())) || 0) : 0;
+    }
+
+    function rankBonusAmount(workSec) {
+        const md = window.MockData;
+        return (md && typeof md.getRankBonusAmount === 'function')
+            ? (Number(md.getRankBonusAmount(WORK_ID, workerName(), workSec)) || 0) : 0;
+    }
+
+    function appliedHourlyWage() {
+        return Math.floor(HOURLY_BASE * payRatio()) + rankBonusPerHour();
+    }
+
     function checkInTs() {
         const uid = sessionStorage.getItem('user-id') || 'guest';
         const key = 'kmeat_checkin_ts_' + MODE + '_' + uid;
@@ -173,7 +198,7 @@
 
         const restSec = Math.floor(restAccumSec);
         const workSec = Math.max(0, elapsedSec() - restSec);
-        accumSalary = Math.floor(workSec * (HOURLY_BASE * payRatio()) / 3600);
+        accumSalary = Math.floor(workSec * (HOURLY_BASE * payRatio()) / 3600) + rankBonusAmount(workSec);
 
         const wEl = $('st-work');
         if (wEl) wEl.textContent = hhmmss(workSec);
@@ -189,6 +214,7 @@
 
         const remEl = $('more-remain');
         if (remEl) remEl.textContent = hhmmss(shiftRemainSec());
+        refreshFinishButton();
     }
 
     // ══════════════════════════════════════════
@@ -1250,6 +1276,7 @@
                 </button>
             </div>
             ${helpCardHtml()}
+            ${finishCardHtml()}
             <div class="card">
                 <div style="font-size:0.9rem;font-weight:800;margin-bottom:9px;">
                     <i class="bi bi-house-heart-fill" style="color:#ec4899;"></i> 조퇴하기
@@ -1263,6 +1290,92 @@
                 </button>
             </div>
         </div>`;
+    }
+
+    /* ── 라운지: 근무 종료 카드 ─────────────────────────────
+       근무 종료 버튼은 예정 종료 10분 전부터 활성화된다.
+       ⓘ 를 누르면 '근무 종료 10분 전에 활성화됩니다.' 안내를 보여준다. */
+    function shiftEndInfo() {
+        // 가상체험(kmeat-ex)은 예약 시간대와 무관한 3분 체험이므로 잠그지 않는다.
+        if (IS_EX) {
+            return { label: null, minutesLeft: null, secondsLeft: null, canFinish: true, hasSchedule: false, thresholdMinutes: 10 };
+        }
+        if (M().getShiftEndInfo) {
+            return M().getShiftEndInfo({ workId: WORK_ID, endLabel: shiftLabel(), checkInAt: new Date(checkInTs()) });
+        }
+        return { label: shiftLabel(), minutesLeft: Math.ceil(shiftRemainSec() / 60), canFinish: shiftRemainSec() <= 600, hasSchedule: true, thresholdMinutes: 10 };
+    }
+
+    // 불고기구이 근무 시간대 (예약이 있으면 예약 시간대를 우선)
+    function shiftLabel() {
+        try {
+            const r = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null');
+            if (r && (r.time || r.slotLabel)) return r.time || r.slotLabel;
+        } catch (e) {}
+        return '16:00 ~ 20:00';
+    }
+
+    function finishCardHtml() {
+        const info = shiftEndInfo();
+        const enabled = info.canFinish || workFinished;   // 근무가 끝난 뒤에는 정산 내역 다시 보기
+        const waitMin = info.minutesLeft !== null && info.minutesLeft !== undefined
+            ? Math.max(0, info.minutesLeft - (info.thresholdMinutes || 10)) : null;
+        return `<div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;">
+                <div style="font-size:0.9rem;font-weight:800;">
+                    <i class="bi bi-check2-circle" style="color:var(--ok);"></i> 근무 종료
+                </div>
+                <button type="button" aria-label="근무 종료 활성화 안내"
+                        style="background:none;border:0;color:var(--text-sub);font-size:1.1rem;line-height:1;padding:2px 4px;"
+                        onclick="KmeatWorker.toggleFinishHint()">
+                    <i class="bi bi-info-circle"></i>
+                </button>
+            </div>
+            <div id="finish-hint" class="notice" style="display:none;">
+                <i class="bi bi-info-circle-fill"></i>
+                <div><b>근무 종료 10분 전에 활성화됩니다.</b><br>
+                <span id="finish-hint-detail">${enabled
+                    ? '지금 근무를 종료할 수 있습니다.'
+                    : `예정 종료 ${esc(String(info.label || ''))} · 약 ${waitMin === null ? '-' : waitMin}분 후 활성화됩니다.`}</span></div>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-sub);line-height:1.6;margin:9px 0 11px;">
+                근무 종료 10분 전이 되면 눌러주세요. 인수인계와 간단한 청소 안내를 확인하고
+                근무 시간·급여·작업 로그를 정산해 근로 이력으로 저장합니다.
+            </div>
+            <button class="btn btn-brand" id="btn-finish-work" onclick="KmeatWorker.openFinishWork()" ${enabled ? '' : 'disabled'}
+                    title="${enabled ? '근무 종료 정산을 진행합니다.' : '근무 종료 10분 전에 활성화됩니다.'}">
+                <i class="bi ${enabled ? 'bi-box-arrow-right' : 'bi-lock'}"></i>
+                ${enabled ? '근무 종료하기' : '근무 종료 (종료 10분 전 활성화)'}
+            </button>
+        </div>`;
+    }
+
+    function toggleFinishHint() {
+        const el = $('finish-hint');
+        if (!el) return;
+        refreshFinishButton();
+        el.style.display = el.style.display === 'none' ? '' : 'none';
+    }
+
+    // 1초 타이머에서 버튼 상태를 갱신 (10분 전이 되면 자동 활성화)
+    function refreshFinishButton() {
+        const btn = $('btn-finish-work');
+        if (!btn) return;
+        const info = shiftEndInfo();
+        const enabled = info.canFinish || workFinished;
+        btn.disabled = !enabled;
+        btn.title = enabled ? '근무 종료 정산을 진행합니다.' : (M().WORK_FINISH_HINT || '근무 종료 10분 전에 활성화됩니다.');
+        btn.innerHTML = enabled
+            ? '<i class="bi bi-box-arrow-right"></i> 근무 종료하기'
+            : '<i class="bi bi-lock"></i> 근무 종료 (종료 10분 전 활성화)';
+        const detail = $('finish-hint-detail');
+        if (detail) {
+            const waitMin = info.minutesLeft !== null && info.minutesLeft !== undefined
+                ? Math.max(0, info.minutesLeft - (info.thresholdMinutes || 10)) : null;
+            detail.textContent = enabled
+                ? '지금 근무를 종료할 수 있습니다.'
+                : `예정 종료 ${info.label || ''} · 약 ${waitMin === null ? '-' : waitMin}분 후 활성화됩니다.`;
+        }
     }
 
     // ── 도움 요청 (매니저 호출) ──
@@ -1516,6 +1629,9 @@
     function showSummary(early) {
         const restSec = Math.floor(restAccumSec);
         const workSec = Math.max(0, elapsedSec() - restSec);
+        const bonusPerHour = rankBonusPerHour();
+        const bonusAmount = rankBonusAmount(workSec);
+        const bonusHours = Math.ceil(workSec / 3600);
         openSheet(early ? '조퇴 정산 내역' : '퇴근 정산 내역', 'bi-receipt', `
             <div class="card">
                 <div style="text-align:center;font-size:1.1rem;font-weight:800;color:var(--brand);margin-bottom:14px;">
@@ -1528,8 +1644,12 @@
                     <span style="color:var(--text-sub);">휴식 시간</span><b>${hhmmss(restSec)}</b>
                 </div>
                 <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.9rem;">
-                    <span style="color:var(--text-sub);">적용 시급</span><b>${won.format(Math.floor(HOURLY_BASE * payRatio()))}원</b>
+                    <span style="color:var(--text-sub);">적용 시급</span><b>${won.format(appliedHourlyWage())}원${bonusPerHour > 0 ? `<span style="font-weight:500;color:var(--text-sub);"> (기본 ${won.format(Math.floor(HOURLY_BASE * payRatio()))} + 순위 ${won.format(bonusPerHour)}/시간)</span>` : ''}</b>
                 </div>
+                ${bonusAmount > 0 ? `
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.9rem;">
+                    <span style="color:var(--text-sub);">순위 보너스</span><b style="color:var(--ok);">+${won.format(bonusAmount)}원<span style="font-weight:500;color:var(--text-sub);"> (${bonusHours}시간분·올림)</span></b>
+                </div>` : ''}
                 <div style="display:flex;justify-content:space-between;padding:12px 0 0;font-size:1rem;">
                     <b>발생 급여</b>
                     <b style="color:var(--ok);font-size:1.3rem;">${won.format(accumSalary)}원</b>
@@ -1548,10 +1668,174 @@
         `);
     }
 
+    /* ── 근무 종료(정상 퇴근) ─────────────────────────────
+       근무 종료 10분 전에 눌러 인수인계·청소 안내를 받고 정산한다.
+       조퇴(leaveExitScan)와 달리 checkoutType 이 '퇴근' 으로 저장된다. */
+    function workDetailRowsHtml(workSec, restSec) {
+        const bonusPerHour = rankBonusPerHour();
+        const bonusAmount = rankBonusAmount(workSec);
+        const bonusHours = Math.ceil(workSec / 3600);
+        const row = (label, value, strong) => `
+            <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.9rem;">
+                <span style="color:var(--text-sub);">${label}</span>
+                <b style="${strong ? 'color:var(--ok);font-size:1.15rem;' : ''}">${value}</b>
+            </div>`;
+        const dq = M().getKmeatDishQueue ? M().getKmeatDishQueue() : { washed: 0, pending: 0 };
+        return row('출근 시각', clockStr(new Date(checkInTs())))
+            + row('퇴근 시각', clockStr(nowDate()))
+            + row('총 근무 시간', hhmmss(workSec))
+            + row('휴식 시간', hhmmss(restSec))
+            + row('설겆이 완료', `${dq.washed}개`)
+            + row('적용 시급', `${won.format(appliedHourlyWage())}원`
+                + (bonusPerHour > 0 ? `<span style="font-weight:500;color:var(--text-sub);"> (기본 ${won.format(Math.floor(HOURLY_BASE * payRatio()))} + 순위 ${won.format(bonusPerHour)}/시간)</span>` : ''))
+            + (bonusAmount > 0
+                ? row('순위 보너스', `+${won.format(bonusAmount)}원<span style="font-weight:500;color:var(--text-sub);"> (${bonusHours}시간분·올림)</span>`)
+                : '')
+            + row('발생 급여', `${won.format(accumSalary)}원`, true);
+    }
+
+    function clockStr(d) {
+        const p = n => String(n).padStart(2, '0');
+        return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+
+    // 근로 이력에 저장할 로그 (`[시각] 내용`, 오래된 것 → 최신 순)
+    function historyLogLines() {
+        const logs = M().getKmeatWorkerLogs ? M().getKmeatWorkerLogs(MODE) : [];
+        return logs.map(l => `[${l.time || ''}] ${l.text || ''}`);
+    }
+
+    function workLogListHtml() {
+        const logs = (M().getKmeatWorkerLogs ? M().getKmeatWorkerLogs(MODE) : []).slice().reverse();
+        return `<div class="section-head" style="margin-top:16px;">
+                <h2><i class="bi bi-journal-text" style="color:var(--ok);"></i> 오늘의 작업 로그</h2>
+                <span class="cnt">${logs.length}건</span>
+            </div>
+            ${logs.length === 0
+                ? `<div class="empty"><i class="bi bi-journal"></i><p>기록이 없습니다.</p></div>`
+                : `<div class="log-list">${logs.slice(0, 60).map(l => `
+                       <div class="log-row">
+                           <span class="log-time">${esc(l.time || '')}</span>
+                           <span class="log-text">${esc(l.text || '')}</span>
+                       </div>`).join('')}</div>`}
+            <div style="font-size:0.75rem;color:var(--text-sub);margin-top:8px;">
+                * 위 로그는 근로 이력에 함께 저장되어 마이페이지·근로 상세에서 다시 볼 수 있습니다.
+            </div>`;
+    }
+
+    function openFinishWork() {
+        if (workFinished) { showSummary(isEarlyLeave); return; }
+        const gate = shiftEndInfo();
+        if (!gate.canFinish) {
+            const hint = $('finish-hint');
+            if (hint) hint.style.display = '';
+            refreshFinishButton();
+            toast((M().WORK_FINISH_HINT || '근무 종료 10분 전에 활성화됩니다.')
+                + (gate.minutesLeft !== null ? `<br>예정 종료 ${esc(String(gate.label || ''))} · 지금은 ${gate.minutesLeft}분 남았습니다.` : ''),
+                'warn', 'bi-lock-fill');
+            return;
+        }
+        const restSec = Math.floor(restAccumSec);
+        const workSec = Math.max(0, elapsedSec() - restSec);
+        const remainMin = (gate.minutesLeft === null || gate.minutesLeft === undefined)
+            ? Math.ceil(shiftRemainSec() / 60) : gate.minutesLeft;
+        openSheet('근무 종료', 'bi-check2-circle', `
+            <div class="notice ok"><i class="bi bi-info-circle-fill"></i>
+                <b>10분 전입니다.</b> 인수인계를 하고, 청소를 간단히 하고 퇴근하시면 됩니다.
+                ${remainMin > 0 ? `<br><span style="opacity:.85;">예정 종료까지 약 ${remainMin}분 남았습니다.</span>` : ''}
+            </div>
+            <div class="card" style="text-align:center;font-size:1.05rem;font-weight:800;color:var(--brand);">
+                🙏 이용해주셔서 감사합니다.
+            </div>
+            <div class="card">${workDetailRowsHtml(workSec, restSec)}</div>
+            ${workLogListHtml()}
+            <button class="btn btn-brand" onclick="KmeatWorker.confirmFinishWork()">
+                <i class="bi bi-box-arrow-right"></i> 근무 종료하고 마이페이지로
+            </button>
+            <button class="btn btn-line" onclick="KmeatWorker.closeSheet()">
+                <i class="bi bi-arrow-left"></i> 계속 근무하기
+            </button>
+        `);
+        log('[근무종료] 종료 안내 확인 (인수인계 · 청소)', 'warn');
+    }
+
+    function confirmFinishWork() {
+        workFinished = true;
+        isEarlyLeave = false;
+        document.body.classList.add('finished');
+        log('[근무종료] 정상 퇴근 처리 완료', 'ok');
+        closeSheet();
+        goMypage();
+    }
+
+    /* 근로 이력 저장 (mypage2 '내가 했던 일' · explore2 근로 이력 · explore_detail 상세)
+       체험 모드(kmeat-ex)는 실제 급여가 아니므로 저장하지 않는다. */
+    function saveWorkHistory(early) {
+        if (IS_EX) return null;
+        if (!M().finishWorkSession) return null;
+        const restSec = Math.floor(restAccumSec);
+        const workSec = Math.max(0, elapsedSec() - restSec);
+        let res = null;
+        try { res = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null'); } catch (e) {}
+        const dq = M().getKmeatDishQueue ? M().getKmeatDishQueue() : { washed: 0 };
+        return M().finishWorkSession({
+            workId: WORK_ID,
+            userId: sessionStorage.getItem('user-id') || numericUserId(),
+            userName: workerName(),
+            job: '불고기구이',
+            role: (res && res.role) || ((currentUser && currentUser.role === 'ROLE_MANAGER') ? '매니저' : '일반'),
+            checkInAt: new Date(checkInTs()),
+            checkOutAt: nowDate(),
+            workedSeconds: workSec,
+            breakSeconds: restSec,
+            ratio: payRatio(),
+            pay: accumSalary,
+            bonus: rankBonusAmount(workSec),
+            bonusPerHour: rankBonusPerHour(),
+            logs: historyLogLines(),
+            completedOrdersCount: Number(dq.washed) || 0,
+            locker: (res && res.lockerNumber) ? `${res.lockerGender || res.userGender || '선택'} 사물함 ${res.lockerNumber}번` : '사물함 정보 없음',
+            isEarlyLeave: !!early,
+            checkoutType: early ? '조퇴' : '퇴근',
+            date: (res && res.date) || undefined,
+            slot: res ? res.slot : null,
+            time: (res && (res.time || res.slotLabel)) || undefined,
+            extra: { station: stationKey, washedCount: Number(dq.washed) || 0 },
+            source: early ? 'kmeat_real_early_leave' : 'kmeat_real_checkout'
+        });
+    }
+
     function goMypage() {
         const uid = sessionStorage.getItem('user-id') || 'guest';
+        const early = !!isEarlyLeave;
+        // 1) 로그·급여를 근로 이력으로 저장
+        const historyItem = saveWorkHistory(early);
+        // 2) 예약 상태도 종료로 갱신
+        if (!IS_EX) {
+            let res = null;
+            try { res = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null'); } catch (e) {}
+            if (res && window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                try {
+                    const restSec = Math.floor(restAccumSec);
+                    window.FactoryStore.dispatch({ type: 'UPDATE_RESERVATION', payload: {
+                        id: res.id,
+                        changes: {
+                            workStatus: early ? 'early_left' : 'completed',
+                            workCompletedAt: nowDate().toISOString(),
+                            checkoutType: early ? '조퇴' : '퇴근',
+                            breakSeconds: restSec,
+                            actualWorkSeconds: Math.max(0, elapsedSec() - restSec),
+                            earnedPay: accumSalary,
+                            attendanceHistoryId: historyItem ? historyItem.id : undefined
+                        }
+                    }});
+                } catch (e) {}
+            }
+        }
+        // 3) 이 단말의 진행 기록 삭제 (기록은 근로 이력에 남는다)
         localStorage.removeItem('kmeat_checkin_ts_' + MODE + '_' + uid);
-        alert('퇴근 처리가 완료되었습니다.\n마이페이지에서 오늘 근무 이력을 확인해보세요.');
+        if (M().clearKmeatWorkerLogs) { try { M().clearKmeatWorkerLogs(MODE); } catch (e) {} }
+        alert((early ? '조퇴' : '퇴근') + ' 처리가 완료되었습니다.\n이용해주셔서 감사합니다.\n마이페이지에서 오늘 근무 이력을 확인해보세요.');
         window.location.href = 'mypage2.html';
     }
 
@@ -1690,7 +1974,8 @@
         scanExit, scanEnter, scanStation,
         requestHelp, completeHelp, cancelHelp,
         openLeave, pickReason, requestLeave, cancelLeave, skipLeave, leaveExitScan,
-        showSummary, goMypage, completeExperience
+        showSummary, goMypage, completeExperience,
+        openFinishWork, confirmFinishWork, toggleFinishHint
     };
 
     // ══════════════════════════════════════════

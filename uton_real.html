@@ -570,8 +570,56 @@
         .lounge-rule-menu.is-manager .manager-only {
             display: flex;
         }
-        .lounge-rule-map {
-            margin-top: 14px;
+        /* 라운지 룰 메뉴 안의 '근무 종료' (버튼 + ⓘ 안내) */
+        .lounge-rule-finish {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .lounge-rule-finish .btn-finish-work {
+            flex: 1;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 1px solid #047857;
+            color: #ffffff;
+        }
+        /* 비활성 상태: 회색(disabled) 계열 + 커서 차단 */
+        .lounge-rule-menu .btn-test-order:disabled,
+        .lounge-rule-finish .btn-finish-work:disabled {
+            background: #3f3f46;
+            border: 1px solid #52525b;
+            color: #9ca3af;
+            box-shadow: none;
+            opacity: 0.75;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+        .lounge-rule-finish .btn-rule-info {
+            flex: 0 0 46px;
+            min-height: 46px;
+            border-radius: 8px;
+            border: 1px solid #4b5563;
+            background: #24242b;
+            color: #93c5fd;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .lounge-rule-hint {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px dashed #38bdf8;
+            background: rgba(56, 189, 248, 0.08);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            text-align: left;
+        }
+        .lounge-rule-hint b {
+            color: #7dd3fc;
+        }
+        .lounge-rule-map {            margin-top: 14px;
             padding-top: 14px;
             border-top: 1px dashed rgba(245, 158, 11, 0.35);
         }
@@ -751,6 +799,8 @@
                     <button type="button" class="btn-stop" id="btn-early-leave" style="width: 100%; background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="openEarlyLeaveModal()">조퇴하기 (5분 대기)</button>
                 </div>
 
+                <!-- 근무 종료는 '라운지 룰 보기' 메뉴 안에서 진행합니다. -->
+
                 <!-- 2. 실내 지도 섹션 -->
                 <div class="lounge-section" style="display: none; margin-top: 20px;">
                     <h3>🗺️ 매장 실내 지도</h3>
@@ -900,8 +950,24 @@
         </div>
     </div>
 
-    <div id="lounge-logs-overlay" class="lounge-modal-overlay" style="display: none;">
-        <div class="lounge-modal" style="max-width: 450px;">
+    <!-- ✅ 근무 종료(정상 퇴근) 정산 모달 -->
+    <div id="work-finish-overlay" class="lounge-modal-overlay" style="display: none;">
+        <div class="lounge-modal" style="max-width: 420px;">
+            <h3 style="color: var(--accent-green); margin-top: 0;">이용해 주셔서 감사합니다.</h3>
+            <div style="text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid #38bdf8; background: rgba(56,189,248,0.08); color: #e2e8f0; font-size: 0.9rem; line-height: 1.7; margin-bottom: 12px;">
+                <b>⏰ 10분 전입니다.</b><br>
+                인수인계를 하고, 청소를 간단히 하고 퇴근하시면 됩니다.
+            </div>
+            <p style="color: var(--text-muted);">퇴근 정산이 완료되었습니다.</p>
+            <div class="early-leave-summary" id="work-finish-summary"></div>
+            <div class="btn-group" style="gap: 9px;">
+                <button type="button" class="btn-test-order" style="background-color: #4b5563; margin-top: 0;" onclick="showLoungeLogs()">📋 나의 기록 보기</button>
+                <button type="button" class="btn-next" onclick="goToWorkFinishDetail()">퇴근 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lounge-logs-overlay" class="lounge-modal-overlay" style="display: none;">        <div class="lounge-modal" style="max-width: 450px;">
             <h3 style="color: white; margin-top: 0;">📋 나의 업무 및 휴식 기록</h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">오늘 수행한 주문 접수, 조리 완료 및 휴식 이력입니다.</p>
             
@@ -934,6 +1000,19 @@
                 <button type="button" class="btn-test-order" onclick="openHelpRequestModal()">도움 요청</button>
                 <button type="button" id="btn-early-leave-rule" class="btn-test-order" onclick="openEarlyLeaveFromRule()">조퇴 신청</button>
                 <button type="button" class="btn-test-order" onclick="toggleLoungeMap()">매장 실내지도</button>
+                <!-- 근무 종료: 예정 종료 10분 전부터 활성화 (그 전에는 비활성) -->
+                <div class="lounge-rule-finish">
+                    <button type="button" id="btn-finish-work" class="btn-test-order btn-finish-work" disabled
+                            onclick="openWorkFinishSummary()">🔒 근무 종료 (종료 10분 전 활성화)</button>
+                    <button type="button" class="btn-rule-info" aria-label="근무 종료 활성화 안내" onclick="toggleWorkFinishHint()">
+                        <i class="bi bi-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="work-finish-hint" class="lounge-rule-hint" style="display: none;">
+                <b>ℹ️ 근무 종료 10분 전에 활성화됩니다.</b><br>
+                <span id="work-finish-hint-detail">예정 종료 시각까지 10분 이상 남아 있으면 버튼이 비활성화됩니다.</span><br>
+                <span style="opacity: .85;">인수인계를 하고, 청소를 간단히 하고 퇴근하시면 됩니다.</span>
             </div>
             <div id="lounge-map-area" class="lounge-rule-map" style="display: none;">
                 <img src="./images/work-map-uton.svg" alt="Uton Shop 실내 지도">
@@ -1643,8 +1722,17 @@
             const breakSeconds = Math.max(0, Number(totalRestSeconds) || 0);
             const actualWorkSeconds = Math.max(0, elapsedSeconds - breakSeconds);
             const ratio = Number(reservation.ratio || reservation.salary || 1.1) || 1.1;
-            const earnedPay = Math.floor(actualWorkSeconds * ((10320 * ratio) / 3600));
-            return { reservation, checkoutAt, checkInAt, breakSeconds, actualWorkSeconds, ratio, earnedPay };
+            const basePay = Math.floor(actualWorkSeconds * (((window.MockData && typeof window.MockData.getHourlyWage === 'function') ? window.MockData.getHourlyWage(ratio) : 10320 * ratio) / 3600));
+            // 💡 순위 보너스(시급 +N원, 시간 단위 올림)를 급여에 포함한다.
+            //    kimp_ex1 / explore_detail / mypage2 와 같은 규칙(store.js)으로 계산해 금액 표시를 일치시킨다.
+            const workerName = reservation.userName
+                || (function () { try { return (JSON.parse(sessionStorage.getItem('user') || '{}') || {}).name; } catch (e) { return null; } })();
+            const rankBonusPerHour = (window.MockData && typeof window.MockData.getRankBonusPerHour === 'function')
+                ? window.MockData.getRankBonusPerHour(reservation.workId || 2, workerName) : 0;
+            const rankBonus = (window.MockData && typeof window.MockData.getRankBonusAmount === 'function')
+                ? window.MockData.getRankBonusAmount(reservation.workId || 2, workerName, actualWorkSeconds) : 0;
+            const earnedPay = basePay + rankBonus;
+            return { reservation, checkoutAt, checkInAt, breakSeconds, actualWorkSeconds, ratio, basePay, rankBonus, rankBonusPerHour, earnedPay };
         }
 
         function showEarlyLeaveCompleteView(summary) {
@@ -1663,8 +1751,13 @@
                 `퇴근 시각 <strong>${formatEarlyLeaveClock(saved.checkoutAt)}</strong>`,
                 `휴식 시간 <strong>${formatEarlyLeaveDuration(saved.breakSeconds)}</strong>`,
                 `실근무 시간 <strong>${formatEarlyLeaveDuration(saved.actualWorkSeconds)}</strong>`,
+                // 순위 보너스가 있으면 별도로 보여 준다. (급여에 포함된 금액)
+                (Number(saved.rankBonus) > 0
+                    ? `순위 보너스 <strong style="color: var(--accent-green);">+₩${Math.floor(saved.rankBonus).toLocaleString()}</strong>`
+                        + (Number(saved.rankBonusPerHour) > 0 ? ` <span style="opacity:.7;">(시급 +₩${Number(saved.rankBonusPerHour).toLocaleString()}·시간 올림)</span>` : '')
+                    : ''),
                 `급여 <strong style="color: var(--accent-green);">₩${Math.floor(saved.earnedPay).toLocaleString()}</strong>`
-            ].map(line => `<div>${line}</div>`).join('');
+            ].filter(Boolean).map(line => `<div>${line}</div>`).join('');
         }
 
         function finalizeEarlyLeave(isTestBypass) {
@@ -1692,6 +1785,9 @@
                 actualWorkMin: summary.actualWorkSeconds / 60,
                 ratio: summary.ratio,
                 pay: summary.earnedPay,
+                // 순위 보너스는 pay 에 포함된 금액. 목록/상세가 중복 가산하지 않도록 함께 저장한다.
+                bonus: Math.floor(Number(summary.rankBonus) || 0),
+                bonusPerHour: Number(summary.rankBonusPerHour) || 0,
                 role: summary.reservation.role || '일반',
                 locker: locker,
                 isEarlyLeave: true,
@@ -1724,6 +1820,148 @@
 
         function forceEarlyLeave() {
             finalizeEarlyLeave(true);
+        }
+
+        /* ── 라운지: 근무 종료(정상 퇴근) ─────────────────────────
+           버튼은 예정 종료 10분 전부터 활성화된다. (store.js getShiftEndInfo 공통 규칙) */
+        let workFinishCompleted = false;
+        let workFinishHistoryId = null;
+
+        function getWorkFinishGate() {
+            if (window.MockData && typeof window.MockData.getShiftEndInfo === 'function') {
+                const res = refreshActiveUtonReservation() || activeUtonReservation || null;
+                return window.MockData.getShiftEndInfo({
+                    workId: UTON_WORK_ID,
+                    reservation: res || undefined,
+                    checkInAt: (res && (res.checkInAt || res.workStartedAt)) || undefined
+                });
+            }
+            return { canFinish: true, hasSchedule: false, label: null, minutesLeft: null, thresholdMinutes: 10 };
+        }
+
+        function refreshWorkFinishButton() {
+            const btn = document.getElementById('btn-finish-work');
+            if (!btn) return;
+            const gate = getWorkFinishGate();
+            const enabled = gate.canFinish && !workFinishCompleted && !earlyLeaveCompleted;
+            btn.disabled = !enabled;
+            btn.textContent = enabled ? '✅ 근무 종료하기' : '🔒 근무 종료 (종료 10분 전 활성화)';
+            btn.title = enabled ? '근무 종료 정산을 진행합니다.' : ((window.MockData && window.MockData.WORK_FINISH_HINT) || '근무 종료 10분 전에 활성화됩니다.');
+            const detail = document.getElementById('work-finish-hint-detail');
+            if (detail) {
+                const waitMin = (gate.minutesLeft === null || gate.minutesLeft === undefined)
+                    ? null : Math.max(0, gate.minutesLeft - (gate.thresholdMinutes || 10));
+                detail.textContent = !gate.hasSchedule
+                    ? '예정 종료 시각 정보가 없어 바로 종료할 수 있습니다.'
+                    : (gate.canFinish
+                        ? `지금 근무를 종료할 수 있습니다. (예정 종료 ${gate.label || ''})`
+                        : `예정 종료 ${gate.label || ''} · 약 ${waitMin === null ? '-' : waitMin}분 후 활성화됩니다.`);
+            }
+        }
+
+        function toggleWorkFinishHint() {
+            const el = document.getElementById('work-finish-hint');
+            if (!el) return;
+            refreshWorkFinishButton();
+            el.style.display = el.style.display === 'none' ? '' : 'none';
+        }
+
+        function openWorkFinishSummary() {
+            if (workFinishCompleted || earlyLeaveCompleted) return;
+            const gate = getWorkFinishGate();
+            if (!gate.canFinish) {
+                const el = document.getElementById('work-finish-hint');
+                if (el) el.style.display = '';
+                refreshWorkFinishButton();
+                alert(((window.MockData && window.MockData.WORK_FINISH_HINT) || '근무 종료 10분 전에 활성화됩니다.')
+                    + (gate.minutesLeft !== null ? `\n예정 종료 ${gate.label || ''} · 지금은 ${gate.minutesLeft}분 남았습니다.` : ''));
+                return;
+            }
+            if (!confirm('근무를 종료하시겠습니까?\n인수인계와 간단한 청소를 마친 뒤 퇴근 정산이 진행됩니다.')) return;
+            closeLoungeRule();
+            finalizeWorkFinish();
+        }
+
+        // 정상 퇴근 정산: 근로 이력 · 누적 근무시간 · 정산 자산 · 알림을 한 번에 처리
+        function finalizeWorkFinish() {
+            if (workFinishCompleted || earlyLeaveCompleted) return;
+            finalizeActiveRestForEarlyLeave();
+            const summary = getEarlyLeaveSummary();
+            const reservation = summary.reservation || {};
+            addLoungeLog('근무 종료(퇴근) 정산을 완료했습니다. 인수인계와 청소를 마치고 퇴실해주세요.');
+
+            let historyItem = null;
+            if (window.MockData && typeof window.MockData.finishWorkSession === 'function') {
+                historyItem = window.MockData.finishWorkSession({
+                    workId: UTON_WORK_ID,
+                    userId: sessionStorage.getItem('user-id') || reservation.userId,
+                    userName: reservation.userName,
+                    job: '우동만들기',
+                    role: reservation.role || '일반',
+                    checkInAt: summary.checkInAt,
+                    checkOutAt: summary.checkoutAt,
+                    workedSeconds: summary.actualWorkSeconds,
+                    breakSeconds: summary.breakSeconds,
+                    ratio: summary.ratio,
+                    pay: summary.earnedPay,
+                    bonus: Math.floor(Number(summary.rankBonus) || 0),
+                    bonusPerHour: Number(summary.rankBonusPerHour) || 0,
+                    logs: loungeLogs.slice(),
+                    completedOrdersCount: Number(reservation.completedOrdersCount) || 0,
+                    locker: reservation.lockerNumber
+                        ? `${reservation.lockerGender || reservation.userGender || '선택'} 사물함 ${reservation.lockerNumber}번`
+                        : '사물함 정보 없음',
+                    isEarlyLeave: false,
+                    checkoutType: '퇴근',
+                    date: reservation.date || undefined,
+                    slot: reservation.slot === undefined ? null : reservation.slot,
+                    time: reservation.time || reservation.slotLabel || undefined,
+                    source: 'uton_real_checkout'
+                });
+            }
+
+            workFinishCompleted = true;
+            workFinishHistoryId = historyItem ? historyItem.id : null;
+            updateReservationWorkState({
+                workStatus: 'completed',
+                workCompletedAt: summary.checkoutAt.toISOString(),
+                checkoutType: '퇴근',
+                breakSeconds: summary.breakSeconds,
+                actualWorkSeconds: summary.actualWorkSeconds,
+                earnedPay: summary.earnedPay,
+                attendanceHistoryId: workFinishHistoryId || undefined
+            });
+            try {
+                if (workFinishHistoryId) sessionStorage.setItem('uton_work_finish_history_id', String(workFinishHistoryId));
+            } catch (e) {}
+            workCompletionPersisted = true;
+            if (dashboardInterval) clearInterval(dashboardInterval);
+
+            const rows = [
+                `출근 시각 <strong>${formatEarlyLeaveClock(summary.checkInAt)}</strong>`,
+                `퇴근 시각 <strong>${formatEarlyLeaveClock(summary.checkoutAt)}</strong>`,
+                `휴식 시간 <strong>${formatEarlyLeaveDuration(summary.breakSeconds)}</strong>`,
+                `실근무 시간 <strong>${formatEarlyLeaveDuration(summary.actualWorkSeconds)}</strong>`,
+                (Number(summary.rankBonus) > 0
+                    ? `순위 보너스 <strong style="color: var(--accent-green);">+₩${Math.floor(summary.rankBonus).toLocaleString()}</strong>`
+                        + (Number(summary.rankBonusPerHour) > 0 ? ` <span style="opacity:.7;">(시급 +₩${Number(summary.rankBonusPerHour).toLocaleString()}·시간 올림)</span>` : '')
+                    : ''),
+                `급여 <strong style="color: var(--accent-green);">₩${Math.floor(summary.earnedPay).toLocaleString()}</strong>`
+            ].filter(Boolean);
+            const box = document.getElementById('work-finish-summary');
+            if (box) box.innerHTML = rows.map(line => `<div>${line}</div>`).join('');
+            document.getElementById('work-finish-overlay').style.display = 'flex';
+            refreshWorkFinishButton();
+            updateEarlyLeaveButton();
+        }
+
+        function goToWorkFinishDetail() {
+            const historyId = workFinishHistoryId
+                || (activeUtonReservation && activeUtonReservation.attendanceHistoryId)
+                || sessionStorage.getItem('uton_work_finish_history_id');
+            window.location.href = historyId
+                ? `explore_detail.html?id=${encodeURIComponent(historyId)}`
+                : 'mypage2.html';
         }
 
         function showEarlyLeaveRecord() {
@@ -1818,6 +2056,8 @@
             syncLoungeRestButtons();
             const mapArea = document.getElementById('lounge-map-area');
             if (mapArea) mapArea.style.display = 'none';
+            // 근무 종료 버튼 활성화 상태를 열 때마다 갱신 (종료 10분 전부터 활성화)
+            if (typeof refreshWorkFinishButton === 'function') refreshWorkFinishButton();
             document.getElementById('lounge-rule-overlay').style.display = 'flex';
         }
 
@@ -2182,6 +2422,9 @@
 
             dashboardInterval = setInterval(updateDashboardTime, 1000);
             updateDashboardTime(); 
+            // 라운지 '근무 종료' 버튼: 예정 종료 10분 전부터 활성화
+            refreshWorkFinishButton();
+            setInterval(refreshWorkFinishButton, 1000);
 
             if (activeUtonReservation && activeUtonReservation.workStatus === 'early_leave_waiting') {
                 const storedAutoAt = Date.parse(activeUtonReservation.earlyLeaveAutoAt);

@@ -264,7 +264,7 @@
             }
 
             const workId = Number(res.workId || 1);
-            const fallbackSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+            const fallbackSlotLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
             let selectedSlot = null;
             let workTimeSlots = null;
             if (window.MockData && typeof window.MockData.getWorkTimeSlots === 'function') {
@@ -279,7 +279,7 @@
             
             const ratio = res.ratio ? Number(res.ratio) : 1.2;
             const displayRatio = ratio.toFixed(1);
-            const baseHourlyWage = 10320;
+            const baseHourlyWage = (window.MockData && typeof window.MockData.getMinimumHourlyWage === 'function' ? window.MockData.getMinimumHourlyWage() : 10320);
             const calculatedWage = Math.floor(baseHourlyWage * ratio);
 
             // workId 기반으로 동적 정보 매핑
@@ -422,7 +422,7 @@
             } catch(e) {}
 
             if (targetRes && typeof window.addAppLog === 'function') {
-                const fallbackSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                const fallbackSlotLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
                 const fallback = targetRes.time || targetRes.slotLabel || fallbackSlotLabels[Number(targetRes.slot)] || '지정 시간';
                 const slotText = window.MockData && typeof window.MockData.formatWorkSlotTime === 'function'
                     ? window.MockData.formatWorkSlotTime(targetRes.workId || 1, targetRes.slot, fallback)

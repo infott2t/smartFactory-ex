@@ -322,7 +322,22 @@ body {
     transition: transform 0.1s ease, filter 0.15s ease;
 }
 .btn:active { transform: scale(0.985); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* 비활성 버튼은 색까지 회색으로 바꿔 '누를 수 없음'이 분명히 보이게 한다.
+   (예: 근무 종료 버튼은 예정 종료 10분 전까지 비활성) */
+.btn:disabled,
+.btn[disabled] {
+    background: #3f3f46 !important;
+    background-image: none !important;
+    border-color: #52525b !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+    opacity: 1;
+    cursor: not-allowed;
+    filter: grayscale(1);
+    pointer-events: none;
+}
+.btn:disabled:active,
+.btn[disabled]:active { transform: none; }
 
 .btn-brand { background: var(--brand-grad); color: #fff; }
 .btn-ok { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }

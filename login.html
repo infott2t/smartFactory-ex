@@ -1145,30 +1145,16 @@
 
         // 모의 계정 로그인 함수
         async function doMockLogin(userId) {
-            let email = "";
-            let name = "";
-            let role = "";
-            let certImage = null;
-            let certStatus = null;
-            let workedHours = 0;
-
-            // 1. 유저 ID에 따른 정보 강제 매칭 (보건증 정보 추가)
-            if (userId === 1) {
-                email = "tt2t2am1118@naver.com"; name = "최현일"; role = "ROLE_MANAGER";
-                certImage = "choi_cert.png"; certStatus = "approved"; workedHours = 133;
-            }
-            else if (userId === 2) {
-                email = "capegon21@gmail.com"; name = "최수아"; role = "ROLE_USER";
-                certImage = "sua_cert.png"; certStatus = "approved"; workedHours = 22;
-            }
-            else if (userId === 3) {
-                email = "capegon23@gmail.com"; name = "김수민"; role = "ROLE_USER";
-                certImage = null; certStatus = null; workedHours = 0;
-            }
-            else if (userId === 4) {
-                email = "younghee@naver.com"; name = "김영희"; role = "ROLE_HELPER";
-                certImage = "younghee_cert.png"; certStatus = "approved"; workedHours = 45;
-            }
+            // 테스트 계정 정보는 store.js 의 users 테이블에서 조회한다. (중복 하드코딩 제거)
+            const testProfile = (window.MockData && typeof window.MockData.getTestLoginProfile === 'function')
+                ? window.MockData.getTestLoginProfile(userId)
+                : { email: '', name: '', role: '', certImage: null, certStatus: null, workedHours: 0 };
+            let email = testProfile.email;
+            let name = testProfile.name;
+            let role = testProfile.role;
+            let certImage = testProfile.certImage;
+            let certStatus = testProfile.certStatus;
+            let workedHours = testProfile.workedHours;
 
             try {
                 // 2. 브라우저 기본 로그인 세션 세팅

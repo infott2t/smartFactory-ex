@@ -1427,6 +1427,15 @@
         const currentUserId = state.currentUser ? state.currentUser.id : "guest";
         const shouldSave = (key) => !onlyKeys || onlyKeys.includes(key);
 
+        // 0-1. 작업별 누적 근무시간 (userWorkHours)
+        //  기존에는 저장 코드가 없어 setWorkHours() 결과가 새로고침 시 사라졌다.
+        //  로드는 'kimp_user_work_hours' 를 읽으므로 같은 키로 저장한다.
+        if (shouldSave('userWorkHours')) {
+            try {
+                localStorage.setItem('kimp_user_work_hours', JSON.stringify(state.userWorkHours || {}));
+            } catch (e) { }
+        }
+
         // 0. Workers state
         if (shouldSave('workers')) {
             localStorage.setItem('kimp_workers_state', JSON.stringify(state.workers));
@@ -1991,7 +2000,8 @@
             }
 
             const normUserId = normalizeId(userId);
-            const numHours = parseInt(hours) || 0;
+            // 근무시간은 소수(시간) 단위로 누적한다. 정수로 잘라내면 1시간 미만 근무가 사라진다.
+            const numHours = Math.round((parseFloat(hours) || 0) * 100) / 100;
             const key = `${normUserId}_${workId}`;
             state.userWorkHours[key] = numHours;
             if (state.workers[normUserId]) {
@@ -2017,7 +2027,8 @@
                 case 'SET_WORK_HOURS': {
                     const uId = action.payload.userId || currentUserId;
                     const wId = action.payload.workId;
-                    const val = parseInt(action.payload.hours !== undefined ? action.payload.hours : action.payload.value) || 0;
+                    // 소수 시간 유지 (1시간 미만 근무도 누적되도록)
+                    const val = Math.round((parseFloat(action.payload.hours !== undefined ? action.payload.hours : action.payload.value) || 0) * 100) / 100;
                     if (wId !== undefined) {
                         state.userWorkHours[`${uId}_${wId}`] = val;
                         if (state.workers[uId]) {
@@ -2093,6 +2104,75 @@
 
                     state.reservations[reservationIndex] = updatedReservation;
                     syncSelectedReservation(updatedReservation);
+
+                    // 💡 예약 → 실제 참여 확정 시 해당 일의 월별 참가자 수 +1
+                    //    (완료/조퇴 완료로 전이될 때 1회만. 중복은 MockData 쪽 참여 키로 차단)
+                    const beforeStatus = String(currentReservation.workStatus || '');
+                    const afterStatus = String(updatedReservation.workStatus || '');
+                    const participatedStatuses = ['completed', 'complete', 'finished', 'early_leave'];
+                    if (beforeStatus !== afterStatus
+                            && participatedStatuses.indexOf(afterStatus) >= 0
+                            && window.MockData && typeof window.MockData.recordWorkParticipation === 'function') {
+                        window.MockData.recordWorkParticipation({
+                            workId: updatedReservation.workId,
+                            userId: updatedReservation.userId,
+                            userName: updatedReservation.userName,
+                            date: updatedReservation.date,
+                            slot: updatedReservation.slot,
+                            source: 'reservation_' + afterStatus
+                        });
+
+                        // 💡 누적 근무시간(파트너 등급 기준)도 실제 근무한 만큼 +
+                        if (typeof window.MockData.addWorkedHours === 'function') {
+                            window.MockData.addWorkedHours({
+                                workId: updatedReservation.workId,
+                                userId: updatedReservation.userId,
+                                userName: updatedReservation.userName,
+                                seconds: updatedReservation.actualWorkSeconds,
+                                date: updatedReservation.date,
+                                slot: updatedReservation.slot,
+                                source: 'reservation_' + afterStatus
+                            });
+                        }
+
+                        // 💡 근로 급여를 정산 자산에 입금 (마이페이지 '나의 정산 자산')
+                        if (typeof window.MockData.addWorkEarningSettlement === 'function') {
+                            window.MockData.addWorkEarningSettlement({
+                                userId: updatedReservation.userId || updatedReservation.userName,
+                                userName: updatedReservation.userName,
+                                workId: updatedReservation.workId,
+                                amount: updatedReservation.earnedPay,
+                                date: updatedReservation.date,
+                                slot: updatedReservation.slot,
+                                checkoutType: afterStatus === 'early_leave' ? '조퇴' : '퇴근',
+                                source: 'reservation_' + afterStatus
+                            });
+                        }
+
+                        // 💡 '일이 끝났습니다.' 알림 (작업명 + 시간대) → 근로 이력으로 이동
+                        if (typeof window.MockData.notifyWorkFinished === 'function') {
+                            let slotLabel = updatedReservation.time || updatedReservation.slotLabel || '';
+                            if (!slotLabel && typeof window.MockData.formatWorkSlotTime === 'function') {
+                                slotLabel = window.MockData.formatWorkSlotTime(updatedReservation.workId || 1, updatedReservation.slot, '');
+                            }
+                            // 근로 이력 id 가 실제 이력을 가리킬 때만 상세로 보낸다.
+                            // (미출근 처리로 붙은 'absent-...' 같은 값은 상세가 없으므로 목록으로)
+                            const historyIdCandidate = updatedReservation.attendanceHistoryId;
+                            const linkHistoryId = (historyIdCandidate && String(historyIdCandidate).indexOf('absent') !== 0)
+                                ? historyIdCandidate
+                                : null;
+                            window.MockData.notifyWorkFinished({
+                                userId: updatedReservation.userId || updatedReservation.userName,
+                                workId: updatedReservation.workId,
+                                timeLabel: slotLabel,
+                                pay: updatedReservation.earnedPay,
+                                historyId: linkHistoryId,
+                                date: updatedReservation.date,
+                                slot: updatedReservation.slot,
+                                checkoutType: afterStatus === 'early_leave' ? '조퇴' : '퇴근'
+                            });
+                        }
+                    }
                     break;
                 }
                 case 'APPEND_RESERVATION_LOG': {
@@ -7012,4 +7092,1349 @@ window.MockData.resolveWorkEntryPage = function(defaultMode, defaultWorkId) {
     var mode = context ? context.mode : this.normalizeWorkEntryMode(defaultMode);
     var workId = context ? context.workId : String(defaultWorkId || '1');
     return this.getWorkEntryPage(workId, mode);
+};
+
+/* ============================================================
+ * 공통 상수 / 테이블 데이터
+ *
+ * 각 HTML 에 흩어져 하드코딩돼 있던 값들을 여기로 모았다.
+ * (최저시급, 기본 시간대 라벨, 역할 라벨, 작업별 지표 설정, 월간 순위)
+ * ============================================================ */
+
+/* --- 급여 기준 ------------------------------------------------ */
+window.MockData.MINIMUM_HOURLY_WAGE = 10320; // 2026년 최저시급
+
+window.MockData.getMinimumHourlyWage = function() {
+    return this.MINIMUM_HOURLY_WAGE;
+};
+
+/** 급여비율(ratio)을 적용한 시급 */
+window.MockData.getHourlyWage = function(ratio) {
+    var parsed = Number(ratio);
+    if (!isFinite(parsed) || parsed <= 0) parsed = 1;
+    return this.getMinimumHourlyWage() * parsed;
+};
+
+/* --- 기본 근무 시간대 라벨 ------------------------------------ */
+window.MockData.defaultSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+
+window.MockData.getDefaultSlotLabels = function() {
+    return this.defaultSlotLabels.slice();
+};
+
+window.MockData.getDefaultSlotLabel = function(slot) {
+    var index = Number(slot);
+    if (!isFinite(index) || index < 0) index = 0;
+    return this.defaultSlotLabels[index] || this.defaultSlotLabels[0];
+};
+
+/* --- 역할 라벨 ------------------------------------------------ */
+window.MockData.roleLabelMap = {
+    general: '일반',
+    role_general: '일반',
+    helper: '헬퍼',
+    role_helper: '헬퍼',
+    manager: '매니저',
+    role_manager: '매니저'
+};
+
+/**
+ * 서버/세션에 섞여 들어오는 역할 값(general, ROLE_HELPER, 헬퍼 …)을
+ * 화면 표기용 한글 라벨로 통일한다. 알 수 없는 값은 원본을 그대로 돌려준다.
+ */
+window.MockData.formatRoleLabel = function(role) {
+    var normalized = String(role || '').toLowerCase();
+    return this.roleLabelMap[normalized] || role || '일반';
+};
+
+/* --- 작업(workId)별 정산 지표 / 성과 표기 설정 ---------------- */
+window.MockData.workMetricConfigs = {
+    "1": {
+        type: 'kimchi',
+        metricLabel: '도움을 받은 횟수',
+        achievementTitle: '나의 김치 작업 성과',
+        totalUnit: '회'
+    },
+    "2": {
+        type: 'uton',
+        metricLabel: '완료 주문 수',
+        achievementTitle: '나의 Uton 작업 성과',
+        completedKeys: ['completedOrdersCount', 'completedItemsCount', 'completedCount'],
+        completedLabel: '수령 완료 처리 주문',
+        totalUnit: '건'
+    },
+    "3": {
+        type: 'wallet',
+        metricLabel: '완료 제작 수',
+        achievementTitle: '나의 Persa 작업 성과',
+        completedKeys: ['completedItemsCount', 'completedCount'],
+        completedLabel: '완료 제작',
+        totalUnit: '건'
+    },
+    "6": {
+        type: 'meat',
+        metricLabel: '완료 조리 수',
+        achievementTitle: '나의 K-Meat 작업 성과',
+        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
+        completedLabel: '완료 조리',
+        totalUnit: '건'
+    },
+    "7": {
+        type: 'burger',
+        metricLabel: '완료 제조 수',
+        achievementTitle: '나의 BurgerQueen 작업 성과',
+        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
+        completedLabel: '완료 제조',
+        totalUnit: '건'
+    },
+    "default": {
+        type: 'generic',
+        metricLabel: '완료 작업 수',
+        achievementTitle: '나의 작업 성과',
+        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
+        completedLabel: '완료 작업',
+        totalUnit: '건'
+    }
+};
+
+window.MockData.getWorkMetricConfig = function(workId) {
+    var config = this.workMetricConfigs[String(workId)] || this.workMetricConfigs["default"];
+    return JSON.parse(JSON.stringify(config));
+};
+
+/* --- 월간 순위(랭킹) 테이블 ---------------------------------- */
+window.MockData.monthlyWorkRankings = [
+    { name: '최현일', stageCount: 340, hours: 60, bonus: 3000, grade: '매니저' },
+    { name: '김영희', stageCount: 220, hours: 42, bonus: 1000, grade: '헬퍼' },
+    { name: '박준호', stageCount: 195, hours: 38, bonus: 1000, grade: '헬퍼' },
+    { name: '최수아', stageCount: 154, hours: 28, bonus: 500, grade: '일반' },
+    { name: '이민수', stageCount: 120, hours: 22, bonus: 500, grade: '일반' },
+    { name: '정수연', stageCount: 98, hours: 18, bonus: 500, grade: '일반' },
+    { name: '강동원', stageCount: 75, hours: 14, bonus: 500, grade: '일반' },
+    { name: '윤아름', stageCount: 42, hours: 10, bonus: 500, grade: '일반' },
+    { name: '홍길동', stageCount: 28, hours: 7, bonus: 500, grade: '일반' },
+    { name: '김수민', stageCount: 15, hours: 5, bonus: 500, grade: '일반' }
+];
+
+/**
+ * 작업별 월간 순위. 현재는 전 작업 공통 목업이며,
+ * 작업별로 분리할 때는 workRankingsByWork[workId] 를 추가하면 된다.
+ */
+window.MockData.workRankingsByWork = {};
+
+window.MockData.getWorkRanking = function(workId) {
+    var rows = this.workRankingsByWork[String(workId)] || this.monthlyWorkRankings;
+    return JSON.parse(JSON.stringify(rows));
+};
+
+window.MockData.getWorkRankingByName = function(workId, name) {
+    var rows = this.getWorkRanking(workId);
+    for (var i = 0; i < rows.length; i++) {
+        if (rows[i].name === name) return rows[i];
+    }
+    return null;
+};
+
+
+/* ============================================================
+ * 작업자 프로필(보건증/누적시간) 조회
+ * mypage2.html / mypage4.html 에 중복돼 있던 getDefaultProfileByName 을
+ * users 테이블 기반 단일 조회로 대체한다.
+ * ============================================================ */
+window.MockData.getWorkerProfileByName = function(name) {
+    var users = (window.FactoryStore && typeof window.FactoryStore.getUsers === 'function')
+        ? window.FactoryStore.getUsers()
+        : (this.users || []);
+    for (var i = 0; i < users.length; i++) {
+        var user = users[i];
+        if (user && user.name === name) {
+            return {
+                userId: user.id,
+                userName: user.name,
+                healthCertificateImage: user.healthCertificateImage || null,
+                healthCertificateStatus: user.healthCertificateStatus || null,
+                workedHours: Number(user.workedHours) || 0
+            };
+        }
+    }
+    return {
+        userId: 'guest',
+        userName: name || '손님',
+        healthCertificateImage: null,
+        healthCertificateStatus: null,
+        workedHours: 5
+    };
+};
+
+/**
+ * 마이페이지 화면용 기본 근로 이력.
+ * getMockWorkHistories 의 결과를 마이페이지 날짜 표기(YYYY-MM-DD)에 맞춰 돌려준다.
+ */
+window.MockData.getMypageDefaultHistories = function(userLike) {
+    var source = (typeof this.getMockWorkHistories === 'function')
+        ? this.getMockWorkHistories(userLike)
+        : [];
+    return source.map(function(item) {
+        var copy = Object.assign({}, item);
+        copy.date = String(item.date || '').replace(/\./g, '-');
+        return copy;
+    });
+};
+
+
+/* ============================================================
+ * 모의(테스트) 계정 로그인 프로필
+ * login.html / kimp_ex1.html 에 각각 하드코딩돼 있던 4개 테스트 계정 정보를
+ * users 테이블에서 조회해 로그인 세션 형태로 변환한다.
+ * ============================================================ */
+window.MockData.getTestLoginProfile = function(userId) {
+    var users = (window.FactoryStore && typeof window.FactoryStore.getUsers === 'function')
+        ? window.FactoryStore.getUsers()
+        : (this.users || []);
+    var matched = null;
+    for (var i = 0; i < users.length; i++) {
+        if (users[i] && String(users[i].id) === String(userId)) { matched = users[i]; break; }
+    }
+    if (!matched) {
+        return { id: '', email: '', name: '', role: '', certImage: null, certStatus: null, workedHours: 0 };
+    }
+    // users 테이블은 'MANAGER' / 'USER' / 'HELPER' 로 저장하고, 세션은 'ROLE_' 접두어를 쓴다.
+    var sessionRole = String(matched.role || 'USER').toUpperCase();
+    if (sessionRole.indexOf('ROLE_') !== 0) sessionRole = 'ROLE_' + sessionRole;
+    return {
+        id: matched.id,
+        email: matched.email || '',
+        name: matched.name || '',
+        role: sessionRole,
+        certImage: matched.healthCertificateImage || null,
+        certStatus: matched.healthCertificateStatus || null,
+        workedHours: Number(matched.workedHours) || 0
+    };
+};
+
+
+/* ============================================================
+ * 김치공장(workId 1) 배송 주문 연동
+ *
+ * 고객이 김치 제품을 구매하면 manager.html(김치 매니저 콘솔)의
+ * 출하/배송 주문판(kimp_delivery_orders)에 실제 주문으로 잡히게 한다.
+ * manager.html 이 기대하는 레코드 형식:
+ *   { orderId, orderTime, customerName, address, productId(p300g…), quantity, price, status }
+ * ============================================================ */
+window.MockData.KIMP_DELIVERY_ORDERS_KEY = 'kimp_delivery_orders';
+window.MockData.KIMCHI_PRODUCT_CODES = ['p300g', 'p1kg', 'p3kg', 'p5kg', 'p10kg'];
+
+/** 주문 데이터를 김치 공장 제품 코드(p300g …)로 변환한다. */
+window.MockData.toKimchiProductCode = function(productLike) {
+    if (!productLike) return null;
+    const candidates = [];
+    if (typeof productLike === 'object') {
+        candidates.push(productLike.productCode, productLike.productId, productLike.id, productLike.name);
+    } else {
+        candidates.push(productLike);
+    }
+
+    for (const value of candidates) {
+        if (value === undefined || value === null || value === '') continue;
+        const text = String(value);
+        if (this.KIMCHI_PRODUCT_CODES.includes(text)) return text;
+        const found = (this.storeProducts || []).find(p => p
+            && (String(p.productCode) === text || String(p.productId) === text || p.name === text));
+        if (found && Number(found.workId) === 1 && this.KIMCHI_PRODUCT_CODES.includes(found.productCode)) {
+            return found.productCode;
+        }
+    }
+    return null;
+};
+
+window.MockData.getKimchiDeliveryOrders = function() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(this.KIMP_DELIVERY_ORDERS_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+};
+
+/** 고객 이름을 '김**' 형태로 마스킹한다. (매니저 콘솔 기존 표기 규칙) */
+window.MockData.maskCustomerName = function(name) {
+    const text = String(name || '').trim();
+    if (!text) return '고객';
+    return text.charAt(0) + '**';
+};
+
+/**
+ * 김치 제품 구매를 매니저 콘솔의 배송 주문으로 등록한다.
+ * @returns 생성된 주문 레코드 (김치 제품이 아니면 null)
+ */
+window.MockData.addKimchiDeliveryOrder = function(input) {
+    const source = input || {};
+    const productCode = this.toKimchiProductCode(source.productCode || source.productId || source.productName);
+    if (!productCode) return null;
+
+    const quantity = Math.max(1, parseInt(source.quantity || source.qty, 10) || 1);
+    const catalogItem = (this.storeProducts || []).find(p => p && p.productCode === productCode) || {};
+    const unitPrice = Number(source.unitPrice || source.price || catalogItem.price) || 0;
+
+    const now = source.createdAt ? new Date(source.createdAt) : new Date();
+    const pad = value => String(value).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(2);
+    const dateKey = `${yy}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+    const orderTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    const orders = this.getKimchiDeliveryOrders();
+    const sameDayCount = orders.filter(o => String(o.orderId || '').indexOf(`ORD-${dateKey}-`) === 0).length;
+    const orderId = source.orderId || `ORD-${dateKey}-${pad(sameDayCount + 1)}`;
+
+    let userAddress = source.address;
+    if (!userAddress) {
+        const matched = (this.users || []).find(u => u
+            && (u.name === source.customerName || u.email === source.customerEmail));
+        userAddress = (matched && matched.addr) || '주소 미입력 (고객 확인 필요)';
+    }
+
+    const record = {
+        orderId: orderId,
+        orderTime: orderTime,
+        customerName: source.customerNameMasked || this.maskCustomerName(source.customerName),
+        address: userAddress,
+        productId: productCode,
+        quantity: quantity,
+        price: unitPrice,
+        status: source.status || '주문 완료',
+        // 추적용 부가 정보 (매니저 콘솔은 무시하지만 마이페이지 주문과 연결할 때 사용)
+        shopOrderId: source.shopOrderId || null,
+        phone: source.phone || null,
+        memo: source.memo || null,
+        source: source.source || 'customer_purchase'
+    };
+
+    orders.push(record);
+    localStorage.setItem(this.KIMP_DELIVERY_ORDERS_KEY, JSON.stringify(orders));
+
+    if (window.FactoryStore && typeof window.FactoryStore.notify === 'function') {
+        window.FactoryStore.notify();
+    }
+    return record;
+};
+
+
+/* ============================================================
+ * 김치공장 제품 스펙 (제품명/무게/포장단가/이미지)
+ *
+ * manager.html 에 제품명 맵 5개, 이미지 맵 2개, 무게 판정 if 체인 3곳,
+ * 포장단가 if 체인이 각각 복붙돼 있었고 제품명 표기도 서로 달랐다
+ * (3kg 대용량 김치 vs 3kg 포기김치). 여기서 단일 정의한다.
+ * 가격/정식 상품명은 storeProducts 를 원본으로 사용한다.
+ * ============================================================ */
+window.MockData.kimchiProductSpecs = {
+    p300g: { shortName: '300g 맛김치', weightKg: 0.3, packagingUnitCost: 300, managerImg: './images/kimchi_product_300g.png' },
+    p1kg: { shortName: '1kg 포기김치', weightKg: 1.0, packagingUnitCost: 500, managerImg: './images/kimchi_product_1kg.png' },
+    p3kg: { shortName: '3kg 대용량 김치', weightKg: 3.0, packagingUnitCost: 700, managerImg: './images/kimchi_product_3kg.png' },
+    p5kg: { shortName: '5kg 실속 김치', weightKg: 5.0, packagingUnitCost: 1500, managerImg: './images/kimchi_product_1kg.png' },
+    p10kg: { shortName: '10kg 업소용 김치', weightKg: 10.0, packagingUnitCost: 1500, managerImg: './images/kimchi_product_3kg.png' }
+};
+
+// 생산 지시서에서 쓰는 원자재 표기
+window.MockData.rawMaterialNames = {
+    raw_cabbage: '절임용 원배추'
+};
+
+window.MockData.getKimchiProductSpec = function(code) {
+    const key = String(code || '');
+    const spec = this.kimchiProductSpecs[key];
+    if (!spec) return null;
+    const catalog = (this.storeProducts || []).find(p => p && p.productCode === key) || {};
+    return {
+        code: key,
+        name: catalog.name || spec.shortName,
+        shortName: spec.shortName,
+        price: Number(catalog.price) || 0,
+        img: catalog.img || spec.managerImg,
+        managerImg: spec.managerImg,
+        weightKg: spec.weightKg,
+        packagingUnitCost: spec.packagingUnitCost
+    };
+};
+
+/** 화면 표기용 제품명. short=true 면 '3kg 대용량 김치' 처럼 짧은 이름 */
+window.MockData.getKimchiProductName = function(code, options) {
+    const short = !!(options && options.short);
+    const spec = this.getKimchiProductSpec(code);
+    if (spec) return short ? spec.shortName : spec.name;
+    return this.rawMaterialNames[String(code)] || String(code || '');
+};
+
+/** { p300g: '300g 맛김치', …, raw_cabbage: '절임용 원배추' } 형태의 맵 */
+window.MockData.getKimchiProductNameMap = function(options) {
+    const map = {};
+    Object.keys(this.rawMaterialNames).forEach(key => { map[key] = this.rawMaterialNames[key]; });
+    Object.keys(this.kimchiProductSpecs).forEach(code => {
+        map[code] = this.getKimchiProductName(code, options);
+    });
+    return map;
+};
+
+window.MockData.getKimchiProductWeightKg = function(code) {
+    const spec = this.getKimchiProductSpec(code);
+    return spec ? spec.weightKg : 1.0;
+};
+
+window.MockData.getKimchiPackagingUnitCost = function(code) {
+    const spec = this.getKimchiProductSpec(code);
+    return spec ? spec.packagingUnitCost : 500;
+};
+
+window.MockData.getKimchiProductImage = function(code, options) {
+    const spec = this.getKimchiProductSpec(code);
+    if (!spec) return './images/kimchi_product_300g.png';
+    return (options && options.manager) ? spec.managerImg : spec.img;
+};
+
+window.MockData.getKimchiProductImageMap = function(options) {
+    const map = {};
+    Object.keys(this.kimchiProductSpecs).forEach(code => {
+        map[code] = this.getKimchiProductImage(code, options);
+    });
+    return map;
+};
+
+/* 배송 라벨 인쇄 시 사용하는 예시 배송 메모 (manager.html 에 2곳 중복돼 있었다) */
+window.MockData.deliveryMemoSamples = [
+    '문 앞에 놔주시고 벨은 누르지 말아주세요.',
+    '배송 전 미리 문자 하나 부탁드립니다.',
+    '경비실에 맡겨주시면 감사하겠습니다.',
+    '택배함에 보관 부탁드립니다.',
+    '파손 위험이 있으니 던지지 말아주세요.'
+];
+
+window.MockData.getDeliveryMemoSample = function(index) {
+    const list = this.deliveryMemoSamples;
+    const i = Number(index);
+    return list[(Number.isFinite(i) ? Math.abs(i) : 0) % list.length];
+};
+
+
+/* 포장 규격 라벨('300g','1kg' …) ↔ 제품 코드('p300g' …) 매핑
+ * 포장지시서(kimp_packaging_orders)의 targets 키가 규격 라벨이라
+ * kimp_ex1.html / manager.html 에서 각자 매핑을 만들고 있었다. */
+window.MockData.packagingSizeToProductCode = {
+    '300g': 'p300g',
+    '1kg': 'p1kg',
+    '3kg': 'p3kg',
+    '5kg': 'p5kg',
+    '10kg': 'p10kg'
+};
+
+window.MockData.getPackagingSizeKeys = function() {
+    return Object.keys(this.packagingSizeToProductCode);
+};
+
+window.MockData.packagingSizeToCode = function(sizeLabel) {
+    return this.packagingSizeToProductCode[String(sizeLabel)] || null;
+};
+
+window.MockData.productCodeToPackagingSize = function(code) {
+    const map = this.packagingSizeToProductCode;
+    return Object.keys(map).find(size => map[size] === String(code)) || null;
+};
+
+/** 포장지시서 targets({'300g': 3, '1kg': 2}) 를 제품 코드 기준 수량으로 변환 */
+window.MockData.packagingTargetsToProductCounts = function(targets) {
+    const counts = {};
+    Object.keys(this.packagingSizeToProductCode).forEach(size => {
+        counts[this.packagingSizeToProductCode[size]] = 0;
+    });
+    if (!targets || typeof targets !== 'object') return counts;
+    Object.keys(targets).forEach(size => {
+        const code = this.packagingSizeToCode(size);
+        if (!code) return;
+        counts[code] += parseInt(targets[size], 10) || 0;
+    });
+    return counts;
+};
+
+
+/* ============================================================
+ * 인기 카테고리 순위 (main.html / explore.html)
+ *
+ * 각 일(work)에 붙은 단어 태그(categories)를 모아 실제 수치로 순위를 만든다.
+ *   - 참가자 수 : 해당 태그가 붙은 일들의 participants 합
+ *   - 시급 배율 : 참가자 수로 가중 평균한 배율 (실시간 배율 주입 가능)
+ *   - 점수     : Σ(participants × ratio)  → 사람이 많고 시급이 높은 태그가 상위
+ * 동일한 일 집합에 붙은 태그는 하나로 묶어 표기한다. (예: '음식, 요리')
+ * ============================================================ */
+window.MockData.getCategoryRankings = function(options) {
+    const opts = options || {};
+    const limit = Number(opts.limit) > 0 ? Number(opts.limit) : 4;
+    // ratioResolver(workId, defaultRatio) 로 실시간 배율(RatioFeed)을 주입할 수 있다.
+    const ratioResolver = typeof opts.ratioResolver === 'function' ? opts.ratioResolver : null;
+
+    let works = [];
+    try {
+        works = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+            ? window.FactoryStore.getWorks()
+            : JSON.parse(this.worksJSON || '[]');
+    } catch (e) {
+        works = [];
+    }
+
+    // 태그별 집계
+    // 참가자 수는 월별 집계를 우선 사용한다. (기본: 현재 월, participantScope:'total' 이면 누적)
+    const scope = String(opts.participantScope || 'month');
+    const yearMonth = opts.yearMonth || (typeof this.getYearMonth === 'function' ? this.getYearMonth() : null);
+    const self = this;
+    const participantsOf = function(work) {
+        if (typeof self.getWorkMonthlyParticipants === 'function') {
+            const counted = scope === 'total'
+                ? self.getWorkTotalParticipants(work.workId)
+                : self.getWorkMonthlyParticipants(work.workId, yearMonth);
+            if (counted > 0) return counted;
+        }
+        return Number(work.participants) || 0;
+    };
+
+    const tagMap = {};
+    works.forEach(work => {
+        if (!work || !Array.isArray(work.categories)) return;
+        const participants = participantsOf(work);
+        const baseRatio = Number(work.salary) || 1;
+        const ratio = ratioResolver ? (Number(ratioResolver(work.workId, baseRatio)) || baseRatio) : baseRatio;
+
+        work.categories.forEach(rawTag => {
+            const tag = String(rawTag || '').trim();
+            if (!tag) return;
+            if (!tagMap[tag]) tagMap[tag] = { tag: tag, workIds: [], participants: 0, score: 0 };
+            const entry = tagMap[tag];
+            entry.workIds.push(String(work.workId));
+            entry.participants += participants;
+            entry.score += participants * ratio;
+        });
+    });
+
+    // 같은 일 집합에 붙은 태그끼리 묶기 (음식 + 요리 → '음식, 요리')
+    const groupMap = {};
+    Object.keys(tagMap).forEach(tag => {
+        const entry = tagMap[tag];
+        const key = entry.workIds.slice().sort().join('|');
+        if (!groupMap[key]) {
+            groupMap[key] = {
+                tags: [],
+                workIds: entry.workIds.slice().sort(),
+                participants: entry.participants,
+                score: entry.score
+            };
+        }
+        groupMap[key].tags.push(tag);
+    });
+
+    const rankings = Object.keys(groupMap).map(key => {
+        const group = groupMap[key];
+        const ratio = group.participants > 0 ? (group.score / group.participants) : 0;
+        return {
+            label: group.tags.join(', '),
+            tags: group.tags.slice(),
+            workIds: group.workIds.slice(),
+            workCount: group.workIds.length,
+            participants: group.participants,
+            ratio: Math.round(ratio * 100) / 100,
+            score: Math.round(group.score * 100) / 100
+        };
+    });
+
+    rankings.sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.participants !== a.participants) return b.participants - a.participants;
+        return a.label.localeCompare(b.label);
+    });
+
+    return rankings.slice(0, limit).map(function(item, index) {
+        item.rank = index + 1;
+        return item;
+    });
+};
+
+
+/* ============================================================
+ * 일(work)별 참가자 집계
+ *
+ * - worksJSON 의 participants 는 "현재 월(7월) 참가자 수"로 간주해 초기 시드로 넣는다.
+ * - 월별 집계와 누적(전체) 집계를 함께 보관한다.
+ * - 예약한 뒤 실제로 참여(근무 완료/조퇴 완료)하면 해당 월 카운트를 +1 한다.
+ *   같은 근로 1건이 두 번 세어지지 않도록 참여 키(work|user|date|slot)를 기록한다.
+ *
+ * 저장 키: localStorage 'work_participant_stats'
+ *   { seededMonth: '2026-07',
+ *     works: { '1': { monthly: { '2026-07': 123 }, seeded: 123 } },
+ *     participationKeys: { 'p:1|4|2026-07-29|0': '2026-07-29T...' } }
+ * ============================================================ */
+window.MockData.WORK_PARTICIPANT_STATS_KEY = 'work_participant_stats';
+window.MockData.WORK_PARTICIPANT_DEMO_KEY = 'work_participant_demo_mode';
+
+/* ------------------------------------------------------------------
+ * demo 플래그의 의미
+ *
+ *   demo = true  (지금 기본값, 시연/데모용)
+ *     새로운 달이 되어도 그 달의 참가자 수를 0 이 아니라 "시드값"
+ *     (worksJSON 의 participants: 김치 123, 우동 70 …)에서 시작한다.
+ *     데모 화면에서 8월로 넘어갔을 때 인기 카테고리·참여자 수가 갑자기
+ *     0 으로 비어 보이는 것을 막기 위한 설정이다.
+ *     이 상태에서 실제 참여가 생기면 시드값 위에 +1 씩 쌓인다.
+ *
+ *   demo = false (실제 운영)
+ *     시드값을 쓰지 않는다. 달이 바뀌면 그 달 참가자 수는 0 에서 시작하고,
+ *     예약 후 실제 참여한 건수만 +1 로 집계된다. 즉 화면 숫자가 100%
+ *     실제 참여 기록이 된다. (초기 목업 participants 도 반영하지 않는다)
+ *
+ *   전환 방법
+ *     - 코드: window.MockData.WORK_PARTICIPANT_DEMO_MODE = false;
+ *     - 런타임: MockData.setWorkParticipantDemoMode(false)  (localStorage 에 저장)
+ *   주의: 이미 집계된 과거 달의 값은 그대로 유지된다. 플래그는 "아직 값이 없는
+ *         달의 시작값을 무엇으로 할지"만 결정한다.
+ * ------------------------------------------------------------------ */
+window.MockData.WORK_PARTICIPANT_DEMO_MODE = true;
+
+window.MockData.isWorkParticipantDemoMode = function() {
+    try {
+        const saved = localStorage.getItem(this.WORK_PARTICIPANT_DEMO_KEY);
+        if (saved === 'true') return true;
+        if (saved === 'false') return false;
+    } catch (e) { }
+    return this.WORK_PARTICIPANT_DEMO_MODE !== false;
+};
+
+window.MockData.setWorkParticipantDemoMode = function(isDemo) {
+    const value = !!isDemo;
+    this.WORK_PARTICIPANT_DEMO_MODE = value;
+    try {
+        localStorage.setItem(this.WORK_PARTICIPANT_DEMO_KEY, value ? 'true' : 'false');
+    } catch (e) { }
+    return value;
+};
+
+/** worksJSON 에 정의된 초기 참가자 수(시드). demo 모드에서 월 시작값으로 쓴다. */
+window.MockData.getWorkSeedParticipants = function(workId) {
+    let works = [];
+    try {
+        works = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+            ? window.FactoryStore.getWorks()
+            : JSON.parse(this.worksJSON || '[]');
+    } catch (e) {
+        works = [];
+    }
+    const found = works.find(work => work && String(work.workId) === String(workId));
+    return found ? (Number(found.participants) || 0) : 0;
+};
+
+window.MockData.getYearMonth = function(dateLike) {
+    let date;
+    if (!dateLike) {
+        date = new Date();
+    } else if (dateLike instanceof Date) {
+        date = dateLike;
+    } else {
+        const text = String(dateLike).trim();
+        const matched = text.match(/(\d{4})[-./년\s]+(\d{1,2})/);
+        if (matched) {
+            return matched[1] + '-' + String(matched[2]).padStart(2, '0');
+        }
+        date = new Date(text);
+        if (isNaN(date.getTime())) date = new Date();
+    }
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+};
+
+window.MockData.loadWorkParticipantStats = function() {
+    let stats = null;
+    try {
+        stats = JSON.parse(localStorage.getItem(this.WORK_PARTICIPANT_STATS_KEY) || 'null');
+    } catch (e) {
+        stats = null;
+    }
+    if (!stats || typeof stats !== 'object') stats = {};
+    if (!stats.works || typeof stats.works !== 'object') stats.works = {};
+    if (!stats.participationKeys || typeof stats.participationKeys !== 'object') stats.participationKeys = {};
+
+    const currentMonth = this.getYearMonth();
+    const isDemo = this.isWorkParticipantDemoMode();
+    let works = [];
+    try {
+        works = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+            ? window.FactoryStore.getWorks()
+            : JSON.parse(this.worksJSON || '[]');
+    } catch (e) {
+        works = [];
+    }
+
+    let changed = false;
+    works.forEach(work => {
+        if (!work) return;
+        const key = String(work.workId);
+        const seed = Number(work.participants) || 0;
+        if (!stats.works[key]) {
+            stats.works[key] = { monthly: {}, seeded: seed };
+            changed = true;
+        }
+        const entry = stats.works[key];
+        if (!entry.monthly || typeof entry.monthly !== 'object') { entry.monthly = {}; changed = true; }
+        if (entry.seeded === undefined) { entry.seeded = seed; changed = true; }
+        // 아직 값이 없는 "현재 달"의 시작값을 정한다.
+        //   demo=true  → 시드값(월이 바뀌어도 0 으로 떨어지지 않는다)
+        //   demo=false → 0 (실제 참여만 집계)
+        if (entry.monthly[currentMonth] === undefined) {
+            entry.monthly[currentMonth] = isDemo ? (Number(entry.seeded) || seed) : 0;
+            changed = true;
+        }
+    });
+    if (!stats.seededMonth) { stats.seededMonth = currentMonth; changed = true; }
+    if (stats.demoMode !== isDemo) { stats.demoMode = isDemo; changed = true; }
+    if (changed) this.saveWorkParticipantStats(stats);
+    return stats;
+};
+
+window.MockData.saveWorkParticipantStats = function(stats) {
+    try {
+        localStorage.setItem(this.WORK_PARTICIPANT_STATS_KEY, JSON.stringify(stats));
+    } catch (e) { }
+};
+
+/** 값이 없는 달의 시작값. demo=true 면 시드값, demo=false 면 0 */
+window.MockData.getWorkMonthBaseline = function(workId, entry) {
+    if (!this.isWorkParticipantDemoMode()) return 0;
+    const seeded = entry && entry.seeded !== undefined ? Number(entry.seeded) : NaN;
+    if (isFinite(seeded)) return seeded;
+    return this.getWorkSeedParticipants(workId);
+};
+
+/** 특정 일의 월별 참가자 수 (기본: 현재 월) */
+window.MockData.getWorkMonthlyParticipants = function(workId, yearMonth) {
+    const stats = this.loadWorkParticipantStats();
+    const entry = stats.works[String(workId)];
+    const month = yearMonth || this.getYearMonth();
+    if (!entry) return this.getWorkMonthBaseline(workId, null);
+    if (entry.monthly[month] === undefined) return this.getWorkMonthBaseline(workId, entry);
+    return Number(entry.monthly[month]) || 0;
+};
+
+/** 특정 일의 누적(전체 월 합계) 참가자 수 */
+window.MockData.getWorkTotalParticipants = function(workId) {
+    const stats = this.loadWorkParticipantStats();
+    const entry = stats.works[String(workId)];
+    if (!entry) return 0;
+    return Object.keys(entry.monthly).reduce((sum, month) => sum + (Number(entry.monthly[month]) || 0), 0);
+};
+
+/** 월별 집계 전체 조회. { workId: { total, months: {'2026-07': n} } } */
+window.MockData.getWorkParticipantStats = function() {
+    const stats = this.loadWorkParticipantStats();
+    const result = {};
+    Object.keys(stats.works).forEach(workId => {
+        const monthly = stats.works[workId].monthly || {};
+        const months = {};
+        let total = 0;
+        Object.keys(monthly).sort().forEach(month => {
+            months[month] = Number(monthly[month]) || 0;
+            total += months[month];
+        });
+        result[workId] = { total: total, months: months, seeded: Number(stats.works[workId].seeded) || 0 };
+    });
+    return result;
+};
+
+/**
+ * 예약 → 참여 확정 시 참가자 +1.
+ * @param {{workId, userId, userName, date, slot, source}} input
+ * @returns {{counted:boolean, workId:string, yearMonth:string, participants:number}}
+ */
+window.MockData.recordWorkParticipation = function(input) {
+    const source = input || {};
+    const workId = String(source.workId || '');
+    if (!workId) return { counted: false, reason: 'no_work_id' };
+
+    const yearMonth = this.getYearMonth(source.date);
+    const identity = [
+        workId,
+        source.userId !== undefined && source.userId !== null && source.userId !== '' ? source.userId : (source.userName || 'guest'),
+        source.date || yearMonth,
+        source.slot !== undefined && source.slot !== null ? source.slot : 'x'
+    ].join('|');
+    const participationKey = 'p:' + identity;
+
+    const stats = this.loadWorkParticipantStats();
+    if (stats.participationKeys[participationKey]) {
+        const already = stats.works[workId] ? (Number(stats.works[workId].monthly[yearMonth]) || 0) : 0;
+        return { counted: false, reason: 'duplicated', workId: workId, yearMonth: yearMonth, participants: already };
+    }
+
+    if (!stats.works[workId]) stats.works[workId] = { monthly: {}, seeded: this.getWorkSeedParticipants(workId) };
+    const entry = stats.works[workId];
+    // 해당 달의 값이 아직 없으면 demo 여부에 따른 시작값에서 +1 한다.
+    if (entry.monthly[yearMonth] === undefined) {
+        entry.monthly[yearMonth] = this.getWorkMonthBaseline(workId, entry);
+    }
+    entry.monthly[yearMonth] = (Number(entry.monthly[yearMonth]) || 0) + 1;
+    stats.participationKeys[participationKey] = new Date().toISOString();
+    this.saveWorkParticipantStats(stats);
+
+    if (window.FactoryStore && typeof window.FactoryStore.getState === 'function') {
+        // 화면(인기 카테고리/일 목록)이 다시 그릴 수 있도록 이벤트를 알린다.
+        try {
+            window.dispatchEvent(new CustomEvent('app:work-participants-changed', {
+                detail: { workId: workId, yearMonth: yearMonth, participants: entry.monthly[yearMonth], source: source.source || null }
+            }));
+        } catch (e) { }
+    }
+    return { counted: true, workId: workId, yearMonth: yearMonth, participants: entry.monthly[yearMonth] };
+};
+
+/* ============================================================
+ * 근로 종료(퇴근/조퇴) 시 누적 근무시간 반영
+ *
+ * explore2.html '파트너 등급' 탭과 등급(일반/헬퍼/매니저) 판정은
+ * FactoryStore.getWorkHours(userId, workId) 값을 쓴다. 지금까지는 근무가 끝나도
+ * 이 값이 늘지 않아 근로 이력만 쌓이고 누적 시간은 그대로였다.
+ * 여기서 "근로 1건 = 누적 시간 +실제 근무시간" 을 한 번만 반영한다.
+ *
+ * 중복 방지: 같은 근로(work|user|date|slot)는 한 번만 더한다.
+ *   저장 키: localStorage 'work_hours_applied_keys'
+ * ============================================================ */
+window.MockData.WORK_HOURS_APPLIED_KEY = 'work_hours_applied_keys';
+
+window.MockData.loadAppliedWorkHourKeys = function() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(this.WORK_HOURS_APPLIED_KEY) || '{}');
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+        return {};
+    }
+};
+
+window.MockData.saveAppliedWorkHourKeys = function(map) {
+    try {
+        localStorage.setItem(this.WORK_HOURS_APPLIED_KEY, JSON.stringify(map));
+    } catch (e) { }
+};
+
+/**
+ * 누적 근무시간 가산.
+ * @param {{workId, userId, userName, seconds, hours, date, slot, source, force}} input
+ *        seconds 또는 hours 중 하나를 넘긴다. (seconds 우선)
+ * @returns {{applied:boolean, addedHours:number, totalHours:number, reason?:string}}
+ */
+window.MockData.addWorkedHours = function(input) {
+    const source = input || {};
+    const workId = source.workId !== undefined && source.workId !== null ? String(source.workId) : '';
+    if (!workId) return { applied: false, reason: 'no_work_id', addedHours: 0, totalHours: 0 };
+
+    let addedHours = 0;
+    if (source.seconds !== undefined && source.seconds !== null) {
+        addedHours = (Number(source.seconds) || 0) / 3600;
+    } else if (source.hours !== undefined && source.hours !== null) {
+        addedHours = Number(source.hours) || 0;
+    }
+    // 소수 둘째 자리까지 (초 단위 근무도 누적에 반영되도록)
+    addedHours = Math.round(addedHours * 100) / 100;
+    if (!(addedHours > 0)) {
+        return { applied: false, reason: 'no_hours', addedHours: 0, totalHours: this.getWorkHours(source.userId, workId) };
+    }
+
+    const userKey = (source.userId !== undefined && source.userId !== null && source.userId !== '')
+        ? source.userId
+        : (source.userName || 'guest');
+    const appliedKey = ['wh', workId, userKey, source.date || this.getYearMonth(),
+        (source.slot !== undefined && source.slot !== null) ? source.slot : 'x'].join('|');
+
+    const appliedMap = this.loadAppliedWorkHourKeys();
+    if (!source.force && appliedMap[appliedKey]) {
+        return {
+            applied: false, reason: 'duplicated', addedHours: 0,
+            totalHours: this.getWorkHours(source.userId, workId)
+        };
+    }
+
+    const before = Number(this.getWorkHours(source.userId, workId)) || 0;
+    const after = Math.round((before + addedHours) * 100) / 100;
+    this.setWorkHours(source.userId, workId, after);
+
+    appliedMap[appliedKey] = { at: new Date().toISOString(), hours: addedHours, source: source.source || null };
+    this.saveAppliedWorkHourKeys(appliedMap);
+
+    try {
+        window.dispatchEvent(new CustomEvent('app:worked-hours-changed', {
+            detail: { workId: workId, userId: source.userId, addedHours: addedHours, totalHours: after, source: source.source || null }
+        }));
+    } catch (e) { }
+
+    return { applied: true, addedHours: addedHours, totalHours: after };
+};
+
+/* ============================================================
+ * 근로 급여 → 정산 자산 입금
+ *
+ * '나의 정산 자산'(mypage2, settlement_log)은
+ *   getUserSettlementBalance() = 초기 정산금액 + 정산 로그(amount) 합
+ * 으로 계산된다. 그런데 근무를 마쳐도(퇴근/조퇴) 급여가 정산 로그에 남지 않아
+ * 자산이 늘지 않았다. 여기서 근로 1건당 급여를 '+수입' 로그로 기록한다.
+ *
+ * 중복 방지: 같은 근로(work|user|date|slot 또는 근로이력 id)는 한 번만 기록한다.
+ *            로그 id 를 결정적으로 만들어 addSettlementLog 의 id 중복 검사를 활용.
+ * ============================================================ */
+window.MockData.buildWorkEarningLogId = function(input) {
+    const source = input || {};
+    const userKey = this.normalizeSettlementUserId(source.userId || source.userName || 'guest');
+    // 같은 날짜·같은 시간대(slot)의 같은 일은 1회만 지급되도록 근로이력 id 는 키에 넣지 않는다.
+    const parts = ['work_pay', userKey, String(source.workId || ''),
+        String(source.date || ''), String(source.slot === undefined || source.slot === null ? 'x' : source.slot)];
+    return parts.join('_').replace(/\s+/g, '');
+};
+
+/**
+ * 근로 급여를 정산 자산에 +로 기록한다.
+ * @param {{userId, userName, workId, amount, date, slot, historyId, checkoutType, source}} input
+ * @returns {{recorded:boolean, amount:number, balance:number, reason?:string}}
+ */
+window.MockData.addWorkEarningSettlement = function(input) {
+    const source = input || {};
+    const amount = Math.round(Number(source.amount) || 0);
+    if (!(amount > 0)) {
+        return { recorded: false, reason: 'no_amount', amount: 0, balance: this.getUserSettlementBalance(source.userId) };
+    }
+
+    const logId = this.buildWorkEarningLogId(source);
+    const existing = this.getSettlementLogs(source.userId) || [];
+    if (existing.some(log => String(log.id) === logId)) {
+        return { recorded: false, reason: 'duplicated', amount: 0, balance: this.getUserSettlementBalance(source.userId) };
+    }
+
+    const workId = source.workId !== undefined && source.workId !== null ? source.workId : null;
+    const storeName = (typeof this.getSettlementStoreName === 'function' && workId !== null)
+        ? this.getSettlementStoreName(workId)
+        : '';
+    const workName = (typeof this.getWorkMeta === 'function' && workId !== null)
+        ? ((this.getWorkMeta(workId) || {}).title || '근로')
+        : '근로';
+    const checkoutType = source.checkoutType || '퇴근';
+    const balanceBefore = this.getUserSettlementBalance(source.userId);
+
+    this.addSettlementLog(source.userId, {
+        id: logId,
+        type: 'work_earning',
+        category: '근로 급여',
+        title: workName + ' 근로 급여 (' + checkoutType + ')',
+        storeName: storeName,
+        workId: workId,
+        amount: amount,                 // 수입이므로 +
+        balanceBefore: balanceBefore,
+        balanceAfter: balanceBefore + amount,
+        paymentMethod: 'work_settlement',
+        createdAt: source.createdAt || new Date().toISOString(),
+        description: (source.date || '') + ' ' + (source.slotLabel || '') + ' 근무 정산'
+    });
+
+    const balance = this.getUserSettlementBalance(source.userId);
+    try {
+        window.dispatchEvent(new CustomEvent('app:settlement-balance-changed', {
+            detail: { userId: source.userId, amount: amount, balance: balance, source: source.source || null }
+        }));
+    } catch (e) { }
+    return { recorded: true, amount: amount, balance: balance };
+};
+
+/* ============================================================
+ * 알림 큐 (app-notifications.js 미탑재 페이지에서도 알림을 남길 수 있게)
+ *
+ * app-notifications.js 는 localStorage 'app_notifications_{식별자}' 에 알림을 쌓고
+ * 헤더 종 버튼/알림 페이지에서 읽는다. 근무 종료 화면(kimp_ex1 등)에는 그 모듈이
+ * 없으므로, 같은 저장 규칙으로 직접 넣어 준다.
+ *  - 모듈이 로드된 페이지에서는 AppNotifications.notify() 를 그대로 사용한다.
+ *  - dedupeKey 로 같은 알림이 두 번 쌓이지 않게 한다.
+ * ============================================================ */
+window.MockData.NOTIFICATION_STORAGE_PREFIX = 'app_notifications_';
+window.MockData.NOTIFICATION_MAX = 100;
+
+/** app-notifications.js 와 동일한 저장 키 계산 */
+window.MockData.getNotificationStorageKey = function(userLike) {
+    let identity = userLike;
+    if (identity === undefined || identity === null || identity === '') {
+        try {
+            const sessionUser = JSON.parse(sessionStorage.getItem('user') || 'null');
+            if (sessionUser) identity = sessionUser.id || sessionUser.email || sessionUser.name;
+        } catch (e) { }
+    }
+    if (identity === undefined || identity === null || identity === '') {
+        identity = sessionStorage.getItem('user-id') || 'guest';
+    }
+    return this.NOTIFICATION_STORAGE_PREFIX + encodeURIComponent(String(identity));
+};
+
+/**
+ * 알림 1건 추가.
+ * @param {{userId, title, message, type, href, dedupeKey, createdAt}} input
+ * @returns {{added:boolean, reason?:string}}
+ */
+window.MockData.enqueueNotification = function(input) {
+    const source = input || {};
+    if (!source.title) return { added: false, reason: 'no_title' };
+
+    // 알림 모듈이 있는 페이지는 모듈 API 를 그대로 사용한다. (화면 즉시 갱신)
+    if (window.AppNotifications && typeof window.AppNotifications.notify === 'function') {
+        const created = window.AppNotifications.notify({
+            title: source.title,
+            message: source.message || '',
+            type: source.type || 'info',
+            href: source.href || '',
+            dedupeKey: source.dedupeKey || '',
+            createdAt: source.createdAt
+        });
+        return { added: !!created };
+    }
+
+    const storageKey = this.getNotificationStorageKey(source.userId);
+    let list = [];
+    try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (Array.isArray(parsed)) list = parsed;
+    } catch (e) { }
+
+    const dedupeKey = source.dedupeKey || '';
+    if (dedupeKey && list.some(item => item && item.dedupeKey === dedupeKey)) {
+        return { added: false, reason: 'duplicated' };
+    }
+
+    list.unshift({
+        id: 'notification-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        title: String(source.title),
+        message: String(source.message || ''),
+        type: String(source.type || 'info'),
+        href: source.href ? String(source.href) : '',
+        createdAt: source.createdAt || new Date().toISOString(),
+        readAt: null,
+        dedupeKey: dedupeKey
+    });
+
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(list.slice(0, this.NOTIFICATION_MAX)));
+    } catch (e) { }
+    return { added: true };
+};
+
+/**
+ * 근무 종료(퇴근/조퇴) 알림.
+ * '일이 끝났습니다.' + 작업명/시간대 + 근로 이력 상세로 이동하는 링크.
+ */
+window.MockData.notifyWorkFinished = function(input) {
+    const source = input || {};
+    const workId = source.workId !== undefined && source.workId !== null ? source.workId : 1;
+    let workName = source.workName;
+    if (!workName && typeof this.getWorkMeta === 'function') {
+        workName = (this.getWorkMeta(workId) || {}).title;
+    }
+    workName = workName || '근로';
+
+    const checkoutType = source.checkoutType || '퇴근';
+    const timeLabel = source.timeLabel || '';
+    const payText = (source.pay !== undefined && source.pay !== null)
+        ? ' · 급여 +₩ ' + (Number(source.pay) || 0).toLocaleString()
+        : '';
+    const href = source.historyId
+        ? './explore_detail.html?id=' + encodeURIComponent(String(source.historyId))
+        : './explore2.html?tab=history';
+
+    return this.enqueueNotification({
+        userId: source.userId,
+        title: '일이 끝났습니다. (' + checkoutType + ')',
+        message: workName + (timeLabel ? ' · ' + timeLabel : '') + payText + ' · 근로 상세를 확인해보세요.',
+        type: 'work',
+        href: href,
+        dedupeKey: 'work-finished:' + (source.historyId || (workId + ':' + (source.date || '') + ':' + (source.slot === undefined ? 'x' : source.slot))),
+        createdAt: source.createdAt
+    });
+};
+
+/* ============================================================
+ * 순위 보너스 / 근로 이력 표시 급여 (모든 일·모든 화면 공통)
+ *
+ * 순위 보너스는 '시급 +N원'이며 시간 단위 올림으로 지급한다.
+ *   1시간 미만 → 1시간분, 1시간 10분 → 2시간분, 2시간 → 2시간분
+ *
+ * 화면마다 급여를 따로 계산해 mypage2 / explore2(목록)와 explore_detail(상세)의
+ * 금액이 어긋나는 문제가 있었다. 아래 getHistoryDisplayPay() 하나로 통일한다.
+ *   - 근로 이력에 bonus 가 저장돼 있으면 pay 에 이미 포함된 것으로 보고 그대로 사용
+ *   - 저장돼 있지 않은(과거/타 공정) 이력은 순위 보너스를 계산해서 더해 준다
+ * ============================================================ */
+window.MockData.getRankBonusPerHour = function(workId, userName) {
+    if (typeof this.getWorkRankingByName !== 'function') return 0;
+    const row = this.getWorkRankingByName(workId === undefined || workId === null ? 1 : workId, userName);
+    return row ? (Number(row.bonus) || 0) : 0;
+};
+
+/** 시간 단위 올림으로 계산한 순위 보너스 금액 */
+window.MockData.getRankBonusAmount = function(workId, userName, workedSeconds) {
+    const perHour = this.getRankBonusPerHour(workId, userName);
+    if (!(perHour > 0)) return 0;
+    const seconds = Number(workedSeconds);
+    if (!isFinite(seconds) || seconds <= 0) return 0;
+    return perHour * Math.ceil(seconds / 3600);
+};
+
+/** 근로 이력 1건의 실제 근무 초 (저장 필드 → 분 → 출퇴근 시각 순으로 추정) */
+window.MockData.getHistoryWorkSeconds = function(item) {
+    const source = item || {};
+    const stored = Number(source.actualWorkSeconds);
+    if (isFinite(stored) && stored > 0) return stored;
+
+    const minutes = Number(source.actualWorkMin);
+    if (isFinite(minutes) && minutes > 0) return minutes * 60;
+
+    const toSeconds = text => {
+        const parts = String(text || '').trim().split(':').map(Number);
+        if (parts.length < 2 || parts.some(v => !isFinite(v))) return null;
+        return (parts[0] * 3600) + (parts[1] * 60) + (parts[2] || 0);
+    };
+    const inSec = toSeconds(source.checkInTime);
+    const outSec = toSeconds(source.checkOutTime);
+    if (inSec !== null && outSec !== null) {
+        let diff = outSec - inSec;
+        if (diff < 0) diff += 86400;
+        if (diff > 0) return diff;
+    }
+
+    // '10:00 ~ 12:00' 형태의 예약 시간대로 추정
+    const range = String(source.time || source.slotLabel || '');
+    if (range.includes('~')) {
+        const [start, end] = range.split('~');
+        const s = toSeconds(start), e = toSeconds(end);
+        if (s !== null && e !== null) {
+            let diff = e - s;
+            if (diff < 0) diff += 86400;
+            if (diff > 0) return diff;
+        }
+    }
+    return 0;
+};
+
+/**
+ * 목록/상세에서 함께 쓰는 근로 이력 표시 급여.
+ * @returns {{pay:number, bonus:number, bonusPerHour:number, billableHours:number, bonusIncluded:boolean}}
+ */
+window.MockData.getHistoryDisplayPay = function(item, fallbackUserName) {
+    const source = item || {};
+    const basePay = Number(source.pay) || 0;
+    const workId = typeof this.inferWorkId === 'function' ? this.inferWorkId(source) : (source.workId || 1);
+    const userName = source.userName || source.name || fallbackUserName || null;
+
+    const storedBonus = Number(source.bonus);
+    const storedPerHour = Number(source.bonusPerHour);
+    if (isFinite(storedBonus) && storedBonus > 0) {
+        // 이미 지급 금액에 포함된 보너스
+        return {
+            pay: basePay,
+            bonus: storedBonus,
+            bonusPerHour: isFinite(storedPerHour) && storedPerHour > 0 ? storedPerHour : this.getRankBonusPerHour(workId, userName),
+            billableHours: Math.ceil(this.getHistoryWorkSeconds(source) / 3600) || 0,
+            bonusIncluded: true
+        };
+    }
+
+    const seconds = this.getHistoryWorkSeconds(source);
+    const perHour = this.getRankBonusPerHour(workId, userName);
+    const bonus = this.getRankBonusAmount(workId, userName, seconds);
+    return {
+        pay: basePay + bonus,
+        bonus: bonus,
+        bonusPerHour: perHour,
+        billableHours: seconds > 0 ? Math.ceil(seconds / 3600) : 0,
+        bonusIncluded: false
+    };
+};
+
+
+/* ============================================================
+ * 근무 종료(퇴근/조퇴) 공통 마감 처리
+ *
+ * 버거만들기·불고기구이처럼 자체 근로 이력을 남기지 않던 작업자 단말이
+ * 김치/우동과 같은 결과(근로 이력 · 누적 근무시간 · 정산 자산 · 알림)를
+ * 만들 수 있도록 한 곳에 모았다.
+ *
+ * 입력에서 pay 는 '순위 보너스가 포함된 최종 급여'를 받는다.
+ * (bonus 를 함께 저장하므로 목록/상세가 보너스를 중복 가산하지 않는다.)
+ * ============================================================ */
+window.MockData.finishWorkSession = function(input) {
+    const source = input || {};
+    const pad2 = function(n) { return String(n).padStart(2, '0'); };
+    const clock = function(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); };
+    const clockMin = function(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
+
+    const workId = source.workId !== undefined && source.workId !== null ? source.workId : 1;
+    const meta = (typeof this.getWorkMeta === 'function' ? this.getWorkMeta(workId) : null) || {};
+    const checkOutAt = source.checkOutAt ? new Date(source.checkOutAt) : new Date();
+    const workedSeconds = Math.max(0, Math.floor(Number(source.workedSeconds) || 0));
+    const breakSeconds = Math.max(0, Math.floor(Number(source.breakSeconds) || 0));
+    const checkInAt = source.checkInAt
+        ? new Date(source.checkInAt)
+        : new Date(checkOutAt.getTime() - (workedSeconds + breakSeconds) * 1000);
+
+    const userId = source.userId !== undefined && source.userId !== null
+        ? source.userId
+        : (sessionStorage.getItem('user-id') || 'guest');
+    let userName = source.userName;
+    if (!userName) {
+        try { userName = (JSON.parse(sessionStorage.getItem('user') || '{}') || {}).name || null; } catch (e) { userName = null; }
+    }
+
+    const bonusPerHour = Number(source.bonusPerHour) || this.getRankBonusPerHour(workId, userName);
+    const bonus = source.bonus !== undefined && source.bonus !== null
+        ? Math.floor(Number(source.bonus) || 0)
+        : this.getRankBonusAmount(workId, userName, workedSeconds);
+    const pay = Math.max(0, Math.floor(Number(source.pay) || 0));
+    const isEarlyLeave = !!source.isEarlyLeave;
+    const dateKey = source.date || checkOutAt.toISOString().slice(0, 10);
+    const timeLabel = source.time || (clockMin(checkInAt) + ' ~ ' + clockMin(checkOutAt));
+
+    const historyItem = Object.assign({
+        id: source.historyId || Date.now(),
+        workId: workId,
+        job: source.job || meta.title || '근로',
+        brandName: source.brandName || meta.brandName,
+        iconUrl: source.iconUrl || meta.iconUrl,
+        userId: userId,
+        userName: userName,
+        date: dateKey,
+        time: timeLabel,
+        checkInTime: clock(checkInAt),
+        checkOutTime: clock(checkOutAt),
+        actualWorkSeconds: workedSeconds,
+        actualWorkMin: workedSeconds / 60,
+        breakSeconds: breakSeconds,
+        breakTimeMin: Math.floor(breakSeconds / 60),
+        ratio: Number(source.ratio) || undefined,
+        pay: pay,
+        bonus: bonus,
+        bonusPerHour: bonusPerHour,
+        role: source.role || '일반',
+        locker: source.locker || '사물함 정보 없음',
+        logs: Array.isArray(source.logs) ? source.logs.slice() : [],
+        completedOrdersCount: Number(source.completedOrdersCount) || 0,
+        isEarlyLeave: isEarlyLeave,
+        checkoutType: source.checkoutType || (isEarlyLeave ? '조퇴' : '퇴근'),
+        status: '완료'
+    }, source.extra || {});
+
+    // 1) 근로 이력 저장 (mypage2 '내가 했던 일' · explore2 근로 이력 · explore_detail 상세)
+    let saved = false;
+    if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+        try {
+            window.FactoryStore.dispatch({ type: 'ADD_HISTORY_ITEM', payload: historyItem });
+            saved = true;
+        } catch (e) { saved = false; }
+    }
+    if (!saved) {
+        try {
+            const key = 'mypage_history_' + userId;
+            const list = JSON.parse(localStorage.getItem(key) || '[]');
+            list.push(historyItem);
+            localStorage.setItem(key, JSON.stringify(list));
+        } catch (e) { }
+    }
+
+    // 2) 참가자 집계 / 누적 근무시간 / 정산 자산 입금 / 종료 알림
+    const slot = source.slot === undefined ? null : source.slot;
+    const sourceTag = source.source || ('work_' + workId + (isEarlyLeave ? '_early_leave' : '_checkout'));
+    try {
+        if (typeof this.recordWorkParticipation === 'function') {
+            this.recordWorkParticipation({ workId: workId, userId: userId, userName: userName, date: dateKey, slot: slot, source: sourceTag });
+        }
+        if (typeof this.addWorkedHours === 'function') {
+            this.addWorkedHours({ workId: workId, userId: userId, userName: userName, seconds: workedSeconds, date: dateKey, slot: slot, source: sourceTag });
+        }
+        if (typeof this.addWorkEarningSettlement === 'function') {
+            this.addWorkEarningSettlement({
+                userId: userId, userName: userName, workId: workId, amount: historyItem.pay,
+                date: dateKey, slot: slot, slotLabel: historyItem.time, historyId: historyItem.id,
+                checkoutType: historyItem.checkoutType, source: sourceTag
+            });
+        }
+        if (typeof this.notifyWorkFinished === 'function') {
+            this.notifyWorkFinished({
+                userId: userId, workId: workId, workName: historyItem.job, timeLabel: historyItem.time,
+                pay: historyItem.pay, historyId: historyItem.id, date: dateKey, slot: slot,
+                checkoutType: historyItem.checkoutType
+            });
+        }
+    } catch (e) { }
+
+    return historyItem;
+};
+
+
+/* ============================================================
+ * 근무 종료 버튼 활성화 판정 (모든 일 공통)
+ *
+ * '근무 종료'는 예정 종료 10분 전부터 누를 수 있다.
+ * 각 작업자 단말(김치·우동·불고기·버거)이 같은 규칙을 쓰도록 한 곳에 모았다.
+ * ============================================================ */
+window.MockData.WORK_FINISH_THRESHOLD_MINUTES = 10;
+window.MockData.WORK_FINISH_HINT = '근무 종료 10분 전에 활성화됩니다.';
+
+/**
+ * @param {{workId?:any, reservation?:object, endLabel?:string, thresholdMinutes?:number, now?:Date}} input
+ * @returns {{label:string|null, endAt:Date|null, secondsLeft:number|null, minutesLeft:number|null,
+ *            canFinish:boolean, hasSchedule:boolean, thresholdMinutes:number, hint:string}}
+ */
+window.MockData.getShiftEndInfo = function(input) {
+    const source = input || {};
+    const threshold = Number(source.thresholdMinutes) > 0
+        ? Number(source.thresholdMinutes)
+        : this.WORK_FINISH_THRESHOLD_MINUTES;
+    const now = source.now ? new Date(source.now) : new Date();
+
+    let reservation = source.reservation;
+    if (reservation === undefined) {
+        try { reservation = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null'); } catch (e) { reservation = null; }
+    }
+
+    let label = source.endLabel || null;
+    if (!label && reservation) label = reservation.time || reservation.slotLabel || null;
+    if (!label && reservation && typeof this.formatWorkSlotTime === 'function'
+            && reservation.slot !== undefined && reservation.slot !== null) {
+        const slotLabel = this.formatWorkSlotTime(source.workId || reservation.workId || 1, reservation.slot, '');
+        if (slotLabel && /\d{1,2}:\d{2}/.test(slotLabel)) label = slotLabel;
+    }
+
+    const matched = String(label || '').match(/(\d{1,2}):(\d{2})\s*[~\-]\s*(\d{1,2}):(\d{2})/);
+    if (!matched) {
+        // 종료 시각을 알 수 없으면 잠그지 않는다. (판단 근거가 없어 사용자를 가둘 수 없음)
+        return {
+            label: label || null, endAt: null, secondsLeft: null, minutesLeft: null,
+            canFinish: true, hasSchedule: false, thresholdMinutes: threshold, hint: this.WORK_FINISH_HINT
+        };
+    }
+
+    const endAt = new Date(now.getTime());
+    endAt.setHours(Number(matched[3]), Number(matched[4]), 0, 0);
+    // 출근 시각을 알면 '출근 이후 첫 종료 시각'으로 확정한다. (자정을 넘기는 근무도 정확)
+    const checkInAt = source.checkInAt ? new Date(source.checkInAt) : null;
+    if (checkInAt && !isNaN(checkInAt.getTime())) {
+        endAt.setFullYear(checkInAt.getFullYear(), checkInAt.getMonth(), checkInAt.getDate());
+        endAt.setHours(Number(matched[3]), Number(matched[4]), 0, 0);
+        if (endAt.getTime() <= checkInAt.getTime()) endAt.setDate(endAt.getDate() + 1);
+    } else {
+        // 출근 시각을 모르면 자정을 넘기는 근무(예: 23:00 ~ 01:00)를 감안해
+        // '지금과 가장 가까운 종료 시각'을 고른다.
+        const HALF_DAY_MS = 12 * 60 * 60 * 1000;
+        if (endAt.getTime() - now.getTime() < -HALF_DAY_MS) endAt.setDate(endAt.getDate() + 1);
+        else if (endAt.getTime() - now.getTime() > HALF_DAY_MS) endAt.setDate(endAt.getDate() - 1);
+    }
+
+    const secondsLeft = Math.floor((endAt.getTime() - now.getTime()) / 1000);
+    return {
+        label: label,
+        endAt: endAt,
+        secondsLeft: secondsLeft,
+        minutesLeft: Math.ceil(secondsLeft / 60),
+        canFinish: secondsLeft <= threshold * 60,
+        hasSchedule: true,
+        thresholdMinutes: threshold,
+        hint: this.WORK_FINISH_HINT
+    };
 };

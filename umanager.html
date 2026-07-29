@@ -1642,7 +1642,7 @@
             monthlyGasCost: 250000,
             monthlyRentCost: 4000000,
             utilityMonthDays: 30,
-            hourlyBaseWage: 10320,
+            hourlyBaseWage: (window.MockData && typeof window.MockData.getMinimumHourlyWage === 'function' ? window.MockData.getMinimumHourlyWage() : 10320),
             defaultUtonSalaryRatio: 1.1,
             fullDayLaborHeadcount: 2,
             maxSalesIntervalMinutes: 10,

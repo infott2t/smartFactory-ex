@@ -539,7 +539,7 @@
                 } catch (e) {
                     // Use the legacy labels below.
                 }
-                const legacy = ["10:00 ~ 12:00", "13:00 ~ 15:00", "15:00 ~ 17:00"];
+                const legacy = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
                 return legacy[Number(reservation.slot)] || "지정 시간";
             }
 

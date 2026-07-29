@@ -244,26 +244,9 @@
 <div><a href="./explore.html">더 보기</a></div>
 </div>
 <div class="t-cent">  pay / 참가자</div>
-<div class="t-com"><div class="left"><span class="num">1</span><span>음식, 요리</span></div>
-                    <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.3</span></div>
-                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>200</span></div>
-                    </div>
-</div>
-<div class="t-com"><div class="left"><span class="num">2</span><span>만들기</span></div>
-                   <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.2</span></div>
-                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>180</span></div>
-                    </div>                    
-</div>
-<div class="t-com"><div class="left"><span class="num">3</span><span>포장, 음식</span></div>
-                   <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.1</span></div>
-                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>100</span></div>
-                    </div>                    
-</div>
-<div class="t-com"><div class="left"><span class="num">4</span><span>안내하기</span></div>
-                   <div class="right"><div class="u"><i class="bi bi-caret-up-fill"></i><span>1.1</span></div>
-                                        <div class="d"><i class="bi bi-caret-up-fill"></i><span>70</span></div>
-                    </div>                    
-</div>
+<!-- 인기 카테고리 순위: 각 일의 단어 태그(categories)를 실제 수치로 집계해 렌더링한다.
+     계산은 store.js 의 MockData.getCategoryRankings() 담당. -->
+<div id="category-rank-list"></div>
 </main>
 </div>
 <div class="footer-wrap">
@@ -273,6 +256,84 @@
 
 <script src="./js/store.js"></script>
 <script src="./js/ratio-feed.js"></script>
+<script type="text/javascript">
+/* 인기 카테고리 순위 렌더링
+ * - 태그별 참가자 합과 시급 배율(실시간 RatioFeed 값)로 점수를 계산해 정렬한다.
+ * - 배율이 10초 버킷마다 바뀌므로 RatioFeed.onRefresh 로 순위도 함께 갱신한다. */
+(function () {
+    function escapeHtml(text) {
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function resolveRatio(workId, baseRatio) {
+        if (window.RatioFeed && typeof window.RatioFeed.listValue === 'function') {
+            var v = Number(window.RatioFeed.listValue(workId));
+            if (isFinite(v) && v > 0) return v;
+        }
+        return baseRatio;
+    }
+
+    /** 직전 10초 구간의 배율 (등락 판정용) */
+    function resolvePrevRatio(workId, baseRatio) {
+        if (window.RatioFeed && typeof window.RatioFeed.listValue === 'function') {
+            var stepMs = (window.RatioFeed.STEPS && window.RatioFeed.STEPS[window.RatioFeed.LIST_KEY])
+                ? window.RatioFeed.STEPS[window.RatioFeed.LIST_KEY].stepMs
+                : 10000;
+            var v = Number(window.RatioFeed.listValue(workId, Date.now() - stepMs));
+            if (isFinite(v) && v > 0) return v;
+        }
+        return baseRatio;
+    }
+
+    function renderCategoryRanking() {
+        var box = document.getElementById('category-rank-list');
+        if (!box) return;
+        if (!window.MockData || typeof window.MockData.getCategoryRankings !== 'function') return;
+
+        var rows = window.MockData.getCategoryRankings({ limit: 4, ratioResolver: resolveRatio });
+        if (!rows.length) {
+            box.innerHTML = '<div class="t-com"><div class="left"><span>표시할 카테고리가 없습니다.</span></div></div>';
+            return;
+        }
+
+        // 직전 구간 배율로 같은 집계를 만들어 카테고리별 등락을 판정한다.
+        var prevRatio = {};
+        window.MockData.getCategoryRankings({ limit: 99, ratioResolver: resolvePrevRatio })
+            .forEach(function (row) { prevRatio[row.label] = row.ratio; });
+
+        box.innerHTML = rows.map(function (row) {
+            var before = prevRatio[row.label];
+            var diff = (typeof before === 'number') ? (row.ratio - before) : 0;
+            var isUp = diff >= 0;
+            var arrowClass = isUp ? 'bi-caret-up-fill status-up' : 'bi-caret-down-fill status-down';
+            var pct = before ? (diff / before) * 100 : 0;
+            var title = '참가자 ' + row.participants.toLocaleString() + '명 · 일 ' + row.workCount
+                + '개 · 점수 ' + row.score.toLocaleString()
+                + ' · 직전 대비 ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+            return '<div class="t-com" title="' + escapeHtml(title) + '">'
+                + '<div class="left"><span class="num">' + row.rank + '</span>'
+                + '<span>' + escapeHtml(row.label) + '</span></div>'
+                + '<div class="right">'
+                + '<div class="u"><i class="bi ' + arrowClass + '"></i><span>' + row.ratio.toFixed(2) + '</span></div>'
+                + '<div class="d"><i class="bi bi-caret-up-fill"></i><span>' + row.participants.toLocaleString() + '</span></div>'
+                + '</div></div>';
+        }).join('');
+    }
+
+    window.renderCategoryRanking = renderCategoryRanking;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        renderCategoryRanking();
+        if (window.RatioFeed && typeof window.RatioFeed.onRefresh === 'function') {
+            window.RatioFeed.onRefresh(renderCategoryRanking);
+        }
+        // 참여 확정으로 참가자 수가 바뀌면 순위도 다시 계산한다.
+        window.addEventListener('app:work-participants-changed', renderCategoryRanking);
+    });
+})();
+</script>
 <script src="./js/jquery-3.7.1.min.js"></script>
 <script src="./js/simulator.js" type="text/javascript"></script>
 <script type="text/javascript">

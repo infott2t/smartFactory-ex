@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>예약 상세 | 스마트팩토리</title>
+    <link rel="stylesheet" href="./css/mypage.css?v=1.0.2">
+    <link rel="stylesheet" href="./css/explore2.css?v=1.0.1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --bg-base: #070320;
+            --card-bg2: #121226;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-primary: #6366f1;
+            --accent-secondary: rgb(253, 132, 237);
+            --accent-money: #10b981;
+            --neon-blue: #7b92ff;
+            --neon-green: #00b894;
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 40px;
+        }
+
+        /* 헤더 (explore_detail.html 과 동일 규칙) */
+        .header-wrap .header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-top: 16px;
+            padding-bottom: 0;
+        }
+
+        .header-wrap .title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-right: 0 !important;
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--text-main);
+            white-space: nowrap;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .detail-card {
+            background-color: var(--card-bg, #121226);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-job {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-job .job-icon {
+            width: 25px;
+            height: 25px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .detail-job .job-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .tag-orange {
+            background: #e85d04;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .status-reserved { color: var(--neon-blue); background: rgba(123, 146, 255, 0.12); }
+        .status-progress { color: var(--neon-green); background: rgba(0, 184, 148, 0.12); }
+        .status-done { color: var(--text-sub); background: rgba(255, 255, 255, 0.06); }
+
+        .detail-date-section {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .detail-date-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .detail-time-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .detail-time-text {
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-duration-badge {
+            background-color: rgba(0, 184, 148, 0.15);
+            color: var(--neon-green);
+            border: 1px solid rgba(0, 184, 148, 0.3);
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .info-table tr { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .info-table tr:last-child { border-bottom: none; }
+        .info-table td { padding: 12px 0; font-size: 14px; }
+        .info-table td.label { width: 45%; text-align: left; color: var(--text-sub); }
+        .info-table td.value { color: var(--text-main); text-align: right; font-weight: 500; }
+
+        .info-table .pay-row {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-table .pay-row td { font-size: 16px; font-weight: bold; padding: 16px 0; }
+        .info-table .pay-row td.value { color: var(--accent-money); font-size: 18px; }
+
+        .ratio-val-text { color: #ff7eee !important; font-weight: bold; }
+
+        /* 하단 액션 버튼 (mypage2 예약 카드와 같은 구성) */
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-check-in {
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .btn-check-in:hover { background: #4f46e5; }
+        .btn-check-in:disabled { opacity: 0.55; cursor: not-allowed; background: #475569; }
+
+        .btn-cancel {
+            background: rgba(255, 255, 255, 0.04);
+            color: #e5e7eb;
+        }
+
+        .btn-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+        .btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .guide-box {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #cfd3ff;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-sub);
+        }
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#09031f">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="/js/pwa.js" defer></script>
+    <link rel="stylesheet" href="./css/app-footer.css?v=1.0.1">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.1">
+    <script src="./js/app-footer.js?v=1.0.0" defer></script>
+    <script src="./js/app-notifications.js?v=1.0.1" defer></script>
+</head>
+
+<body>
+    <div class="header-wrap">
+        <div class="header menu-bar mypage">
+            <div class="chevron" onclick="window.location.href='./explore2.html?tab=reservation';" style="cursor: pointer;">
+                <i class="bi bi-chevron-left back"></i>
+            </div>
+            <div class="title"><span>예약 상세</span></div>
+        </div>
+    </div>
+
+    <div class="container" id="detail-container">
+        <div class="empty-state">예약 정보를 불러오는 중입니다…</div>
+    </div>
+
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/store.js"></script>
+    <script src="./js/auth.js" type="text/javascript"></script>
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script>
+        /* 예약 상세 화면
+         * - explore2.html 예약 내역의 항목(.task-item)을 누르면 이 화면으로 온다.
+         * - 선택한 예약은 sessionStorage('explore_selected_reservation') 또는 ?id= 로 받는다.
+         * - 출근하기 / 근무 진행 / 예약 취소 동작은 mypage2.html 의 예약 카드와 동일 규칙이다. */
+        (function () {
+            const SELECTED_KEY = 'explore_selected_reservation';
+            let currentReservation = null;
+
+            function getCurrentUser() {
+                try {
+                    const raw = sessionStorage.getItem('user');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        parsed.id = parsed.id || sessionStorage.getItem('user-id');
+                        return parsed;
+                    }
+                } catch (e) { }
+                return { id: sessionStorage.getItem('user-id') || 'guest', name: '손님' };
+            }
+
+            function getReservations() {
+                if (window.FactoryStore && typeof window.FactoryStore.getState === 'function') {
+                    return window.FactoryStore.getState().reservations || [];
+                }
+                try {
+                    return JSON.parse(localStorage.getItem('app_reservations_db') || '[]');
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function findReservation() {
+                const params = new URLSearchParams(window.location.search);
+                const id = params.get('id');
+                const list = getReservations();
+
+                if (id) {
+                    const matched = list.find(r => r && String(r.id) === String(id));
+                    if (matched) return matched;
+                }
+                try {
+                    const saved = JSON.parse(sessionStorage.getItem(SELECTED_KEY) || 'null');
+                    if (saved) {
+                        // 저장된 스냅샷보다 최신 상태(출근 여부 등)를 우선한다.
+                        const fresh = list.find(r => r && String(r.id) === String(saved.id));
+                        return fresh || saved;
+                    }
+                } catch (e) { }
+
+                // 아무 정보도 없으면 내 예약 중 가장 가까운 1건
+                const user = getCurrentUser();
+                const mine = list.filter(r => r && (String(r.userId) === String(user.id) || r.userName === user.name));
+                return mine[0] || null;
+            }
+
+            function getWorkMeta(workId) {
+                let meta = { workName: '김치만들기', brandName: 'AFood', iconUrl: './images/k-icon_150x150.png' };
+                try {
+                    const works = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                        ? window.FactoryStore.getWorks()
+                        : JSON.parse(window.MockData.worksJSON);
+                    const found = works.find(w => String(w.workId) === String(workId));
+                    if (found) meta = { workName: found.workName, brandName: found.brandName, iconUrl: found.iconUrl };
+                } catch (e) { }
+                return meta;
+            }
+
+            function formatSlotTime(reservation) {
+                const fallbackLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function')
+                    ? window.MockData.getDefaultSlotLabels()
+                    : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                const fallback = reservation.time || reservation.slotLabel || fallbackLabels[Number(reservation.slot)] || '지정 시간';
+                if (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function') {
+                    return window.MockData.formatWorkSlotTime(reservation.workId || 1, reservation.slot, fallback);
+                }
+                return fallback;
+            }
+
+            function formatDateLabel(dateStr) {
+                const parts = String(dateStr || '').split('-');
+                if (parts.length !== 3) return dateStr || '-';
+                const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                return `${Number(parts[1])}월 ${Number(parts[2])}일 ${dayNames[d.getDay()]}`;
+            }
+
+            function getDurationLabel(workId) {
+                try {
+                    const slotData = window.MockData.getWorkTimeSlots(workId || 1);
+                    if (slotData && slotData.type) return slotData.type;
+                } catch (e) { }
+                return '2h';
+            }
+
+            function durationHours(label) {
+                const parsed = parseFloat(String(label).replace('h', ''));
+                return isFinite(parsed) && parsed > 0 ? parsed : 2;
+            }
+
+            function getWorkEntryPage(reservation) {
+                const workId = String((reservation && reservation.workId) || '1');
+                if (workId === '2') return 'uton_real.html';
+                try {
+                    const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                        ? window.FactoryStore.getWorkDetails()
+                        : JSON.parse(window.MockData.workDetailJSON);
+                    const detail = detailMap[workId] || {};
+                    return detail.workPage || detail.realPage || detail.expPage
+                        || ('work_detail.html?id=' + encodeURIComponent(workId));
+                } catch (e) {
+                    return 'work_detail.html?id=' + encodeURIComponent(workId);
+                }
+            }
+
+            function statusInfo(status) {
+                const s = String(status || 'reserved');
+                if (s === 'checked_in') return { label: '출근 완료', chip: 'status-progress', action: 'disabled', actionLabel: '출근 완료' };
+                if (s === 'ready' || s === 'working') return { label: '근무 진행 중', chip: 'status-progress', action: 'work', actionLabel: '근무 화면으로 이동' };
+                if (s === 'early_leave_waiting') return { label: '조퇴 대기 중', chip: 'status-progress', action: 'disabled', actionLabel: '조퇴 대기 중' };
+                if (s === 'early_left') return { label: '조퇴 완료', chip: 'status-done', action: 'disabled', actionLabel: '종료된 예약' };
+                if (s === 'completed') return { label: '근무 완료', chip: 'status-done', action: 'disabled', actionLabel: '종료된 예약' };
+                if (s === 'absent') return { label: '미출근', chip: 'status-done', action: 'disabled', actionLabel: '미출근 처리됨' };
+                return { label: '예약 완료', chip: 'status-reserved', action: 'check-in', actionLabel: '출근하기' };
+            }
+
+            function render() {
+                const box = document.getElementById('detail-container');
+                currentReservation = findReservation();
+
+                if (!currentReservation) {
+                    box.innerHTML = `
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x" style="font-size: 40px; display:block; margin-bottom: 10px;"></i>
+                            예약 정보를 찾을 수 없습니다.
+                            <div style="margin-top:16px;">
+                                <button class="btn-action btn-cancel" style="max-width:200px;" onclick="location.href='./explore2.html?tab=reservation'">예약 내역으로</button>
+                            </div>
+                        </div>`;
+                    return;
+                }
+
+                const r = currentReservation;
+                const meta = getWorkMeta(r.workId || 1);
+                const roleLabel = (window.MockData && typeof window.MockData.formatRoleLabel === 'function')
+                    ? window.MockData.formatRoleLabel(r.role)
+                    : (r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반'));
+                const durationLabel = getDurationLabel(r.workId || 1);
+                const ratio = r.ratio ? Number(r.ratio) : 1.2;
+                const minWage = (window.MockData && typeof window.MockData.getMinimumHourlyWage === 'function')
+                    ? window.MockData.getMinimumHourlyWage() : 10320;
+                const hourlyWage = Math.floor(minWage * ratio);
+                const expectedPay = Math.floor(hourlyWage * durationHours(durationLabel));
+                const info = statusInfo(r.workStatus);
+                const canCancel = ['reserved', 'checked_in'].includes(String(r.workStatus || 'reserved'));
+
+                const actionAttr = info.action === 'check-in'
+                    ? 'onclick="window.reservationDetail.goToCheckIn()"'
+                    : (info.action === 'work' ? 'onclick="window.reservationDetail.goToWorkPage()"' : 'disabled');
+
+                box.innerHTML = `
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <div class="detail-job">
+                                <img class="job-icon" src="${meta.iconUrl}" alt="icon">
+                                <span class="job-title">${meta.workName}</span>
+                            </div>
+                            <div class="tag-orange">${meta.brandName}</div>
+                        </div>
+
+                        <div class="detail-date-section">
+                            <div class="detail-date-text">${formatDateLabel(r.date)}</div>
+                            <div class="detail-time-row">
+                                <span class="detail-time-text">${formatSlotTime(r)}</span>
+                                <span class="detail-duration-badge">${durationLabel}</span>
+                            </div>
+                            <div style="margin-top:12px;">
+                                <span class="status-chip ${info.chip}"><i class="bi bi-clock-history"></i>${info.label}</span>
+                            </div>
+                        </div>
+
+                        <table class="info-table">
+                            <tr>
+                                <td class="label">근무 역할</td>
+                                <td class="value">${roleLabel}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">예약 급여비율</td>
+                                <td class="value ratio-val-text">${ratio.toFixed(1)}x</td>
+                            </tr>
+                            <tr>
+                                <td class="label">적용 시급</td>
+                                <td class="value">₩ ${hourlyWage.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">예약 근무 시간</td>
+                                <td class="value">${durationLabel}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">실제 출근 시각</td>
+                                <td class="value">${r.checkInAt ? new Date(r.checkInAt).toLocaleTimeString('ko-KR') : '-'}</td>
+                            </tr>
+                            <tr class="pay-row">
+                                <td class="label">예정 급여</td>
+                                <td class="value">+₩ ${expectedPay.toLocaleString()}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="action-row">
+                        <button type="button" class="btn-action btn-check-in" ${actionAttr}>${info.actionLabel}</button>
+                        <button type="button" class="btn-action btn-cancel" ${canCancel ? 'onclick="window.reservationDetail.cancel()"' : 'disabled'}>예약 취소</button>
+                    </div>
+
+                    <div class="guide-box">
+                        <i class="bi bi-info-circle"></i> 출근은 예약 시간 10분 전부터 가능합니다.
+                        신분증과 보건증을 지참하고, 출근하기를 눌러 위생 절차를 진행해 주세요.
+                    </div>
+                `;
+            }
+
+            function saveSelection(reservation) {
+                try {
+                    sessionStorage.setItem('selected_reservation', JSON.stringify(reservation));
+                    sessionStorage.setItem(SELECTED_KEY, JSON.stringify(reservation));
+                } catch (e) { }
+            }
+
+            window.reservationDetail = {
+                goToCheckIn: function () {
+                    if (!currentReservation) return;
+                    const status = String(currentReservation.workStatus || 'reserved');
+                    if (['checked_in', 'ready', 'working', 'early_leave_waiting', 'early_left', 'completed', 'absent'].includes(status)) {
+                        alert('이미 출근했거나 종료된 예약은 다시 출근할 수 없습니다.');
+                        return;
+                    }
+                    saveSelection(currentReservation);
+                    window.location.href = 'check-in-announce.html';
+                },
+                goToWorkPage: function () {
+                    if (!currentReservation) return;
+                    const status = String(currentReservation.workStatus || 'reserved');
+                    if (!['ready', 'working'].includes(status)) {
+                        window.reservationDetail.goToCheckIn();
+                        return;
+                    }
+                    saveSelection(currentReservation);
+                    window.location.href = getWorkEntryPage(currentReservation);
+                },
+                cancel: function () {
+                    if (!currentReservation) return;
+                    if (!confirm('해당 예약을 정말 취소하시겠습니까?')) return;
+
+                    const list = getReservations();
+                    const remain = list.filter(r => String(r.id) !== String(currentReservation.id));
+                    if (window.FactoryStore) {
+                        window.FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: remain });
+                    } else {
+                        localStorage.setItem('app_reservations_db', JSON.stringify(remain));
+                    }
+                    if (typeof window.addAppLog === 'function') {
+                        const meta = getWorkMeta(currentReservation.workId || 1);
+                        window.addAppLog(`${meta.workName} 공정 예약을 취소하였습니다. (${currentReservation.date} ${formatSlotTime(currentReservation)})`);
+                    }
+                    try { sessionStorage.removeItem(SELECTED_KEY); } catch (e) { }
+                    alert('예약이 정상적으로 취소되었습니다.');
+                    window.location.href = './explore2.html?tab=reservation';
+                },
+                render: render
+            };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.FactoryStore && typeof window.FactoryStore.markExpiredReservationsAbsent === 'function') {
+                    try { window.FactoryStore.markExpiredReservationsAbsent(new Date()); } catch (e) { }
+                }
+                render();
+            });
+        })();
+    </script>
+</body>
+
+</html>

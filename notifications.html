@@ -113,19 +113,14 @@
         (function () {
             "use strict";
 
-            const TYPE_ICONS = {
-                reservation: "bi-calendar2-check-fill",
-                success: "bi-check-circle-fill",
-                warning: "bi-exclamation-triangle-fill",
-                work: "bi-briefcase-fill",
-                shopping: "bi-bag-check-fill",
-                info: "bi-info-circle-fill"
-            };
-
+            // 알림 타입별 아이콘은 app-notifications.js 가 노출한 테이블/함수를 재사용한다.
             function getTypeIcon(type) {
-                return TYPE_ICONS[type] || TYPE_ICONS.info;
+                return (window.AppNotifications && typeof window.AppNotifications.getTypeIcon === 'function')
+                    ? window.AppNotifications.getTypeIcon(type)
+                    : 'bi-info-circle-fill';
             }
 
+            // 전체 목록 화면이므로 연도까지 표기한다. (드롭다운 패널은 연도를 생략)
             function formatRelativeTime(value) {
                 const date = new Date(value);
                 if (Number.isNaN(date.getTime())) return "";

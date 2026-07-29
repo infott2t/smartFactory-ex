@@ -357,7 +357,7 @@
         </section>
 
         <div class="section-header">
-            <h2><i class="bi bi-receipt"></i> 결제 내역</h2>
+            <h2><i class="bi bi-receipt"></i> 내역 상세</h2>
             <span class="section-count" id="log-section-count">최신순</span>
         </div>
 
@@ -460,9 +460,19 @@
 
             document.getElementById('current-balance').textContent = currency.format(balance);
 
-            const totalSpent = logs.reduce((sum, log) => sum + Math.abs(Number(log.amount) || 0), 0);
-            document.getElementById('total-spent-meta').textContent = `총 차감 ₩${currency.format(totalSpent)}`;
-            document.getElementById('log-count-meta').textContent = `결제 ${logs.length}건`;
+            // 수입(근로 급여, amount > 0)과 차감(구매, amount < 0)을 분리해 표기한다.
+            const totalSpent = logs.reduce((sum, log) => {
+                const amount = Number(log.amount) || 0;
+                return amount < 0 ? sum + Math.abs(amount) : sum;
+            }, 0);
+            const totalEarned = logs.reduce((sum, log) => {
+                const amount = Number(log.amount) || 0;
+                return amount > 0 ? sum + amount : sum;
+            }, 0);
+            document.getElementById('total-spent-meta').textContent = totalEarned > 0
+                ? `수입 ₩${currency.format(totalEarned)} · 차감 ₩${currency.format(totalSpent)}`
+                : `총 차감 ₩${currency.format(totalSpent)}`;
+            document.getElementById('log-count-meta').textContent = `내역 ${logs.length}건`;
             document.getElementById('log-section-count').textContent = logs.length > 0 ? `${logs.length}건 · 최신순` : '최신순';
 
             const container = document.getElementById('log-timeline');

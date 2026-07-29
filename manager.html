@@ -4163,14 +4163,9 @@
             }
 
             // Get product name
-            const names = {
-                raw_cabbage: "절임용 원배추",
-                p300g: "300g 맛김치",
-                p1kg: "1kg 포기김치",
-                p3kg: "3kg 대용량 김치",
-                p5kg: "5kg 실속 김치",
-                p10kg: "10kg 업소용 김치"
-            };
+            const names = (window.MockData && typeof window.MockData.getKimchiProductNameMap === 'function')
+                ? window.MockData.getKimchiProductNameMap({ short: true })
+                : { raw_cabbage: '절임용 원배추' };
             const prodName = names[productVal] || productVal;
 
             // Read delivery orders and products from localStorage
@@ -4200,11 +4195,7 @@
             const neededProduction = Math.max(0, remainingOrders - currentStock);
 
             // Unit weight of the product in kg
-            let unitWeight = 1.0;
-            if (productVal === "p300g") unitWeight = 0.3;
-            else if (productVal === "p3kg") unitWeight = 3.0;
-            else if (productVal === "p5kg") unitWeight = 5.0;
-            else if (productVal === "p10kg") unitWeight = 10.0;
+            const unitWeight = getWeightByProductId(productVal); // store.js kimchiProductSpecs
 
             const packsProduced = Math.round(kimchiWeight / unitWeight);
             const expectedStock = currentStock + packsProduced;
@@ -4327,14 +4318,9 @@
                 localStorage.setItem("kimp_deleted_order_ids", JSON.stringify(deletedIds));
             }
 
-            const names = {
-                raw_cabbage: "절임용 원배추",
-                p300g: "300g 맛김치",
-                p1kg: "1kg 포기김치",
-                p3kg: "3kg 대용량 김치",
-                p5kg: "5kg 실속 김치",
-                p10kg: "10kg 업소용 김치"
-            };
+            const names = (window.MockData && typeof window.MockData.getKimchiProductNameMap === 'function')
+                ? window.MockData.getKimchiProductNameMap({ short: true })
+                : { raw_cabbage: '절임용 원배추' };
 
             const nowD = new Date();
             const createdTimeStr = `${nowD.getHours() >= 12 ? '오후' : '오전'} ${nowD.getHours() % 12 || 12}:${String(nowD.getMinutes()).padStart(2, '0')}:${String(nowD.getSeconds()).padStart(2, '0')}`;
@@ -4534,11 +4520,7 @@
                 const shipped = q.initialShipped + completedCounts[size];
                 const remaining = Math.max(0, q.ordered - shipped);
 
-                let unitWeight = 1.0;
-                if (size === 'p300g') unitWeight = 0.3;
-                else if (size === 'p3kg') unitWeight = 3.0;
-                else if (size === 'p5kg') unitWeight = 5.0;
-                else if (size === 'p10kg') unitWeight = 10.0;
+                const unitWeight = getWeightByProductId(size); // store.js kimchiProductSpecs
 
                 totalOrderedWeight += q.ordered * unitWeight;
                 totalShippedWeight += shipped * unitWeight;
@@ -4942,13 +4924,9 @@
             if (!summaryContainer) return;
 
             let html = "";
-            const imgFallback = {
-                p300g: "./images/kimchi_product_300g.png",
-                p1kg: "./images/kimchi_product_1kg.png",
-                p3kg: "./images/kimchi_product_3kg.png",
-                p5kg: "./images/kimchi_product_1kg.png", // 5kg용 대체 이미지
-                p10kg: "./images/kimchi_product_3kg.png" // 10kg용 대체 이미지
-            };
+            const imgFallback = (window.MockData && typeof window.MockData.getKimchiProductImageMap === 'function')
+                ? window.MockData.getKimchiProductImageMap({ manager: true })
+                : {};
 
             Object.keys(products).forEach(key => {
                 const item = products[key];
@@ -6031,13 +6009,9 @@
                 let catHtml = "";
                 Object.keys(products).forEach(key => {
                     const item = products[key];
-                    const imgFallback = {
-                        p300g: "./images/kimchi_product_300g.png",
-                        p1kg: "./images/kimchi_product_1kg.png",
-                        p3kg: "./images/kimchi_product_3kg.png",
-                        p5kg: "./images/kimchi_product_1kg.png",
-                        p10kg: "./images/kimchi_product_3kg.png"
-                    };
+                    const imgFallback = (window.MockData && typeof window.MockData.getKimchiProductImageMap === 'function')
+                        ? window.MockData.getKimchiProductImageMap({ manager: true })
+                        : {};
                     const imgSrc = item.img || imgFallback[key] || "./images/kimchi_product_300g.png";
                     catHtml += `
                     <div style="display: flex; gap: 14px; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; background-color: #ffffff;">
@@ -6188,6 +6162,7 @@
             setTimeout(() => { refreshAllData(); }, 50);
         }
 
+        // 전체 주문 라벨 출력. 라벨 HTML 생성은 renderDeliveryLabels 하나로 통일한다.
         function printAllDeliveryLabels() {
             let orders = [];
             try {
@@ -6199,221 +6174,18 @@
                 return;
             }
 
-            // 가상 배송 메모 리스트 (문의사항이 지정되지 않았을 때 다채로움을 위해 매칭)
-            const fallbackMemos = [
-                "문 앞에 놔주시고 벨은 누르지 말아주세요.",
-                "배송 전 미리 문자 하나 부탁드립니다.",
-                "경비실에 맡겨주시면 감사하겠습니다.",
-                "택배함에 보관 부탁드립니다.",
-                "파손 위험이 있으니 던지지 말아주세요."
-            ];
-
-            const productsMock = {
-                p300g: "300g 맛김치",
-                p1kg: "1kg 포기김치",
-                p3kg: "3kg 포기김치",
-                p5kg: "5kg 포기김치",
-                p10kg: "10kg 포기김치"
-            };
-
-            let labelHtml = "";
-            orders.forEach((o, index) => {
-                const phone = o.phone || "010-****-****";
-                const memo = o.memo || o.message || fallbackMemos[index % fallbackMemos.length];
-                const prodName = productsMock[o.productId] || o.productId;
-
-                labelHtml += `
-                <div class="label-card">
-                    <div class="label-header">
-                        <span class="label-logo">📦 AFOOD KIMCHI FACTORY</span>
-                        <span class="label-badge">[우체국택배]</span>
-                    </div>
-                    <div class="label-body">
-                        <div class="info-row">
-                            <span class="info-label">받는사람:</span>
-                            <span class="info-val font-bold">${o.customerName} (${phone})</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">배송주소:</span>
-                            <span class="info-val font-bold">${o.address}</span>
-                        </div>
-                        <div class="info-row" style="margin-top: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">
-                            <span class="info-label">상품내역:</span>
-                            <span class="info-val font-bold" style="color: #6b21a8;">${prodName} / ${o.quantity}개</span>
-                        </div>
-                    </div>
-                    <div class="label-footer-memo">
-                        <span class="memo-title">💬 고객 요청사항 (문의사항)</span>
-                        <p class="memo-content">${memo}</p>
-                    </div>
-                </div>
-                `;
-            });
-
-            // 새 창 띄우기
-            const printWindow = window.open("", "_blank", "width=800,height=600");
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>배송 라벨 일괄 출력 - AFOOD</title>
-                    <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-                        body {
-                            font-family: 'Noto Sans KR', 'Inter', sans-serif;
-                            background-color: #f3f4f6;
-                            margin: 0;
-                            padding: 20px;
-                            color: #1f2937;
-                        }
-                        .label-grid {
-                            display: grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap: 16px;
-                        }
-                        .label-card {
-                            background-color: #ffffff;
-                            border: 2px dashed #8b5cf6;
-                            border-radius: 12px;
-                            padding: 18px;
-                            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: space-between;
-                            page-break-inside: avoid;
-                        }
-                        .label-header {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            border-bottom: 2px solid #8b5cf6;
-                            padding-bottom: 8px;
-                            margin-bottom: 12px;
-                        }
-                        .label-logo {
-                            font-size: 13px;
-                            font-weight: 900;
-                            color: #8b5cf6;
-                            letter-spacing: -0.5px;
-                        }
-                        .label-badge {
-                            font-size: 11px;
-                            font-weight: bold;
-                            background-color: #f3e8ff;
-                            color: #6b21a8;
-                            padding: 2px 6px;
-                            border-radius: 4px;
-                        }
-                        .label-body {
-                            display: flex;
-                            flex-direction: column;
-                            gap: 6px;
-                        }
-                        .info-row {
-                            display: flex;
-                            font-size: 12px;
-                        }
-                        .info-label {
-                            width: 65px;
-                            color: #6b7280;
-                            font-weight: bold;
-                        }
-                        .info-val {
-                            flex-grow: 1;
-                            color: #111827;
-                        }
-                        .font-bold {
-                            font-weight: 700;
-                        }
-                        .label-footer-memo {
-                            margin-top: 12px;
-                            background-color: #f9fafb;
-                            border-top: 1px solid #e5e7eb;
-                            padding: 8px 10px;
-                            border-radius: 6px;
-                        }
-                        .memo-title {
-                            font-size: 10px;
-                            color: #ef4444;
-                            font-weight: bold;
-                            display: block;
-                            margin-bottom: 2px;
-                        }
-                        .memo-content {
-                            font-size: 11px;
-                            color: #374151;
-                            margin: 0;
-                            font-weight: 500;
-                        }
-                        @media print {
-                            body {
-                                background-color: #ffffff;
-                                padding: 0;
-                                margin: 0;
-                            }
-                            .label-grid {
-                                gap: 10px;
-                            }
-                            .label-card {
-                                border: 2px dashed #000000;
-                                box-shadow: none;
-                            }
-                            .label-header {
-                                border-bottom: 2px solid #000000;
-                            }
-                            .label-logo {
-                                color: #000000;
-                            }
-                            .label-badge {
-                                border: 1px solid #000000;
-                                background: none;
-                                color: #000000;
-                            }
-                            /* 인쇄용 여백 및 페이지 조절 */
-                            @page {
-                                size: A4;
-                                margin: 10mm;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div style="text-align: center; margin-bottom: 20px; font-weight: bold; font-size: 18px;" class="no-print">
-                        🏷️ AFOOD 배송 라벨 출력 미리보기 (인쇄 대화상자가 자동으로 열립니다)
-                    </div>
-                    <div class="label-grid">
-                        \${labelHtml}
-                    </div>
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() {
-                                window.print();
-                            }, 500);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
+            window.renderDeliveryLabels(orders, "배송 라벨 일괄 출력 - AFOOD");
         }
 
-        window.renderDeliveryLabels = function (selectedOrders) {
+        window.renderDeliveryLabels = function (selectedOrders, documentTitle) {
             // 가상 배송 메모 리스트 (문의사항이 지정되지 않았을 때 다채로움을 위해 매칭)
-            const fallbackMemos = [
-                "문 앞에 놔주시고 벨은 누르지 말아주세요.",
-                "배송 전 미리 문자 하나 부탁드립니다.",
-                "경비실에 맡겨주시면 감사하겠습니다.",
-                "택배함에 보관 부탁드립니다.",
-                "파손 위험이 있으니 던지지 말아주세요."
-            ];
+            const fallbackMemos = (window.MockData && window.MockData.deliveryMemoSamples)
+                ? window.MockData.deliveryMemoSamples
+                : [];
 
-            const productsMock = {
-                p300g: "300g 맛김치",
-                p1kg: "1kg 포기김치",
-                p3kg: "3kg 포기김치",
-                p5kg: "5kg 포기김치",
-                p10kg: "10kg 포기김치"
-            };
+            const productsMock = (window.MockData && typeof window.MockData.getKimchiProductNameMap === 'function')
+                ? window.MockData.getKimchiProductNameMap({ short: true })
+                : {};
 
             let labelHtml = "";
             selectedOrders.forEach((o, index) => {
@@ -6455,7 +6227,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>배송 라벨 출력 - AFOOD</title>
+                    <title>${documentTitle || "배송 라벨 출력 - AFOOD"}</title>
                     <style>
                         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
                         body {
@@ -7512,14 +7284,9 @@
                 const rand = Math.floor(Math.random() * sizeOpts.length);
                 const randSize = sizeOpts[rand];
 
-                const names = {
-                    raw_cabbage: "절임용 원배추",
-                    p300g: "300g 맛김치",
-                    p1kg: "1kg 포기김치",
-                    p3kg: "3kg 대용량 김치",
-                    p5kg: "5kg 실속 김치",
-                    p10kg: "10kg 업소용 김치"
-                };
+                const names = (window.MockData && typeof window.MockData.getKimchiProductNameMap === 'function')
+                    ? window.MockData.getKimchiProductNameMap({ short: true })
+                    : { raw_cabbage: '절임용 원배추' };
 
                 const quantity = Math.floor(Math.random() * 5) + 3; // 3~7포기
                 const spec = 2.5;
@@ -7529,11 +7296,7 @@
                 const salinity = 12;
                 const salt = (salinity * water) / (100 - salinity);
 
-                let unitWeight = 1.0;
-                if (randSize === "p300g") unitWeight = 0.3;
-                else if (randSize === "p3kg") unitWeight = 3.0;
-                else if (randSize === "p5kg") unitWeight = 5.0;
-                else if (randSize === "p10kg") unitWeight = 10.0;
+                const unitWeight = getWeightByProductId(randSize); // store.js kimchiProductSpecs
                 const expectedKimchi = cabbageWeight * 1.2;
                 const packs = Math.round(expectedKimchi / unitWeight);
 
@@ -8100,19 +7863,17 @@
         }
 
         function getWeightByProductId(id) {
-            if (id === "p300g") return 0.3;
-            if (id === "p1kg") return 1.0;
-            if (id === "p3kg") return 3.0;
-            if (id === "p5kg") return 5.0;
-            if (id === "p10kg") return 10.0;
+            // 제품 무게는 store.js 의 kimchiProductSpecs 를 단일 원본으로 사용한다.
+            if (window.MockData && typeof window.MockData.getKimchiProductWeightKg === 'function') {
+                return window.MockData.getKimchiProductWeightKg(id);
+            }
             return 1.0;
         }
 
         function getPackagingUnitCost(id) {
-            if (id === "p300g") return 300;
-            if (id === "p1kg") return 500;
-            if (id === "p3kg") return 700;
-            if (id === "p5kg" || id === "p10kg") return 1500; // 비닐 + 스티로폼
+            if (window.MockData && typeof window.MockData.getKimchiPackagingUnitCost === 'function') {
+                return window.MockData.getKimchiPackagingUnitCost(id);
+            }
             return 500;
         }
 
@@ -8224,11 +7985,13 @@
             Object.values(pkgOrders).forEach(po => {
                 if (po.status !== 'completed' && po.status !== 'Task 4 완료' && po.status !== 'Task 5 완료') {
                     if (po.targets) {
-                        producingCounts['p300g'] += po.targets['300g'] || 0;
-                        producingCounts['p1kg'] += po.targets['1kg'] || 0;
-                        producingCounts['p3kg'] += po.targets['3kg'] || 0;
-                        producingCounts['p5kg'] += po.targets['5kg'] || 0;
-                        producingCounts['p10kg'] += po.targets['10kg'] || 0;
+                        // 규격 라벨 → 제품 코드 변환은 store.js 를 사용한다.
+                        const counts = (window.MockData && typeof window.MockData.packagingTargetsToProductCounts === 'function')
+                            ? window.MockData.packagingTargetsToProductCounts(po.targets)
+                            : {};
+                        Object.keys(counts).forEach(code => {
+                            producingCounts[code] = (producingCounts[code] || 0) + counts[code];
+                        });
                     }
                 }
             });

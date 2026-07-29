@@ -78,16 +78,18 @@
         return notifications.filter(item => !item.readAt).length;
     }
 
+    // 알림 타입별 아이콘 테이블 (notifications.html 등 외부에서도 재사용)
+    const TYPE_ICONS = {
+        reservation: "bi-calendar2-check-fill",
+        success: "bi-check-circle-fill",
+        warning: "bi-exclamation-triangle-fill",
+        work: "bi-briefcase-fill",
+        shopping: "bi-bag-check-fill",
+        info: "bi-info-circle-fill"
+    };
+
     function getTypeIcon(type) {
-        const icons = {
-            reservation: "bi-calendar2-check-fill",
-            success: "bi-check-circle-fill",
-            warning: "bi-exclamation-triangle-fill",
-            work: "bi-briefcase-fill",
-            shopping: "bi-bag-check-fill",
-            info: "bi-info-circle-fill"
-        };
-        return icons[type] || icons.info;
+        return TYPE_ICONS[type] || TYPE_ICONS.info;
     }
 
     function formatRelativeTime(value) {
@@ -422,7 +424,12 @@
         getUnreadCount: getUnreadCount,
         open: openPanel,
         close: closePanel,
-        syncReservations: syncReservationNotifications
+        syncReservations: syncReservationNotifications,
+        // 목록 UI 를 직접 그리는 페이지(notifications.html)에서 재사용
+        typeIcons: TYPE_ICONS,
+        getTypeIcon: getTypeIcon,
+        formatRelativeTime: formatRelativeTime,
+        pageUrl: NOTIFICATION_PAGE_URL
     };
 
     if (document.readyState === "loading") {

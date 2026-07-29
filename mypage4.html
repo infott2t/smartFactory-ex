@@ -238,53 +238,20 @@
             renderAll();
         }
 
+        // 작업자 프로필은 store.js 의 users 테이블에서 조회한다.
         function getDefaultProfileByName(name) {
-            if (name === '최현일') {
-                return { userId: 1, userName: "최현일", healthCertificateImage: "choi_cert.png", healthCertificateStatus: "approved", workedHours: 133 };
-            } else if (name === '최수아') {
-                return { userId: 2, userName: "최수아", healthCertificateImage: "sua_cert.png", healthCertificateStatus: "approved", workedHours: 22 };
-            } else if (name === '김수민') {
-                return { userId: 3, userName: "김수민", healthCertificateImage: null, healthCertificateStatus: null, workedHours: 0 };
-            } else if (name === '김영희') {
-                return { userId: 4, userName: "김영희", healthCertificateImage: "younghee_cert.png", healthCertificateStatus: "approved", workedHours: 45 };
+            if (window.MockData && typeof window.MockData.getWorkerProfileByName === 'function') {
+                return window.MockData.getWorkerProfileByName(name);
             }
-            return { userId: "guest", userName: name || "손님", healthCertificateImage: null, healthCertificateStatus: null, workedHours: 5 };
+            return { userId: 'guest', userName: name || '손님', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 5 };
         }
 
+        // 기본 근로 이력 목업은 store.js 의 getMockWorkHistories 를 사용한다.
         function getDefaultHistoryByName(name) {
-            const today = new Date();
-            const formatDate = (daysAgo) => {
-                const d = new Date();
-                d.setDate(today.getDate() - daysAgo);
-                return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-            };
-
-            if (name === '최현일') {
-                return [
-                    { date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "매니저", pay: 220000, status: "완료" },
-                    { date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "매니저", pay: 190000, status: "완료" },
-                    { date: formatDate(5), time: "15:00 ~ 17:00", job: "김치만들기", role: "매니저", pay: 180000, status: "완료" }
-                ];
-            } else if (name === '최수아') {
-                return [
-                    { date: formatDate(2), time: "13:00 ~ 15:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                    { date: formatDate(6), time: "10:00 ~ 12:00", job: "지갑만들기", role: "일반", pay: 50000, status: "완료" },
-                    { date: formatDate(10), time: "15:00 ~ 17:00", job: "김치만들기", role: "일반", pay: 45000, status: "완료" }
-                ];
-            } else if (name === '김수민') {
-                return [
-                    { date: formatDate(4), time: "10:00 ~ 12:00", job: "우동만들기", role: "일반", pay: 45000, status: "완료" }
-                ];
-            } else if (name === '김영희') {
-                return [
-                    { date: formatDate(1), time: "13:00 ~ 15:00", job: "지갑만들기", role: "헬퍼", pay: 120000, status: "완료" },
-                    { date: formatDate(3), time: "10:00 ~ 12:00", job: "우동만들기", role: "헬퍼", pay: 110000, status: "완료" },
-                    { date: formatDate(8), time: "15:00 ~ 17:00", job: "김치만들기", role: "헬퍼", pay: 115000, status: "완료" }
-                ];
+            if (window.MockData && typeof window.MockData.getMypageDefaultHistories === 'function') {
+                return window.MockData.getMypageDefaultHistories({ id: sessionStorage.getItem("user-id"), name: name });
             }
-            return [
-                { date: formatDate(2), time: "10:00 ~ 12:00", job: "김치만들기", role: "일반", pay: 40000, status: "완료" }
-            ];
+            return [];
         }
 
         function renderAll() {

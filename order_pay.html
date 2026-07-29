@@ -631,20 +631,15 @@
                 }
             }
 
-            // Fallback product Catalog
+            // Fallback: storeProducts 에 없는 코드일 때만 기본값을 사용한다.
+            // (제품명/가격 카탈로그는 store.js storeProducts 를 단일 원본으로 사용)
             if (!currentProduct) {
-                const catalog = {
-                    "p300g": { name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood" },
-                    "p1kg": { name: "1kg 포기김치 팩", price: 8000, img: "./images/kimchi_1kg.png", brand: "AFood" },
-                    "p3kg": { name: "3kg 대용량 김치 팩", price: 20000, img: "./images/kimchi_3kg.png", brand: "AFood" },
-                    "p5kg": { name: "5kg 실속 김치 팩", price: 32000, img: "./images/kimchi_1kg.png", brand: "AFood" },
-                    "p10kg": { name: "10kg 업소용 김치", price: 60000, img: "./images/kimchi_3kg.png", brand: "AFood" },
-                    "udon_01": { name: "수제 쫄깃 우동면 2인분", price: 4500, img: "./images/udon_noodle.png", brand: "Uton" },
-                    "wallet_01": { name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa" },
-                    "wallet_02": { name: "핸드메이드 반지갑", price: 45000, img: "./images/wallet_half.png", brand: "Persa" },
-                    "wallet_03": { name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa" }
-                };
-                currentProduct = catalog[pId] || { name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood" };
+                const kimchiSpec = (window.MockData && typeof window.MockData.getKimchiProductSpec === 'function')
+                    ? window.MockData.getKimchiProductSpec(pId)
+                    : null;
+                currentProduct = kimchiSpec
+                    ? { productCode: kimchiSpec.code, name: kimchiSpec.name, price: kimchiSpec.price, img: kimchiSpec.img, brand: 'AFood', isDelivery: true }
+                    : { name: "300g 맛김치 팩", price: 3000, img: "./images/kimchi_300g.png", brand: "AFood" };
             }
 
             const unitPrice = currentProduct.price || 3000;
@@ -712,11 +707,41 @@
                 createdAt: now.toISOString()
             };
 
+            // 💡 김치(AFood) 제품 구매는 매니저 콘솔(manager.html)의 출하/배송 주문판에도 등록한다.
+            let managerOrder = null;
+            if (window.MockData && typeof window.MockData.addKimchiDeliveryOrder === 'function') {
+                let buyerName = '';
+                let buyerEmail = '';
+                try {
+                    const sessionUser = JSON.parse(sessionStorage.getItem('user') || 'null');
+                    if (sessionUser) {
+                        buyerName = sessionUser.name || '';
+                        buyerEmail = sessionUser.email || '';
+                    }
+                } catch (e) { }
+
+                managerOrder = window.MockData.addKimchiDeliveryOrder({
+                    productCode: currentProduct.productCode,
+                    productId: currentProduct.productId,
+                    productName: currentProduct.name,
+                    quantity: orderQty,
+                    unitPrice: currentProduct.price,
+                    customerName: buyerName,
+                    customerEmail: buyerEmail,
+                    shopOrderId: orderItem.id,
+                    createdAt: orderItem.createdAt
+                });
+                if (managerOrder) orderItem.managerOrderId = managerOrder.orderId;
+            }
+
             if (window.FactoryStore) {
                 window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: orderItem });
             }
 
-            alert(`🎉 결제가 성공적으로 완료되었습니다!\n주문번호: ${orderNo}번\n마이페이지 > 나의 쇼핑에서 구매 내역을 확인하실 수 있습니다.`);
+            const managerNotice = managerOrder
+                ? `\n주문번호(공장): ${managerOrder.orderId}\n김치공장 생산·배송 관리에 접수되었습니다.`
+                : '';
+            alert(`🎉 결제가 성공적으로 완료되었습니다!\n주문번호: ${orderNo}번${managerNotice}\n마이페이지 > 나의 쇼핑에서 구매 내역을 확인하실 수 있습니다.`);
             window.location.href = 'mypage2.html?tab=shopping';
         }
     </script>

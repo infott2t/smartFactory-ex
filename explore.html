@@ -302,14 +302,25 @@
             // -------------------------
 
             async function fetchWorksData() {
+                let works = [];
                 if (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function') {
-                    return window.FactoryStore.getWorks();
+                    works = window.FactoryStore.getWorks();
+                } else {
+                    works = window.MockData && window.MockData.worksJSON
+                        ? JSON.parse(window.MockData.worksJSON)
+                        : [];
                 }
 
-                // 속도 지연(setTimeout) 없이 즉시 데이터 반환
-                return window.MockData && window.MockData.worksJSON
-                    ? JSON.parse(window.MockData.worksJSON)
-                    : [];
+                // 참여자 수는 store.js 의 월별 참가자 집계(현재 월)를 반영한다.
+                if (window.MockData && typeof window.MockData.getWorkMonthlyParticipants === 'function') {
+                    works.forEach(function (work) {
+                        if (!work) return;
+                        const monthly = window.MockData.getWorkMonthlyParticipants(work.workId);
+                        if (monthly > 0) work.participants = monthly;
+                        work.totalParticipants = window.MockData.getWorkTotalParticipants(work.workId);
+                    });
+                }
+                return works;
             }
 
             let dbData = [];

@@ -1268,8 +1268,11 @@ body, html {
     padding: 16px;
     font-family: 'NotoKR', sans-serif;
     color: #d8d8d8;
-    max-height: 480px;
-    overflow-y: auto;
+    /* 예전에는 max-height:480px + overflow-y:auto 로 탭 안에 별도 스크롤이 있었다.
+       그 때문에 페이지 스크롤과 탭 내부 스크롤이 겹쳐 하단 상품 카드가 잘려 보였다.
+       페이지 스크롤 하나만 쓰도록 높이 제한을 없앤다. */
+    max-height: none;
+    overflow-y: visible;
 }
 
 .text-white {

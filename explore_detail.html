@@ -666,6 +666,10 @@
                     <td id="val-bonus" class="value">0</td>
                 </tr>
                 <tr>
+                    <td class="label">적용 시급</td>
+                    <td id="val-hourly" class="value">-</td>
+                </tr>
+                <tr>
                     <td id="label-work-metric" class="label">작업 지표</td>
                     <td id="val-work-metric" class="value">-</td>
                 </tr>
@@ -808,6 +812,13 @@
                 return [];
             }
 
+            // 기본 시간대 라벨은 store.js 의 defaultSlotLabels 를 사용한다.
+            function defaultSlotLabel(slot) {
+                return (window.MockData && typeof window.MockData.getDefaultSlotLabel === 'function')
+                    ? window.MockData.getDefaultSlotLabel(slot || 0)
+                    : '10:00 ~ 12:00';
+            }
+
             function normalizeHistoryDetailItem(item, itemIndex) {
                 const source = item || {};
                 const workId = window.MockData && typeof window.MockData.inferWorkId === 'function'
@@ -826,7 +837,7 @@
                     workName: workTitle,
                     brandName: source.brandName || meta.brandName || 'AFood',
                     iconUrl: source.iconUrl || meta.iconUrl || './images/k-icon_150x150.png',
-                    time: source.time || '10:00 ~ 12:00',
+                    time: source.time || defaultSlotLabel(),
                     role: source.role || '일반',
                     pay: Number(source.pay) || 0,
                     status: source.status || '완료'
@@ -935,49 +946,12 @@
                 return '2시간';
             }
 
+            // 작업별 지표/성과 표기 설정은 store.js 의 workMetricConfigs 테이블을 사용한다.
             function getWorkDetailConfig(workId) {
-                const numericWorkId = Number(workId);
-                const configs = {
-                    1: {
-                        type: 'kimchi',
-                        metricLabel: '도움을 받은 횟수',
-                        achievementTitle: '나의 김치 작업 성과',
-                        totalUnit: '회'
-                    },
-                    2: {
-                        type: 'uton',
-                        metricLabel: '완료 주문 수',
-                        achievementTitle: '나의 Uton 작업 성과',
-                        completedKeys: ['completedOrdersCount', 'completedItemsCount', 'completedCount'],
-                        completedLabel: '수령 완료 처리 주문',
-                        totalUnit: '건'
-                    },
-                    3: {
-                        type: 'wallet',
-                        metricLabel: '완료 제작 수',
-                        achievementTitle: '나의 Persa 작업 성과',
-                        completedKeys: ['completedItemsCount', 'completedCount'],
-                        completedLabel: '완료 제작',
-                        totalUnit: '건'
-                    },
-                    6: {
-                        type: 'meat',
-                        metricLabel: '완료 조리 수',
-                        achievementTitle: '나의 K-Meat 작업 성과',
-                        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
-                        completedLabel: '완료 조리',
-                        totalUnit: '건'
-                    },
-                    7: {
-                        type: 'burger',
-                        metricLabel: '완료 제조 수',
-                        achievementTitle: '나의 BurgerQueen 작업 성과',
-                        completedKeys: ['completedItemsCount', 'completedOrdersCount', 'completedCount'],
-                        completedLabel: '완료 제조',
-                        totalUnit: '건'
-                    }
-                };
-                return configs[numericWorkId] || {
+                if (window.MockData && typeof window.MockData.getWorkMetricConfig === 'function') {
+                    return window.MockData.getWorkMetricConfig(workId);
+                }
+                return {
                     type: 'generic',
                     metricLabel: '완료 작업 수',
                     achievementTitle: '나의 작업 성과',
@@ -1001,18 +975,10 @@
             const currentWorkId = Number(inferWorkId(currentItem));
             const currentWorkConfig = getWorkDetailConfig(currentWorkId);
             const isKimchiWork = currentWorkConfig.type === 'kimchi';
-            const ranks = [
-                { name: '최현일', stageCount: 340, hours: 60, bonus: 3000, grade: '매니저' },
-                { name: '김영희', stageCount: 220, hours: 42, bonus: 1000, grade: '헬퍼' },
-                { name: '박준호', stageCount: 195, hours: 38, bonus: 1000, grade: '헬퍼' },
-                { name: '최수아', stageCount: 154, hours: 28, bonus: 500, grade: '일반' },
-                { name: '이민수', stageCount: 120, hours: 22, bonus: 500, grade: '일반' },
-                { name: '정수연', stageCount: 98, hours: 18, bonus: 500, grade: '일반' },
-                { name: '강동원', stageCount: 75, hours: 14, bonus: 500, grade: '일반' },
-                { name: '윤아름', stageCount: 42, hours: 10, bonus: 500, grade: '일반' },
-                { name: '홍길동', stageCount: 28, hours: 7, bonus: 500, grade: '일반' },
-                { name: '김수민', stageCount: 15, hours: 5, bonus: 500, grade: '일반' }
-            ];
+            // 월간 순위 목업은 store.js 의 monthlyWorkRankings 테이블을 사용한다.
+            const ranks = (window.MockData && typeof window.MockData.getWorkRanking === 'function')
+                ? window.MockData.getWorkRanking(currentWorkId)
+                : [];
             const currentUserNameForRank = currentItem.userName || currentItem.name || user.name;
             const myRankItem = ranks.find(rank => rank.name === currentUserNameForRank);
             let brandLogo = currentItem.iconUrl || currentWorkMeta.iconUrl || './images/k-icon_150x150.png';
@@ -1022,7 +988,7 @@
             $('#job-title').text(currentItem.job);
             $('#corp-name').text(brandName);
             $('#detail-date').text(formatDisplayDateWithDay(currentItem.date));
-            $('#detail-time').text(formatTimeRangeToMinute(currentItem.time || '10:00 ~ 12:00'));
+            $('#detail-time').text(formatTimeRangeToMinute(currentItem.time || defaultSlotLabel()));
             $('.detail-duration-badge').first().text(getWorkDurationBadgeLabel(currentItem));
 
             // --- 이 부분을 찾아서 아래 내용으로 교체하세요 ---
@@ -1105,7 +1071,9 @@
             // 💡 [사후 정산 가감 연산 엔진] 출퇴근 기반 순수 근무 급여 우선 연산
             const isMockData = (currentItem.checkInTime === undefined);
 
-            const hourlyWage = 10320 * ratio;
+            const hourlyWage = (window.MockData && typeof window.MockData.getHourlyWage === 'function')
+                ? window.MockData.getHourlyWage(ratio)
+                : 10320 * ratio;
             const wageRatePerSecond = hourlyWage / 3600; // 초당 급여액
 
             // 💡 기존 분단위(actualWorkMin * 60) 대신, 실제 계산된 초(actualWorkSec)를 대입
@@ -1163,11 +1131,28 @@
             $('#val-shift-bonus').closest('tr').toggle(isKimchiWork);
 
             // 순위 보너스 연동
+            // 순위 보너스는 '시급 +N원' 이지만 시간 단위 올림으로 지급된다.
+            //   1시간 미만 → 1시간분 / 1시간 10분 → 2시간분 / 2시간 → 2시간분
+            // (근로 이력에 bonus 가 저장돼 있으면 이미 적용된 금액이므로 그대로 사용)
             const storedBonus = Number(currentItem.bonus);
-            const rankBonus = myRankItem ? Number(myRankItem.bonus) || 0 : 0;
+            const rankBonusPerHour = myRankItem ? Number(myRankItem.bonus) || 0 : 0;
+            const storedBonusPerHour = Number(currentItem.bonusPerHour);
+            const bonusPerHour = Number.isFinite(storedBonusPerHour) && storedBonusPerHour > 0
+                ? storedBonusPerHour
+                : rankBonusPerHour;
+            const bonusSeconds = Math.max(0, Number(actualWorkSec) || 0);
+            const billableBonusHours = bonusSeconds > 0 ? Math.ceil(bonusSeconds / 3600) : 0;
             const hasStoredBonus = Number.isFinite(storedBonus) && storedBonus > 0;
-            let bonus = hasStoredBonus ? storedBonus : rankBonus;
-            $('#val-bonus').text(bonus.toLocaleString() + ' 원');
+            let bonus = hasStoredBonus
+                ? storedBonus
+                : rankBonusPerHour * billableBonusHours;
+            $('#val-bonus').text(bonus.toLocaleString() + ' 원'
+                + (bonusPerHour > 0 ? ` (시급 +${bonusPerHour.toLocaleString()}원 · ${billableBonusHours}시간분)` : ''));
+            // 적용 시급 = 최저시급 × 급여비율 + 순위 보너스(시간 단위 올림 지급)
+            $('#val-hourly').text(Math.floor(hourlyWage + bonusPerHour).toLocaleString() + ' 원'
+                + (bonusPerHour > 0
+                    ? ` (기본 ${Math.floor(hourlyWage).toLocaleString()} + 순위 ${bonusPerHour.toLocaleString()}/시간·올림)`
+                    : ''));
             finalCalculatedPay += bonus;
 
             // D) 최종 급여 소수점 버림 및 화면 매핑
@@ -1187,16 +1172,12 @@
 
             const prevHours = Math.max(0, userBaseHours - Number(workHoursFloat)).toFixed(1);
             $('#val-cumulative').html(`${prevHours}h<span class="added">+${workHoursFloat}h</span>=${userBaseHours}h`);
-            const roleLabelMap = {
-                general: '일반',
-                role_general: '일반',
-                helper: '헬퍼',
-                role_helper: '헬퍼',
-                manager: '매니저',
-                role_manager: '매니저'
-            };
-            const roleKey = String(currentItem.role || user.role || 'general').toLowerCase();
-            $('#val-grade').text(roleLabelMap[roleKey] || currentItem.role || '일반');
+            // 역할 라벨 변환은 store.js 의 formatRoleLabel 로 통일한다.
+            const roleValue = currentItem.role || user.role || 'general';
+            const roleLabel = (window.MockData && typeof window.MockData.formatRoleLabel === 'function')
+                ? window.MockData.formatRoleLabel(roleValue)
+                : (currentItem.role || '일반');
+            $('#val-grade').text(roleLabel);
 
 
             let totalAchievementCount = 0;

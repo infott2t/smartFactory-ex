@@ -18,6 +18,27 @@ body.app-footer-enabled .main-settings {
     box-sizing: border-box;
 }
 
+/* ------------------------------------------------------------------
+ * 전체화면 시트형 모달과 푸터의 겹침 해소
+ *
+ * 예약 모달(.reservation-overlay)처럼 화면 아래에 붙는 시트는 하단까지
+ * 꽉 차므로, z-index 가 더 높은 푸터(9000)가 시트 하단의 '예약 확정' 같은
+ * 버튼을 덮어 버렸다.
+ *   1) 시트가 열려 있는 동안에는 푸터를 숨긴다. (:has 지원 브라우저)
+ *   2) :has 미지원 환경을 위해 시트 자체에 푸터 높이만큼 하단 여백을 준다.
+ *      → 끝까지 스크롤하면 버튼이 항상 푸터 위로 올라온다.
+ * ------------------------------------------------------------------ */
+body.app-footer-enabled:has(.reservation-overlay.show) .app-footer-shell,
+body.app-footer-enabled:has(.experience-overlay.show) .app-footer-shell,
+body.app-footer-enabled:has(.product-modal-overlay.show) .app-footer-shell {
+    display: none;
+}
+
+body.app-footer-enabled .reservation-modal {
+    padding-bottom: calc(var(--app-footer-height) + 16px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+}
+
 .app-footer-shell {
     position: fixed;
     left: 50%;

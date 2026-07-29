@@ -169,6 +169,7 @@
             let currentSortType = 'date'; // 'date', 'pay', or 'like'
             let currentSortDir = 'desc';
             const selectedHistoryById = {};
+            const selectedReservationById = {};
 
             window.openExploreHistoryDetail = function(historyId) {
                 const key = String(historyId);
@@ -179,6 +180,18 @@
                     } catch (e) {}
                 }
                 window.location.href = `./explore_detail.html?id=${encodeURIComponent(key)}`;
+            };
+
+            // 예약 내역 항목 클릭 → 예약 상세(출근하기/취소) 화면으로 이동
+            window.openExploreReservationDetail = function(reservationId) {
+                const key = String(reservationId);
+                const reservation = selectedReservationById[key];
+                if (reservation) {
+                    try {
+                        sessionStorage.setItem('explore_selected_reservation', JSON.stringify(reservation));
+                    } catch (e) {}
+                }
+                window.location.href = `./reservation_detail.html?id=${encodeURIComponent(key)}`;
             };
 
             // ★ 정렬 토글 기능 (오름차순/내림차순 / 필터)
@@ -389,7 +402,7 @@
             };
 
             function formatReservationSlotTime(reservation) {
-                const fallbackSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+                const fallbackSlotLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
                 const fallback = reservation.time || reservation.slotLabel || fallbackSlotLabels[Number(reservation.slot)] || '지정 시간';
                 if (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function') {
                     return window.MockData.formatWorkSlotTime(reservation.workId || 1, reservation.slot, fallback);
@@ -541,7 +554,7 @@
                     // 전역 정렬 상태 (currentSortType, currentSortDir) 반영
                     myReservations.sort((a, b) => {
                         if (currentSortType === 'pay') {
-                            let minWage = 10320;
+                            let minWage = (window.MockData && typeof window.MockData.getMinimumHourlyWage === 'function' ? window.MockData.getMinimumHourlyWage() : 10320);
                             let payA = Math.floor(minWage * 2 * (a.ratio ? Number(a.ratio) : 1.2));
                             let payB = Math.floor(minWage * 2 * (b.ratio ? Number(b.ratio) : 1.2));
                             return currentSortDir === 'asc' ? (payA - payB) : (payB - payA);
@@ -559,7 +572,9 @@
                         `);
                     } else {
                         let html = '';
+                        Object.keys(selectedReservationById).forEach(key => delete selectedReservationById[key]);
                         myReservations.forEach(r => {
+                            selectedReservationById[String(r.id)] = r;
                             const normalizedDate = normalizeReservationDate(r);
 
                             const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
@@ -580,7 +595,7 @@
                                 }
                             } catch(e) {}
 
-                            let minimumWage = 10320;
+                            let minimumWage = (window.MockData && typeof window.MockData.getMinimumHourlyWage === 'function' ? window.MockData.getMinimumHourlyWage() : 10320);
                             let ratioVal = r.ratio ? Number(r.ratio) : 1.2;
                             let expectedPay = Math.floor(minimumWage * 2 * ratioVal);
                             const displayRatio = ratioVal.toFixed(1);
@@ -596,8 +611,10 @@
                                 } catch(e) {}
                             }
 
+                            const safeReservationId = String(r.id === undefined || r.id === null ? '' : r.id)
+                                .replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                             html += `
-                                <div class="task-item" style="margin-bottom: 12px; display: block;">
+                                <div class="task-item" style="margin-bottom: 12px; display: block; cursor: pointer;" onclick="window.openExploreReservationDetail('${safeReservationId}')">
                                     <div class="task-items0" style="align-items: center;">
                                         <div class="task-items" style="flex: 1.2;">
                                             <img class="icon" src="${iconUrl}" alt="icon"> 
@@ -712,12 +729,11 @@
                         return dateStr;
                     }
 
+                    // 역할 라벨 변환은 store.js 의 roleLabelMap / formatRoleLabel 을 사용한다.
                     function formatRoleLabel(role) {
-                        const normalized = String(role || '').toLowerCase();
-                        if (normalized === 'general' || normalized === 'role_general') return '일반';
-                        if (normalized === 'helper' || normalized === 'role_helper') return '헬퍼';
-                        if (normalized === 'manager' || normalized === 'role_manager') return '매니저';
-                        return role || '일반';
+                        return (window.MockData && typeof window.MockData.formatRoleLabel === 'function')
+                            ? window.MockData.formatRoleLabel(role)
+                            : (role || '일반');
                     }
 
                     let historyData = getHistoryData(user);
@@ -769,6 +785,10 @@
                         
 
                         const safeHistoryId = String(h.id).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                        // 표시 급여는 store.js 의 공통 계산을 쓴다. (순위 보너스 포함 → 상세 화면과 금액 일치)
+                        const payInfo = (window.MockData && typeof window.MockData.getHistoryDisplayPay === 'function')
+                            ? window.MockData.getHistoryDisplayPay(h, user.name)
+                            : { pay: Number(h.pay) || 0, bonus: 0 };
                         html += `
                         <div class="task-item" style="margin-bottom: 12px; cursor: pointer;" onclick="window.openExploreHistoryDetail('${safeHistoryId}')">
                             <div class="task-items0" style="align-items: center;">
@@ -788,7 +808,7 @@
                                 </div>
                                 <div class="task-info-col" style="flex: 1.5; text-align: right; align-items: flex-end; display: flex; flex-direction: column;">
                                     <span class="date-text">${formatDisplayDate(h.date)}</span>
-                                    <span class="pay-text">+₩ ${h.pay.toLocaleString()}</span>  
+                                    <span class="pay-text">+₩ ${payInfo.pay.toLocaleString()}</span>  
                                 </div>
                             </div>
                         </div>`;

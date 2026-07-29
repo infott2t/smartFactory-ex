@@ -214,6 +214,32 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none;-webkit-tap-h
       </div>
     </div>
     <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span><i class="bi bi-box-arrow-right"></i> 작업자 라운지 · 근무 종료</span>
+        <button type="button" id="btnFinishInfo" aria-label="근무 종료 활성화 안내"
+                style="background:none;color:var(--text-secondary);font-size:18px;line-height:1;padding:2px 6px">
+          <i class="bi bi-info-circle"></i>
+        </button>
+      </div>
+      <div class="tip-box info" id="finishHint" style="display:none">
+        <b>ℹ️ 근무 종료 10분 전에 활성화됩니다.</b><br>
+        <span id="finishHintDetail">예정 종료 시각까지 10분 이상 남아 있으면 버튼이 비활성화됩니다.</span>
+      </div>
+      <div class="tip-box info" id="finishGuide">
+        <b>⏰ 근무 종료 10분 전</b>이 되면 <b>근무 종료</b>를 눌러주세요.<br>
+        인수인계와 간단한 청소를 마치고 퇴근하시면 됩니다.
+      </div>
+      <button class="btn btn-success btn-block" id="btnFinishWork" style="margin-top:10px" disabled>
+        <i class="bi bi-check2-circle"></i> 근무 종료 (종료 10분 전 활성화)
+      </button>
+      <button class="btn btn-outline btn-block" id="btnEarlyLeave" style="margin-top:8px">
+        <i class="bi bi-door-open"></i> 조퇴하기
+      </button>
+      <p style="font-size:11px;color:var(--text-secondary);line-height:1.6;margin-top:8px">
+        종료 처리하면 근무 기록이 <b>근로 이력</b>으로 저장되고, 이 단말의 진행 기록은 초기화됩니다.
+      </p>
+    </div>
+    <div class="card">
       <div class="card-title"><i class="bi bi-life-preserver"></i> 도움 요청</div>
       <div id="helpIdle">
         <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:10px">
@@ -272,6 +298,18 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none;-webkit-tap-h
     <div id="resBody" style="text-align:left"></div>
     <div class="modal-actions" style="margin-top:14px">
       <button class="btn btn-outline btn-block" onclick="app.closeModal()"><i class="bi bi-x-lg"></i> 닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 근무 종료 · 조퇴 정산 모달 -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal" style="max-width:440px;max-height:88dvh;overflow-y:auto">
+    <h2 id="checkoutTitle" style="font-size:18px">근무 종료</h2>
+    <div id="checkoutBody" style="text-align:left"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-success btn-block" id="btnCheckoutConfirm"><i class="bi bi-box-arrow-right"></i> 퇴근하고 마이페이지로</button>
+      <button class="btn btn-outline btn-block" id="btnCheckoutCancel"><i class="bi bi-x-lg"></i> 계속 근무하기</button>
     </div>
   </div>
 </div>
@@ -364,8 +402,54 @@ const INGREDIENT_COLORS = {
   '양상추':'#90ee90','피클':'#6b8e23','치즈':'#ffd700',
   '마요네즈':'#fffacd','불고기소스':'#800000','타르타르소스':'#f5f5dc'
 };
-const HOURLY_WAGE = 9860;
 const M = () => window.MockData || {};
+
+/* 급여 계산.
+ *   적용 시급 = 최저시급 × 작업 급여비율 + 순위 보너스(시급 가산)
+ *   급여      = floor(근무초 × 기본시급 / 3600) + 순위 보너스(시간 단위 올림)
+ * 예전에는 9,860원이 하드코딩돼 다른 화면(마이페이지/근로 상세)과 금액이 어긋났다. */
+const BURGER_WORK_ID = 7;
+function burgerUserName() {
+    try {
+        if (state && state.user && state.user.name) return state.user.name;
+        return (JSON.parse(sessionStorage.getItem('user') || '{}') || {}).name || null;
+    } catch (e) { return null; }
+}
+function getBurgerPayRatio() {
+    try {
+        const res = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null');
+        if (res && Number(res.ratio) > 0) return Number(res.ratio);
+    } catch (e) { }
+    try {
+        const works = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+            ? window.FactoryStore.getWorks()
+            : JSON.parse(M().worksJSON || '[]');
+        const work = works.find(w => String(w.workId) === String(BURGER_WORK_ID));
+        if (work && Number(work.salary) > 0) return Number(work.salary);
+    } catch (e) { }
+    return 1.25; // 버거만들기 기본 배율
+}
+function getBurgerBaseHourlyWage() {
+    const md = M();
+    const minWage = typeof md.getMinimumHourlyWage === 'function' ? md.getMinimumHourlyWage() : 10320;
+    return Math.floor(minWage * getBurgerPayRatio());
+}
+function getBurgerBonusPerHour() {
+    const md = M();
+    return typeof md.getRankBonusPerHour === 'function'
+        ? (Number(md.getRankBonusPerHour(BURGER_WORK_ID, burgerUserName())) || 0) : 0;
+}
+function getBurgerBonusAmount(workSec) {
+    const md = M();
+    return typeof md.getRankBonusAmount === 'function'
+        ? (Number(md.getRankBonusAmount(BURGER_WORK_ID, burgerUserName(), workSec)) || 0) : 0;
+}
+function getBurgerHourlyWage() {
+    return getBurgerBaseHourlyWage() + getBurgerBonusPerHour();
+}
+function getBurgerPay(workSec) {
+    return Math.floor(Math.max(0, workSec) * getBurgerBaseHourlyWage() / 3600) + getBurgerBonusAmount(workSec);
+}
 
 // === STATE ===
 let state = {
@@ -1034,10 +1118,11 @@ function updateStats(){
   $('statWork').textContent=`${Math.floor(workSec/60)}분`;
   $('statRest').textContent=mmssStr(restSec);
   updateRestTimers();
-  const pay=Math.round(workSec/3600*HOURLY_WAGE);
+  const pay=getBurgerPay(workSec);
   $('statPay').textContent=`₩${pay.toLocaleString()}`;
   const dEl=$('statDone'); if(dEl)dEl.textContent=state.completedOrders;
   const sEl=$('statSales'); if(sEl)sEl.textContent=won(state.mySales);
+  refreshFinishButtonState();
   renderHelp();
   watchHelp();
 }
@@ -1048,6 +1133,216 @@ function renderLogs(){
 
 // === 주문 상세 모달 ===
 function closeModal(){ resultModal.classList.remove('active'); }
+
+// === 근무 종료 · 조퇴 정산 ===
+// 김치·우동·불고기와 같은 규칙으로 급여를 계산하고, 종료 시 근로 이력으로 저장한다.
+const checkoutModal=$('checkoutModal');
+const checkoutTitle=$('checkoutTitle');
+const checkoutBody=$('checkoutBody');
+const btnCheckoutConfirm=$('btnCheckoutConfirm');
+const btnCheckoutCancel=$('btnCheckoutCancel');
+let checkoutPending=null;   // { isEarly, ... } 확인 대기 중인 정산 스냅샷
+let checkoutDone=false;
+
+// 예약된 근무 종료 시각 (있으면 '10분 전' 안내에 남은 시간을 함께 보여준다)
+function scheduledEndInfo(){
+  if(M().getShiftEndInfo)return M().getShiftEndInfo({workId:BURGER_WORK_ID,checkInAt:new Date(state.startTime)});
+  return{label:null,minutesLeft:null,canFinish:true,hasSchedule:false};
+}
+
+// 근무 종료 버튼은 예정 종료 10분 전부터 활성화된다.
+function refreshFinishButtonState(){
+  const btn=$('btnFinishWork');
+  if(!btn||checkoutDone)return;
+  const info=scheduledEndInfo();
+  btn.disabled=!info.canFinish;
+  btn.innerHTML=info.canFinish
+    ? '<i class="bi bi-check2-circle"></i> 근무 종료하기'
+    : '<i class="bi bi-lock"></i> 근무 종료 (종료 10분 전 활성화)';
+  const detail=$('finishHintDetail');
+  if(detail){
+    detail.textContent=info.hasSchedule&&info.minutesLeft!==null
+      ? (info.canFinish
+          ? `지금 종료할 수 있습니다. (예정 종료 ${info.label||''})`
+          : `예정 종료 ${info.label||''} · 약 ${Math.max(0,info.minutesLeft-10)}분 후 활성화됩니다.`)
+      : '예정 종료 시각 정보가 없어 바로 종료할 수 있습니다.';
+  }
+}
+
+// 현재 시점 정산 스냅샷
+function checkoutSnapshot(){
+  const restSec=currentRestSec();
+  const workSec=Math.max(0,Math.floor((Date.now()-state.startTime)/1000)-restSec);
+  const baseHourly=getBurgerBaseHourlyWage();
+  const bonusPerHour=getBurgerBonusPerHour();
+  const bonus=getBurgerBonusAmount(workSec);
+  return{
+    checkInAt:new Date(state.startTime),
+    checkOutAt:new Date(),
+    workSec:workSec,
+    restSec:restSec,
+    baseHourly:baseHourly,
+    bonusPerHour:bonusPerHour,
+    bonus:bonus,
+    bonusHours:workSec>0?Math.ceil(workSec/3600):0,
+    basePay:Math.floor(workSec*baseHourly/3600),
+    pay:getBurgerPay(workSec)
+  };
+}
+
+// 근로 이력에 남길 로그 (오래된 것 → 최신 순, `[시각] 내용` 형태)
+function historyLogs(){
+  return state.logs.slice().reverse().map(l=>`[${l.time}] ${l.msg}`);
+}
+
+function checkoutRow(label,value,strong){
+  return `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">`
+    +`<span style="color:var(--text-secondary)">${label}</span>`
+    +`<b style="${strong?'color:var(--success);font-size:15px':''}">${value}</b></div>`;
+}
+
+function openCheckout(isEarly){
+  if(checkoutDone)return;
+  if(!isEarly){
+    const gate=scheduledEndInfo();
+    if(!gate.canFinish){
+      const hint=$('finishHint');
+      if(hint)hint.style.display='';
+      refreshFinishButtonState();
+      alert((M().WORK_FINISH_HINT||'근무 종료 10분 전에 활성화됩니다.')
+        +(gate.minutesLeft!==null?`\n예정 종료 ${gate.label||''} · 지금은 ${gate.minutesLeft}분 남았습니다.`:''));
+      return;
+    }
+  }
+  const s=checkoutSnapshot();
+  checkoutPending=Object.assign({isEarly:!!isEarly},s);
+  const end=scheduledEndInfo();
+  checkoutTitle.textContent=isEarly?'조퇴 정산 내역':'근무 종료 정산 내역';
+
+  const guide=isEarly
+    ? `<div class="tip-box warn"><b>🚪 조퇴 처리</b><br>`
+      +`남은 근무를 중단하고 지금까지의 근무만 정산합니다. 인수인계와 정리를 부탁드립니다.`
+      +(end.label?`<br><span style="opacity:.85">예정 근무 시간 ${esc(end.label)}</span>`:'')
+      +`</div>`
+    : `<div class="tip-box info"><b>⏰ 10분 전입니다.</b><br>`
+      +`인수인계를 하고, 청소를 간단히 하고 퇴근하시면 됩니다.`
+      +(end.minutesLeft!==null?`<br><span style="opacity:.85">예정 종료 ${esc(String(end.label))} · 남은 시간 약 ${end.minutesLeft}분</span>`:'')
+      +`</div>`
+      +`<div class="done-banner" style="margin-top:10px">🙏 이용해주셔서 감사합니다.</div>`;
+
+  const detail=`<div style="margin-top:12px">`
+    +checkoutRow('출근 시각',fmtClock(s.checkInAt))
+    +checkoutRow('퇴근 시각',fmtClock(s.checkOutAt))
+    +checkoutRow('근무 시간',hhmmss(s.workSec))
+    +checkoutRow('휴식 시간',hhmmss(s.restSec))
+    +checkoutRow('완성 주문',`${state.completedOrders}건`)
+    +checkoutRow('내 매출 기여',won(state.mySales))
+    +checkoutRow('적용 시급',`${won(s.baseHourly+s.bonusPerHour)}`
+      +(s.bonusPerHour>0?`<span style="font-weight:500;color:var(--text-secondary)"> (기본 ${s.baseHourly.toLocaleString()} + 순위 ${s.bonusPerHour.toLocaleString()}/시간)</span>`:''))
+    +(s.bonus>0?checkoutRow('순위 보너스',`+${won(s.bonus)}<span style="font-weight:500;color:var(--text-secondary)"> (${s.bonusHours}시간분·올림)</span>`):'')
+    +checkoutRow(isEarly?'조퇴 정산 급여':'최종 급여',won(s.pay),true)
+    +`</div>`;
+
+  const logs=historyLogs().slice().reverse();
+  const logHtml=`<div class="card" style="margin:12px 0 0;box-shadow:none">`
+    +`<div class="card-title"><i class="bi bi-journal-text"></i> 업무 로그 ${logs.length}건 <span style="font-weight:500;color:var(--text-secondary);font-size:11px">(근로 이력에 저장됩니다)</span></div>`
+    +(logs.length
+      ? `<div class="log-list">${logs.map(l=>`<div class="log-entry">${esc(l)}</div>`).join('')}</div>`
+      : `<p style="font-size:12px;color:var(--text-secondary)">기록된 로그가 없습니다.</p>`)
+    +`</div>`;
+
+  checkoutBody.innerHTML=guide+detail+logHtml;
+  btnCheckoutConfirm.innerHTML=isEarly
+    ? '<i class="bi bi-door-open"></i> 조퇴 확정하고 마이페이지로'
+    : '<i class="bi bi-box-arrow-right"></i> 퇴근하고 마이페이지로';
+  checkoutModal.classList.add('active');
+}
+
+function fmtClock(d){return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`}
+
+function closeCheckout(){
+  checkoutModal.classList.remove('active');
+  checkoutPending=null;
+}
+
+// 확정: 근로 이력 저장 → 이 단말의 진행 기록 삭제 → 마이페이지
+function confirmCheckout(){
+  if(checkoutDone||!checkoutPending)return;
+  const s=checkoutPending;
+  const isEarly=s.isEarly;
+  addLog(isEarly?'🚪 조퇴 정산을 완료했습니다.':'✅ 근무 종료(퇴근) 정산을 완료했습니다.','ok');
+
+  let res=null;
+  try{res=JSON.parse(sessionStorage.getItem('selected_reservation')||'null');}catch(e){}
+
+  let historyItem=null;
+  if(M().finishWorkSession){
+    historyItem=M().finishWorkSession({
+      workId:BURGER_WORK_ID,
+      userId:myUserId(),
+      userName:(state.user&&state.user.name)||null,
+      job:'버거만들기',
+      role:(res&&res.role)||(state.user&&state.user.role==='ROLE_MANAGER'?'매니저':'일반'),
+      checkInAt:s.checkInAt,
+      checkOutAt:s.checkOutAt,
+      workedSeconds:s.workSec,
+      breakSeconds:s.restSec,
+      ratio:getBurgerPayRatio(),
+      pay:s.pay,
+      bonus:s.bonus,
+      bonusPerHour:s.bonusPerHour,
+      logs:historyLogs(),
+      completedOrdersCount:state.completedOrders,
+      locker:(res&&res.lockerNumber)?`${res.lockerGender||res.userGender||'선택'} 사물함 ${res.lockerNumber}번`:'사물함 정보 없음',
+      isEarlyLeave:isEarly,
+      checkoutType:isEarly?'조퇴':'퇴근',
+      date:(res&&res.date)||undefined,
+      slot:res?res.slot:null,
+      time:(res&&(res.time||res.slotLabel))||undefined,
+      extra:{ mySales:state.mySales, completedCount:state.completedOrders },
+      source:isEarly?'burger_real_early_leave':'burger_real_checkout'
+    });
+  }
+
+  // 예약 상태도 종료로 갱신 (예약 상세 / 알림 흐름 공통)
+  if(res&&window.FactoryStore&&typeof window.FactoryStore.dispatch==='function'){
+    try{
+      window.FactoryStore.dispatch({type:'UPDATE_RESERVATION',payload:{
+        id:res.id,
+        changes:{
+          workStatus:isEarly?'early_left':'completed',
+          workCompletedAt:s.checkOutAt.toISOString(),
+          checkoutType:isEarly?'조퇴':'퇴근',
+          breakSeconds:s.restSec,
+          actualWorkSeconds:s.workSec,
+          earnedPay:s.pay,
+          attendanceHistoryId:historyItem?historyItem.id:undefined
+        }
+      }});
+    }catch(e){}
+  }
+
+  // 이 단말의 진행 기록(출근 시각 · 근무자 현황)은 삭제한다. 기록은 근로 이력에 남는다.
+  clearBurgerWorkRecords();
+
+  checkoutDone=true;
+  closeCheckout();
+  alert((isEarly?'조퇴':'퇴근')+' 처리가 완료되었습니다.\n이용해주셔서 감사합니다.\n마이페이지에서 오늘 일한 이력을 확인해보세요.');
+  location.replace('mypage2.html');
+}
+
+// burger-real 단말에 남아 있던 근무 진행 기록 삭제
+function clearBurgerWorkRecords(){
+  try{localStorage.removeItem('burger_checkin_ts_'+myUserId());}catch(e){}
+  try{if(M().removeBurgerStaff)M().removeBurgerStaff(myUserId());}catch(e){}
+  state.logs=[];
+  state.completedOrders=0;
+  state.mySales=0;
+  state.totalRestSec=0;
+  state.isResting=false;
+  state.restStart=null;
+  try{renderLogs();}catch(e){}
+}
 
 // === NAVIGATION ===
 const WORK_ID=7;                                 // 버거만들기
@@ -1084,6 +1379,21 @@ function init(){
   // Rest / QR (퇴실·입장 QR 스캔으로 휴식 시작·종료)
   qrSim.addEventListener('click',scanRestQR);
   renderRest();
+  // 근무 종료(10분 전) · 조퇴
+  $('btnFinishWork').addEventListener('click',function(){openCheckout(false);});
+  $('btnEarlyLeave').addEventListener('click',function(){
+    if(!confirm('조퇴 처리하시겠습니까?\n지금까지의 근무 시간만 정산됩니다.'))return;
+    openCheckout(true);
+  });
+  $('btnFinishInfo').addEventListener('click',function(){
+    const hint=$('finishHint');
+    if(!hint)return;
+    refreshFinishButtonState();
+    hint.style.display=hint.style.display==='none'?'':'none';
+  });
+  refreshFinishButtonState();
+  btnCheckoutConfirm.addEventListener('click',confirmCheckout);
+  btnCheckoutCancel.addEventListener('click',closeCheckout);
   // Help request
   btnHelp.addEventListener('click',requestHelp);
   btnHelpDone.addEventListener('click',completeHelp);
@@ -1130,7 +1440,7 @@ function init(){
 }
 
 // Expose to global for onclick handlers
-window.app={startCook,openCook,confirmBurger,startFries,useFriesStock,pourDrink,toggleAccordion,goBack,closeModal};
+window.app={startCook,openCook,confirmBurger,startFries,useFriesStock,pourDrink,toggleAccordion,goBack,closeModal,openCheckout,confirmCheckout,closeCheckout};
 
 document.addEventListener('DOMContentLoaded',function(){
   // 로그인 확인

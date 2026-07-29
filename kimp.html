@@ -642,7 +642,7 @@
         var experienceCompleted = false;
         var selectedSlot = null;
         var currentModalMode = 'reserve'; // 'reserve' or 'experience'
-        var slotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+        var slotLabels = (window.MockData && typeof window.MockData.getDefaultSlotLabels === 'function' ? window.MockData.getDefaultSlotLabels() : ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00']);
 
         var selectedDateString = null; // e.g. "2026-06-01"
 
