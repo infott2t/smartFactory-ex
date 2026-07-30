@@ -24,7 +24,9 @@
             min-height: 100vh;
             margin: 0 auto;
             background: #0d0627;
-            padding: 18px 16px 110px;
+            /* 하단 고정 요약바(주문 확인)에 가려지지 않도록 실제 바 높이만큼 비워 둔다.
+               --summary-h 는 스크립트가 바 높이를 측정해 넣어 준다. */
+            padding: 18px 16px calc(var(--summary-h, 168px) + 24px);
         }
 
         .topbar {
@@ -241,10 +243,11 @@
             bottom: 0;
             width: min(720px, 100%);
             transform: translateX(-50%);
-            padding: 12px 16px 16px;
+            padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
             border-top: 1px solid rgba(123, 92, 245, 0.35);
             background: rgba(7, 3, 32, 0.96);
             box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.35);
+            z-index: 20;
         }
 
         .summary-row {
@@ -1465,6 +1468,19 @@
                 paymentNote: 'payment_later'
             });
             closePaymentModal();
+
+            // 주문 완료 알림
+            if (window.MockData && typeof window.MockData.enqueueNotification === 'function') {
+                window.MockData.enqueueNotification({
+                    userId: paymentOrder.userId || getCurrentOrderUserId(),
+                    title: '불고기구이 주문이 접수되었습니다.',
+                    message: paymentOrder.tableId + ' · 주문번호 ' + paymentOrder.orderNo + ' · ₩' + (paymentOrder.total || 0).toLocaleString() + ' · 준비되면 알려드립니다.',
+                    type: 'shopping',
+                    href: './explore2.html?tab=shopping',
+                    dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo
+                });
+            }
+
             alert(`주문은 접수되었습니다.\n${paymentOrder.tableId} · ${paymentOrder.orderNo}\n결제는 나중에 진행합니다.\n주문을 리셋합니다.`);
             paymentOrder = null;
             resetOrder();
@@ -1490,6 +1506,19 @@
                     createdAt: paidAt
                 });
                 closePaymentModal();
+
+                // 주문 완료 알림 (오프라인 결제)
+                if (window.MockData && typeof window.MockData.enqueueNotification === 'function') {
+                    window.MockData.enqueueNotification({
+                        userId: paymentOrder.userId || getCurrentOrderUserId(),
+                        title: '불고기구이 주문이 접수되었습니다.',
+                        message: paymentOrder.tableId + ' · 주문번호 ' + paymentOrder.orderNo + ' · ₩' + (paymentOrder.total || 0).toLocaleString() + ' · 카운터에서 결제해 주세요.',
+                        type: 'shopping',
+                        href: './explore2.html?tab=shopping',
+                        dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo
+                    });
+                }
+
                 alert(`오프라인 결제가 선택되었습니다.\n${paymentOrder.tableId} · ${paymentOrder.orderNo}\n직원 호출 또는 카운터에서 ${currency.format(paymentOrder.total)}원을 결제해주세요.\n주문을 리셋합니다.`);
                 paymentOrder = null;
                 resetOrder();
@@ -1525,6 +1554,19 @@
                 createdAt: paidAt
             });
             closePaymentModal();
+
+            // 주문 완료 알림 (온라인 정산)
+            if (window.MockData && typeof window.MockData.enqueueNotification === 'function') {
+                window.MockData.enqueueNotification({
+                    userId: paymentOrder.userId || getCurrentOrderUserId(),
+                    title: '불고기구이 주문이 접수되었습니다.',
+                    message: paymentOrder.tableId + ' · 주문번호 ' + paymentOrder.orderNo + ' · ₩' + (paymentOrder.total || 0).toLocaleString() + ' · 준비되면 알려드립니다.',
+                    type: 'shopping',
+                    href: './explore2.html?tab=shopping',
+                    dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo
+                });
+            }
+
             alert('온라인 정산 결제가 완료되었습니다.\n차감 금액: ' + currency.format(paymentOrder.total) + '원\n남은 정산 금액: ' + currency.format(nextBalance) + '원\n주문을 리셋합니다.');
             paymentOrder = null;
             resetOrder();
@@ -1607,6 +1649,27 @@
         renderOrderLimitNotice();
         setInterval(renderOrderLimitNotice, 1000);
         window.addEventListener('storage', renderOrderLimitNotice);
+
+        /* 하단 고정 요약바 높이를 --summary-h 에 반영한다.
+           안내 문구(주문 가능/남은 접수) 유무에 따라 바 높이가 달라져
+           고정값(110px)으로는 마지막 메뉴 카드가 가려졌다. */
+        (function syncSummaryBarHeight() {
+            const bar = document.querySelector('.summary-bar');
+            const page = document.querySelector('.page');
+            if (!bar || !page) return;
+            const apply = () => {
+                const h = Math.ceil(bar.getBoundingClientRect().height);
+                if (h > 0) page.style.setProperty('--summary-h', h + 'px');
+            };
+            apply();
+            if (typeof ResizeObserver === 'function') {
+                new ResizeObserver(apply).observe(bar);
+            } else {
+                setInterval(apply, 1000);
+            }
+            window.addEventListener('resize', apply);
+            window.addEventListener('orientationchange', apply);
+        })();
     </script>
 </body>
 

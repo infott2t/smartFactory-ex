@@ -738,6 +738,19 @@
                 window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: orderItem });
             }
 
+            // 주문 완료 알림 추가
+            if (window.MockData && typeof window.MockData.enqueueNotification === 'function') {
+                const uid = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : '2';
+                window.MockData.enqueueNotification({
+                    userId: uid,
+                    title: (currentProduct.name || '김치') + ' 주문이 접수되었습니다.',
+                    message: '주문번호 ' + orderNo + '번 · ' + orderQty + '개 · ₩' + totalPrice.toLocaleString() + ' · 마이페이지에서 배송 상태를 확인하세요.',
+                    type: 'shopping',
+                    href: './explore2.html?tab=shopping',
+                    dedupeKey: 'kimchi-order:' + orderItem.id
+                });
+            }
+
             const managerNotice = managerOrder
                 ? `\n주문번호(공장): ${managerOrder.orderId}\n김치공장 생산·배송 관리에 접수되었습니다.`
                 : '';

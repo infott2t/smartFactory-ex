@@ -513,6 +513,13 @@
             </div>
             <div class="sim-panel-content" id="sim-panel">
                 <div class="sim-group">
+                    <label>> 하드코딩 모드</label>
+                    <div class="sim-flex">
+                        <button class="sim-btn" id="btn-hardcoding-on" onclick="setHardcodingMode(true)">hardcoding=true (목업 데이터 O)</button>
+                        <button class="sim-btn" id="btn-hardcoding-off" onclick="setHardcodingMode(false)">hardcoding=false (목업 데이터 X)</button>
+                    </div>
+                </div>
+                <div class="sim-group">
                     <label>> 김치만들기 근무시간 조정</label>
                     <div class="sim-flex">
                         <button class="sim-btn" onclick="setWorkedHours(0)">0h (김수민)</button>
@@ -541,6 +548,11 @@
         let currentUser = null;
         let workerProfile = null;
         let isReconcilingReservationStatus = false;
+
+        // ── hardcoding 모드 제어 ──
+        // URL 파라미터 ?hardcoding=false 이면 목업 데이터를 주입하지 않고 빈 상태로 시작합니다.
+        const _urlParams = new URLSearchParams(window.location.search);
+        const HARDCODING_MODE = _urlParams.get('hardcoding') !== 'false'; // 기본값: true
 
         // Load initial user session
         $(document).ready(function () {
@@ -588,7 +600,7 @@
             workerProfile.workedHours = currentKimchiHours;
             sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
 
-            if (FactoryStore.getState().history.length === 0) {
+            if (HARDCODING_MODE && FactoryStore.getState().history.length === 0) {
                 const defaultHistory = getDefaultHistoryByName(currentUser.name);
                 FactoryStore.dispatch({ type: 'SET_HISTORY', payload: defaultHistory });
             }
@@ -678,16 +690,37 @@
 
         function renderEarnings() {
             const userId = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : "2";
-            const settlementBalance = (window.MockData && window.MockData.getUserSettlementBalance) ? window.MockData.getUserSettlementBalance(userId) : 100000;
+            let settlementBalance = 0;
+            if (HARDCODING_MODE) {
+                settlementBalance = (window.MockData && window.MockData.getUserSettlementBalance) ? window.MockData.getUserSettlementBalance(userId) : 100000;
+            } else {
+                // hardcoding=false: 초기 목업 정산금액을 제외하고, 실제 로그 기반 잔액만 표시
+                const logs = (window.MockData && window.MockData.getSettlementLogs) ? window.MockData.getSettlementLogs(userId) : [];
+                settlementBalance = Math.max(0, logs.reduce(function(sum, log) { return sum + (Number(log.amount) || 0); }, 0));
+            }
 
             $('#total-earnings-display').text(settlementBalance.toLocaleString());
         }
 
         function renderPartnerGrades() {
             const userId = currentUser ? (currentUser.id || currentUser.name) : "2";
-            const kimchiHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 1) : 0;
-            const udonHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 2) : 0;
-            const walletHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 3) : 0;
+            let kimchiHours, udonHours, walletHours;
+
+            if (HARDCODING_MODE) {
+                kimchiHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 1) : 0;
+                udonHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 2) : 0;
+                walletHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 3) : 0;
+            } else {
+                // hardcoding=false: localStorage에 사용자가 직접 누적한 시간만 표시 (기본 목업값 제외)
+                try {
+                    const saved = JSON.parse(localStorage.getItem('kimp_user_work_hours') || '{}');
+                    kimchiHours = Number(saved[userId + '_1']) || 0;
+                    udonHours = Number(saved[userId + '_2']) || 0;
+                    walletHours = Number(saved[userId + '_3']) || 0;
+                } catch(e) {
+                    kimchiHours = 0; udonHours = 0; walletHours = 0;
+                }
+            }
 
             function getGradeBadgeHtml(hours, isKimchi) {
                 let label = "일반";
@@ -1209,11 +1242,14 @@
 
                 if (orderStatus === 'completed' && isDelivery) {
                     const deliveryStatus = item.deliveryStatus || item.shippingStatus || 'ordered';
-                    if (!['delivered', 'received', 'completed'].includes(deliveryStatus)) {
+                    if (['delivered', 'received', 'completed'].includes(deliveryStatus)) {
+                        // 배달 상품은 '수령 완료'가 아니라 '배송 완료'로 표기한다.
+                        statusBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송 완료</span>`;
+                    } else {
                         const isShipping = deliveryStatus === 'shipping' || deliveryStatus === 'in_transit';
                         statusBadgeHtml = isShipping
                             ? `<span style="background: rgba(59, 130, 246, 0.14); color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송중</span>`
-                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송 준비중</span>`;
+                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">${item.deliveryStatusLabel && item.deliveryStatusLabel !== '주문 완료' ? item.deliveryStatusLabel : '배송 준비중'}</span>`;
                     }
                 }
 
@@ -1371,6 +1407,16 @@
             $('#sim-panel').slideToggle();
         }
 
+        function setHardcodingMode(value) {
+            const url = new URL(window.location.href);
+            if (value) {
+                url.searchParams.delete('hardcoding');
+            } else {
+                url.searchParams.set('hardcoding', 'false');
+            }
+            window.location.href = url.toString();
+        }
+
         function updateSimControls() {
             const curHours = FactoryStore.getState().workedHours || 0;
             $('.sim-btn').each(function () {
@@ -1381,6 +1427,10 @@
                     $(this).removeClass('active');
                 }
             });
+
+            // 하드코딩 모드 버튼 active 표시
+            $('#btn-hardcoding-on').toggleClass('active', HARDCODING_MODE);
+            $('#btn-hardcoding-off').toggleClass('active', !HARDCODING_MODE);
         }
 
         function setWorkedHours(hours) {

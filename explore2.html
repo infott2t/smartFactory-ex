@@ -944,7 +944,25 @@
                                 statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">주문 취소</span>`;
                                 statusTextHtml = `<div style="color: var(--text-sub); font-size: 12px;">주문 취소</div>`;
                             } else if (item.status === 'completed') {
-                                statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.16); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">수령 완료</span>`;
+                                // 배달 상품(김치 등)은 결제 완료 후에도 배송 단계를 표시한다.
+                                const deliveryState = item.deliveryStatus || item.shippingStatus || null;
+                                const isDeliveryOrder = item.fulfillmentType === 'delivery' || !!deliveryState;
+                                let completedLabel = '수령 완료';
+                                let completedStyle = 'background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.16);';
+                                if (isDeliveryOrder) {
+                                    if (['delivered', 'received', 'completed'].includes(deliveryState)) {
+                                        completedLabel = '배송 완료';
+                                        completedStyle = 'background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35);';
+                                    } else if (['shipping', 'in_transit', 'shipped'].includes(deliveryState)) {
+                                        completedLabel = '배송중';
+                                        completedStyle = 'background: rgba(59, 130, 246, 0.14); color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.35);';
+                                    } else {
+                                        completedLabel = (item.deliveryStatusLabel && item.deliveryStatusLabel !== '주문 완료')
+                                            ? item.deliveryStatusLabel : '배송 준비중';
+                                        completedStyle = 'background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35);';
+                                    }
+                                }
+                                statusBadgeHtml = `<span style="margin-left: 2px; ${completedStyle} font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">${completedLabel}</span>`;
                                 statusTextHtml = `<div style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">-₩ ${item.price.toLocaleString()}</div>`;
                                 btnHtml = ``;
                             } else {

@@ -7803,6 +7803,21 @@
 
         // 주문 상태 갱신
         function updateOrderStatus(orderId, newStatus) {
+            // 💡 구매자 주문 내역(마이페이지 > 나의 쇼핑)의 배송 상태까지 함께 갱신한다.
+            if (window.MockData && typeof window.MockData.updateKimchiDeliveryOrderStatus === 'function') {
+                const result = window.MockData.updateKimchiDeliveryOrderStatus(orderId, newStatus);
+                if (result && result.order) {
+                    if (typeof addConsoleLog === 'function') {
+                        addConsoleLog(`[주문상태] ${orderId} (${result.order.customerName}님)의 상태가 [${newStatus}]로 변경되었습니다.`
+                            + (result.shopOrderId ? ' 고객 주문 내역에도 반영했습니다.' : ''));
+                    }
+                    let latestOrders = [];
+                    try { latestOrders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]"); } catch (e) { }
+                    recalculateFinance(latestOrders);
+                    return;
+                }
+            }
+
             let orders = [];
             try {
                 orders = JSON.parse(localStorage.getItem("kimp_delivery_orders") || "[]");

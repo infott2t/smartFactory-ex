@@ -22,8 +22,47 @@
             + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
     }
 
-    function statusInfo(status, kitchenStatus) {
+    /* 배달 상품인지 판단한다.
+       김치처럼 배송되는 상품은 결제 완료(status: completed) 후에도 아직 '수령'한 것이 아니라
+       배송 준비/배송중 단계이므로, 목록 카드와 같은 기준으로 상태를 표시해야 한다. */
+    function isDeliveryRecord(record) {
+        if (!record) return false;
+        if (record.fulfillmentType === 'delivery') return true;
+        if (record.fulfillmentType === 'pickup' || record.orderType === 'dine_in') return false;
+        if (record.deliveryStatus || record.shippingStatus) return true;
+        if (record.tableId) return false;                    // 매장 테이블 주문은 현장 수령
+        if (record.isDelivery !== undefined) return !!record.isDelivery;
+
+        var name = String(record.productName || '');
+        if ((name.indexOf('우동') >= 0 && name.indexOf('수제') < 0) || name.indexOf('비빔면') >= 0) return false;
+
+        var products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+            ? (window.FactoryStore.getProducts() || [])
+            : ((window.MockData && window.MockData.storeProducts) || []);
+        var pid = String(record.productId || '');
+        var found = products.filter(function (p) {
+            return p && (p.productCode === pid || String(p.productId) === pid || p.name === name);
+        })[0];
+        if (found && found.isDelivery !== undefined) return !!found.isDelivery;
+        return false;
+    }
+
+    function deliveryStatusInfo(record) {
+        var state = record.deliveryStatus || record.shippingStatus || 'ordered';
+        if (['delivered', 'received', 'completed', 'done'].indexOf(state) >= 0) {
+            return { label: '배송 완료', cls: 'completed' };
+        }
+        if (['shipping', 'in_transit', 'shipped', 'out_for_delivery'].indexOf(state) >= 0) {
+            return { label: '배송중', cls: 'shipping' };
+        }
+        return { label: '배송 준비중', cls: 'queued' };
+    }
+
+    function statusInfo(record) {
+        var status = record && record.status;
+        var kitchenStatus = record && record.kitchenStatus;
         if (status === 'cancelled' || kitchenStatus === 'cancelled') return { label: '주문 취소', cls: 'cancelled' };
+        if (isDeliveryRecord(record)) return deliveryStatusInfo(record);
         if (status === 'completed' || kitchenStatus === 'received') return { label: '수령 완료', cls: 'completed' };
         if (kitchenStatus === 'ready') return { label: '준비 완료', cls: 'ready' };
         if (kitchenStatus === 'preparing' || kitchenStatus === 'cooking') return { label: '조리 중', cls: 'preparing' };
@@ -115,7 +154,7 @@
             .shop-detail-summary{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:13px;border-radius:14px;background:rgba(99,102,241,.09);border:1px solid rgba(129,140,248,.18)}
             .shop-detail-meta{min-width:0}.shop-detail-meta span{display:block;font-size:10px;color:#94a3b8;margin-bottom:4px}.shop-detail-meta b{display:block;overflow-wrap:anywhere;font-size:12px;color:#e2e8f0}
             .shop-detail-status{display:inline-flex!important;width:max-content;padding:3px 8px;border-radius:999px;font-size:10px!important;font-weight:800}
-            .shop-detail-status.queued{color:#fbbf24;background:rgba(245,158,11,.14)}.shop-detail-status.preparing{color:#a5b4fc;background:rgba(99,102,241,.16)}.shop-detail-status.ready{color:#34d399;background:rgba(16,185,129,.14)}.shop-detail-status.completed{color:#e2e8f0;background:rgba(148,163,184,.15)}.shop-detail-status.cancelled{color:#94a3b8;background:rgba(148,163,184,.12)}
+            .shop-detail-status.queued{color:#fbbf24;background:rgba(245,158,11,.14)}.shop-detail-status.shipping{color:#93c5fd;background:rgba(59,130,246,.14)}.shop-detail-status.preparing{color:#a5b4fc;background:rgba(99,102,241,.16)}.shop-detail-status.ready{color:#34d399;background:rgba(16,185,129,.14)}.shop-detail-status.completed{color:#e2e8f0;background:rgba(148,163,184,.15)}.shop-detail-status.cancelled{color:#94a3b8;background:rgba(148,163,184,.12)}
             .shop-detail-title{margin:18px 0 9px;font-size:13px;font-weight:800;color:#fff}
             .shop-detail-line{padding:13px 0;border-bottom:1px solid rgba(255,255,255,.08)}.shop-detail-line:last-child{border-bottom:0}
             .shop-detail-line-top,.shop-detail-line-bottom{display:flex;justify-content:space-between;gap:12px}.shop-detail-line-name{font-size:14px;font-weight:800;color:#fff}.shop-detail-line-status{font-size:10px;color:#a5b4fc;white-space:nowrap}.shop-detail-line-option{margin-top:4px;font-size:11px;color:#94a3b8}.shop-detail-line-bottom{margin-top:8px;font-size:12px;color:#cbd5e1}.shop-detail-line-bottom b{color:#fff}
@@ -141,7 +180,8 @@
     }
 
     function render(record) {
-        var state = statusInfo(record.status, record.kitchenStatus);
+        var state = statusInfo(record);
+        var delivery = isDeliveryRecord(record);
         var lines = detailLines(record);
         var totalQty = lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
         var total = Number(record.price) || lines.reduce(function (sum, line) { return sum + line.subtotal; }, 0);
@@ -165,6 +205,9 @@
             + '<div class="shop-detail-meta"><span>주문 일시</span><b>' + formatDate(orderedAt) + '</b></div>'
             + '<div class="shop-detail-meta"><span>결제 방법</span><b>' + esc(payment) + '</b></div>'
             + (record.tableId ? '<div class="shop-detail-meta"><span>수령 장소</span><b>' + esc(record.tableId) + '</b></div>' : '')
+            + (delivery ? '<div class="shop-detail-meta"><span>수령 방법</span><b>배송 (' + esc(record.deliveryFee || '배송비 정보 없음') + ')</b></div>' : '')
+            + (delivery && record.deliveryStatusLabel
+                ? '<div class="shop-detail-meta"><span>배송 진행</span><b>' + esc(record.deliveryStatusLabel) + '</b></div>' : '')
             + '<div class="shop-detail-meta"><span>주문 수량</span><b>총 ' + totalQty + '개</b></div></div>'
             + '<div class="shop-detail-title">주문 상품 ' + lines.length + '종</div>' + lineHtml
             + '<div class="shop-detail-total"><span>총 결제 금액</span><b>' + money(total) + '</b></div>'

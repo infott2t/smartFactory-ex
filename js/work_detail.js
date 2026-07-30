@@ -41,6 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const workId = urlParams.get('id') || '1';
 
+    // 관리자가 수정한 works 데이터가 있으면 복원
+    if (window.MockData && !window.MockData._adminWorksRestored) {
+        try {
+            const saved = localStorage.getItem('admin_works_json');
+            if (saved) window.MockData.worksJSON = saved;
+            const savedD = localStorage.getItem('admin_work_detail_json');
+            if (savedD) window.MockData.workDetailJSON = savedD;
+        } catch(e) {}
+        window.MockData._adminWorksRestored = true;
+    }
+
     if (window.MockData && window.MockData.workDetailJSON) {
         try {
             const detailMap = JSON.parse(window.MockData.workDetailJSON);

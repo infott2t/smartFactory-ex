@@ -322,43 +322,16 @@
             <div class="waybill-box">
                 <div>
                     <span style="color: var(--text-sub); font-size: 12px;">택배사 / 송장번호</span>
-                    <div class="waybill-num" id="waybill-code">대한통운 4028-5928-1092</div>
+                    <div class="waybill-num" id="waybill-code">출고 후 발급 예정</div>
                 </div>
                 <button type="button" class="btn-copy-waybill" onclick="copyWaybill()">복사</button>
             </div>
 
-            <!-- 배송 상태 타임라인 -->
-            <div class="timeline-container">
+            <!-- 현재 배송 상태 요약 (매니저 콘솔 진행 상태와 연동) -->
+            <div id="delivery-status-summary" style="margin: 4px 0 14px; padding: 11px 13px; border-radius: 10px; font-size: 13px; font-weight: 700;"></div>
 
-                <div class="timeline-item completed">
-                    <div class="timeline-dot"></div>
-                    <div class="timeline-status">구매 완료 (결제 완료)</div>
-                    <div class="timeline-location"><i class="bi bi-building"></i> AFood 스마트팩토리 1센터</div>
-                    <div class="timeline-time" id="time-step-1">2026.07.23 14:15</div>
-                </div>
-
-                <div class="timeline-item completed">
-                    <div class="timeline-dot"></div>
-                    <div class="timeline-status">상품 출고 완료</div>
-                    <div class="timeline-location"><i class="bi bi-box-arrow-up-right"></i> 서울 서대문 물류센터</div>
-                    <div class="timeline-time" id="time-step-2">2026.07.23 15:30</div>
-                </div>
-
-                <div class="timeline-item active">
-                    <div class="timeline-dot"></div>
-                    <div class="timeline-status">🚚 배달 중</div>
-                    <div class="timeline-location"><i class="bi bi-geo-alt-fill" style="color: var(--accent-secondary);"></i> 마포 배달 캠프 (담당 기사: 김철수 010-8888-9999)</div>
-                    <div class="timeline-time" id="time-step-3">2026.07.24 09:10</div>
-                </div>
-
-                <div class="timeline-item">
-                    <div class="timeline-dot"></div>
-                    <div class="timeline-status">배송 완료 예정</div>
-                    <div class="timeline-location"><i class="bi bi-house-door-fill"></i> 신촌동 AFood 타운 102호</div>
-                    <div class="timeline-time" id="time-step-4">2026.07.25 14:00 (도착 예정)</div>
-                </div>
-
-            </div>
+            <!-- 배송 상태 타임라인 (실제 배송 상태에 따라 렌더링) -->
+            <div class="timeline-container" id="delivery-timeline"></div>
         </section>
 
     </main>
@@ -402,7 +375,10 @@
                 brandName = orderItem.brandName || brandName;
                 priceVal = orderItem.price || priceVal;
                 qtyVal = orderItem.qty || 1;
-                dateText = (orderItem.dateStr || orderItem.orderDate || '2026.07.23') + ' ' + (orderItem.orderTime || '14:15');
+                // 주문 시각: createdAt(ISO)이 있으면 실제 시각을 사용한다.
+                const createdText = formatDeliveryTime(orderItem.createdAt || orderItem.orderedAt);
+                dateText = createdText
+                    || ((orderItem.dateStr || orderItem.orderDate || '2026.07.23') + ' ' + (orderItem.orderTime || '14:15'));
 
                 const pIdStr = String(orderItem.productId || '');
                 const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
@@ -437,11 +413,92 @@
             $('#delivery-qty').text(qtyVal);
             $('#delivery-price').text(priceVal.toLocaleString());
 
-            $('#time-step-1').text(dateText);
+            renderDeliveryTimeline(orderItem, dateText);
+        }
+
+        /* 실제 배송 상태(deliveryStatus)에 맞춰 타임라인을 그린다.
+           매니저 콘솔(manager.html)의 진행 상태 변경이 store.js 를 통해
+           주문의 deliveryStatus / deliveryHistory 에 반영된다. */
+        const DELIVERY_STEPS = [
+            { code: 'ordered', label: '구매 완료 (결제 완료)', icon: 'bi-building', place: 'AFood 스마트팩토리 1센터' },
+            { code: 'preparing', label: '상품 생산 중', icon: 'bi-gear-wide-connected', place: 'AFood 스마트팩토리 김치 생산라인' },
+            { code: 'packed', label: '포장 완료', icon: 'bi-box-seam', place: 'AFood 스마트팩토리 포장실' },
+            { code: 'ready_to_ship', label: '출하 준비 완료', icon: 'bi-box-arrow-up-right', place: '서울 서대문 물류센터' },
+            { code: 'shipping', label: '🚚 배송 중', icon: 'bi-geo-alt-fill', place: '마포 배달 캠프 (담당 기사 김철수 010-8888-9999)' },
+            { code: 'delivered', label: '배송 완료', icon: 'bi-house-door-fill', place: '고객 주소지' }
+        ];
+
+        function normalizeDeliveryCode(code) {
+            const value = String(code || 'ordered');
+            if (['received', 'completed', 'done'].includes(value)) return 'delivered';
+            if (['in_transit', 'shipped', 'out_for_delivery'].includes(value)) return 'shipping';
+            return DELIVERY_STEPS.some(step => step.code === value) ? value : 'ordered';
+        }
+
+        function formatDeliveryTime(value) {
+            const date = new Date(value);
+            if (!Number.isFinite(date.getTime())) return '';
+            const pad = n => String(n).padStart(2, '0');
+            return date.getFullYear() + '.' + pad(date.getMonth() + 1) + '.' + pad(date.getDate())
+                + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+        }
+
+        function renderDeliveryTimeline(orderItem, orderedAtText) {
+            const currentCode = normalizeDeliveryCode(orderItem && (orderItem.deliveryStatus || orderItem.shippingStatus));
+            const currentIndex = DELIVERY_STEPS.findIndex(step => step.code === currentCode);
+            const history = (orderItem && Array.isArray(orderItem.deliveryHistory)) ? orderItem.deliveryHistory : [];
+            const timeOf = code => {
+                const hit = history.filter(h => h && normalizeDeliveryCode(h.code) === code)[0];
+                return hit ? formatDeliveryTime(hit.at) : '';
+            };
+
+            const html = DELIVERY_STEPS.map((step, index) => {
+                const state = index < currentIndex ? 'completed' : (index === currentIndex ? 'active' : '');
+                let timeText = step.code === 'ordered' ? (timeOf('ordered') || orderedAtText || '') : timeOf(step.code);
+                if (!timeText) {
+                    timeText = index <= currentIndex ? '진행 완료' : '진행 예정';
+                }
+                return `
+                <div class="timeline-item ${state}">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-status">${step.label}${index === currentIndex ? ' · 현재 단계' : ''}</div>
+                    <div class="timeline-location"><i class="bi ${step.icon}"></i> ${step.place}</div>
+                    <div class="timeline-time">${timeText}</div>
+                </div>`;
+            }).join('');
+            $('#delivery-timeline').html(html);
+
+            // 상태 요약 배너
+            const summary = $('#delivery-status-summary');
+            const label = (orderItem && orderItem.deliveryStatusLabel) || DELIVERY_STEPS[Math.max(0, currentIndex)].label;
+            let tone = { bg: 'rgba(245, 158, 11, 0.12)', border: '#fbbf24', color: '#fbbf24', text: '배송 준비중' };
+            if (currentCode === 'shipping') {
+                tone = { bg: 'rgba(59, 130, 246, 0.12)', border: '#93c5fd', color: '#93c5fd', text: '배송중' };
+            } else if (currentCode === 'delivered') {
+                tone = { bg: 'rgba(16, 185, 129, 0.12)', border: '#34d399', color: '#34d399', text: '배송 완료' };
+            }
+            summary
+                .css({ background: tone.bg, border: '1px solid ' + tone.border, color: tone.color })
+                .html(`<i class="bi bi-truck"></i> 현재 상태: ${tone.text}`
+                    + (label && label !== tone.text ? ` <span style="opacity:.8; font-weight:600;">(${label})</span>` : ''));
+
+            // 송장번호는 출하(배송 시작) 이후에만 발급된다.
+            const shippedIndex = DELIVERY_STEPS.findIndex(step => step.code === 'shipping');
+            if (currentIndex >= shippedIndex) {
+                const seed = String((orderItem && (orderItem.orderNo || orderItem.id)) || '0').replace(/\D/g, '') || '0';
+                const padded = (seed + '000000000000').slice(0, 12);
+                $('#waybill-code').text('대한통운 ' + padded.slice(0, 4) + '-' + padded.slice(4, 8) + '-' + padded.slice(8, 12));
+            } else {
+                $('#waybill-code').text('출고 후 발급 예정');
+            }
         }
 
         function copyWaybill() {
             const code = $('#waybill-code').text();
+            if (code.indexOf('발급 예정') >= 0) {
+                alert('아직 송장번호가 발급되지 않았습니다.\n상품이 출고되어 배송이 시작되면 발급됩니다.');
+                return;
+            }
             navigator.clipboard.writeText(code).then(() => {
                 alert('송장번호가 클립보드에 복사되었습니다: ' + code);
             }).catch(() => {

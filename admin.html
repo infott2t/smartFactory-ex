@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>관리자 콘솔 | 스마트팩토리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="./js/store.js" type="text/javascript"></script>
+<style>
+:root{--bg:#070320;--card:#1e1e2e;--input:#2a2a3e;--txt:#f8fafc;--sub:#94a3b8;--accent:#6366f1;--accent2:#818cf8;--danger:#ef4444;--success:#10b981;--warn:#f59e0b;--border:rgba(255,255,255,.08);--pink:#fd79a8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Pretendard',-apple-system,sans-serif;min-height:100vh}
+.wrap{max-width:960px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);margin-bottom:16px}
+header h1{font-size:18px;font-weight:700}
+header a{color:var(--sub);text-decoration:none;font-size:13px}
+header a:hover{color:var(--txt)}
+
+/* 탭 */
+.tabs{display:flex;gap:4px;background:var(--card);border-radius:12px;padding:4px;margin-bottom:20px;overflow-x:auto}
+.tab{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--sub);transition:all .2s}
+.tab:hover{color:var(--txt)}
+.tab.active{background:var(--accent);color:#fff}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* 공통 */
+.card{background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--border);margin-bottom:16px}
+.card h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+.fg label{font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select,.fg textarea{background:var(--input);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--txt);font-size:13px;outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
+.fg textarea{resize:vertical;min-height:70px}
+.fg select{appearance:none}
+
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-s{background:rgba(255,255,255,.06);color:var(--sub);border:1px solid var(--border)}.btn-s:hover{color:var(--txt)}
+.btn-d{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.3)}.btn-d:hover{background:rgba(239,68,68,.2)}
+.btn-g{background:var(--success);color:#fff}.btn-g:hover{background:#059669}
+.btn-w{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.3)}
+.btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+.section-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px}
+.empty-msg{text-align:center;color:var(--sub);padding:30px;font-size:13px}
+
+/* 일 목록 */
+.work-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.work-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-radius:12px;border:1px solid var(--border);cursor:pointer;transition:border-color .2s}
+.work-item:hover,.work-item.active{border-color:var(--accent)}
+.work-item img{width:40px;height:40px;border-radius:8px;object-fit:cover;background:#333}
+.work-item .info{flex:1}
+.work-item .info .name{font-size:14px;font-weight:600}
+.work-item .info .brand{font-size:11px;color:var(--sub);margin-top:1px}
+.work-item .meta{text-align:right;font-size:11px;color:var(--sub)}
+.work-item .meta .salary{font-size:13px;color:var(--accent);font-weight:700}
+.work-item .actions{display:flex;gap:4px}
+.work-item .actions button{background:none;border:none;color:var(--sub);font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.work-item .actions button:hover{background:rgba(255,255,255,.06)}
+.work-item .actions .del:hover{color:var(--danger);background:rgba(239,68,68,.1)}
+
+/* 사용자 목록 */
+.user-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.user-row:last-child{border-bottom:none}
+.user-row .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.user-row .u-info{flex:1}
+.user-row .u-info .u-name{font-size:14px;font-weight:600}
+.user-row .u-info .u-email{font-size:11px;color:var(--sub)}
+.user-row .u-meta{text-align:right;font-size:12px}
+.user-row .u-meta .role-badge{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.role-manager{background:rgba(99,102,241,.15);color:var(--accent2)}
+.role-helper{background:rgba(16,185,129,.15);color:var(--success)}
+.role-user{background:rgba(148,163,184,.12);color:var(--sub)}
+
+/* 아이콘 미리보기 */
+.icon-preview{width:48px;height:48px;border-radius:10px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--input)}
+.icon-preview img{width:100%;height:100%;object-fit:cover}
+
+/* workflow rows */
+.wf-list{display:flex;flex-direction:column;gap:6px}
+.wf-row{display:flex;gap:6px;align-items:center}
+.wf-row input{flex:1}
+.wf-row .step-n{width:28px;text-align:center;font-size:12px;font-weight:700;color:var(--accent)}
+.wf-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:4px}
+.add-row{background:none;border:1px dashed var(--border);border-radius:6px;padding:6px;color:var(--sub);cursor:pointer;font-size:12px;text-align:center;margin-top:6px}
+.add-row:hover{border-color:var(--accent);color:var(--accent)}
+
+/* 순서 변경 */
+.sortable .work-item{cursor:grab}
+.sortable .work-item:active{cursor:grabbing;opacity:.7}
+.drag-handle{color:var(--sub);font-size:16px;cursor:grab;padding:0 6px}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--success);color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;display:none;box-shadow:0 8px 25px rgba(16,185,129,.4)}
+.toast.show{display:block;animation:fiu .3s ease}
+@keyframes fiu{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+    <h1><i class="bi bi-gear-fill" style="color:var(--accent)"></i> 관리자 콘솔</h1>
+    <a href="./main.html"><i class="bi bi-arrow-left"></i> 메인으로</a>
+</header>
+
+<div class="tabs">
+    <div class="tab active" data-tab="works"><i class="bi bi-briefcase"></i> 일 관리</div>
+    <div class="tab" data-tab="users"><i class="bi bi-people"></i> 사용자</div>
+    <div class="tab" data-tab="data"><i class="bi bi-database"></i> 데이터</div>
+    <div class="tab" data-tab="notify"><i class="bi bi-bell"></i> 알림</div>
+</div>
+
+<!-- ═══════════════ 탭1: 일 관리 ═══════════════ -->
+<div class="tab-content active" id="tab-works">
+    <div class="btn-row" style="margin-bottom:16px">
+        <button class="btn btn-g" onclick="startNewWork()"><i class="bi bi-plus-lg"></i> 새 일 추가</button>
+        <button class="btn btn-s" onclick="toggleSortMode()"><i class="bi bi-arrows-move"></i> 순서 변경</button>
+    </div>
+    <div class="work-list" id="work-list"></div>
+    <div id="work-form-area"></div>
+</div>
+
+<!-- ═══════════════ 탭2: 사용자 관리 ═══════════════ -->
+<div class="tab-content" id="tab-users">
+    <div class="card">
+        <h3><i class="bi bi-people-fill" style="color:var(--accent)"></i> 등록된 사용자</h3>
+        <div id="user-list"></div>
+    </div>
+    <div id="user-edit-area"></div>
+</div>
+
+<!-- ═══════════════ 탭3: 데이터 관리 ═══════════════ -->
+<div class="tab-content" id="tab-data">
+    <div class="card">
+        <h3><i class="bi bi-download" style="color:var(--success)"></i> 데이터 내보내기</h3>
+        <p style="font-size:12px;color:var(--sub);margin-bottom:12px">현재 localStorage에 저장된 모든 데이터를 JSON 파일로 다운로드합니다.</p>
+        <button class="btn btn-p" onclick="exportData()"><i class="bi bi-box-arrow-up"></i> JSON 내보내기</button>
+    </div>
+    <div class="card">
+        <h3><i class="bi bi-upload" style="color:var(--warn)"></i> 데이터 가져오기</h3>
+        <p style="font-size:12px;color:var(--sub);margin-bottom:12px">이전에 내보낸 JSON 파일을 선택하면 데이터가 복원됩니다.</p>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn btn-w" onclick="document.getElementById('import-file').click()"><i class="bi bi-box-arrow-in-down"></i> JSON 가져오기</button>
+    </div>
+    <div class="card">
+        <h3><i class="bi bi-trash3" style="color:var(--danger)"></i> 데이터 초기화</h3>
+        <p style="font-size:12px;color:var(--sub);margin-bottom:12px">관리자가 추가한 일(Work) 데이터를 초기 상태로 되돌립니다.</p>
+        <button class="btn btn-d" onclick="resetWorksData()"><i class="bi bi-arrow-counterclockwise"></i> 일 데이터 초기화</button>
+        <button class="btn btn-d" onclick="resetAllData()" style="margin-left:8px"><i class="bi bi-exclamation-triangle"></i> 전체 초기화</button>
+    </div>
+</div>
+
+<!-- ═══════════════ 탭4: 알림 발송 ═══════════════ -->
+<div class="tab-content" id="tab-notify">
+    <div class="card">
+        <h3><i class="bi bi-send" style="color:var(--pink)"></i> 알림 발송</h3>
+        <div class="form-grid">
+            <div class="fg">
+                <label>대상 사용자</label>
+                <select id="notify-user">
+                    <option value="all">전체 사용자</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>알림 유형</label>
+                <select id="notify-type">
+                    <option value="info">일반 정보</option>
+                    <option value="work">근무 관련</option>
+                    <option value="shopping">쇼핑 관련</option>
+                    <option value="system">시스템 공지</option>
+                </select>
+            </div>
+            <div class="fg full">
+                <label>제목</label>
+                <input type="text" id="notify-title" placeholder="알림 제목을 입력하세요">
+            </div>
+            <div class="fg full">
+                <label>내용</label>
+                <textarea id="notify-message" placeholder="알림 내용을 입력하세요"></textarea>
+            </div>
+            <div class="fg">
+                <label>링크 (선택)</label>
+                <input type="text" id="notify-href" placeholder="./explore2.html">
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-p" onclick="sendNotification()"><i class="bi bi-send-fill"></i> 발송</button>
+        </div>
+    </div>
+</div>
+
+</div><!-- .wrap -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// 탭 전환
+// ═══════════════════════════════════════
+document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+        if (t.dataset.tab === 'users') renderUsers();
+        if (t.dataset.tab === 'notify') populateNotifyUsers();
+    });
+});
+
+// ═══════════════════════════════════════
+// 공용 유틸
+// ═══════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500)}
+function getWorks(){return window.FactoryStore?window.FactoryStore.getWorks():[]}
+function getDetails(){return window.FactoryStore?window.FactoryStore.getWorkDetails():{}}
+
+let editingWorkId = null;
+let sortMode = false;
+
+// ═══════════════════════════════════════
+// 일 목록 렌더링
+// ═══════════════════════════════════════
+function renderWorkList(){
+    const works = getWorks();
+    const el = document.getElementById('work-list');
+    if(!works.length){el.innerHTML='<div class="empty-msg">등록된 일이 없습니다.</div>';return}
+    el.innerHTML = works.map((w,i) => `
+        <div class="work-item ${editingWorkId===w.workId?'active':''}" data-id="${w.workId}" ${sortMode?'draggable="true"':''} onclick="${sortMode?'':'editWork('+w.workId+')'}"}>
+            ${sortMode?'<span class="drag-handle"><i class="bi bi-grip-vertical"></i></span>':''}
+            <img src="${esc(w.iconUrl||'./images/k-icon_150x150.png')}" alt="">
+            <div class="info"><div class="name">${esc(w.workName)}</div><div class="brand">${esc(w.brandName)} · ${esc(w.region||'미지정')}</div></div>
+            <div class="meta"><div class="salary">x${w.salary}</div><div>Task ${w.taskCount||0}</div></div>
+            <div class="actions">
+                <button onclick="event.stopPropagation();moveWork(${i},-1)" title="위로"><i class="bi bi-chevron-up"></i></button>
+                <button onclick="event.stopPropagation();moveWork(${i},1)" title="아래로"><i class="bi bi-chevron-down"></i></button>
+                <button class="del" onclick="event.stopPropagation();deleteWork(${w.workId})" title="삭제"><i class="bi bi-trash3"></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ═══════════════════════════════════════
+// 순서 변경
+// ═══════════════════════════════════════
+function toggleSortMode(){
+    sortMode=!sortMode;
+    renderWorkList();
+    toast(sortMode?'↕ 순서 변경 모드 (위/아래 버튼 사용)':'순서 변경 모드 해제');
+}
+function moveWork(idx,dir){
+    try{
+        const works=JSON.parse(window.MockData.worksJSON);
+        const newIdx=idx+dir;
+        if(newIdx<0||newIdx>=works.length)return;
+        [works[idx],works[newIdx]]=[works[newIdx],works[idx]];
+        window.MockData.worksJSON=JSON.stringify(works);
+        localStorage.setItem('admin_works_json',window.MockData.worksJSON);
+        renderWorkList();
+    }catch(e){}
+}
+
+// ═══════════════════════════════════════
+// 새 일 추가 / 편집
+// ═══════════════════════════════════════
+function startNewWork(){editingWorkId=null;renderWorkForm();renderWorkList()}
+function editWork(id){editingWorkId=id;renderWorkForm();renderWorkList()}
+
+function renderWorkForm(){
+    const works=getWorks();const details=getDetails();
+    const w=editingWorkId?works.find(x=>x.workId===editingWorkId):null;
+    const d=editingWorkId?details[String(editingWorkId)]||{}:{};
+    const stats=d.stats||{};
+    const guidelines=d.guidelines||[];
+    const workflows=d.workflows||[];
+    const products=d.products||[];
+
+    document.getElementById('work-form-area').innerHTML=`
+    <div class="card" id="work-form">
+        <h3>${editingWorkId?'<i class="bi bi-pencil-square"></i> 편집: '+esc(w.workName):'<i class="bi bi-plus-circle"></i> 새 일 추가'}</h3>
+        <div class="form-grid">
+            <div class="fg"><label>일 이름</label><input id="f-name" value="${esc(w?w.workName:'')}"></div>
+            <div class="fg"><label>브랜드</label><input id="f-brand" value="${esc(w?w.brandName:'')}"></div>
+            <div class="fg"><label>아이콘 URL</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input id="f-icon" value="${esc(w?w.iconUrl:'')}" oninput="updateIconPreview()" style="flex:1">
+                    <div class="icon-preview" id="icon-preview">${w&&w.iconUrl?'<img src="'+esc(w.iconUrl)+'">':'?'}</div>
+                </div>
+            </div>
+            <div class="fg"><label>작업 시간</label>
+                <select id="f-time">
+                    <option value="1시간 작업"${d.workTime==='1시간 작업'?' selected':''}>1시간</option>
+                    <option value="1시간 30분 작업"${d.workTime==='1시간 30분 작업'?' selected':''}>1시간 30분</option>
+                    <option value="2시간 작업"${(!d.workTime||d.workTime==='2시간 작업')?' selected':''}>2시간</option>
+                    <option value="3시간 작업"${d.workTime==='3시간 작업'?' selected':''}>3시간</option>
+                    <option value="4시간 작업"${d.workTime==='4시간 작업'?' selected':''}>4시간</option>
+                    <option value="5시간 작업"${d.workTime==='5시간 작업'?' selected':''}>5시간</option>
+                </select>
+            </div>
+            <div class="fg"><label>급여 배율</label><input type="number" id="f-salary" step="0.1" min="0.5" max="5" value="${w?w.salary:'1.2'}"></div>
+            <div class="fg"><label>Task 수</label><input type="number" id="f-task" min="1" value="${w?w.taskCount:'4'}"></div>
+            <div class="fg"><label>카테고리 (쉼표 구분)</label><input id="f-cat" value="${esc((w?w.categories:[]).join(', '))}"></div>
+            <div class="fg"><label>지역</label><input id="f-region" value="${esc(w?w.region:'')}"></div>
+            <div class="fg"><label>새로운 일 (isNew)</label><select id="f-new"><option value="true"${w&&w.isNew?' selected':''}>예</option><option value="false"${w&&!w.isNew?' selected':''}>아니오</option></select></div>
+            <div class="fg"><label>유형</label><select id="f-fulfill"><option value="">없음</option><option value="delivery"${w&&w.fulfillmentType==='delivery'?' selected':''}>배달</option><option value="dine_in"${w&&w.fulfillmentType==='dine_in'?' selected':''}>매장</option><option value="pickup"${w&&w.fulfillmentType==='pickup'?' selected':''}>픽업</option></select></div>
+        </div>
+
+        <hr class="divider"><div class="section-title">📊 Stats (상세 정보)</div>
+        <div class="form-grid">
+            <div class="fg"><label>주소</label><input id="f-addr" value="${esc(stats.address||'')}"></div>
+            <div class="fg"><label>시작일</label><input id="f-start" value="${esc(stats.startDate||'')}"></div>
+            <div class="fg"><label>운영시간</label><input id="f-hours" value="${esc(stats.workingHours||'')}"></div>
+            <div class="fg"><label>참가자</label><input type="number" id="f-part" value="${stats.participants||0}"></div>
+            <div class="fg"><label>평점</label><input id="f-rating" value="${esc(stats.rating||'')}"></div>
+            <div class="fg"><label>상품 슬로건</label><input id="f-slogan" value="${esc(d.productSlogan||'')}"></div>
+        </div>
+
+        <hr class="divider"><div class="section-title">📋 안내문 (Guidelines)</div>
+        <div id="gl-list">${renderGuidelinesHtml(guidelines)}</div>
+        <div class="add-row" onclick="addGuideline()"><i class="bi bi-plus"></i> 안내문 추가</div>
+
+        <hr class="divider"><div class="section-title">🔧 공정 단계 (Workflows)</div>
+        <div class="wf-list" id="wf-list">${renderWorkflowsHtml(workflows)}</div>
+        <div class="add-row" onclick="addWfStep()"><i class="bi bi-plus"></i> 단계 추가</div>
+
+        <hr class="divider"><div class="section-title">🛒 상품 (Products)</div>
+        <div id="prod-list">${renderProductsHtml(products)}</div>
+        <div class="add-row" onclick="addProduct()"><i class="bi bi-plus"></i> 상품 추가</div>
+
+        <hr class="divider"><div class="section-title">📈 차트 데이터 (1일 기준)</div>
+        <div class="form-grid">
+            <div class="fg full"><label>라벨 (쉼표 구분)</label><input id="f-chart-labels" value="${esc((d.chart&&d.chart['1d']?d.chart['1d'].labels:[]).join(', '))}"></div>
+            <div class="fg full"><label>데이터 (쉼표 구분)</label><input id="f-chart-data" value="${esc((d.chart&&d.chart['1d']?d.chart['1d'].data:[]).join(', '))}"></div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-p" onclick="saveWork()"><i class="bi bi-check-lg"></i> 저장</button>
+            <button class="btn btn-s" onclick="cancelEdit()"><i class="bi bi-x-lg"></i> 취소</button>
+        </div>
+    </div>`;
+    document.getElementById('work-form').scrollIntoView({behavior:'smooth'});
+}
+
+function updateIconPreview(){
+    const url=document.getElementById('f-icon').value.trim();
+    document.getElementById('icon-preview').innerHTML=url?'<img src="'+esc(url)+'" onerror="this.parentElement.innerHTML=\'❌\'">':'?';
+}
+
+// 안내문 렌더
+function renderGuidelinesHtml(list){
+    if(!list.length)return'<div style="color:var(--sub);font-size:12px;padding:6px">안내문이 없습니다.</div>';
+    return list.map((g,i)=>`
+        <div class="wf-row" style="margin-bottom:6px">
+            <input class="gl-icon" value="${esc(g.icon||'bi-info-circle')}" style="width:120px" placeholder="bi-icon-name">
+            <input class="gl-text" value="${esc(g.text||'')}" style="flex:1" placeholder="안내 텍스트">
+            <button class="rm" onclick="removeGuideline(${i})"><i class="bi bi-x-lg"></i></button>
+        </div>`).join('');
+}
+function addGuideline(){
+    const el=document.getElementById('gl-list');
+    el.insertAdjacentHTML('beforeend',`
+        <div class="wf-row" style="margin-bottom:6px">
+            <input class="gl-icon" value="bi-info-circle" style="width:120px" placeholder="bi-icon-name">
+            <input class="gl-text" value="" style="flex:1" placeholder="안내 텍스트">
+            <button class="rm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+        </div>`);
+}
+function removeGuideline(i){
+    const rows=document.querySelectorAll('#gl-list .wf-row');
+    if(rows[i])rows[i].remove();
+}
+
+// 공정단계 렌더
+function renderWorkflowsHtml(list){
+    if(!list.length)return'<div style="color:var(--sub);font-size:12px;padding:6px">공정이 없습니다.</div>';
+    return list.map((w,i)=>`
+        <div class="wf-row"><span class="step-n">${i+1}</span><input class="wf-desc" value="${esc(w.desc||'')}"><button class="rm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button></div>`).join('');
+}
+function addWfStep(){
+    const el=document.getElementById('wf-list');
+    const n=el.querySelectorAll('.wf-row').length+1;
+    el.insertAdjacentHTML('beforeend',`<div class="wf-row"><span class="step-n">${n}</span><input class="wf-desc" value=""><button class="rm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button></div>`);
+}
+
+// 상품 렌더
+function renderProductsHtml(list){
+    if(!list.length)return'<div style="color:var(--sub);font-size:12px;padding:6px">상품이 없습니다.</div>';
+    return list.map((p,i)=>`
+        <div class="wf-row" style="margin-bottom:6px">
+            <input class="prod-name" value="${esc(p.name||'')}" placeholder="상품명" style="flex:2">
+            <input class="prod-price" value="${esc(p.price||'')}" placeholder="가격" style="width:90px">
+            <input class="prod-img" value="${esc(p.imgUrl||'')}" placeholder="이미지URL" style="flex:1">
+            <button class="rm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+        </div>`).join('');
+}
+function addProduct(){
+    const el=document.getElementById('prod-list');
+    el.insertAdjacentHTML('beforeend',`
+        <div class="wf-row" style="margin-bottom:6px">
+            <input class="prod-name" value="" placeholder="상품명" style="flex:2">
+            <input class="prod-price" value="" placeholder="가격" style="width:90px">
+            <input class="prod-img" value="" placeholder="이미지URL" style="flex:1">
+            <button class="rm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
+        </div>`);
+}
+
+function cancelEdit(){editingWorkId=null;document.getElementById('work-form-area').innerHTML='';renderWorkList()}
+
+// ═══════════════════════════════════════
+// 저장
+// ═══════════════════════════════════════
+function saveWork(){
+    const name=document.getElementById('f-name').value.trim();
+    if(!name){alert('일 이름을 입력하세요.');return}
+
+    const works=getWorks();
+    let workId=editingWorkId;
+    if(!workId)workId=works.reduce((m,w)=>Math.max(m,Number(w.workId)||0),0)+1;
+
+    const cats=document.getElementById('f-cat').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const workData={
+        workId,workName:name,brandName:document.getElementById('f-brand').value.trim()||name,
+        iconUrl:document.getElementById('f-icon').value.trim()||'./images/k-icon_150x150.png',
+        salary:parseFloat(document.getElementById('f-salary').value)||1.2,
+        salaryChange:0,taskCount:parseInt(document.getElementById('f-task').value)||4,
+        participants:parseInt(document.getElementById('f-part').value)||0,
+        createdAt:editingWorkId?undefined:new Date().toISOString().slice(0,10),
+        region:document.getElementById('f-region').value.trim(),
+        categories:cats,isNew:document.getElementById('f-new').value==='true',
+        fulfillmentType:document.getElementById('f-fulfill').value||null
+    };
+    Object.keys(workData).forEach(k=>{if(workData[k]===undefined)delete workData[k]});
+
+    // guidelines
+    const glIcons=document.querySelectorAll('#gl-list .gl-icon');
+    const glTexts=document.querySelectorAll('#gl-list .gl-text');
+    const guidelines=[];
+    glIcons.forEach((el,i)=>{
+        const icon=el.value.trim();const text=(glTexts[i]&&glTexts[i].value.trim())||'';
+        if(text)guidelines.push({icon,iconColor:'color-purple',text,isBanner:false});
+    });
+
+    // workflows
+    const wfDescs=document.querySelectorAll('#wf-list .wf-desc');
+    const workflows=Array.from(wfDescs).map((el,i)=>({step:i+1,desc:el.value.trim()})).filter(w=>w.desc);
+
+    // products
+    const pNames=document.querySelectorAll('#prod-list .prod-name');
+    const pPrices=document.querySelectorAll('#prod-list .prod-price');
+    const pImgs=document.querySelectorAll('#prod-list .prod-img');
+    const products=[];
+    pNames.forEach((el,i)=>{
+        const nm=el.value.trim();if(!nm)return;
+        products.push({id:'p'+(i+1),name:nm,brand:workData.brandName,price:(pPrices[i]&&pPrices[i].value.trim())||'0원',imgUrl:(pImgs[i]&&pImgs[i].value.trim())||'',status:'생산 중'});
+    });
+
+    // chart
+    const chartLabels=document.getElementById('f-chart-labels').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const chartData=document.getElementById('f-chart-data').value.split(',').map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n));
+    let chart=null;
+    if(chartLabels.length&&chartData.length){
+        chart={'1d':{labels:chartLabels,data:chartData}};
+    }
+
+    const detailData={
+        title:name,iconUrl:workData.iconUrl,value:workData.salary,change:'+0.00%',
+        categories:cats,workTime:document.getElementById('f-time').value,
+        productSlogan:document.getElementById('f-slogan').value.trim(),
+        stats:{address:document.getElementById('f-addr').value.trim()||workData.region,startDate:document.getElementById('f-start').value.trim(),workingHours:document.getElementById('f-hours').value.trim(),participants:workData.participants,rating:document.getElementById('f-rating').value.trim()},
+        guidelines,workflows,products
+    };
+    if(chart)detailData.chart=chart;
+
+    if(editingWorkId){
+        window.FactoryStore.dispatch({type:'UPDATE_WORK',payload:workData});
+        window.FactoryStore.dispatch({type:'UPDATE_WORK_DETAIL',payload:{workId,data:detailData}});
+    }else{
+        window.FactoryStore.dispatch({type:'ADD_WORK',payload:workData});
+        window.FactoryStore.dispatch({type:'SET_WORK_DETAIL',payload:{workId,data:detailData}});
+    }
+    toast(editingWorkId?'✅ 수정 완료':'✅ 새 일 추가 완료');
+    editingWorkId=null;document.getElementById('work-form-area').innerHTML='';renderWorkList();
+}
+
+function deleteWork(id){
+    const w=getWorks().find(x=>x.workId===id);
+    if(!w||!confirm('"'+w.workName+'" 삭제?'))return;
+    window.FactoryStore.dispatch({type:'DELETE_WORK',payload:id});
+    if(editingWorkId===id){editingWorkId=null;document.getElementById('work-form-area').innerHTML=''}
+    toast('🗑️ 삭제됨');renderWorkList();
+}
+</script>
+
+
+<script>
+// ═══════════════════════════════════════
+// 사용자 관리
+// ═══════════════════════════════════════
+function renderUsers(){
+    const users=window.MockData&&window.MockData.users?window.MockData.users:[];
+    const el=document.getElementById('user-list');
+    if(!users.length){el.innerHTML='<div class="empty-msg">사용자가 없습니다.</div>';return}
+    el.innerHTML=users.map(u=>{
+        const rc=u.role==='MANAGER'?'role-manager':(u.role==='HELPER'?'role-helper':'role-user');
+        const rl=u.role==='MANAGER'?'매니저':(u.role==='HELPER'?'헬퍼':'일반');
+        const initials=(u.name||'??').substring(0,2);
+        return`<div class="user-row" onclick="editUser(${u.id})">
+            <div class="avatar">${esc(initials)}</div>
+            <div class="u-info"><div class="u-name">${esc(u.name)}</div><div class="u-email">${esc(u.email)}</div></div>
+            <div class="u-meta"><span class="role-badge ${rc}">${rl}</span><div style="margin-top:4px">₩${(u.settlementBalance||0).toLocaleString()}</div></div>
+        </div>`;
+    }).join('');
+}
+
+function editUser(id){
+    const users=window.MockData.users||[];
+    const u=users.find(x=>x.id===id);
+    if(!u)return;
+    document.getElementById('user-edit-area').innerHTML=`
+    <div class="card">
+        <h3><i class="bi bi-person-gear"></i> ${esc(u.name)} 편집</h3>
+        <div class="form-grid">
+            <div class="fg"><label>이름</label><input id="ue-name" value="${esc(u.name)}"></div>
+            <div class="fg"><label>이메일</label><input id="ue-email" value="${esc(u.email)}"></div>
+            <div class="fg"><label>역할</label>
+                <select id="ue-role">
+                    <option value="USER"${u.role==='USER'?' selected':''}>일반 (USER)</option>
+                    <option value="HELPER"${u.role==='HELPER'?' selected':''}>헬퍼 (HELPER)</option>
+                    <option value="MANAGER"${u.role==='MANAGER'?' selected':''}>매니저 (MANAGER)</option>
+                </select>
+            </div>
+            <div class="fg"><label>정산금액 (초기)</label><input type="number" id="ue-balance" value="${u.settlementBalance||100000}"></div>
+            <div class="fg"><label>성별</label><select id="ue-gender"><option value="M"${u.gender==='M'?' selected':''}>남</option><option value="F"${u.gender==='F'?' selected':''}>여</option></select></div>
+            <div class="fg"><label>전화</label><input id="ue-tel" value="${esc(u.tel||'')}"></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-p" onclick="saveUser(${id})"><i class="bi bi-check-lg"></i> 저장</button>
+            <button class="btn btn-s" onclick="document.getElementById('user-edit-area').innerHTML=''">취소</button>
+        </div>
+    </div>`;
+    document.getElementById('user-edit-area').scrollIntoView({behavior:'smooth'});
+}
+
+function saveUser(id){
+    const users=window.MockData.users||[];
+    const idx=users.findIndex(x=>x.id===id);
+    if(idx<0)return;
+    users[idx].name=document.getElementById('ue-name').value.trim()||users[idx].name;
+    users[idx].email=document.getElementById('ue-email').value.trim()||users[idx].email;
+    users[idx].role=document.getElementById('ue-role').value;
+    users[idx].roleName=users[idx].role==='MANAGER'?'매니저':(users[idx].role==='HELPER'?'헬퍼':'일반');
+    users[idx].settlementBalance=parseInt(document.getElementById('ue-balance').value)||100000;
+    users[idx].gender=document.getElementById('ue-gender').value;
+    users[idx].tel=document.getElementById('ue-tel').value.trim();
+    // 정산금액 초기값도 동기화
+    if(window.MockData&&typeof window.MockData.setUserInitialSettlementBalance==='function'){
+        window.MockData.setUserInitialSettlementBalance(id,users[idx].settlementBalance);
+    }
+    toast('✅ 사용자 정보 저장됨');
+    document.getElementById('user-edit-area').innerHTML='';
+    renderUsers();
+}
+
+// ═══════════════════════════════════════
+// 데이터 내보내기/가져오기
+// ═══════════════════════════════════════
+function exportData(){
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        data[key]=localStorage.getItem(key);
+    }
+    // sessionStorage도 포함
+    data['__session__']={};
+    for(let i=0;i<sessionStorage.length;i++){
+        const key=sessionStorage.key(i);
+        data['__session__'][key]=sessionStorage.getItem(key);
+    }
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='smartfactory_backup_'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();URL.revokeObjectURL(url);
+    toast('📦 데이터 내보내기 완료');
+}
+
+function importData(event){
+    const file=event.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+        try{
+            const data=JSON.parse(e.target.result);
+            if(!confirm('현재 데이터를 덮어쓰시겠습니까? 이 작업은 되돌릴 수 없습니다.'))return;
+            // session data
+            const session=data['__session__']||{};
+            delete data['__session__'];
+            // localStorage 복원
+            Object.keys(data).forEach(key=>{localStorage.setItem(key,data[key])});
+            // sessionStorage 복원
+            Object.keys(session).forEach(key=>{sessionStorage.setItem(key,session[key])});
+            toast('✅ 데이터 가져오기 완료. 새로고침합니다.');
+            setTimeout(()=>location.reload(),1500);
+        }catch(err){
+            alert('JSON 파일을 읽는 데 실패했습니다: '+err.message);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value='';
+}
+
+function resetWorksData(){
+    if(!confirm('관리자가 추가/수정한 일 데이터를 초기화합니다. 계속?'))return;
+    localStorage.removeItem('admin_works_json');
+    localStorage.removeItem('admin_work_detail_json');
+    toast('🔄 일 데이터 초기화됨. 새로고침합니다.');
+    setTimeout(()=>location.reload(),1500);
+}
+
+function resetAllData(){
+    if(!confirm('⚠️ 모든 localStorage/sessionStorage 데이터를 삭제합니다. 정말?'))return;
+    if(!confirm('정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'))return;
+    localStorage.clear();sessionStorage.clear();
+    toast('💥 전체 초기화 완료. 새로고침합니다.');
+    setTimeout(()=>location.reload(),1500);
+}
+
+// ═══════════════════════════════════════
+// 알림 발송
+// ═══════════════════════════════════════
+function populateNotifyUsers(){
+    const users=window.MockData&&window.MockData.users?window.MockData.users:[];
+    const sel=document.getElementById('notify-user');
+    sel.innerHTML='<option value="all">전체 사용자</option>'+users.map(u=>`<option value="${u.id}">${esc(u.name)} (${esc(u.email)})</option>`).join('');
+}
+
+function sendNotification(){
+    const title=document.getElementById('notify-title').value.trim();
+    if(!title){alert('제목을 입력하세요.');return}
+    const message=document.getElementById('notify-message').value.trim();
+    const type=document.getElementById('notify-type').value;
+    const href=document.getElementById('notify-href').value.trim();
+    const target=document.getElementById('notify-user').value;
+
+    const users=window.MockData&&window.MockData.users?window.MockData.users:[];
+    const targets=target==='all'?users:users.filter(u=>String(u.id)===target);
+
+    let sent=0;
+    targets.forEach(u=>{
+        if(window.MockData&&typeof window.MockData.enqueueNotification==='function'){
+            const r=window.MockData.enqueueNotification({
+                userId:u.id,title,message,type,href,
+                dedupeKey:'admin-notify:'+Date.now()+':'+u.id
+            });
+            if(r&&r.added)sent++;
+        }
+    });
+    toast(`📨 ${sent}명에게 알림 발송 완료`);
+    document.getElementById('notify-title').value='';
+    document.getElementById('notify-message').value='';
+    document.getElementById('notify-href').value='';
+}
+
+// ═══════════════════════════════════════
+// 초기화
+// ═══════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+    renderWorkList();
+});
+</script>
+</body>
+</html>

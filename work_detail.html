@@ -297,39 +297,8 @@
                         <div class="stats-card-header">
                             <i class="bi bi-clipboard-check-fill" style="color: #00b894;"></i> 안내 및 유의사항
                         </div>
-
-                        <ul class="guide-list">
-                            <li class="guide-item">
-                                <span class="guide-icon color-purple"><i class="bi bi-egg-fried"></i></span>
-                                <span>요리. 배추를 절이는 작업입니다.</span>
-                            </li>
-                            <li class="guide-item">
-                                <span class="guide-icon color-red"><i class="bi bi-card-image"></i></span>
-                                <span>신분증, 보건증을 지참해주세요.</span>
-                            </li>
-                            <li class="guide-item">
-                                <span class="guide-icon color-gold"><i class="bi bi-clock-history"></i></span>
-                                <span style="white-space: pre-line;">2시간 단위로 예약가능합니다.
-                                    2시간 단위로 30분 쉬는 시간을 드려요.</span>
-                            </li>
-                            <li class="guide-item">
-                                <span class="guide-icon color-teal"><i class="bi bi-ticket-perforated"></i></span>
-                                <span style="white-space: pre-line;">혜택, 당일 식권 1매 제공.
-                                    일주일간 식권 사용가능합니다.</span>
-                            </li>
-                            <li class="guide-item">
-                                <span class="guide-icon color-lavender"><i class="bi bi-person-check"></i></span>
-                                <span>단정한 차림으로 입장해주세요.</span>
-                            </li>
-                            <li class="guide-item banner-green">
-                                <span class="guide-icon color-green"><i class="bi bi-calendar-event"></i></span>
-                                <span>당일 날, 자리가 비어 일이 있는 경우, 현장에서 일 접수 가능합니다. 😊</span>
-                            </li>
-                            <li class="guide-item banner-purple">
-                                <span class="guide-icon color-lightpurple"><i class="bi bi-gift-fill"></i></span>
-                                <span class="color-lightpurple">처음 일하시는 분이면, 체험할 때에, 보너스로 5000원을 드려요. 🎉 </span>
-                            </li>
-                        </ul>
+                        <!-- JS 동적 바인딩: workDetailJSON[workId].guidelines -->
+                        <ul class="guide-list" id="guide-list-container"></ul>
                     </div>
 
                     <!-- 3. 5-Task Details Card -->
@@ -1562,8 +1531,30 @@
             }).join('');
         }
 
+        // Guidelines 동적 렌더링
+        function renderGuidelines() {
+            var box = document.getElementById('guide-list-container');
+            if (!box) return;
+            var data = getWorkDetailData();
+            var detail = data.detail;
+            if (!detail || !Array.isArray(detail.guidelines) || detail.guidelines.length === 0) {
+                box.innerHTML = '<li class="guide-item"><span style="color:#94a3b8;">등록된 안내문이 없습니다.</span></li>';
+                return;
+            }
+            box.innerHTML = detail.guidelines.map(function(g) {
+                var bannerClass = g.isBanner && g.bannerClass ? ' ' + g.bannerClass : '';
+                var textColor = g.textColor ? ' class="' + escapeFlowText(g.textColor) + '"' : '';
+                var text = String(g.text || '').replace(/\\n/g, '\n');
+                return '<li class="guide-item' + bannerClass + '">'
+                    + '<span class="guide-icon ' + escapeFlowText(g.iconColor || 'color-purple') + '"><i class="bi ' + escapeFlowText(g.icon || 'bi-info-circle') + '"></i></span>'
+                    + '<span' + textColor + ' style="white-space:pre-line;">' + escapeFlowText(text) + '</span>'
+                    + '</li>';
+            }).join('');
+        }
+
         $(document).ready(function () {
             applyWorkTitle();
+            renderGuidelines();
             renderWorkFlow();
 
             // ── 체험 완료(isExp) 검출 ──
@@ -2640,7 +2631,7 @@
 
     <!-- 정보 안내 푸터 (기본 숨김) -->
     <div id="info-footer"
-        style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(7, 3, 32, 0.95); border-top: 2px solid #4720ca; padding: 15px 20px; z-index: 1000; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);">
+        style="display: none; position: fixed; bottom: 68px; left: 0; right: 0; background-color: rgba(7, 3, 32, 0.95); border-top: 2px solid #4720ca; padding: 15px 20px; z-index: 9100; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);">
         <div
             style="max-width: 800px; margin: auto; display: flex; justify-content: space-between; align-items: center; color: white;">
             <div style="font-size: 13px; line-height: 1.5; font-family: 'NotoKR', sans-serif;">
@@ -2657,7 +2648,7 @@
 
     <!-- 헬퍼 지원 정보 안내 푸터 (기본 숨김) -->
     <div id="role-info-footer"
-        style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background-color: rgba(7, 3, 32, 0.95); border-top: 2px solid #00b894; padding: 15px 20px; z-index: 2100; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);">
+        style="display: none; position: fixed; bottom: 68px; left: 0; right: 0; background-color: rgba(7, 3, 32, 0.95); border-top: 2px solid #00b894; padding: 15px 20px; z-index: 9100; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);">
         <div
             style="max-width: 800px; margin: auto; display: flex; justify-content: space-between; align-items: center; color: white;">
             <div id="role-info-text" style="font-size: 13px; line-height: 1.5; font-family: 'NotoKR', sans-serif;">

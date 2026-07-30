@@ -984,10 +984,30 @@
     }
 
     function getMockWorks() {
+        // 관리자가 수정한 데이터가 있으면 복원 (MockData 정의 후 첫 호출 시 적용)
+        if (window.MockData && !window.MockData._adminWorksRestored) {
+            try {
+                const saved = localStorage.getItem('admin_works_json');
+                if (saved) window.MockData.worksJSON = saved;
+                const savedD = localStorage.getItem('admin_work_detail_json');
+                if (savedD) window.MockData.workDetailJSON = savedD;
+            } catch(e) {}
+            window.MockData._adminWorksRestored = true;
+        }
         return parseMockJson(window.MockData && window.MockData.worksJSON, []);
     }
 
     function getMockWorkDetails() {
+        // 위의 getMockWorks와 동일한 복원 로직 (어느 쪽이 먼저 호출되든 동작)
+        if (window.MockData && !window.MockData._adminWorksRestored) {
+            try {
+                const saved = localStorage.getItem('admin_works_json');
+                if (saved) window.MockData.worksJSON = saved;
+                const savedD = localStorage.getItem('admin_work_detail_json');
+                if (savedD) window.MockData.workDetailJSON = savedD;
+            } catch(e) {}
+            window.MockData._adminWorksRestored = true;
+        }
         return parseMockJson(window.MockData && window.MockData.workDetailJSON, {});
     }
 
@@ -1695,6 +1715,14 @@
                 localStorage.setItem(getStorageKey('kimp_helper_bonus'), w.helperBonus);
                 localStorage.setItem(getStorageKey('kimp_helper_base_salary'), w.helperBaseSalary);
             }
+        }
+
+        // Works (관리자 추가/수정/삭제한 일 목록 영속화)
+        if (shouldSave('works')) {
+            try {
+                localStorage.setItem('admin_works_json', window.MockData.worksJSON);
+                localStorage.setItem('admin_work_detail_json', window.MockData.workDetailJSON);
+            } catch(e) {}
         }
     }
 
@@ -2457,6 +2485,62 @@
                         state.workers[uId].completedOrdersCount = 0;
                     });
                     break;
+
+                // ── 관리자: 일(Work) 추가/수정/삭제 ──
+                case 'ADD_WORK': {
+                    const newWork = action.payload;
+                    if (!newWork || !newWork.workId || !newWork.workName) break;
+                    try {
+                        const worksList = JSON.parse(window.MockData.worksJSON);
+                        // 중복 workId 방지
+                        if (worksList.some(w => String(w.workId) === String(newWork.workId))) break;
+                        worksList.push(newWork);
+                        window.MockData.worksJSON = JSON.stringify(worksList);
+                    } catch(e) {}
+                    break;
+                }
+                case 'UPDATE_WORK': {
+                    const updated = action.payload;
+                    if (!updated || !updated.workId) break;
+                    try {
+                        const worksList = JSON.parse(window.MockData.worksJSON);
+                        const idx = worksList.findIndex(w => String(w.workId) === String(updated.workId));
+                        if (idx >= 0) worksList[idx] = { ...worksList[idx], ...updated };
+                        window.MockData.worksJSON = JSON.stringify(worksList);
+                    } catch(e) {}
+                    break;
+                }
+                case 'DELETE_WORK': {
+                    const deleteId = action.payload;
+                    if (!deleteId) break;
+                    try {
+                        const worksList = JSON.parse(window.MockData.worksJSON);
+                        window.MockData.worksJSON = JSON.stringify(worksList.filter(w => String(w.workId) !== String(deleteId)));
+                    } catch(e) {}
+                    break;
+                }
+                case 'SET_WORK_DETAIL': {
+                    const detail = action.payload;
+                    if (!detail || !detail.workId) break;
+                    try {
+                        const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                        detailMap[String(detail.workId)] = detail.data || detail;
+                        window.MockData.workDetailJSON = JSON.stringify(detailMap);
+                    } catch(e) {}
+                    break;
+                }
+                case 'UPDATE_WORK_DETAIL': {
+                    const upd = action.payload;
+                    if (!upd || !upd.workId) break;
+                    try {
+                        const detailMap = JSON.parse(window.MockData.workDetailJSON);
+                        const existing = detailMap[String(upd.workId)] || {};
+                        detailMap[String(upd.workId)] = { ...existing, ...upd.data };
+                        window.MockData.workDetailJSON = JSON.stringify(detailMap);
+                    } catch(e) {}
+                    break;
+                }
+
                 default:
                     console.warn("Unknown action type:", action.type);
                     return;
@@ -2526,6 +2610,13 @@
                         case 'SET_SHIFT_TIME':
                         case 'DECREMENT_SHIFT_TIME':
                             keysToSave = ['shift_timer'];
+                            break;
+                        case 'ADD_WORK':
+                        case 'UPDATE_WORK':
+                        case 'DELETE_WORK':
+                        case 'SET_WORK_DETAIL':
+                        case 'UPDATE_WORK_DETAIL':
+                            keysToSave = ['works'];
                             break;
                         default:
                             keysToSave = null; // Save all
@@ -8437,4 +8528,129 @@ window.MockData.getShiftEndInfo = function(input) {
         thresholdMinutes: threshold,
         hint: this.WORK_FINISH_HINT
     };
+};
+
+/* ============================================================
+ * 김치 배송 주문: 매니저 콘솔(manager.html) 진행 상태 → 구매자 주문 내역 반영
+ *
+ * manager.html 의 '주문 출하 현황판' 에서 상태를 바꾸면
+ * 마이페이지 > 나의 쇼핑(카드/자세히)과 배송조회 화면의 배송 상태도 같이 움직여야 한다.
+ * ============================================================ */
+window.MockData.KIMCHI_DELIVERY_STATUS_MAP = {
+    '주문 완료': 'ordered',
+    '생산 중': 'preparing',
+    '포장 완료': 'packed',
+    '출하 준비 완료': 'ready_to_ship',
+    '배송 중': 'shipping',
+    '배송 완료': 'delivered',
+    '입금 완료': 'delivered'
+};
+
+/** 매니저 콘솔 상태 문자열 → 구매자 화면용 배송 상태 코드 */
+window.MockData.mapKimchiManagerStatus = function(status) {
+    const label = String(status || '').trim();
+    return this.KIMCHI_DELIVERY_STATUS_MAP[label] || 'ordered';
+};
+
+/** 공장 주문(kimp_delivery_orders) 1건에 연결된 구매자 주문을 찾는다. */
+window.MockData.findShopOrderForKimchiDelivery = function(managerOrder) {
+    if (!managerOrder) return null;
+    const orders = (window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function')
+        ? (window.FactoryStore.getShopOrders() || [])
+        : (typeof this.getShopHistoryRaw === 'function' ? (this.getShopHistoryRaw() || []) : []);
+
+    const shopOrderId = managerOrder.shopOrderId;
+    if (shopOrderId) {
+        const byId = orders.filter(o => o && String(o.id) === String(shopOrderId))[0];
+        if (byId) return byId;
+    }
+    return orders.filter(o => o && String(o.managerOrderId || '') === String(managerOrder.orderId || ''))[0] || null;
+};
+
+/**
+ * 공장 주문 상태를 구매자 주문(shop order)에 반영한다.
+ * @returns 반영된 구매자 주문 id (없으면 null)
+ */
+window.MockData.syncKimchiDeliveryStatusToShopOrder = function(managerOrder) {
+    const shopOrder = this.findShopOrderForKimchiDelivery(managerOrder);
+    if (!shopOrder) return null;
+
+    const managerLabel = String((managerOrder && managerOrder.status) || '').trim();
+    // '입금 완료'는 공장 재정 상태이므로 구매자에게는 '배송 완료'로 보여 준다.
+    const buyerLabel = managerLabel === '입금 완료' ? '배송 완료' : managerLabel;
+    const code = this.mapKimchiManagerStatus(managerLabel);
+
+    // 배송 단계별 시각 기록 (배송조회 타임라인에서 사용)
+    const history = Array.isArray(shopOrder.deliveryHistory) ? shopOrder.deliveryHistory.slice() : [];
+    const at = (managerOrder && managerOrder.statusUpdatedAt) || new Date().toISOString();
+    if (!history.some(h => h && h.code === code)) {
+        history.push({ code: code, label: buyerLabel || code, at: at });
+    }
+
+    const changes = {
+        deliveryStatus: code,
+        deliveryStatusLabel: buyerLabel || null,
+        managerStatusLabel: managerLabel || null,
+        deliveryHistory: history,
+        deliveryUpdatedAt: at,
+        managerOrderId: managerOrder.orderId || shopOrder.managerOrderId || null,
+        paymentConfirmed: managerLabel === '입금 완료' ? true : !!shopOrder.paymentConfirmed
+    };
+
+    if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+        window.FactoryStore.dispatch({ type: 'UPDATE_SHOP_ORDER', payload: { id: shopOrder.id, changes: changes } });
+    } else {
+        // FactoryStore 가 없는 화면(단독 실행)에서는 로컬 저장소를 직접 갱신한다.
+        try {
+            const key = 'kimp_shop_history';
+            const list = JSON.parse(localStorage.getItem(key) || '[]');
+            const idx = list.findIndex(o => o && String(o.id) === String(shopOrder.id));
+            if (idx >= 0) {
+                list[idx] = Object.assign({}, list[idx], changes);
+                localStorage.setItem(key, JSON.stringify(list));
+            }
+        } catch (e) { }
+    }
+    return shopOrder.id;
+};
+
+/**
+ * 매니저 콘솔에서 김치 배송 주문 상태를 변경한다. (공장 주문 + 구매자 주문 동시 갱신)
+ * @returns {{order:object|null, shopOrderId:any}}
+ */
+window.MockData.updateKimchiDeliveryOrderStatus = function(orderId, newStatus) {
+    const orders = this.getKimchiDeliveryOrders();
+    const order = orders.filter(o => o && String(o.orderId) === String(orderId))[0] || null;
+    if (!order) return { order: null, shopOrderId: null };
+
+    order.status = newStatus;
+    order.statusUpdatedAt = new Date().toISOString();
+    order.statusHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+    if (!order.statusHistory.some(h => h && h.status === newStatus)) {
+        order.statusHistory.push({ status: newStatus, at: order.statusUpdatedAt });
+    }
+    localStorage.setItem(this.KIMP_DELIVERY_ORDERS_KEY, JSON.stringify(orders));
+
+    const shopOrderId = this.syncKimchiDeliveryStatusToShopOrder(order);
+
+    // 구매자에게 배송 상태 알림 (배송 중 / 배송 완료 시 1회)
+    if (shopOrderId && typeof this.enqueueNotification === 'function') {
+        const code = this.mapKimchiManagerStatus(newStatus);
+        if (code === 'shipping' || code === 'delivered') {
+            const shopOrder = this.findShopOrderForKimchiDelivery(order);
+            let userId = null;
+            try { userId = sessionStorage.getItem('user-id'); } catch (e) { }
+            this.enqueueNotification({
+                userId: (shopOrder && shopOrder.userId) || userId,
+                title: code === 'shipping' ? '주문한 상품이 배송을 시작했습니다.' : '주문한 상품이 배송 완료되었습니다.',
+                message: ((shopOrder && shopOrder.productName) || '김치 상품')
+                    + ' · 주문번호 #' + ((shopOrder && shopOrder.orderNo) || order.orderId),
+                type: 'order',
+                href: './mypage2.html?tab=shopping',
+                dedupeKey: 'kimchi-delivery:' + order.orderId + ':' + code
+            });
+        }
+    }
+
+    return { order: order, shopOrderId: shopOrderId };
 };
