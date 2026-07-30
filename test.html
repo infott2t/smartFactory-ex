@@ -14,6 +14,9 @@
     .wrap { width:min(960px,100%); margin:0 auto; padding:24px 16px 48px; }
     .hero { margin-bottom:18px; padding:22px; border:1px solid var(--line); border-radius:18px; background:rgba(20,25,43,.92); }
     .hero h1 { margin:0 0 8px; font-size:22px; }.hero p { margin:0; color:var(--muted); line-height:1.55; font-size:14px; }
+    .hero-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .hero-admin-link { display:inline-flex; align-items:center; gap:7px; padding:10px 13px; border:1px solid rgba(187,174,255,.38); border-radius:10px; background:rgba(124,92,245,.2); color:#eeeaff; font-size:13px; font-weight:700; text-decoration:none; transition:background .2s ease,transform .2s ease; }
+    .hero-admin-link:hover { background:rgba(124,92,245,.34); transform:translateY(-1px); }
     .notice { margin-top:14px; padding:10px 12px; border-radius:10px; color:#ddd6fe; background:rgba(124,92,245,.15); font-size:13px; }
     .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }.span-2 { grid-column:span 2; }
     .card { padding:18px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }.card h2 { margin:0 0 14px; font-size:16px; }.card h2 i { color:#bbaeff; margin-right:7px; }
@@ -33,6 +36,13 @@
         <h1><i class="bi bi-clipboard2-check"></i> 통합 기능 테스트</h1>
         <p>선택한 회원으로 예약과 상품 주문을 만들고, 매니저 콘솔·출근 작업 화면·마이페이지까지 바로 확인합니다.</p>
         <div class="notice">테스트 전용 화면입니다. 모든 결과는 기존 FactoryStore와 브라우저 저장소에 저장됩니다.</div>
+        <div class="hero-actions">
+            <a class="hero-admin-link" href="./admin.html">
+                <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                <span>서비스 관리 페이지</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
     </section>
 
     <div class="grid">
