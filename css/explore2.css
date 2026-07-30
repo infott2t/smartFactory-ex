@@ -10,6 +10,8 @@
       padding-bottom: 80px;
   }
 
+  .main-wrap { touch-action: pan-y; }
+
   .tab-content {
       display: none;
   }
@@ -136,6 +138,130 @@
       }
   }
 
+  /* 근로/예약 이력은 3개 정보 열을 함께 표시하므로 작은 화면에서는
+     중앙 시간·등급과 여백을 먼저 압축해 업무명이 글자 단위로 줄바꿈되지 않게 합니다. */
+  @media (max-width: 407px) {
+      #tab-partner .task-item,
+      #tab-reservation .task-item,
+      #tab-history .task-item {
+          padding-left: 12px;
+          padding-right: 12px;
+      }
+
+      #tab-partner .task-items0,
+      #tab-reservation .task-items0,
+      #tab-history .task-items0 {
+          gap: 3px;
+      }
+
+      #tab-partner .task-items,
+      #tab-reservation .task-items,
+      #tab-history .task-items {
+          flex: 1 1 auto !important;
+          min-width: 0;
+          column-gap: 8px;
+      }
+
+      #tab-partner .task-item .icon,
+      #tab-reservation .task-item .icon,
+      #tab-history .task-item .icon {
+          width: 23px;
+          height: 23px;
+          margin-right: 8px;
+          flex: 0 0 23px;
+      }
+
+      #tab-partner .texts,
+      #tab-reservation .texts,
+      #tab-history .texts {
+          min-width: 0;
+      }
+
+      #tab-partner .texts > span:nth-child(1),
+      #tab-reservation .texts > span:nth-child(1),
+      #tab-history .texts > span:nth-child(1) {
+          font-size: 14px;
+          white-space: nowrap;
+      }
+
+      #tab-partner .texts > span:nth-child(2),
+      #tab-reservation .texts > span:nth-child(2),
+      #tab-history .texts > span:nth-child(2) {
+          font-size: 12px;
+          white-space: nowrap;
+      }
+
+      #tab-partner .task-info-right {
+          flex: 0 0 auto;
+          min-width: 70px;
+      }
+
+      #tab-partner .box-time {
+          margin-right: 4px;
+          font-size: 14px;
+      }
+
+      #tab-partner .badge01,
+      #tab-partner .badge02,
+      #tab-partner .badge03 {
+          padding: 3px 5px;
+          font-size: 11px;
+          white-space: nowrap;
+      }
+
+      #tab-reservation .task-info-center,
+      #tab-history .task-info-center {
+          flex: 0 0 70px !important;
+          min-width: 70px;
+          padding: 0 2px !important;
+      }
+
+      #tab-reservation .task-info-center .box-time,
+      #tab-history .task-info-center .box-time {
+          margin-right: 4px;
+          font-size: 14px;
+      }
+
+      #tab-reservation .task-info-center .badge01,
+      #tab-reservation .task-info-center .badge02,
+      #tab-reservation .task-info-center .badge03,
+      #tab-history .task-info-center .badge01,
+      #tab-history .task-info-center .badge02,
+      #tab-history .task-info-center .badge03 {
+          padding: 3px 5px;
+          font-size: 11px;
+          white-space: nowrap;
+      }
+
+      #tab-reservation .task-info-center > span,
+      #tab-history .task-info-center > span {
+          font-size: 10px !important;
+          white-space: nowrap;
+      }
+
+      #tab-history .task-info-col {
+          flex: 0 0 86px !important;
+          min-width: 86px;
+      }
+
+      #tab-reservation .task-info-col {
+          flex: 0 0 108px !important;
+          min-width: 108px;
+          gap: 6px !important;
+      }
+
+      #tab-reservation .date-text,
+      #tab-history .date-text {
+          font-size: 11px !important;
+      }
+
+      #tab-reservation .pay-text,
+      #tab-history .pay-text {
+          font-size: 14px;
+          white-space: nowrap;
+      }
+  }
+
   /* 1. 각 탭의 리스트 컨테이너 여백을 동일하게 통일 (HTML 인라인 스타일 강제 덮어쓰기) */
  
 
@@ -143,7 +269,10 @@
 .sort-row {
     padding: 10px 15px;
     border-bottom: 1px solid #2a2a35;
-    top:139px;
+    position: fixed;
+    top: 139px;
+    left: 50%;
+    transform: translateX(-50%);
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -151,4 +280,126 @@
 
 .bi-heart::before, .bi-bag-x::before, .bi-calendar-x::before {
     color: rgb(156, 109, 242);
+}
+
+/* 쇼핑 주문 카드는 넓은 화면에서는 기존 2행 레이아웃을 유지합니다. */
+.shop-order-card__mobile-footer {
+    display: none;
+}
+
+/* 작은 화면에서는 카드 내부를 주문정보 → 상품 → 버튼 → 상태 순서로 쌓습니다. */
+@media (max-width: 659px) {
+    #tab-shopping .shop-order-card {
+        height: auto !important;
+        min-height: 190px !important;
+        padding: 14px !important;
+    }
+
+    #tab-shopping .shop-order-card__header {
+        align-items: flex-start !important;
+        gap: 6px;
+        margin-bottom: 12px !important;
+    }
+
+    #tab-shopping .shop-order-card__header-meta {
+        min-width: 0;
+        font-size: 11px !important;
+        white-space: nowrap;
+    }
+
+    #tab-shopping .shop-order-card__header-number {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-size: 10px;
+        white-space: nowrap;
+    }
+
+    #tab-shopping .shop-order-card__header-number > div {
+        font-size: 10px !important;
+        white-space: nowrap;
+    }
+
+    #tab-shopping .shop-order-card__header-status,
+    #tab-shopping .shop-order-card__desktop-amount {
+        display: none;
+    }
+
+    #tab-shopping .shop-order-card__body {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+
+    #tab-shopping .shop-order-card__product {
+        min-width: 0;
+        gap: 10px !important;
+    }
+
+    #tab-shopping .shop-order-card__image {
+        width: 44px !important;
+        height: 44px !important;
+        flex: 0 0 44px;
+    }
+
+    #tab-shopping .shop-order-card__product-details {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    #tab-shopping .shop-order-card__product-name {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: nowrap !important;
+        font-size: 13px !important;
+        line-height: 1.35;
+        gap: 4px;
+    }
+
+    #tab-shopping .shop-order-card__product-name > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #tab-shopping .shop-order-card__product-name .shop-order-detail-trigger {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    #tab-shopping .shop-order-card__actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px !important;
+    }
+
+    #tab-shopping .shop-order-card__actions .res-cancel-btn,
+    #tab-shopping .shop-order-card__actions .res-check-in-btn {
+        min-height: 34px;
+        padding: 6px 10px !important;
+    }
+
+    #tab-shopping .shop-order-card__mobile-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 25px;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    #tab-shopping .shop-order-card__mobile-status,
+    #tab-shopping .shop-order-card__mobile-amount {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    #tab-shopping .shop-order-card__mobile-amount {
+        margin-left: auto;
+        text-align: right;
+    }
 }

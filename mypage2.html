@@ -343,6 +343,13 @@
         .res-cancel-btn { background: transparent; border: 1px solid var(--border-light); color: var(--text-sub); }
         .res-cancel-btn:hover { background: rgba(255,255,255,0.05); color: white;}
 
+        .offline-qr-payment-label-short { display: none; }
+
+        @media (max-width: 544px) {
+            .offline-qr-payment-label-full { display: none; }
+            .offline-qr-payment-label-short { display: inline; }
+        }
+
         /* 히스토리 카드 내부 스타일 */
         .hist-date {
             display: flex;
@@ -1257,7 +1264,7 @@
                         statusBadgeHtml = `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">현장 결제중</span>`;
                         btnHtml = `
                         <div class="res-btn-box" style="margin-top: 12px;">
-                            <button type="button" class="res-check-in-btn" style="background:#fbbf24;color:#271b02;" onclick="event.stopPropagation(); openMypageOfflineQr('${itemId}')"><i class="bi bi-qr-code-scan"></i> QR 찍고 현장결제</button>
+                            <button type="button" class="res-check-in-btn" style="background:#fbbf24;color:#271b02;" onclick="event.stopPropagation(); openMypageOfflineQr('${itemId}')"><i class="bi bi-qr-code-scan"></i> <span class="offline-qr-payment-label-full">QR 찍고 현장결제</span><span class="offline-qr-payment-label-short">현장결제</span></button>
                             <button type="button" class="res-cancel-btn" onclick="event.stopPropagation(); cancelShopOrder('${itemId}')">주문 취소</button>
                         </div>`;
                     } else if (kitchenStatus === 'ready') {

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="./css/explore.css?v=1.0.2">
-    <link rel="stylesheet" href="./css/explore2.css?v=1.0.2">
+    <link rel="stylesheet" href="./css/explore2.css?v=1.0.3">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
@@ -207,6 +207,71 @@
                 $('.tab-content').eq(newIndex).addClass('active ' + moveDirection);
 
                 renderCurrentTab(newIndex);
+            });
+
+            // 좌우 손가락 스와이프로 탭 전환 (세로 스크롤과 구분)
+            let swipeStartX = 0, swipeStartY = 0, swipeEndX = 0;
+            let swipeTracking = false, swipeVertical = false;
+            let $swipeContent = null, $swipeBody = null, $swipeSortRow = null;
+
+            function resetExplore2SwipeStyles(animate) {
+                if (!$swipeContent || !$swipeContent.length) return;
+                const transition = animate ? 'transform 0.25s ease-out' : '';
+                if ($swipeBody && $swipeBody.length) $swipeBody.css({ transform: '', transition });
+                if ($swipeSortRow && $swipeSortRow.length) $swipeSortRow.css({ transform: '', transition });
+                if (animate) window.setTimeout(function () {
+                    if ($swipeBody && $swipeBody.length) $swipeBody.css('transition', '');
+                    if ($swipeSortRow && $swipeSortRow.length) $swipeSortRow.css('transition', '');
+                }, 260);
+            }
+
+            $(document).on('touchstart', '.main-wrap', function (event) {
+                const touch = event.originalEvent.touches && event.originalEvent.touches[0];
+                if (!touch) return;
+                swipeStartX = swipeEndX = touch.clientX;
+                swipeStartY = touch.clientY;
+                swipeTracking = true;
+                swipeVertical = false;
+                $swipeContent = $('.tab-content.active');
+                // .tab-content에는 transform을 적용하지 않습니다. transform이 적용되면
+                // 내부 position:fixed 정렬 행의 기준점이 바뀌기 때문입니다.
+                $swipeBody = $swipeContent.children().not('.sort-row');
+                $swipeSortRow = $swipeContent.find('.sort-row').first();
+            });
+
+            $(document).on('touchmove', '.main-wrap', function (event) {
+                if (!swipeTracking || swipeVertical) return;
+                const touch = event.originalEvent.touches && event.originalEvent.touches[0];
+                if (!touch) return;
+                const diffX = touch.clientX - swipeStartX;
+                const diffY = touch.clientY - swipeStartY;
+                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 8) {
+                    swipeVertical = true;
+                    resetExplore2SwipeStyles(false);
+                    return;
+                }
+                if (Math.abs(diffX) < 4) return;
+                swipeEndX = touch.clientX;
+                const moveX = diffX * 0.8;
+                if ($swipeBody.length) $swipeBody.css({ transform: `translateX(${moveX}px)`, transition: 'none' });
+                if ($swipeSortRow.length) $swipeSortRow.css({ transform: `translateX(calc(-50% + ${moveX}px))`, transition: 'none' });
+            });
+
+            $(document).on('touchend touchcancel', '.main-wrap', function () {
+                if (!swipeTracking) return;
+                swipeTracking = false;
+                if (swipeVertical) { resetExplore2SwipeStyles(true); return; }
+                const distance = swipeEndX - swipeStartX;
+                const threshold = $(window).width() * 0.25;
+                const currentIndex = $('.tab-list .tab-item.active').index();
+                const totalTabs = $('.tab-list .tab-item').length;
+                let targetIndex = currentIndex;
+                if (distance <= -threshold && currentIndex < totalTabs - 1) targetIndex++;
+                else if (distance >= threshold && currentIndex > 0) targetIndex--;
+                if (targetIndex !== currentIndex) {
+                    resetExplore2SwipeStyles(false);
+                    $('.tab-list .tab-item').eq(targetIndex).trigger('click');
+                } else resetExplore2SwipeStyles(true);
             });
 
             // 전역 정렬 상태 (처음 접속 시 날짜 내림차순 정렬)
@@ -1172,6 +1237,7 @@
                             const amountHtml = item.shouldShowSpendAmount === false
                                 ? `<div style="font-size: 13px; font-weight: 800; color: var(--text-sub); white-space: nowrap;">${item.paymentDisplayLabel || '주문취소됨'}</div>`
                                 : `<div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">-₩ ${orderPrice.toLocaleString()}</div>`;
+                            const mobileAmountHtml = item.shouldShowSpendAmount === false ? '' : amountHtml;
 
                             if (item.status === 'pending') {
                                 statusTextHtml = `<div style="color: var(--text-main); font-weight: bold; font-size: 14px;">₩ ${orderPrice.toLocaleString()}</div>`;
@@ -1272,32 +1338,36 @@
                             let cursorStyle = isDelivery ? 'cursor: pointer;' : '';
 
                             html += `
-                            <div class="task-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08) !important; min-height: 105px; box-sizing: border-box;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 12px;">
-                                    <div style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
+                            <div class="task-item shop-order-card" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important;border: 1px solid rgba(255,255,255,0.08) !important; min-height: 105px; box-sizing: border-box;">
+                                <div class="shop-order-card__header" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 12px;">
+                                    <div class="shop-order-card__header-meta" style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
                                         <span>${orderDateTimeText} 주문</span>
                                         ${deliveryBadgeHtml}
-                                        ${statusBadgeHtml}
+                                        <span class="shop-order-card__header-status">${statusBadgeHtml}</span>
                                     </div>
-                                    ${topRightHtml}
+                                    <div class="shop-order-card__header-number">${topRightHtml}</div>
                                 </div>
 
-                                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                                    <div style="display: flex; align-items: center; gap: 12px;">
-                                        <img src="${pImg}" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--card-border);" alt="${pNameStr}">
-                                        <div style="text-align: left;">
-                                            <div style="font-size: 11px; color: var(--accent-primary); font-weight: bold;">${brandName}</div>
-                                            <div style="display: flex; align-items: center; flex-wrap: wrap; font-size: 14px; font-weight: bold; color: var(--text-main); margin-top: 3px;">
+                                <div class="shop-order-card__body" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                                    <div class="shop-order-card__product" style="display: flex; align-items: center; gap: 12px;">
+                                        <img class="shop-order-card__image" src="${pImg}" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--card-border);" alt="${pNameStr}">
+                                        <div class="shop-order-card__product-details" style="text-align: left;">
+                                            <div class="shop-order-card__brand" style="font-size: 11px; color: var(--accent-primary); font-weight: bold;">${brandName}</div>
+                                            <div class="shop-order-card__product-name" style="display: flex; align-items: center; flex-wrap: wrap; font-size: 14px; font-weight: bold; color: var(--text-main); margin-top: 3px;">
                                                 <span>${pNameStr} (${qtyText})</span>
                                                 <button type="button" class="shop-order-detail-trigger compact" onclick="event.stopPropagation(); openShopOrderDetail('${item.id}', this)"><i class="bi bi-list-ul"></i> 자세히</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                                    <div class="shop-order-card__actions" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
                                         ${inlineCancelButtonHtml}
                                         ${inlineReceiveButtonHtml}
-                                        ${amountHtml}
+                                        <div class="shop-order-card__desktop-amount">${amountHtml}</div>
                                     </div>
+                                </div>
+                                <div class="shop-order-card__mobile-footer">
+                                    <div class="shop-order-card__mobile-status">${statusBadgeHtml}</div>
+                                    <div class="shop-order-card__mobile-amount">${mobileAmountHtml}</div>
                                 </div>
                                 ${btnHtml}
                             </div>`;
