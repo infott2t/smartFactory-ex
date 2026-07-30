@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합 기능 테스트 | 스마트팩토리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="./js/store.js?v=20260730d" type="text/javascript"></script>
+<script src="./js/auth.js" type="text/javascript"></script>
+<style>
+    :root { --bg:#080b18; --surface:#14192b; --surface2:#1d2540; --line:#2b3658; --text:#f7f8ff; --muted:#aab4d3; --primary:#7b5cf5; --success:#22c55e; --warning:#f59e0b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:linear-gradient(160deg,#090d1d,#111a35); color:var(--text); font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; min-height:100vh; }
+    .wrap { width:min(960px,100%); margin:0 auto; padding:24px 16px 48px; }
+    .hero { margin-bottom:18px; padding:22px; border:1px solid var(--line); border-radius:18px; background:rgba(20,25,43,.92); }
+    .hero h1 { margin:0 0 8px; font-size:22px; }.hero p { margin:0; color:var(--muted); line-height:1.55; font-size:14px; }
+    .notice { margin-top:14px; padding:10px 12px; border-radius:10px; color:#ddd6fe; background:rgba(124,92,245,.15); font-size:13px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }.span-2 { grid-column:span 2; }
+    .card { padding:18px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }.card h2 { margin:0 0 14px; font-size:16px; }.card h2 i { color:#bbaeff; margin-right:7px; }
+    label { display:block; margin:12px 0 6px; color:var(--muted); font-size:12px; font-weight:700; } input,select { width:100%; padding:11px 12px; color:var(--text); background:#0d1224; border:1px solid var(--line); border-radius:9px; font:inherit; } select option { color:var(--text); background:#0d1224; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    button { border:0; border-radius:9px; padding:10px 12px; color:#fff; background:var(--primary); cursor:pointer; font:700 13px inherit; } button:hover { filter:brightness(1.1); } button.secondary { background:#303b5f; } button.success { background:#15803d; } button.warning { background:#b45309; } button:disabled { cursor:not-allowed; opacity:.55; }
+    .user-summary { padding:12px; border-radius:10px; background:var(--surface2); font-size:13px; line-height:1.55; }.role { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:rgba(124,92,245,.28); color:#ddd6fe; font-size:11px; font-weight:700; }
+    .manager-links { display:flex; flex-wrap:wrap; gap:8px; }.manager-links button { background:#d97706; }.manager-links button:disabled { background:#4b5563; }
+    .list { margin:0; padding:0; list-style:none; }.list li { display:flex; justify-content:space-between; gap:12px; padding:11px 0; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }.list li:first-child { border-top:0; }.list b { color:var(--text); text-align:right; }
+    .empty { color:var(--muted); font-size:13px; }.toast { position:fixed; left:50%; bottom:20px; z-index:10; transform:translateX(-50%); display:none; max-width:calc(100% - 32px); padding:11px 14px; border-radius:10px; background:#ecfdf5; color:#065f46; box-shadow:0 8px 28px rgba(0,0,0,.3); font-size:13px; font-weight:700; }
+    @media (max-width:720px) { .grid { grid-template-columns:1fr; }.span-2 { grid-column:auto; }.row { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+    <section class="hero">
+        <h1><i class="bi bi-clipboard2-check"></i> 통합 기능 테스트</h1>
+        <p>선택한 회원으로 예약과 상품 주문을 만들고, 매니저 콘솔·출근 작업 화면·마이페이지까지 바로 확인합니다.</p>
+        <div class="notice">테스트 전용 화면입니다. 모든 결과는 기존 FactoryStore와 브라우저 저장소에 저장됩니다.</div>
+    </section>
+
+    <div class="grid">
+        <section class="card">
+            <h2><i class="bi bi-person-check"></i> 실행 회원</h2>
+            <label for="user-select">회원 선택</label>
+            <select id="user-select"></select>
+            <div id="user-summary" class="user-summary" style="margin-top:12px"></div>
+            <div class="actions">
+                <button type="button" class="secondary" onclick="openMypage()"><i class="bi bi-person-vcard"></i> 새 창에서 마이페이지 확인</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2><i class="bi bi-person-workspace"></i> 매니저 콘솔</h2>
+            <p class="empty" id="manager-description">매니저 권한 회원을 선택하면 작업별 관리자 화면을 열 수 있습니다.</p>
+            <div id="manager-links" class="manager-links" style="margin-top:14px"></div>
+        </section>
+
+        <section class="card">
+            <h2><i class="bi bi-calendar-plus"></i> 일 예약 만들기</h2>
+            <label for="work-select">일 선택</label>
+            <select id="work-select"></select>
+            <div class="row">
+                <div><label for="reservation-date">날짜</label><input id="reservation-date" type="date"></div>
+                <div><label for="slot-select">시간</label><select id="slot-select"></select></div>
+            </div>
+            <div class="actions"><button type="button" onclick="createReservation()"><i class="bi bi-calendar-check"></i> 예약 만들기</button></div>
+        </section>
+
+        <section class="card">
+            <h2><i class="bi bi-bag-check"></i> 상품 주문 만들기</h2>
+            <label for="product-select">상품 선택</label>
+            <select id="product-select"></select>
+            <div class="row">
+                <div><label for="order-qty">수량</label><input id="order-qty" type="number" min="1" value="1"></div>
+                <div><label>결제 합계</label><div id="order-total" class="user-summary">₩0</div></div>
+            </div>
+            <label for="order-payment-method">결제 방식</label>
+            <select id="order-payment-method">
+                <option value="online_settlement">정산결제 · 나의 정산 자산에서 차감</option>
+                <option value="offline">현장결제 · 정산 자산 차감 없음</option>
+            </select>
+            <div id="order-cart" class="user-summary" style="margin-top:12px"></div>
+            <div class="actions">
+                <button type="button" class="secondary" onclick="addToOrderCart()"><i class="bi bi-cart-plus"></i> 주문에 담기</button>
+                <button type="button" class="success" onclick="createOrder()"><i class="bi bi-cart-check"></i> 담은 상품 전체 주문하기</button>
+                <button type="button" class="secondary" onclick="clearOrderCart()"><i class="bi bi-trash3"></i> 비우기</button>
+            </div>
+        </section>
+
+        <section class="card span-2">
+            <h2><i class="bi bi-box-arrow-in-right"></i> 예약 일 출근하기</h2>
+            <p class="empty">선택 회원의 예약을 골라 출근 상태로 바꾸고 해당 실제 근무 화면으로 바로 이동합니다.</p>
+            <label for="reservation-select">예약 선택</label>
+            <select id="reservation-select"></select>
+            <div class="actions">
+                <button type="button" class="warning" onclick="checkInAndOpenWork()"><i class="bi bi-play-circle"></i> 출근 처리 후 새 창에서 작업 화면 열기</button>
+                <button type="button" class="secondary" onclick="openMypage()"><i class="bi bi-arrow-right-circle"></i> 새 창에서 마이페이지 확인</button>
+            </div>
+        </section>
+
+        <section class="card span-2">
+            <h2><i class="bi bi-list-check"></i> 선택 회원의 테스트 결과</h2>
+            <ul id="result-list" class="list"></ul>
+        </section>
+    </div>
+</main>
+<div id="toast" class="toast" role="status"></div>
+
+<script>
+(function () {
+    var userSelect = document.getElementById('user-select');
+    var workSelect = document.getElementById('work-select');
+    var slotSelect = document.getElementById('slot-select');
+    var productSelect = document.getElementById('product-select');
+    var reservationSelect = document.getElementById('reservation-select');
+    var toastTimer = null;
+    var TEST_WORK_IDS = ['1', '2', '6', '7'];
+    var cartsByUser = {};
+
+    function getUsers() { return window.FactoryStore.getUsers ? window.FactoryStore.getUsers() : []; }
+    function getWorks() { return window.FactoryStore.getWorks ? window.FactoryStore.getWorks() : []; }
+    function getTestWorks() { return getWorks().filter(function (work) { return TEST_WORK_IDS.includes(String(work.workId)); }); }
+    function getProducts(filter) { return window.FactoryStore.getProducts ? window.FactoryStore.getProducts(filter) : []; }
+    function selectedUser() { return getUsers().find(function (user) { return String(user.id) === userSelect.value; }) || null; }
+    function selectedWork() { return getTestWorks().find(function (work) { return String(work.workId) === workSelect.value; }) || null; }
+    function getKmeatOrderProducts() {
+        var manuals = window.MockData && window.MockData.kmeatMenuManuals
+            ? window.MockData.kmeatMenuManuals
+            : {};
+        return Object.keys(manuals).map(function (id) {
+            var menu = manuals[id];
+            return {
+                productId: menu.id,
+                productCode: menu.id,
+                workId: 6,
+                name: menu.name,
+                price: Number(menu.price) || 0,
+                unit: menu.unit || '개',
+                brand: 'K-Meat',
+                isDelivery: false,
+                group: menu.group || 'side',
+                station: menu.station || null
+            };
+        });
+    }
+    function selectedWorkProducts() {
+        var work = selectedWork();
+        if (!work) return [];
+        return String(work.workId) === '6' ? getKmeatOrderProducts() : getProducts({ workId: work.workId });
+    }
+    function currentCartKey() {
+        var user = selectedUser();
+        var work = selectedWork();
+        return user && work ? String(user.id) + ':' + String(work.workId) : null;
+    }
+    function currentCart() {
+        var key = currentCartKey();
+        if (!key) return [];
+        if (!cartsByUser[key]) cartsByUser[key] = [];
+        return cartsByUser[key];
+    }
+    function escapeHtml(value) { return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function dateText(date) { return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0'); }
+
+    function showToast(message) {
+        var toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.style.display = 'none'; }, 4500);
+    }
+
+    function notifyProductOrder(user, summary) {
+        var isOfflinePayment = summary.paymentMethod === 'offline';
+        var paymentLabel = isOfflinePayment ? '현장결제' : '정산결제';
+        var statusLabel = isOfflinePayment ? 'QR 결제 대기' : '결제 완료';
+        var brandName = summary.brandName || '브랜드 미지정';
+        var orderedAt = summary.orderedAt || summary.createdAt || new Date().toISOString();
+        var title = brandName + ' · ' + paymentLabel + ' 상품 주문 '
+            + (isOfflinePayment ? '접수' : '완료');
+        var message = (summary.productName || '상품')
+            + ' · 주문번호 #' + summary.orderNo
+            + ' · ₩' + Number(summary.price || 0).toLocaleString()
+            + ' · ' + statusLabel;
+
+        showToast(title + ' — ' + message);
+        if (window.MockData && typeof window.MockData.enqueueNotification === 'function') {
+            window.MockData.enqueueNotification({
+                userId: user.id,
+                title: title,
+                message: message,
+                type: 'shopping',
+                href: './explore2.html?tab=shopping',
+                dedupeKey: 'test-shop-order:' + summary.orderNo + ':' + summary.paymentMethod,
+                createdAt: orderedAt,
+                workId: summary.workId
+            });
+        }
+    }
+
+    function roleForReservation(user) {
+        if (user.role === 'ROLE_MANAGER') return 'manager';
+        if (user.role === 'ROLE_HELPER') return 'helper';
+        return 'general';
+    }
+
+    function ratioForRole(role) {
+        return role === 'manager' ? 1.5 : (role === 'helper' ? 1.3 : 1.2);
+    }
+
+    function activateUser(user) {
+        if (!user || !window.AuthManager || !window.AuthManager.login(user.email)) {
+            throw new Error('선택한 회원의 테스트 로그인 정보를 준비하지 못했습니다.');
+        }
+    }
+
+    function renderUserSummary() {
+        var user = selectedUser();
+        if (!user) return;
+        document.getElementById('user-summary').innerHTML = '<b>' + escapeHtml(user.name) + '</b><span class="role">' + escapeHtml(user.role) + '</span><br>' + escapeHtml(user.email || '') + ' · 누적 ' + Number(user.workedHours || 0) + '시간';
+        renderManagerLinks(user);
+        renderReservations();
+        renderOrderCart();
+        renderResults();
+    }
+
+    function renderManagerLinks(user) {
+        var container = document.getElementById('manager-links');
+        var description = document.getElementById('manager-description');
+        var isManager = user && user.role === 'ROLE_MANAGER';
+        var managerWorks = getTestWorks().filter(function (work) { return !!work.managerLink; });
+        description.textContent = isManager ? '선택한 매니저로 로그인한 뒤 원하는 관리자 콘솔을 새 창에서 엽니다.' : '매니저 권한(ROLE_MANAGER) 회원을 선택해야 관리자 콘솔을 열 수 있습니다.';
+        container.innerHTML = managerWorks.map(function (work) {
+            return '<button type="button" ' + (isManager ? '' : 'disabled') + ' onclick="openManagerPage(' + Number(work.workId) + ')">' + escapeHtml(work.workName) + ' 관리자</button>';
+        }).join('') || '<span class="empty">연결된 관리자 콘솔이 없습니다.</span>';
+    }
+
+    function renderSlots() {
+        var work = selectedWork();
+        var slotData = work && window.MockData && window.MockData.getWorkTimeSlots ? window.MockData.getWorkTimeSlots(work.workId) : null;
+        var slots = slotData && Array.isArray(slotData.slots) ? slotData.slots : [];
+        slotSelect.innerHTML = slots.map(function (slot) { return '<option value="' + slot.slot + '">' + escapeHtml(slot.time) + ' · ' + escapeHtml(slot.label) + '</option>'; }).join('');
+    }
+
+    function renderReservations() {
+        var user = selectedUser();
+        var reservations = user ? window.FactoryStore.getReservations({ userId: user.id }) : [];
+        reservationSelect.innerHTML = reservations.length ? reservations.map(function (reservation) {
+            var slotText = window.MockData.formatWorkSlotTime(reservation.workId, reservation.slot, reservation.time);
+            var status = reservation.workStatus || 'reserved';
+            return '<option value="' + reservation.id + '">' + escapeHtml(reservation.workName || ('일 #' + reservation.workId)) + ' · ' + escapeHtml(reservation.date) + ' ' + escapeHtml(slotText) + ' · ' + escapeHtml(status) + '</option>';
+        }).join('') : '<option value="">출근할 예약이 없습니다. 먼저 예약을 만드세요.</option>';
+    }
+
+    function renderResults() {
+        var user = selectedUser();
+        var list = document.getElementById('result-list');
+        if (!user) { list.innerHTML = ''; return; }
+        var reservations = window.FactoryStore.getReservations({ userId: user.id });
+        var orders = window.FactoryStore.getShopOrders({ userId: user.id });
+        list.innerHTML = [
+            '<li><span>예약</span><b>' + reservations.length + '건</b></li>',
+            '<li><span>출근 완료/진행</span><b>' + reservations.filter(function (item) { return ['ready', 'working', 'checked_in'].includes(item.workStatus); }).length + '건</b></li>',
+            '<li><span>상품 주문</span><b>' + orders.length + '건</b></li>'
+        ].join('');
+    }
+
+    window.createReservation = function () {
+        var user = selectedUser();
+        var work = selectedWork();
+        var date = document.getElementById('reservation-date').value;
+        var slot = Number(slotSelect.value);
+        if (!user || !work || !date || Number.isNaN(slot)) { showToast('회원, 일, 날짜와 시간을 모두 선택하세요.'); return; }
+        var duplicate = window.FactoryStore.getReservations({ userId: user.id }).some(function (reservation) {
+            return String(reservation.workId) === String(work.workId) && reservation.date === date && String(reservation.slot) === String(slot) && !['completed', 'absent', 'early_left'].includes(reservation.workStatus);
+        });
+        if (duplicate) { showToast('같은 회원·일·날짜·시간 예약이 이미 있습니다.'); return; }
+        activateUser(user);
+        var role = roleForReservation(user);
+        var slotInfo = window.MockData.getWorkSlot(work.workId, slot);
+        window.FactoryStore.dispatch({ type: 'ADD_RESERVATION', payload: {
+            id: Date.now(), userId: user.id, userName: user.name, workId: work.workId,
+            workName: work.workName, brandName: work.brandName, iconUrl: work.iconUrl,
+            date: date, slot: slot, time: slotInfo ? slotInfo.time : '', slotLabel: slotInfo ? slotInfo.label : '',
+            role: role, ratio: ratioForRole(role), workStatus: 'reserved', createdAt: new Date().toISOString()
+        }});
+        renderReservations(); renderResults();
+        showToast(user.name + ' 회원의 ' + work.workName + ' 예약을 만들었습니다.');
+    };
+
+    window.addToOrderCart = function () {
+        var user = selectedUser();
+        var product = selectedWorkProducts().find(function (item) { return String(item.productId || item.productCode || item.id) === productSelect.value; });
+        var quantity = Math.max(1, Number(document.getElementById('order-qty').value) || 1);
+        if (!user || !product) { showToast('회원과 상품을 선택하세요.'); return; }
+        var cart = currentCart();
+        var productId = product.productId || product.productCode || product.id;
+        var existing = cart.find(function (item) { return String(item.productId) === String(productId); });
+        if (existing) existing.qty += quantity;
+        else cart.push({ productId: productId, product: product, qty: quantity });
+        renderOrderCart();
+        showToast(product.name + ' ' + quantity + '개를 주문 목록에 담았습니다.');
+    };
+
+    window.clearOrderCart = function () {
+        var key = currentCartKey();
+        if (!key) return;
+        cartsByUser[key] = [];
+        renderOrderCart();
+    };
+
+    function createKmeatOrder(user, work, cart, paymentMethod) {
+        var isOfflinePayment = paymentMethod === 'offline';
+        var now = new Date();
+        var orderedAt = now.toISOString();
+        var orderNo = 'KM-' + String(now.getHours()).padStart(2, '0')
+            + String(now.getMinutes()).padStart(2, '0')
+            + String(now.getSeconds()).padStart(2, '0')
+            + String(now.getMilliseconds()).padStart(3, '0');
+        var items = cart.map(function (line) {
+            var product = line.product;
+            var unitPrice = Number(product.price) || 0;
+            return {
+                id: product.productId || product.productCode || product.id,
+                name: product.name,
+                price: unitPrice,
+                quantity: line.qty,
+                unit: product.unit || '개',
+                subtotal: unitPrice * line.qty
+            };
+        });
+        var total = items.reduce(function (sum, item) { return sum + item.subtotal; }, 0);
+        var estimate = window.MockData && typeof window.MockData.estimateKmeatOrderTime === 'function'
+            ? window.MockData.estimateKmeatOrderTime({ items: items })
+            : null;
+        var cooking = window.MockData && typeof window.MockData.buildKmeatCookingSequence === 'function'
+            ? window.MockData.buildKmeatCookingSequence({ items: items })
+            : null;
+        var rawOrder = {
+            orderNo: orderNo,
+            tableId: '테이블 TEST-01',
+            workId: 6,
+            brand: 'K-Meat',
+            storeName: '불고기구이 K-Meat',
+            items: items,
+            total: total,
+            rounds: [{ round: 1, items: items, total: total, orderedAt: orderedAt }],
+            orderFinalized: false,
+            status: 'accepted',
+            kitchenStage: isOfflinePayment ? 'payment_waiting' : 'ordered',
+            estimatedMinutes: estimate ? estimate.totalMinutes : null,
+            firstServeMinutes: estimate ? estimate.firstServeMinutes : null,
+            cookingSequence: cooking ? cooking.sequence : [],
+            userId: String(user.id),
+            userName: user.name,
+            paymentStatus: isOfflinePayment ? 'offline_waiting' : 'paid',
+            paymentMethod: paymentMethod,
+            paymentRequestedAt: isOfflinePayment ? orderedAt : null,
+            paymentCompletedAt: isOfflinePayment ? null : orderedAt,
+            orderedAt: orderedAt
+        };
+
+        var kmeatOrders = window.MockData && typeof window.MockData.getKmeatOrders === 'function'
+            ? window.MockData.getKmeatOrders()
+            : [];
+        localStorage.setItem('bulgogi_order_history', JSON.stringify([rawOrder].concat(kmeatOrders)));
+
+        var firstItem = items[0] || {};
+        var productName = items.length > 1
+            ? firstItem.name + ' 외 ' + (items.length - 1) + '개'
+            : (firstItem.name || 'K-Meat 매장 주문');
+        var totalQty = items.reduce(function (sum, item) { return sum + item.quantity; }, 0) || 1;
+        var shopOrder = {
+            id: 'bulgogi_' + orderNo,
+            bundleId: 'test-kmeat-' + now.getTime(),
+            orderNo: orderNo,
+            userId: user.id,
+            userName: user.name,
+            userEmail: user.email,
+            workId: work.workId,
+            productId: 'bulgogi_dine_in',
+            productName: productName,
+            brandName: 'K-Meat',
+            items: items,
+            unitPrice: Number(firstItem.price) || total,
+            qty: totalQty,
+            price: total,
+            orderDate: dateText(now),
+            orderTime: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0'),
+            dateStr: dateText(now).replaceAll('-', '.'),
+            orderedAt: orderedAt,
+            createdAt: orderedAt,
+            payMethod: isOfflinePayment ? '현장 결제' : '온라인 정산 금액 결제',
+            paymentMethod: paymentMethod,
+            paymentStatus: isOfflinePayment ? 'offline_waiting' : 'paid',
+            paymentRequestedAt: isOfflinePayment ? orderedAt : null,
+            paymentCompletedAt: isOfflinePayment ? null : orderedAt,
+            status: 'pending',
+            kitchenStatus: isOfflinePayment ? 'payment_waiting' : 'queued',
+            kitchenStage: rawOrder.kitchenStage,
+            fulfillmentType: 'pickup',
+            orderType: 'dine_in',
+            tableId: rawOrder.tableId,
+            img: './images/beef_500.png'
+        };
+        window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: shopOrder });
+        window.dispatchEvent(new Event('storage'));
+        return { rawOrder: rawOrder, shopOrder: shopOrder };
+    }
+
+    window.createOrder = function () {
+        var user = selectedUser();
+        var work = selectedWork();
+        var cart = currentCart();
+        var paymentMethod = document.getElementById('order-payment-method').value;
+        var isOfflinePayment = paymentMethod === 'offline';
+        if (!user || !work || !cart.length) { showToast('상품을 주문 목록에 먼저 담으세요.'); return; }
+        activateUser(user);
+        if (String(work.workId) === '6') {
+            var kmeatResult = createKmeatOrder(user, work, cart, paymentMethod);
+            cartsByUser[currentCartKey()] = [];
+            renderOrderCart();
+            renderResults();
+            notifyProductOrder(user, kmeatResult.shopOrder);
+            return;
+        }
+        var now = new Date();
+        var bundleId = 'test-bundle-' + now.getTime();
+        var orderNo = String(Math.floor(Math.random() * 900) + 100);
+        var createdOrders = [];
+        cart.forEach(function (line, index) {
+            var product = line.product;
+            var totalPrice = Number(product.price || 0) * line.qty;
+            var order = {
+                id: bundleId + '-' + index, bundleId: bundleId, orderNo: orderNo,
+                userId: user.id, userName: user.name, userEmail: user.email, workId: work.workId,
+                productId: line.productId, productName: product.name, brandName: product.brand || '',
+                unitPrice: Number(product.price || 0), qty: line.qty, price: totalPrice,
+                orderDate: dateText(now), dateStr: dateText(now).replaceAll('-', '.'),
+                payMethod: isOfflinePayment ? '현장 결제' : '온라인 정산 금액 결제',
+                paymentMethod: paymentMethod,
+                paymentStatus: isOfflinePayment ? 'offline_waiting' : 'paid',
+                paymentRequestedAt: isOfflinePayment ? now.toISOString() : null,
+                paymentCompletedAt: isOfflinePayment ? null : now.toISOString(),
+                status: isOfflinePayment ? 'pending' : 'completed',
+                kitchenStatus: isOfflinePayment ? 'payment_waiting' : 'received',
+                fulfillmentType: product.isDelivery ? 'delivery' : 'pickup',
+                deliveryStatus: product.isDelivery ? 'ordered' : null, createdAt: now.toISOString()
+            };
+            window.FactoryStore.dispatch({ type: 'ADD_SHOP_ORDER', payload: order });
+            createdOrders.push(order);
+            if (String(work.workId) === '7' && window.MockData
+                && typeof window.MockData.ensureBurgerOrdersForShopRecord === 'function') {
+                window.MockData.ensureBurgerOrdersForShopRecord(order);
+            }
+            if (product.brand === 'AFood' && window.MockData && window.MockData.addKimchiDeliveryOrder) {
+                window.MockData.addKimchiDeliveryOrder({ productId: line.productId, productName: product.name, quantity: line.qty, unitPrice: order.unitPrice, customerName: user.name, customerEmail: user.email, shopOrderId: order.id, createdAt: order.createdAt });
+            }
+        });
+        cartsByUser[currentCartKey()] = [];
+        renderOrderCart();
+        renderResults();
+        var firstOrder = createdOrders[0] || {};
+        notifyProductOrder(user, {
+            orderNo: orderNo,
+            workId: work.workId,
+            brandName: firstOrder.brandName || work.brandName || work.workName,
+            productName: createdOrders.length > 1
+                ? firstOrder.productName + ' 외 ' + (createdOrders.length - 1) + '종'
+                : firstOrder.productName,
+            price: createdOrders.reduce(function (sum, order) { return sum + Number(order.price || 0); }, 0),
+            paymentMethod: paymentMethod,
+            orderedAt: now.toISOString()
+        });
+    };
+
+    window.openManagerPage = function (workId) {
+        var user = selectedUser();
+        var work = getTestWorks().find(function (item) { return String(item.workId) === String(workId); });
+        if (!user || user.role !== 'ROLE_MANAGER' || !work || !work.managerLink) { showToast('ROLE_MANAGER 회원만 관리자 콘솔을 열 수 있습니다.'); return; }
+        activateUser(user);
+        window.open(work.managerLink, '_blank');
+    };
+
+    window.checkInAndOpenWork = function () {
+        var user = selectedUser();
+        var reservationId = reservationSelect.value;
+        var reservation = window.FactoryStore.getReservations({ userId: user && user.id }).find(function (item) { return String(item.id) === String(reservationId); });
+        if (!user || !reservation) { showToast('출근할 예약을 먼저 선택하세요.'); return; }
+        if (['completed', 'absent', 'early_left'].includes(reservation.workStatus)) { showToast('종료 또는 결근 처리된 예약은 출근할 수 없습니다.'); return; }
+        activateUser(user);
+        var now = new Date().toISOString();
+        window.FactoryStore.dispatch({ type: 'UPDATE_RESERVATION', payload: {
+            id: reservation.id, match: { userId: reservation.userId, workId: reservation.workId, date: reservation.date, slot: reservation.slot },
+            changes: { workStatus: 'ready', checkInAt: now, workStartedAt: now, preWorkStatus: 'completed', lastActivityAt: now,
+                checkInSteps: { qr:true, lockerRoom:true, lockerNumber:true, clothes:true, uniform:true, handWash:true, sanitizer:true, handPhoto:true, shopEntry:true } }
+        }});
+        var updated = window.FactoryStore.getReservations({ userId: user.id }).find(function (item) { return String(item.id) === String(reservation.id); });
+        sessionStorage.setItem('selected_reservation', JSON.stringify(updated));
+        if (window.MockData && window.MockData.setWorkEntryContext) window.MockData.setWorkEntryContext(reservation.workId, 'real');
+        var work = getTestWorks().find(function (item) { return String(item.workId) === String(reservation.workId); });
+        var target = (work && work.workerLink) || (String(reservation.workId) === '2' ? 'uton_real.html' : (window.MockData.getWorkEntryPage ? window.MockData.getWorkEntryPage(reservation.workId, 'real') : 'work_detail.html?id=' + reservation.workId));
+        window.open(target, '_blank');
+    };
+
+    window.openMypage = function () {
+        var user = selectedUser();
+        if (!user) return;
+        activateUser(user);
+        window.open('mypage2.html', '_blank');
+    };
+
+    function renderProducts() {
+        var products = selectedWorkProducts();
+        productSelect.innerHTML = products.map(function (product) {
+            var id = product.productId || product.productCode || product.id;
+            return '<option value="' + escapeHtml(id) + '">' + escapeHtml(product.name) + ' · ₩' + Number(product.price || 0).toLocaleString() + '</option>';
+        }).join('') || '<option value="">등록된 상품이 없습니다.</option>';
+        updateOrderTotal();
+    }
+
+    function updateOrderTotal() {
+        var product = selectedWorkProducts().find(function (item) { return String(item.productId || item.productCode || item.id) === productSelect.value; });
+        var quantity = Math.max(1, Number(document.getElementById('order-qty').value) || 1);
+        document.getElementById('order-total').textContent = '₩' + (Number(product && product.price || 0) * quantity).toLocaleString();
+    }
+
+    function renderOrderCart() {
+        var cart = currentCart();
+        var container = document.getElementById('order-cart');
+        if (!cart.length) { container.textContent = '주문 목록이 비어 있습니다. 상품과 수량을 선택해 담으세요.'; return; }
+        var total = cart.reduce(function (sum, item) { return sum + Number(item.product.price || 0) * item.qty; }, 0);
+        container.innerHTML = cart.map(function (item) { return escapeHtml(item.product.name) + ' × ' + item.qty; }).join('<br>') + '<hr style="border:0;border-top:1px solid #4b587d;margin:8px 0">합계 ₩' + total.toLocaleString();
+    }
+
+    function init() {
+        if (!window.FactoryStore || !window.AuthManager) { document.body.innerHTML = '<p style="padding:24px">테스트 화면에 필요한 공통 스크립트를 불러오지 못했습니다.</p>'; return; }
+        var users = getUsers();
+        userSelect.innerHTML = users.map(function (user) { return '<option value="' + user.id + '">' + escapeHtml(user.name) + ' · ' + escapeHtml(user.role) + '</option>'; }).join('');
+        workSelect.innerHTML = getTestWorks().map(function (work) { return '<option value="' + work.workId + '">' + escapeHtml(work.workName) + ' · ' + escapeHtml(work.brandName) + '</option>'; }).join('');
+        document.getElementById('reservation-date').value = dateText(new Date());
+        userSelect.addEventListener('change', renderUserSummary);
+        workSelect.addEventListener('change', function () { renderSlots(); renderProducts(); renderOrderCart(); });
+        productSelect.addEventListener('change', updateOrderTotal);
+        document.getElementById('order-qty').addEventListener('input', updateOrderTotal);
+        renderSlots(); renderProducts(); renderUserSummary();
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>

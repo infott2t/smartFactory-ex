@@ -219,18 +219,82 @@ function startServer() {
     await shop.waitForTimeout(250);
     await shop.click('.pay-choice[data-method="offline"]');
     await shop.click('#pay-submit');
+    await shop.waitForTimeout(200);
+    assert(await shop.isVisible('#offline-qr-modal'), '현장결제 선택 시 QR 데모 화면 표시');
+    const beforeQrCount = await shop.evaluate(() =>
+      window.MockData.getBurgerOrders().filter(o => o.status === 'ordered').length);
+    assert(beforeQrCount === 0, 'QR을 찍기 전에는 현장결제 주문을 생성하지 않음');
+    await shop.click('#offline-qr-reader');
     await shop.waitForTimeout(700);
 
     const second = await shop.evaluate(() => {
       const orders = window.MockData.getBurgerOrders().filter(o => o.status === 'ordered');
-      return { orders, recordId: orders[0].shopRecordId };
+      const record = window.MockData.getShopHistoryRaw().find(r => r.id === orders[0].shopRecordId);
+      return {
+        orders,
+        record,
+        recordId: orders[0].shopRecordId,
+        activeCount: window.MockData.getBurgerActiveOrders()
+          .filter(o => o.shopRecordId === orders[0].shopRecordId).length,
+        balance: window.MockData.getUserSettlementBalance('99')
+      };
     });
-    assert(second.orders.length === 2, '두 번째 통합 주문: 주방 주문 2건');
+    assert(second.orders.length === 2, '두 번째 통합 주문: 현장 결제 대기 주문 2건 생성');
+    assert(second.orders.every(o => o.paymentStatus === 'offline_waiting'
+      && o.paymentQrVerifiedAt && o.paymentQrType === 'burgerqueen_counter'),
+      'QR 데모 인증 후 주방 주문을 현장 결제 대기 상태로 생성');
+    assert(second.record.kitchenStatus === 'payment_waiting'
+      && second.record.paymentDisplayLabel === '현장 결제중', '쇼핑 이력에 현장 결제중 표시');
+    assert(second.activeCount === 0, '결제 완료 전에는 작업자용 진행 주문에도 노출하지 않음');
+    assert(second.balance === 50000, '현장 결제 주문은 정산 자산을 차감하지 않음');
 
-    // 관리자 화면 재동기화 후 첫 메뉴만 조리 시작
+    // 마이페이지에도 현장 결제중 표시
+    const mypage = await context.newPage();
+    track('mypage2', mypage);
+    await mypage.goto(`${baseUrl}/mypage2.html`, { waitUntil: 'domcontentloaded' });
+    await mypage.waitForTimeout(900);
+    const mypageText = await mypage.textContent('#shop-history-container');
+    assert(mypageText.includes('현장 결제중'), '마이페이지 나의 쇼핑에 현장 결제중 표시');
+    assert(!mypageText.includes('-₩ 6,000'), '현장 결제 금액을 정산 자산 차감처럼 표시하지 않음');
+
+    // 관리자 화면에는 별도 현장 결제중 목록으로 표시되고 진행 중 주문에는 아직 나오지 않음
+    await mgr.waitForTimeout(3200);
+    const offlineText = await mgr.textContent('#dash-offline-payments');
+    assert(offlineText.includes('최현일') && offlineText.includes('결제 요청'), '관리자 현장 결제중에 사용자와 결제 요청 시간 표시');
+    assert((await mgr.$$('#dash-offline-payments button:has-text("결제 완료")')).length === 1,
+      '통합 주문 단위 결제 완료 버튼 표시');
+    await mgr.click('li[data-tab="orders"]');
+    await mgr.waitForTimeout(300);
+    assert((await mgr.$$('#orders-list button:has-text("조리 지시")')).length === 0,
+      '결제 완료 전에는 진행 중 주문에 나타나지 않음');
+
+    // 마이페이지 QR을 찍으면 현장 결제가 완료되고 그때 주문이 접수됨
+    await mypage.click('#shop-history-container button:has-text("QR 찍고 현장결제")');
+    assert(await mypage.isVisible('#mypage-offline-qr-modal'), '마이페이지 현장결제 QR 데모 화면 표시');
+    await mypage.click('#mypage-qr-demo');
+    await mypage.waitForTimeout(900);
+
+    const paidState = await mypage.evaluate(recordId => ({
+      orders: window.MockData.getBurgerOrdersByShopRecord(recordId),
+      activeCount: window.MockData.getBurgerActiveOrders().filter(o => o.shopRecordId === recordId).length,
+      record: window.MockData.getShopHistoryRaw().find(r => r.id === recordId),
+      balance: window.MockData.getUserSettlementBalance('99')
+    }), second.recordId);
+    assert(paidState.orders.every(o => o.paymentStatus === 'paid' && o.paymentCompletedAt
+      && o.paymentConfirmationMethod === 'qr_demo' && o.paymentQrVerifiedAt),
+      '마이페이지 QR 클릭 시 현장 결제 완료 시각과 QR 인증 기록 저장');
+    assert(paidState.record.paymentDisplayLabel === '현장 결제 완료'
+      && paidState.record.kitchenStatus === 'queued', 'QR 결제 후 쇼핑 이력을 결제 완료·조리 대기로 동기화');
+    assert(paidState.activeCount === 2, 'QR 현장결제 완료 후에만 작업자용 진행 주문에 노출');
+    assert(paidState.balance === 50000, 'QR 현장결제 완료 후에도 정산 자산 유지');
+
     await mgr.waitForTimeout(3200);
     await mgr.click('li[data-tab="orders"]');
     await mgr.waitForTimeout(300);
+    assert((await mgr.$$('#orders-list button:has-text("조리 지시")')).length === 2,
+      'QR 현장결제 완료 후 관리자 진행 중 주문에 메뉴 2건 표시');
+
+    // 첫 메뉴만 조리 시작
     await mgr.click('#orders-list button:has-text("조리 지시")');
     await mgr.waitForTimeout(500);
     const partial = await mgr.evaluate(recordId => ({

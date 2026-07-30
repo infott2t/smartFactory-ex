@@ -549,7 +549,7 @@
 
     <!-- 스크립트 모듈 연동 -->
     <script src="./js/jquery-3.7.1.min.js"></script>
-    <script src="./js/store.js"></script>
+    <script src="./js/store.js?v=20260730d"></script>
     <script src="./js/auth.js"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
 
@@ -747,7 +747,8 @@
                     message: '주문번호 ' + orderNo + '번 · ' + orderQty + '개 · ₩' + totalPrice.toLocaleString() + ' · 마이페이지에서 배송 상태를 확인하세요.',
                     type: 'shopping',
                     href: './explore2.html?tab=shopping',
-                    dedupeKey: 'kimchi-order:' + orderItem.id
+                    dedupeKey: 'kimchi-order:' + orderItem.id,
+                    workId: 1
                 });
             }
 

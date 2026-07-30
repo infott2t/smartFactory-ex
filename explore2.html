@@ -10,7 +10,7 @@
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
-    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/store.js?v=20260730d" type="text/javascript"></script>
     <script src="./js/shop-order-detail.js?v=20260728b" type="text/javascript"></script>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#09031f">
@@ -20,9 +20,38 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="/js/pwa.js" defer></script>
     <link rel="stylesheet" href="./css/app-footer.css?v=1.0.0">
-    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.1">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.3">
     <script src="./js/app-footer.js?v=1.0.0" defer></script>
-    <script src="./js/app-notifications.js?v=1.0.1" defer></script>
+    <script src="./js/app-notifications.js?v=1.0.3" defer></script>
+    <style>
+        .explore-qr-modal {
+            display: none; position: fixed; inset: 0; z-index: 1100;
+            padding: 20px; background: rgba(0,0,0,.84);
+            align-items: center; justify-content: center;
+        }
+        .explore-qr-modal.show { display: flex; }
+        .explore-qr-card {
+            width: 100%; max-width: 390px; padding: 20px; border-radius: 20px;
+            background: #17152b; border: 1px solid rgba(255,255,255,.1);
+            box-shadow: 0 22px 60px rgba(0,0,0,.48);
+        }
+        .explore-qr-demo {
+            width: 100%; min-height: 220px; margin-top: 14px; border-radius: 16px;
+            border: 2px dashed #fbbf24; background: rgba(245,158,11,.08);
+            color: var(--text-main); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 8px;
+            font: inherit; cursor: pointer;
+        }
+        .explore-qr-demo i { font-size: 58px; color: #fbbf24; }
+        .explore-qr-demo:active { transform: scale(.99); }
+        .explore-qr-status { margin-top: 12px; text-align: center; color: var(--text-sub); font-size: 12px; line-height: 1.6; }
+        .explore-qr-status.ok { color: #34d399; font-weight: 800; }
+        .explore-qr-close {
+            width: 100%; min-height: 44px; margin-top: 14px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.06);
+            color: var(--text-main); font: inherit; font-weight: 800; cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
@@ -134,6 +163,21 @@
         </main>
     </div>
 
+    <div class="explore-qr-modal" id="explore-offline-qr-modal"
+        onclick="if(event.target===this)window.closeExploreOfflineQr()">
+        <div class="explore-qr-card">
+            <div style="font-size:17px;font-weight:800"><i class="bi bi-qr-code-scan" style="color:#fbbf24"></i> 현장결제 QR</div>
+            <div id="explore-qr-order-info" style="margin-top:10px;color:var(--text-sub);font-size:12px;line-height:1.7"></div>
+            <button type="button" class="explore-qr-demo" id="explore-qr-demo" onclick="window.simulateExploreOfflineQrPayment()">
+                <i class="bi bi-qr-code-scan"></i>
+                <b>데모: QR코드 찍기</b>
+                <span style="font-size:12px;color:var(--text-sub)">클릭하면 현장결제가 완료됩니다.</span>
+            </button>
+            <div class="explore-qr-status" id="explore-qr-status">QR코드를 찍기 전에는 주문이 접수되지 않습니다.</div>
+            <button type="button" class="explore-qr-close" onclick="window.closeExploreOfflineQr()">취소</button>
+        </div>
+    </div>
+
     <script src="./js/jquery-3.7.1.min.js"></script>
     <script>
         $(document).ready(function () {
@@ -170,6 +214,8 @@
             let currentSortDir = 'desc';
             const selectedHistoryById = {};
             const selectedReservationById = {};
+            let pendingExploreOfflineQrOrderId = null;
+            let exploreQrSubmitting = false;
 
             window.openExploreHistoryDetail = function(historyId) {
                 const key = String(historyId);
@@ -245,13 +291,41 @@
 
             function getCurrentUserShopHistory() {
                 const user = getCurrentUser();
-                const currentUserId = user && user.id !== undefined && user.id !== null ? String(user.id) : null;
                 const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [], utonShopHistory: [] };
-                const shopHistory = window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function'
-                    ? window.FactoryStore.getShopOrders()
-                    : ([]
-                        .concat(Array.isArray(state.shopHistory) ? state.shopHistory : [])
-                        .concat(Array.isArray(state.utonShopHistory) ? state.utonShopHistory : []));
+                const sources = [];
+                if (window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function') {
+                    sources.push(window.FactoryStore.getShopOrders());
+                }
+                sources.push(state.shopHistory, state.utonShopHistory);
+                ['kimp_shop_history', 'uton_shop_history'].forEach(storageKey => {
+                    try {
+                        const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                        if (Array.isArray(stored)) sources.push(stored);
+                    } catch (e) {}
+                });
+
+                const seen = new Set();
+                const shopHistory = sources
+                    .filter(Array.isArray)
+                    .flat()
+                    .filter(item => {
+                        if (!item) return false;
+                        const identity = item.id !== undefined && item.id !== null
+                            ? `id:${item.id}`
+                            : `order:${item.orderNo || ''}:${item.userId || item.userName || ''}:${item.orderedAt || item.orderDate || ''}`;
+                        if (seen.has(identity)) return false;
+                        seen.add(identity);
+                        return true;
+                    });
+
+                const userAliases = new Set();
+                [user && user.id, user && user.userId, user && user.email, user && user.name, sessionStorage.getItem('user-id')]
+                    .forEach(value => {
+                        if (value === undefined || value === null || String(value).trim() === '') return;
+                        const normalized = String(value).trim();
+                        userAliases.add(normalized);
+                        if (normalized.startsWith('local-')) userAliases.add(normalized.slice(6));
+                    });
 
                 return shopHistory.filter(item => {
                     if (!item) return false;
@@ -259,8 +333,9 @@
                         item.userId !== null &&
                         String(item.userId).trim() !== '';
                     if (!hasOrderUserId) return true;
-                    if (currentUserId === null) return false;
-                    return String(item.userId) === currentUserId;
+                    const orderUserId = String(item.userId).trim();
+                    if (userAliases.has(orderUserId) || userAliases.has(orderUserId.replace(/^local-/, ''))) return true;
+                    return !!(user && user.name && item.userName && String(item.userName) === String(user.name));
                 });
             }
 
@@ -327,6 +402,59 @@
                     brandName: (product && product.brand) || item.brandName || workClass.brandName || '상품',
                     isDelivery: fulfillmentType === 'delivery'
                 };
+            }
+
+            function getShopOrderDateValue(item) {
+                const directCandidates = [
+                    item && item.orderedAt,
+                    item && item.createdAt,
+                    item && item.paymentCompletedAt,
+                    item && item.updatedAt,
+                    item && item.completedAt
+                ];
+                for (const value of directCandidates) {
+                    if (!value) continue;
+                    const parsed = new Date(value);
+                    if (!Number.isNaN(parsed.getTime())) return parsed;
+                }
+
+                const orderDate = String((item && item.orderDate) || '').trim().replace(/\./g, '-');
+                const orderTime = String((item && item.orderTime) || '').trim();
+                if (orderDate) {
+                    const parsed = new Date(`${orderDate}T${orderTime || '00:00:00'}`);
+                    if (!Number.isNaN(parsed.getTime())) return parsed;
+                }
+
+                const dateStr = String((item && item.dateStr) || '').trim();
+                const koreanMatch = dateStr.match(/(?:(\d{4})[.\-/년]\s*)?(\d{1,2})[.\-/월]\s*(\d{1,2})일?(?:\s+(\d{1,2})(?:[:시]\s*)(\d{1,2})?)?/);
+                if (koreanMatch) {
+                    const now = new Date();
+                    const parsed = new Date(
+                        Number(koreanMatch[1]) || now.getFullYear(),
+                        Number(koreanMatch[2]) - 1,
+                        Number(koreanMatch[3]),
+                        Number(koreanMatch[4]) || 0,
+                        Number(koreanMatch[5]) || 0
+                    );
+                    if (!Number.isNaN(parsed.getTime())) return parsed;
+                }
+                return null;
+            }
+
+            function formatShopOrderDateTime(item) {
+                const parsed = getShopOrderDateValue(item);
+                if (parsed) {
+                    const yyyy = parsed.getFullYear();
+                    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+                    const dd = String(parsed.getDate()).padStart(2, '0');
+                    const hh = String(parsed.getHours()).padStart(2, '0');
+                    const min = String(parsed.getMinutes()).padStart(2, '0');
+                    return `${yyyy}.${mm}.${dd} ${hh}:${min}`;
+                }
+
+                const fallbackDate = String((item && (item.dateStr || item.orderDate)) || '주문 날짜 확인 중').trim();
+                const fallbackTime = String((item && item.orderTime) || '').trim();
+                return [fallbackDate, fallbackTime || '시간 확인 중'].join(' ');
             }
 
             function clearActiveShopOrderState(target, restoreOrderCount) {
@@ -399,6 +527,119 @@
                 clearActiveShopOrderState(target, false);
                 renderCurrentTab(3);
                 alert(`주문번호 #${target.orderNo || '-'} 수령 완료\n음식을 정상적으로 수령하였습니다. 맛있게 드세요!`);
+            };
+
+            window.openExploreOfflineQr = function(id) {
+                const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+                if (!target || target.paymentMethod !== 'offline' || target.paymentStatus !== 'offline_waiting') {
+                    alert('현장결제 대기 주문을 찾을 수 없습니다.');
+                    renderCurrentTab(3);
+                    return;
+                }
+                pendingExploreOfflineQrOrderId = String(id);
+                exploreQrSubmitting = false;
+                $('#explore-qr-order-info').html(
+                    `<b style="color:var(--text-main)">${target.productName || '주문 상품'}</b><br>`
+                    + `주문번호 ${target.orderNo || '-'} · 결제금액 ₩${Number(target.price || 0).toLocaleString()}`
+                );
+                $('#explore-qr-status').removeClass('ok').text('QR코드를 찍기 전에는 주문이 접수되지 않습니다.');
+                $('#explore-qr-demo').prop('disabled', false).css('opacity', '1');
+                $('#explore-offline-qr-modal').addClass('show');
+            };
+
+            window.closeExploreOfflineQr = function() {
+                if (exploreQrSubmitting) return;
+                pendingExploreOfflineQrOrderId = null;
+                $('#explore-offline-qr-modal').removeClass('show');
+            };
+
+            window.simulateExploreOfflineQrPayment = function() {
+                if (!pendingExploreOfflineQrOrderId || exploreQrSubmitting) return;
+                const target = getCurrentUserShopHistory()
+                    .find(item => String(item.id) === String(pendingExploreOfflineQrOrderId));
+                if (!target || target.paymentMethod !== 'offline' || target.paymentStatus !== 'offline_waiting') {
+                    alert('이미 결제되었거나 취소된 주문입니다.');
+                    pendingExploreOfflineQrOrderId = null;
+                    $('#explore-offline-qr-modal').removeClass('show');
+                    renderCurrentTab(3);
+                    return;
+                }
+
+                exploreQrSubmitting = true;
+                const now = new Date().toISOString();
+                const isBurgerOrder = String(target.workId || '') === '7'
+                    || String(target.brandName || '').toLowerCase() === 'burgerqueen';
+                const isKmeatOrder = String(target.workId || '') === '6'
+                    || String(target.brandName || '').toLowerCase() === 'k-meat';
+                if (isBurgerOrder && window.MockData
+                    && typeof window.MockData.ensureBurgerOrdersForShopRecord === 'function') {
+                    window.MockData.ensureBurgerOrdersForShopRecord(target);
+                }
+                if (isKmeatOrder && window.MockData
+                    && typeof window.MockData.updateKmeatOrder === 'function') {
+                    window.MockData.updateKmeatOrder(target.orderNo, {
+                        paymentStatus: 'paid',
+                        paymentMethod: 'offline',
+                        paidAt: now,
+                        paymentCompletedAt: now,
+                        kitchenStage: 'ordered'
+                    });
+                }
+                const burgerOrders = window.MockData && typeof window.MockData.getBurgerOrdersByShopRecord === 'function'
+                    ? window.MockData.getBurgerOrdersByShopRecord(target.id)
+                    : [];
+                let result = { ok: true };
+
+                if (burgerOrders.length && window.MockData
+                    && typeof window.MockData.confirmBurgerOfflinePayment === 'function') {
+                    const user = getCurrentUser();
+                    result = window.MockData.confirmBurgerOfflinePayment(target.id, {
+                        id: user && user.id,
+                        name: (user && user.name ? user.name : '고객') + ' QR 결제',
+                        method: 'qr_demo'
+                    });
+                } else if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({
+                        type: 'UPDATE_SHOP_ORDER',
+                        payload: {
+                            id: target.id,
+                            changes: {
+                                paymentStatus: 'paid',
+                                paymentCompletedAt: now,
+                                paymentConfirmationMethod: 'qr_demo',
+                                paymentQrVerifiedAt: now,
+                                paymentQrType: 'explore_demo',
+                                kitchenStatus: 'queued',
+                                shouldShowSpendAmount: false,
+                                paymentDisplayLabel: '현장 결제 완료'
+                            }
+                        }
+                    });
+                } else {
+                    result = { ok: false };
+                }
+
+                if (!result.ok) {
+                    exploreQrSubmitting = false;
+                    alert('현장결제를 완료하지 못했습니다. 주문 상태를 다시 확인해주세요.');
+                    renderCurrentTab(3);
+                    return;
+                }
+
+                if (window.MockData && typeof window.MockData.syncBurgerShopRecords === 'function') {
+                    window.MockData.syncBurgerShopRecords();
+                }
+                $('#explore-qr-status').addClass('ok').html('<i class="bi bi-patch-check-fill"></i> QR 현장결제 완료 · 주문 접수됨');
+                $('#explore-qr-demo').prop('disabled', true).css('opacity', '.65');
+
+                setTimeout(function() {
+                    const orderNo = target.orderNo || '-';
+                    pendingExploreOfflineQrOrderId = null;
+                    exploreQrSubmitting = false;
+                    $('#explore-offline-qr-modal').removeClass('show');
+                    renderCurrentTab(3);
+                    alert(`현장결제가 완료되었습니다.\n주문번호 ${orderNo}\n이제 주문이 진행 목록에 접수됩니다.`);
+                }, 350);
             };
 
             function formatReservationSlotTime(reservation) {
@@ -896,10 +1137,7 @@
 
                         // 날짜 오름차순/내림차순 정렬 적용
                         function parseShopDate(item) {
-                            const dStr = item.orderDate || item.dateStr || '2026-01-01';
-                            const tStr = item.orderTime || '00:00:00';
-                            const cleanedD = dStr.replace(/\./g, '-').trim();
-                            return new Date(cleanedD + 'T' + tStr);
+                            return getShopOrderDateValue(item) || new Date(0);
                         }
 
                         let sortedHistory = [...shopHistory];
@@ -916,17 +1154,34 @@
                             let inlineCancelButtonHtml = "";
                             let inlineReceiveButtonHtml = "";
                             let statusBadgeHtml = "";
-                            const allowedKitchenStatuses = ['queued', 'preparing', 'ready'];
+                            const allowedKitchenStatuses = ['payment_waiting', 'queued', 'preparing', 'ready'];
                             const kitchenStatus = allowedKitchenStatuses.includes(item.kitchenStatus)
                                 ? item.kitchenStatus
                                 : 'queued';
+                            const isOfflinePaymentWaiting = item.paymentMethod === 'offline'
+                                && item.paymentStatus === 'offline_waiting';
+                            const parseOrderMoney = value => {
+                                if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+                                const parsed = Number(String(value || '').replace(/[^0-9.-]/g, ''));
+                                return Number.isFinite(parsed) ? parsed : 0;
+                            };
+                            const quantity = Math.max(1, Number(item.qty) || 1);
+                            const unitPrice = parseOrderMoney(item.unitPrice);
+                            const storedPrice = parseOrderMoney(item.price);
+                            const orderPrice = Math.max(0, storedPrice || (unitPrice * quantity));
                             const amountHtml = item.shouldShowSpendAmount === false
                                 ? `<div style="font-size: 13px; font-weight: 800; color: var(--text-sub); white-space: nowrap;">${item.paymentDisplayLabel || '주문취소됨'}</div>`
-                                : `<div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">-₩ ${item.price.toLocaleString()}</div>`;
+                                : `<div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">-₩ ${orderPrice.toLocaleString()}</div>`;
 
                             if (item.status === 'pending') {
-                                statusTextHtml = `<div style="color: var(--text-main); font-weight: bold; font-size: 14px;">₩ ${item.price.toLocaleString()}</div>`;
-                                if (kitchenStatus === 'ready') {
+                                statusTextHtml = `<div style="color: var(--text-main); font-weight: bold; font-size: 14px;">₩ ${orderPrice.toLocaleString()}</div>`;
+                                if (isOfflinePaymentWaiting || kitchenStatus === 'payment_waiting') {
+                                    statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">현장 결제중</span>`;
+                                    inlineReceiveButtonHtml = `
+                                        <button type="button" class="res-check-in-btn" style="background:#fbbf24;color:#271b02;border:1px solid rgba(255,255,255,.15);padding:6px 12px;border-radius:12px;font-size:11px;font-weight:800;cursor:pointer;" onclick="event.stopPropagation(); window.openExploreOfflineQr('${item.id}')"><i class="bi bi-qr-code-scan"></i> QR 찍고 현장결제</button>`;
+                                    inlineCancelButtonHtml = `
+                                        <button type="button" class="res-cancel-btn" style="background:rgb(62 62 192);color:#fff;border:1px solid rgba(255,255,255,.15);padding:6px 12px;border-radius:12px;font-size:11px;cursor:pointer;" onclick="event.stopPropagation(); window.cancelShopOrder('${item.id}')">주문 취소</button>`;
+                                } else if (kitchenStatus === 'ready') {
                                     statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">준비 완료</span>`;
                                     inlineReceiveButtonHtml = `
                                         <button type="button" class="res-check-in-btn" style="background: #10b981; color: #07130f; border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 800; cursor: pointer;" onclick="event.stopPropagation(); window.completeShopOrder('${item.id}')">수령하기</button>`;
@@ -963,7 +1218,7 @@
                                     }
                                 }
                                 statusBadgeHtml = `<span style="margin-left: 2px; ${completedStyle} font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">${completedLabel}</span>`;
-                                statusTextHtml = `<div style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">-₩ ${item.price.toLocaleString()}</div>`;
+                                statusTextHtml = `<div style="color: var(--accent-pink); font-weight: bold; font-size: 14px;">-₩ ${orderPrice.toLocaleString()}</div>`;
                                 btnHtml = ``;
                             } else {
                                 statusBadgeHtml = `<span style="margin-left: 2px; background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">상태 확인 중</span>`;
@@ -1001,6 +1256,7 @@
                             }
 
                             const qtyText = (item.qty || 1) + '개';
+                            const orderDateTimeText = formatShopOrderDateTime(item);
                             let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
                             const productPresentation = resolveShopProductPresentation(item);
                             pImg = productPresentation.pImg;
@@ -1019,7 +1275,7 @@
                             <div class="task-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08) !important; min-height: 105px; box-sizing: border-box;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 12px;">
                                     <div style="display: flex; align-items: center; font-size: 12px; color: var(--text-sub);">
-                                        <span>${item.dateStr || item.orderDate} ${item.orderTime ? item.orderTime + ' ' : ''}주문</span>
+                                        <span>${orderDateTimeText} 주문</span>
                                         ${deliveryBadgeHtml}
                                         ${statusBadgeHtml}
                                     </div>

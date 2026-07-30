@@ -3,25 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#ff6b35">
+<meta name="theme-color" content="#111318">
 <title>버거퀸 주문 | BurgerQueen</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <script src="./js/auth.js"></script>
 <script src="./js/auth-guard.js"></script>
-<script src="./js/store.js?v=20260728d"></script>
+<script src="./js/store.js?v=20260730d"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --brand:#ff6b35;--brand-dark:#e63946;--bg:#f5f5f7;--card:#fff;
-  --text:#1a1a2e;--text-sub:#6b7280;--border:#e5e7eb;
-  --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--info:#2563eb;
-  --shadow:0 2px 10px rgba(0,0,0,.07);--radius:14px;
+  color-scheme:dark;
+  --brand:#ff7a45;--brand-dark:#ff5c70;--bg:#111318;--card:#1b1f27;
+  --text:#f3f4f6;--text-sub:#aab2c0;--border:#343b49;
+  --ok:#34d399;--warn:#fbbf24;--danger:#fb7185;--info:#60a5fa;
+  --shadow:0 8px 22px rgba(0,0,0,.28);--radius:14px;
 }
 body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);padding-bottom:120px;-webkit-text-size-adjust:100%}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 .wrap{max-width:560px;margin:0 auto;background:var(--bg);min-height:100vh}
-.topbar{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:12px 14px}
+.topbar{position:sticky;top:0;z-index:60;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:12px 14px}
 .topbar h1{font-size:16px;font-weight:800;display:flex;align-items:center;gap:7px}
 .topbar .back{font-size:20px;color:var(--text)}
 .topbar .brand{margin-left:auto;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-dark));padding:4px 9px;border-radius:999px}
@@ -31,70 +32,70 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 @keyframes cartPulse{50%{transform:scale(1.08)}}
 @media(max-width:380px){.top-cart span{display:none}}
 
-.hero{background:#fff;padding:16px 14px 18px;text-align:center;border-bottom:1px solid var(--border)}
-.hero img{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:cover;border-radius:18px;box-shadow:var(--shadow);background:#f1f2f4}
+.hero{background:var(--card);padding:16px 14px 18px;text-align:center;border-bottom:1px solid var(--border)}
+.hero img{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:cover;border-radius:18px;box-shadow:var(--shadow);background:#2a303b}
 .hero h2{font-size:21px;font-weight:800;margin-top:14px}
 .hero .sum{font-size:13px;color:var(--text-sub);line-height:1.7;margin-top:7px}
 .hero .price{margin-top:11px;font-size:24px;font-weight:800;color:var(--brand-dark)}
 .hero .price small{font-size:12px;color:var(--text-sub);font-weight:600;display:block;margin-top:3px}
 
-.sec{margin:12px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:15px}
+.sec{margin:12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px}
 .sec h3{font-size:14px;font-weight:800;display:flex;align-items:center;gap:7px;margin-bottom:11px}
 .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
 .row:last-child{border-bottom:none}
 .row .k{color:var(--text-sub);font-weight:600}
 .row .v{font-weight:700;text-align:right}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:999px;background:#f4f5f7;color:var(--text-sub)}
+.chip{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:999px;background:#2a303b;color:var(--text-sub)}
 
 .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opt{border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;transition:.15s;background:#fff}
-.opt.active{border-color:var(--brand);background:rgba(255,107,53,.06)}
+.opt{border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;transition:.15s;background:#20252e;color:var(--text)}
+.opt.active{border-color:var(--brand);background:rgba(255,122,69,.14)}
 .opt .t{font-size:14px;font-weight:800;display:flex;align-items:center;gap:6px}
 .opt .p{font-size:17px;font-weight:800;color:var(--brand-dark);margin-top:5px}
 .opt .d{font-size:11px;color:var(--text-sub);margin-top:4px;line-height:1.5}
 .opt:disabled{opacity:.45;cursor:not-allowed}
 
 .qty{display:flex;align-items:center;gap:12px}
-.qty button{width:42px;height:42px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:18px;font-weight:800}
+.qty button{width:42px;height:42px;border-radius:12px;border:1px solid var(--border);background:#20252e;color:var(--text);font-size:18px;font-weight:800}
 .qty span{font-size:18px;font-weight:800;min-width:34px;text-align:center}
 .drink-row{display:flex;gap:8px;margin-top:10px}
-.drink{flex:1;border:2px solid var(--border);border-radius:12px;padding:10px;font-size:13px;font-weight:700;background:#fff}
+.drink{flex:1;border:2px solid var(--border);border-radius:12px;padding:10px;font-size:13px;font-weight:700;background:#20252e;color:var(--text)}
 .drink.active{border-color:var(--info);color:var(--info)}
 
 .notice{border-radius:11px;padding:11px 12px;font-size:12px;line-height:1.7;margin-top:10px}
-.notice.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
-.notice.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
-.notice.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+.notice.info{background:#17263c;border:1px solid #31537d;color:#bfdbfe}
+.notice.warn{background:#3a2b14;border:1px solid #76541b;color:#fde68a}
+.notice.ok{background:#13362d;border:1px solid #27755f;color:#a7f3d0}
 
-.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:11px 14px;display:flex;align-items:center;gap:12px;z-index:70}
+.bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:11px 14px;display:flex;align-items:center;gap:12px;z-index:70}
 .bar .tot{flex:1;min-width:0}
 .bar .tot .l{font-size:11px;color:var(--text-sub);font-weight:700}
 .bar .tot .v{font-size:20px;font-weight:800;color:var(--brand-dark)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:13px 18px;border-radius:12px;font-size:15px;font-weight:800;min-height:52px;border:1px solid transparent}
 .btn:active{transform:scale(.98)}
 .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff}
-.btn-line{background:#fff;color:var(--text);border-color:var(--border)}
+.btn-line{background:#20252e;color:var(--text);border-color:var(--border)}
 .btn-ok{background:var(--ok);color:#fff}
-.btn-danger{background:#fff;color:var(--danger);border-color:rgba(239,68,68,.4)}
+.btn-danger{background:#2c2028;color:var(--danger);border-color:rgba(251,113,133,.5)}
 .btn-block{width:100%}
 .btn-sm{min-height:42px;padding:9px 14px;font-size:13px;border-radius:10px}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
 .pill{font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px}
-.pill-wait{background:rgba(245,158,11,.14);color:#b45309}
-.pill-cook{background:rgba(37,99,235,.1);color:#1d4ed8}
-.pill-ready{background:rgba(16,185,129,.13);color:#047857}
-.pill-done{background:rgba(100,116,139,.13);color:#475569}
-.pill-cancel{background:rgba(148,163,184,.16);color:#475569}
+.pill-wait{background:rgba(251,191,36,.16);color:#fcd34d}
+.pill-cook{background:rgba(96,165,250,.16);color:#93c5fd}
+.pill-ready{background:rgba(52,211,153,.16);color:#6ee7b7}
+.pill-done{background:rgba(148,163,184,.18);color:#cbd5e1}
+.pill-cancel{background:rgba(148,163,184,.16);color:#cbd5e1}
 
 .track{display:flex;gap:6px;margin:11px 0}
-.track div{flex:1;height:6px;border-radius:999px;background:#e9ebef}
+.track div{flex:1;height:6px;border-radius:999px;background:#343b49}
 .track div.on{background:linear-gradient(90deg,var(--brand),var(--brand-dark))}
 
 .menu-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.menu-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;text-align:left;text-decoration:none;color:inherit;display:block}
-.menu-item img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#f1f2f4}
+.menu-item{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#20252e;text-align:left;text-decoration:none;color:inherit;display:block}
+.menu-item img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#2a303b}
 .menu-item .b{padding:9px 10px}
 .menu-item .n{font-size:13px;font-weight:800}
 .menu-item .p{font-size:12px;color:var(--brand-dark);font-weight:800;margin-top:3px}
@@ -103,31 +104,38 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 /* 장바구니 */
 .cart-line{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
 .cart-line:last-child{border-bottom:none}
-.cart-line img{width:52px;height:52px;border-radius:10px;object-fit:cover;background:#f1f2f4;flex-shrink:0}
+.cart-line img{width:52px;height:52px;border-radius:10px;object-fit:cover;background:#2a303b;flex-shrink:0}
 .cart-line .info{flex:1;min-width:0}
 .cart-line .n{font-size:13.5px;font-weight:800}
 .cart-line .d{font-size:11.5px;color:var(--text-sub);margin-top:3px}
 .cart-line .sub{font-size:14px;font-weight:800;color:var(--brand-dark);white-space:nowrap}
 .cart-qty{display:flex;align-items:center;gap:6px}
-.cart-qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:14px;font-weight:800}
+.cart-qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#20252e;color:var(--text);font-size:14px;font-weight:800}
 .cart-qty span{min-width:20px;text-align:center;font-size:13px;font-weight:800}
-.cart-del{color:var(--danger);font-size:11px;font-weight:800;padding:5px 8px;border:1px solid rgba(239,68,68,.3);border-radius:8px;background:#fff;display:inline-flex;align-items:center;gap:4px}
+.cart-del{color:var(--danger);font-size:11px;font-weight:800;padding:5px 8px;border:1px solid rgba(251,113,133,.45);border-radius:8px;background:#2c2028;display:inline-flex;align-items:center;gap:4px}
 
 .modal-back{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;align-items:center;justify-content:center;padding:18px}
 .modal-back.show{display:flex}
-.modal{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto}
 .cart-modal-box{max-width:460px}
 .modal-x{font-size:28px;color:var(--text-sub);line-height:1;padding:2px 6px;border-radius:8px}.modal-x:active{background:var(--bg)}
 .modal h3{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.pay-choice{width:100%;border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;background:#fff;margin-bottom:9px}
-.pay-choice.selected{border-color:var(--brand);background:rgba(255,107,53,.06)}
+.pay-choice{width:100%;border:2px solid var(--border);border-radius:12px;padding:13px;text-align:left;background:#20252e;color:var(--text);margin-bottom:9px}
+.pay-choice.selected{border-color:var(--brand);background:rgba(255,122,69,.14)}
 .pay-choice .t{font-size:14px;font-weight:800}
 .pay-choice .d{font-size:11.5px;color:var(--text-sub);margin-top:4px;line-height:1.5}
 .pay-choice:disabled{opacity:.5;cursor:not-allowed}
 .modal-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 
+.qr-reader{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;background:#0b0d11;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.qr-reader:active{transform:scale(.99);border-color:var(--brand)}
+.qr-placeholder{text-align:center;color:var(--text-sub);padding:20px;font-size:12px;line-height:1.6}
+.qr-placeholder i{display:block;font-size:48px;color:var(--brand);margin-bottom:8px}
+.qr-status{font-size:12px;line-height:1.6;color:var(--text-sub);margin-top:10px;text-align:center}
+.qr-status.error{color:var(--danger)}.qr-status.ok{color:var(--ok);font-weight:800}
+
 .toast-wrap{position:fixed;top:12px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:120;align-items:center;pointer-events:none}
-.toast{background:#fff;border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:12px 14px;font-size:13px;font-weight:700;display:flex;gap:9px;align-items:center;border-left:4px solid var(--brand);max-width:520px;width:100%}
+.toast{background:#252b35;color:var(--text);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.42);padding:12px 14px;font-size:13px;font-weight:700;display:flex;gap:9px;align-items:center;border-left:4px solid var(--brand);max-width:520px;width:100%}
 </style>
 </head>
 <body>
@@ -321,6 +329,27 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   </div>
 </div>
 
+<!-- 현장결제 QR 인증 -->
+<div class="modal-back" id="offline-qr-modal">
+  <div class="modal">
+    <h3><i class="bi bi-qr-code-scan" style="color:var(--brand)"></i> 현장결제 QR 인증</h3>
+    <div class="notice warn" style="margin-top:0">아래 데모 영역에서 <b>현장결제 QR코드 찍기</b>를 완료해야 주문을 접수할 수 있습니다.</div>
+    <div class="qr-reader" id="offline-qr-reader" style="margin-top:12px" role="button" tabindex="0"
+      onclick="simulateOfflineQrScan()"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();simulateOfflineQrScan()}">
+      <div class="qr-placeholder" id="offline-qr-placeholder">
+        <i class="bi bi-qr-code-scan"></i>
+        <b style="color:var(--text);font-size:14px">데모: QR코드 찍기</b><br>
+        이 영역을 클릭해주세요.
+      </div>
+    </div>
+    <div class="qr-status" id="offline-qr-status" role="status">QR코드 영역을 클릭하면 데모 인증이 진행됩니다.</div>
+    <div class="modal-actions">
+      <button class="btn btn-line btn-block" type="button" onclick="cancelOfflineQr()">취소</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
@@ -336,6 +365,8 @@ let qty = 1;
 let payMethod = null;
 let myRecordId = null;     // 진행 중인 내 통합 주문(쇼핑 이력) id
 let notifiedReady = false;
+let offlineQrVerifiedAt = null;
+let paymentSubmitting = false;
 
 function $(id) { return document.getElementById(id); }
 function esc(v) { return String(v === undefined || v === null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
@@ -586,20 +617,97 @@ function goPayment() {
 function pickPay(m) {
   payMethod = m;
   document.querySelectorAll('.pay-choice').forEach(b => b.classList.toggle('selected', b.dataset.method === m));
+  $('pay-submit').innerHTML = m === 'offline'
+    ? '<i class="bi bi-qr-code-scan"></i> QR 찍고 현장결제'
+    : '<i class="bi bi-credit-card"></i> 정산결제하고 주문 접수';
   $('pay-submit').disabled = false;
 }
 
+function isValidOfflinePaymentQr(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return false;
+  const upper = raw.toUpperCase();
+  if (upper === 'BQ-PAY:COUNTER'
+    || upper.startsWith('BURGERQUEEN:OFFLINE:')
+    || upper.startsWith('BQ-PAY:')) return true;
+  try {
+    const data = JSON.parse(raw);
+    if (data && (data.type === 'burger_offline_payment' || data.type === 'burgerqueen_payment')) return true;
+  } catch (e) {}
+  try {
+    const url = new URL(raw);
+    return url.searchParams.get('bq_pay') === 'offline'
+      || /\/burgerqueen\/pay\/?$/i.test(url.pathname);
+  } catch (e) {}
+  return false;
+}
+
+function openOfflineQr() {
+  offlineQrVerifiedAt = null;
+  closeModal('pay-modal');
+  $('offline-qr-status').className = 'qr-status';
+  $('offline-qr-status').textContent = 'QR코드 영역을 클릭하면 데모 인증이 진행됩니다.';
+  $('offline-qr-placeholder').innerHTML = '<i class="bi bi-qr-code-scan"></i>'
+    + '<b style="color:var(--text);font-size:14px">데모: QR코드 찍기</b><br>이 영역을 클릭해주세요.';
+  $('offline-qr-placeholder').style.display = '';
+  $('offline-qr-modal').classList.add('show');
+}
+
+function simulateOfflineQrScan() {
+  if (paymentSubmitting || offlineQrVerifiedAt) return;
+  completeOfflineQrScan('BURGERQUEEN:OFFLINE:COUNTER-DEMO');
+}
+
+function completeOfflineQrScan(rawValue) {
+  if (!isValidOfflinePaymentQr(rawValue)) {
+    $('offline-qr-status').className = 'qr-status error';
+    $('offline-qr-status').textContent = 'BurgerQueen 현장결제 QR이 아닙니다. 카운터 QR을 다시 찍어주세요.';
+    return false;
+  }
+  if (paymentSubmitting) return false;
+  offlineQrVerifiedAt = new Date().toISOString();
+  $('offline-qr-status').className = 'qr-status ok';
+  $('offline-qr-status').innerHTML = '<i class="bi bi-patch-check-fill"></i> 현장결제 QR 인증 완료';
+  setTimeout(function() {
+    closeModal('offline-qr-modal');
+    finalizePayment(false);
+  }, 300);
+  return true;
+}
+
+function cancelOfflineQr() {
+  offlineQrVerifiedAt = null;
+  closeModal('offline-qr-modal');
+  if (cartSummary().lines.length) $('pay-modal').classList.add('show');
+}
+
 function submitPayment() {
-  if (!payMethod) return;
+  if (!payMethod || paymentSubmitting) return;
   const c = cartSummary();
   if (c.lines.length === 0) { closeModal('pay-modal'); return; }
-  const amount = c.total;
   const useSettlement = payMethod === 'settlement';
-  if (useSettlement && balance() < amount) {
+  if (useSettlement && balance() < c.total) {
     alert('정산금액이 부족합니다. 현장 결제를 선택해주세요.');
     return;
   }
+  if (!useSettlement) {
+    openOfflineQr();
+    return;
+  }
+  finalizePayment(true);
+}
 
+function finalizePayment(useSettlement) {
+  if (paymentSubmitting) return;
+  const c = cartSummary();
+  if (c.lines.length === 0) return;
+  if (!useSettlement && !offlineQrVerifiedAt) {
+    alert('현장결제 QR코드를 먼저 찍어주세요.');
+    openOfflineQr();
+    return;
+  }
+  paymentSubmitting = true;
+  const amount = c.total;
   // 1) 장바구니 전체를 한 번에 접수 (메뉴별 주방 주문 + 통합 쇼핑 이력 1건)
   const res = M().createBurgerCartOrder({
     items: c.lines.map(l => ({ menu: l.menu, isSet: l.isSet, drink: l.drink, qty: l.qty })),
@@ -607,9 +715,15 @@ function submitPayment() {
     userName: (currentUser && currentUser.name) || '고객',
     tableId: '픽업 카운터',
     paymentMethod: useSettlement ? 'online_settlement' : 'offline',
-    paymentStatus: useSettlement ? 'paid' : 'offline_waiting'
+    paymentStatus: useSettlement ? 'paid' : 'offline_waiting',
+    paymentQrVerifiedAt: useSettlement ? null : offlineQrVerifiedAt,
+    paymentQrType: useSettlement ? null : 'burgerqueen_counter'
   });
-  if (!res.ok) { alert('주문 접수에 실패했습니다.'); return; }
+  if (!res.ok) {
+    paymentSubmitting = false;
+    alert('주문 접수에 실패했습니다.');
+    return;
+  }
 
   // 2) 나의 쇼핑 미러 레코드 (정산금액 차감은 FactoryStore 가 처리)
   if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
@@ -624,12 +738,14 @@ function submitPayment() {
   myRecordId = res.record.id;
   notifiedReady = false;
   closeModal('pay-modal');
+  closeModal('offline-qr-modal');
 
   if (useSettlement) {
     alert('정산금액 결제가 완료되었습니다.\n' + c.lines.length + '종 · ' + c.count + '개\n차감 ' + won(amount)
       + '\n남은 정산금액 ' + won(balance()) + '\n주문번호 ' + res.groupNo);
   } else {
-    alert('주문이 접수되었습니다.\n주문번호 ' + res.groupNo + '\n카운터에서 ' + won(amount) + ' 을 결제해주세요.');
+    alert('QR 인증이 완료되어 주문이 접수되었습니다.\n주문번호 ' + res.groupNo
+      + '\n카운터에서 ' + won(amount) + ' 을 결제해주세요.');
   }
   toast('🔔 주문이 접수되었습니다. 조리 시작 전까지 취소할 수 있습니다.');
 
@@ -641,10 +757,13 @@ function submitPayment() {
       message: c.lines.length + '종 · ' + c.count + '개 · ₩' + amount.toLocaleString() + ' · 주문번호 ' + res.groupNo + ' · 준비되면 알려드립니다.',
       type: 'shopping',
       href: './explore2.html?tab=shopping',
-      dedupeKey: 'burger-order:' + res.groupNo
+      dedupeKey: 'burger-order:' + res.groupNo,
+      workId: 7
     });
   }
 
+  offlineQrVerifiedAt = null;
+  paymentSubmitting = false;
   renderAll();
 }
 
@@ -685,6 +804,7 @@ const STATUS_INFO = {
   cancelled:{ pill: '<span class="pill pill-cancel"><i class="bi bi-x-circle"></i> 주문 취소</span>', step: 0 }
 };
 const KITCHEN_INFO = {
+  payment_waiting: { pill: '<span class="pill pill-wait"><i class="bi bi-cash-stack"></i> 현장 결제중</span>', step: 0 },
   queued:    { pill: STATUS_INFO.ordered.pill, step: 1 },
   preparing: { pill: STATUS_INFO.cooking.pill, step: 2 },
   ready:     { pill: STATUS_INFO.done.pill, step: 3 },
@@ -713,11 +833,13 @@ function renderOrderStatus() {
     ${lines}
     <div class="row"><span class="k">결제</span><span class="v">${g.paymentMethod === 'online_settlement' ? '정산금액 결제' : '현장 결제'} · ${won(g.total)}</span></div>
     <div class="row"><span class="k">주문 시각</span><span class="v">${fmtTime(g.orderedAt)}</span></div>
-    ${g.state.kitchenStatus === 'ready'
-      ? '<div class="notice ok"><b>🔔 조리가 완료되었습니다!</b><br>카운터에서 상품을 받아가세요. 수령 후 아래 [수령 완료] 를 눌러주세요.</div>'
-      : (anyCooking
-        ? '<div class="notice warn">조리가 시작되어 <b>주문 취소가 불가</b>합니다. 잠시만 기다려주세요.</div>'
-        : '<div class="notice info">주방에서 조리를 시작하기 전까지 <b>주문 취소</b>가 가능합니다.</div>')}`;
+    ${g.state.kitchenStatus === 'payment_waiting'
+      ? '<div class="notice warn"><b>현장 결제중입니다.</b><br>카운터에서 결제가 완료되면 주방의 진행 중 주문에 접수됩니다. 현장 결제는 정산 자산에서 차감되지 않습니다.</div>'
+      : (g.state.kitchenStatus === 'ready'
+        ? '<div class="notice ok"><b>🔔 조리가 완료되었습니다!</b><br>카운터에서 상품을 받아가세요. 수령 후 아래 [수령 완료] 를 눌러주세요.</div>'
+        : (anyCooking
+          ? '<div class="notice warn">조리가 시작되어 <b>주문 취소가 불가</b>합니다. 잠시만 기다려주세요.</div>'
+          : '<div class="notice info">주방에서 조리를 시작하기 전까지 <b>주문 취소</b>가 가능합니다.</div>'))}`;
 
   let actions = '';
   if (g.state.kitchenStatus === 'ready') {

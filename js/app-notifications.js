@@ -17,6 +17,29 @@
     let countLabel = null;
     let markAllButton = null;
     let initialized = false;
+    const WORK_ICON_URLS = {
+        "1": "./images/k-icon_150x150.png",
+        "2": "./images/Uton_150x150.png",
+        "6": "./images/beef_500.png",
+        "7": "./images/burger_500.png"
+    };
+
+    function inferNotificationWorkId(value) {
+        if (value.workId !== undefined && value.workId !== null && value.workId !== "") {
+            return String(value.workId);
+        }
+        const text = [
+            value.title,
+            value.message,
+            value.brandName,
+            value.workName
+        ].filter(Boolean).join(" ");
+        if (/BurgerQueen|버거/i.test(text)) return "7";
+        if (/K-Meat|불고기/i.test(text)) return "6";
+        if (/Uton|우동/i.test(text)) return "2";
+        if (/AFood|김치/i.test(text)) return "1";
+        return "";
+    }
 
     function getCurrentUser() {
         if (window.AuthManager && typeof window.AuthManager.getCurrentUser === "function") {
@@ -38,6 +61,8 @@
 
     function normalizeNotification(value) {
         if (!value || typeof value !== "object") return null;
+        const workId = inferNotificationWorkId(value);
+        const iconUrl = value.iconUrl || WORK_ICON_URLS[workId] || "";
         return {
             id: String(value.id || ("notification-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8))),
             title: String(value.title || "알림"),
@@ -46,7 +71,9 @@
             href: value.href ? String(value.href) : "",
             createdAt: value.createdAt || new Date().toISOString(),
             readAt: value.readAt || null,
-            dedupeKey: value.dedupeKey ? String(value.dedupeKey) : ""
+            dedupeKey: value.dedupeKey ? String(value.dedupeKey) : "",
+            workId: workId,
+            iconUrl: iconUrl ? String(iconUrl) : ""
         };
     }
 
@@ -135,8 +162,15 @@
             button.setAttribute("aria-label", item.title + (item.readAt ? "" : ", 읽지 않음"));
 
             const iconWrap = createElement("span", "app-notification-item__icon");
-            const icon = createElement("i", "bi " + getTypeIcon(item.type));
-            icon.setAttribute("aria-hidden", "true");
+            const icon = item.iconUrl
+                ? createElement("img", "app-notification-item__work-icon")
+                : createElement("i", "bi " + getTypeIcon(item.type));
+            if (item.iconUrl) {
+                icon.src = item.iconUrl;
+                icon.alt = "";
+            } else {
+                icon.setAttribute("aria-hidden", "true");
+            }
             iconWrap.appendChild(icon);
 
             const content = createElement("span", "app-notification-item__content");

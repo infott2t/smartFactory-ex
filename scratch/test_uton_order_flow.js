@@ -234,6 +234,14 @@ assert(kimpDetailHtml.includes("getUtonOrderLimitSettings"), "상품 상세가 U
 assert(!kimpDetailHtml.includes("주문은 10분에 최대 2그릇"), "상품 상세 주문 제한 경고가 하드코딩되어 있습니다.");
 const mypageHtml = fs.readFileSync("mypage2.html", "utf8");
 assert(mypageHtml.includes("FactoryStore.getShopOrders()"), "마이페이지가 분리된 주문 저장소를 통합 조회하지 않습니다.");
+const exploreHtml = fs.readFileSync("explore2.html", "utf8");
+assert(exploreHtml.includes("FactoryStore.getShopOrders()"), "나의 활동 쇼핑 탭이 Uton 주문 저장소를 통합 조회하지 않습니다.");
+assert(exploreHtml.includes("'uton_shop_history'"), "나의 활동 쇼핑 탭이 Uton 원본 주문 저장소를 직접 복구하지 않습니다.");
+assert(exploreHtml.includes("userAliases"), "나의 활동 쇼핑 탭이 사용자 ID 별칭을 처리하지 않습니다.");
+assert(exploreHtml.includes("parseOrderMoney"), "나의 활동 쇼핑 탭이 문자열/누락 가격을 안전하게 처리하지 않습니다.");
+assert(exploreHtml.includes("formatShopOrderDateTime"), "나의 활동 쇼핑 주문에 날짜와 시간을 함께 표시하지 않습니다.");
+assert(!exploreHtml.includes("item.price.toLocaleString()"), "나의 활동 쇼핑 탭에 null 가격 렌더링 오류가 남아 있습니다.");
+assert(kimpDetailHtml.includes("getCurrentProductNumericPrice"), "Uton 주문 가격을 숫자로 정규화하지 않습니다.");
 const managerHtml = fs.readFileSync("umanager.html", "utf8");
 assert(managerHtml.includes("getShopOrders({ workId: 2 })"), "관리자 콘솔이 Uton 주문 저장소를 workId 2로 조회하지 않습니다.");
 assert(managerHtml.includes("매장 주문 제한 설정"), "관리자 콘솔에 Uton 주문 제한 설정 UI가 없습니다.");

@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
-    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/store.js?v=20260730d" type="text/javascript"></script>
     <script src="./js/shop-order-detail.js?v=20260728b" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
 
@@ -139,6 +139,29 @@
         .mypage-info1 { display: flex; flex-direction: column; gap: 4px; z-index: 1; }
         #user-name-display { font-size: 20px; font-weight: 700; }
         #user-email-display { font-size: 13px; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;}
+
+        .manager-test-link {
+            margin-left: auto;
+            padding: 10px 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(8, 11, 24, 0.22);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.2s ease, transform 0.2s ease;
+            z-index: 2;
+        }
+        .manager-test-link:hover {
+            background: rgba(8, 11, 24, 0.36);
+            transform: translateY(-1px);
+        }
+        .manager-test-link[hidden] { display: none; }
 
         .earnings-section {
             background: rgba(0, 0, 0, 0.2);
@@ -396,6 +419,34 @@
         /* 모달 오버라이딩 */
         .modal-overlay-custom { background: rgba(0,0,0,0.8); }
         .modal-content-custom { background: var(--bg-base); border: 1px solid var(--border-light); }
+        .mypage-qr-modal {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0, 0, 0, 0.82); padding: 20px;
+            align-items: center; justify-content: center;
+        }
+        .mypage-qr-modal.show { display: flex; }
+        .mypage-qr-card {
+            width: 100%; max-width: 390px; padding: 20px; border-radius: 20px;
+            background: #17152b; border: 1px solid var(--border-light);
+            box-shadow: 0 22px 60px rgba(0,0,0,.45);
+        }
+        .mypage-qr-demo {
+            width: 100%; min-height: 220px; margin-top: 14px; border-radius: 16px;
+            border: 2px dashed #fbbf24; background: rgba(245, 158, 11, .08);
+            color: var(--text-main); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 8px;
+            font: inherit; cursor: pointer;
+        }
+        .mypage-qr-demo i { font-size: 58px; color: #fbbf24; }
+        .mypage-qr-demo:active { transform: scale(.99); }
+        .mypage-qr-status { margin-top: 12px; text-align: center; color: var(--text-sub); font-size: 12px; line-height: 1.6; }
+        .mypage-qr-status.ok { color: #34d399; font-weight: 800; }
+        .mypage-qr-actions { display: flex; gap: 8px; margin-top: 14px; }
+        .mypage-qr-actions button {
+            flex: 1; min-height: 44px; border: 1px solid var(--border-light);
+            border-radius: 12px; background: rgba(255,255,255,.06);
+            color: var(--text-main); font: inherit; font-weight: 800; cursor: pointer;
+        }
 
     </style>
     <link rel="manifest" href="/manifest.json">
@@ -406,9 +457,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="/js/pwa.js" defer></script>
     <link rel="stylesheet" href="./css/app-footer.css?v=1.0.0">
-    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.1">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.3">
     <script src="./js/app-footer.js?v=1.0.0" defer></script>
-    <script src="./js/app-notifications.js?v=1.0.1" defer></script>
+    <script src="./js/app-notifications.js?v=1.0.3" defer></script>
 </head>
 
 <body>
@@ -430,6 +481,11 @@
                         <div id="user-name-display">사용자 님</div>
                         <div id="user-email-display">user@example.com</div>
                     </div>
+                    <a class="manager-test-link" id="manager-test-link" href="./test.html" hidden>
+                        <i class="bi bi-tools" aria-hidden="true"></i>
+                        <span>관리자 테스트</span>
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
                 </div>
                 <div class="earnings-section" onclick="location.href='./settlement_log.html'">
                     <span class="label">나의 정산 자산</span>
@@ -540,6 +596,23 @@
         </main>
     </div>
 
+    <div class="mypage-qr-modal" id="mypage-offline-qr-modal"
+        onclick="if(event.target===this)closeMypageOfflineQr()">
+        <div class="mypage-qr-card">
+            <div style="font-size:17px;font-weight:800"><i class="bi bi-qr-code-scan" style="color:#fbbf24"></i> 현장결제 QR</div>
+            <div id="mypage-qr-order-info" style="margin-top:10px;color:var(--text-sub);font-size:12px;line-height:1.7"></div>
+            <button type="button" class="mypage-qr-demo" id="mypage-qr-demo" onclick="simulateMypageOfflineQrPayment()">
+                <i class="bi bi-qr-code-scan"></i>
+                <b>데모: QR코드 찍기</b>
+                <span style="font-size:12px;color:var(--text-sub)">클릭하면 현장결제가 완료됩니다.</span>
+            </button>
+            <div class="mypage-qr-status" id="mypage-qr-status">QR코드를 찍기 전에는 주문이 접수되지 않습니다.</div>
+            <div class="mypage-qr-actions">
+                <button type="button" onclick="closeMypageOfflineQr()">취소</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 스크립트단: 제공해주신 원본 JS 코드를 100% 동일하게 유지 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="./js/jquery-3.7.1.min.js"></script>
@@ -548,6 +621,8 @@
         let currentUser = null;
         let workerProfile = null;
         let isReconcilingReservationStatus = false;
+        let pendingOfflineQrOrderId = null;
+        let mypageQrSubmitting = false;
 
         // ── hardcoding 모드 제어 ──
         // URL 파라미터 ?hardcoding=false 이면 목업 데이터를 주입하지 않고 빈 상태로 시작합니다.
@@ -582,6 +657,11 @@
             // Render basic profile info
             $('#user-name-display').text(currentUser.name + ' 님');
             $('#user-email-display').text(currentUser.email);
+            const normalizedRole = String(currentUser.role || '')
+                .trim()
+                .toUpperCase()
+                .replace(/^ROLE_/, '');
+            $('#manager-test-link').prop('hidden', normalizedRole !== 'MANAGER');
 
             // Avatar initials
             const initials = currentUser.name ? currentUser.name.substring(0, 2) : 'US';
@@ -1131,10 +1211,12 @@
             const displayHistory = shopHistory.slice(0, 2);
             displayHistory.forEach(item => {
                 const orderStatus = item.status || 'pending';
-                const allowedKitchenStatuses = ['queued', 'preparing', 'ready'];
+                const allowedKitchenStatuses = ['payment_waiting', 'queued', 'preparing', 'ready'];
                 const kitchenStatus = allowedKitchenStatuses.includes(item.kitchenStatus)
                     ? item.kitchenStatus
                     : 'queued';
+                const isOfflinePaymentWaiting = item.paymentMethod === 'offline'
+                    && item.paymentStatus === 'offline_waiting';
                 const priceValue = Number.isFinite(Number(item.price)) ? Number(item.price) : 0;
                 const amountHtml = item.shouldShowSpendAmount === false
                     ? `<div style="font-size: 13px; font-weight: 800; color: var(--text-sub); white-space: nowrap;">${item.paymentDisplayLabel || '주문취소됨'}</div>`
@@ -1150,7 +1232,14 @@
                 let btnHtml = "";
 
                 if (orderStatus === 'pending') {
-                    if (kitchenStatus === 'ready') {
+                    if (isOfflinePaymentWaiting || kitchenStatus === 'payment_waiting') {
+                        statusBadgeHtml = `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">현장 결제중</span>`;
+                        btnHtml = `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-check-in-btn" style="background:#fbbf24;color:#271b02;" onclick="event.stopPropagation(); openMypageOfflineQr('${itemId}')"><i class="bi bi-qr-code-scan"></i> QR 찍고 현장결제</button>
+                            <button type="button" class="res-cancel-btn" onclick="event.stopPropagation(); cancelShopOrder('${itemId}')">주문 취소</button>
+                        </div>`;
+                    } else if (kitchenStatus === 'ready') {
                         statusBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">준비 완료</span>`;
                         btnHtml = `
                         <div class="res-btn-box" style="margin-top: 12px;">
@@ -1294,6 +1383,118 @@
                 `;
                 container.append(row);
             });
+        }
+
+        function openMypageOfflineQr(id) {
+            const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+            if (!target || target.paymentMethod !== 'offline' || target.paymentStatus !== 'offline_waiting') {
+                alert('현장결제 대기 주문을 찾을 수 없습니다.');
+                renderShopHistory();
+                return;
+            }
+            pendingOfflineQrOrderId = String(id);
+            mypageQrSubmitting = false;
+            $('#mypage-qr-order-info').html(
+                `<b style="color:var(--text-main)">${target.productName || '주문 상품'}</b><br>`
+                + `주문번호 ${target.orderNo || '-'} · 결제금액 ₩${Number(target.price || 0).toLocaleString()}`
+            );
+            $('#mypage-qr-status').removeClass('ok').text('QR코드를 찍기 전에는 주문이 접수되지 않습니다.');
+            $('#mypage-qr-demo').prop('disabled', false).css('opacity', '1');
+            $('#mypage-offline-qr-modal').addClass('show');
+        }
+
+        function closeMypageOfflineQr() {
+            if (mypageQrSubmitting) return;
+            pendingOfflineQrOrderId = null;
+            $('#mypage-offline-qr-modal').removeClass('show');
+        }
+
+        function simulateMypageOfflineQrPayment() {
+            if (!pendingOfflineQrOrderId || mypageQrSubmitting) return;
+            const target = getCurrentUserShopHistory()
+                .find(item => String(item.id) === String(pendingOfflineQrOrderId));
+            if (!target || target.paymentMethod !== 'offline' || target.paymentStatus !== 'offline_waiting') {
+                alert('이미 결제되었거나 취소된 주문입니다.');
+                pendingOfflineQrOrderId = null;
+                $('#mypage-offline-qr-modal').removeClass('show');
+                renderShopHistory();
+                return;
+            }
+
+            mypageQrSubmitting = true;
+            const now = new Date().toISOString();
+            const isBurgerOrder = String(target.workId || '') === '7'
+                || String(target.brandName || '').toLowerCase() === 'burgerqueen';
+            const isKmeatOrder = String(target.workId || '') === '6'
+                || String(target.brandName || '').toLowerCase() === 'k-meat';
+            if (isBurgerOrder && window.MockData
+                && typeof window.MockData.ensureBurgerOrdersForShopRecord === 'function') {
+                window.MockData.ensureBurgerOrdersForShopRecord(target);
+            }
+            if (isKmeatOrder && window.MockData
+                && typeof window.MockData.updateKmeatOrder === 'function') {
+                window.MockData.updateKmeatOrder(target.orderNo, {
+                    paymentStatus: 'paid',
+                    paymentMethod: 'offline',
+                    paidAt: now,
+                    paymentCompletedAt: now,
+                    kitchenStage: 'ordered'
+                });
+            }
+            const burgerOrders = window.MockData && typeof window.MockData.getBurgerOrdersByShopRecord === 'function'
+                ? window.MockData.getBurgerOrdersByShopRecord(target.id)
+                : [];
+            let result = { ok: true };
+
+            if (burgerOrders.length && window.MockData && typeof window.MockData.confirmBurgerOfflinePayment === 'function') {
+                result = window.MockData.confirmBurgerOfflinePayment(target.id, {
+                    id: currentUser && currentUser.id,
+                    name: (currentUser && currentUser.name ? currentUser.name : '고객') + ' QR 결제',
+                    method: 'qr_demo'
+                });
+            } else if (window.FactoryStore) {
+                window.FactoryStore.dispatch({
+                    type: 'UPDATE_SHOP_ORDER',
+                    payload: {
+                        id: target.id,
+                        changes: {
+                            paymentStatus: 'paid',
+                            paymentCompletedAt: now,
+                            paymentConfirmationMethod: 'qr_demo',
+                            paymentQrVerifiedAt: now,
+                            paymentQrType: 'mypage_demo',
+                            kitchenStatus: 'queued',
+                            shouldShowSpendAmount: false,
+                            paymentDisplayLabel: '현장 결제 완료'
+                        }
+                    }
+                });
+            } else {
+                result = { ok: false };
+            }
+
+            if (!result.ok) {
+                mypageQrSubmitting = false;
+                alert('현장결제를 완료하지 못했습니다. 주문 상태를 다시 확인해주세요.');
+                renderShopHistory();
+                return;
+            }
+
+            if (window.MockData && typeof window.MockData.syncBurgerShopRecords === 'function') {
+                window.MockData.syncBurgerShopRecords();
+            }
+            $('#mypage-qr-status').addClass('ok').html('<i class="bi bi-patch-check-fill"></i> QR 현장결제 완료 · 주문 접수됨');
+            $('#mypage-qr-demo').prop('disabled', true).css('opacity', '.65');
+
+            setTimeout(function () {
+                const orderNo = target.orderNo || '-';
+                pendingOfflineQrOrderId = null;
+                mypageQrSubmitting = false;
+                $('#mypage-offline-qr-modal').removeClass('show');
+                renderEarnings();
+                renderShopHistory();
+                alert(`현장결제가 완료되었습니다.\n주문번호 ${orderNo}\n이제 주문이 조리 대기 목록에 접수됩니다.`);
+            }, 350);
         }
 
         function cancelShopOrder(id) {

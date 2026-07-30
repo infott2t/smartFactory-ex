@@ -6,6 +6,8 @@
 <title>관리자 콘솔 | 스마트팩토리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <script src="./js/store.js" type="text/javascript"></script>
+<script src="./js/auth.js" type="text/javascript"></script>
+<script src="./js/auth-guard.js" type="text/javascript"></script>
 <style>
 :root{--bg:#070320;--card:#1e1e2e;--input:#2a2a3e;--txt:#f8fafc;--sub:#94a3b8;--accent:#6366f1;--accent2:#818cf8;--danger:#ef4444;--success:#10b981;--warn:#f59e0b;--border:rgba(255,255,255,.08);--pink:#fd79a8}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -505,8 +507,8 @@ function renderUsers(){
     const el=document.getElementById('user-list');
     if(!users.length){el.innerHTML='<div class="empty-msg">사용자가 없습니다.</div>';return}
     el.innerHTML=users.map(u=>{
-        const rc=u.role==='MANAGER'?'role-manager':(u.role==='HELPER'?'role-helper':'role-user');
-        const rl=u.role==='MANAGER'?'매니저':(u.role==='HELPER'?'헬퍼':'일반');
+        const rc=u.role==='ROLE_MANAGER'?'role-manager':(u.role==='ROLE_HELPER'?'role-helper':'role-user');
+        const rl=u.role==='ROLE_MANAGER'?'매니저':(u.role==='ROLE_HELPER'?'헬퍼':'일반');
         const initials=(u.name||'??').substring(0,2);
         return`<div class="user-row" onclick="editUser(${u.id})">
             <div class="avatar">${esc(initials)}</div>
@@ -528,9 +530,9 @@ function editUser(id){
             <div class="fg"><label>이메일</label><input id="ue-email" value="${esc(u.email)}"></div>
             <div class="fg"><label>역할</label>
                 <select id="ue-role">
-                    <option value="USER"${u.role==='USER'?' selected':''}>일반 (USER)</option>
-                    <option value="HELPER"${u.role==='HELPER'?' selected':''}>헬퍼 (HELPER)</option>
-                    <option value="MANAGER"${u.role==='MANAGER'?' selected':''}>매니저 (MANAGER)</option>
+                    <option value="ROLE_USER"${u.role==='ROLE_USER'?' selected':''}>일반 (ROLE_USER)</option>
+                    <option value="ROLE_HELPER"${u.role==='ROLE_HELPER'?' selected':''}>헬퍼 (ROLE_HELPER)</option>
+                    <option value="ROLE_MANAGER"${u.role==='ROLE_MANAGER'?' selected':''}>매니저 (ROLE_MANAGER)</option>
                 </select>
             </div>
             <div class="fg"><label>정산금액 (초기)</label><input type="number" id="ue-balance" value="${u.settlementBalance||100000}"></div>
@@ -552,7 +554,7 @@ function saveUser(id){
     users[idx].name=document.getElementById('ue-name').value.trim()||users[idx].name;
     users[idx].email=document.getElementById('ue-email').value.trim()||users[idx].email;
     users[idx].role=document.getElementById('ue-role').value;
-    users[idx].roleName=users[idx].role==='MANAGER'?'매니저':(users[idx].role==='HELPER'?'헬퍼':'일반');
+    users[idx].roleName=users[idx].role==='ROLE_MANAGER'?'매니저':(users[idx].role==='ROLE_HELPER'?'헬퍼':'일반');
     users[idx].settlementBalance=parseInt(document.getElementById('ue-balance').value)||100000;
     users[idx].gender=document.getElementById('ue-gender').value;
     users[idx].tel=document.getElementById('ue-tel').value.trim();

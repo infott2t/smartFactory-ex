@@ -774,8 +774,12 @@
         }
 
         const isCancelled = normalized.status === 'cancelled';
-        normalized.shouldShowSpendAmount = !isCancelled;
-        normalized.paymentDisplayLabel = isCancelled ? '주문취소됨' : '';
+        const isOfflinePayment = normalized.paymentMethod === 'offline';
+        const isOfflineWaiting = isOfflinePayment && normalized.paymentStatus === 'offline_waiting';
+        normalized.shouldShowSpendAmount = !isCancelled && !isOfflinePayment;
+        normalized.paymentDisplayLabel = isCancelled
+            ? '주문취소됨'
+            : (isOfflineWaiting ? '현장 결제중' : (isOfflinePayment ? '현장 결제 완료' : ''));
 
         return normalized;
     }
@@ -2371,11 +2375,19 @@
                     const orderId = payload.id;
                     const target = findShopOrderCollection(orderId);
                     if (target) {
+                        const previousStatus = String(target.collection[target.index].status || '').toLowerCase();
                         target.collection[target.index] = normalizeShopOrder({
                             ...target.collection[target.index],
                             ...(payload.changes || {}),
                             updatedAt: (payload.changes && payload.changes.updatedAt) || new Date().toISOString()
                         });
+                        const updatedOrder = target.collection[target.index];
+                        if (previousStatus !== 'cancelled'
+                            && String(updatedOrder.status || '').toLowerCase() === 'cancelled'
+                            && window.MockData
+                            && typeof window.MockData.enqueueShopCancellationNotification === 'function') {
+                            window.MockData.enqueueShopCancellationNotification(updatedOrder);
+                        }
                     }
                     break;
                 }
@@ -2383,7 +2395,7 @@
                     const orderId = action.payload;
                     const found = findShopOrderCollection(orderId);
                     const target = found ? found.collection[found.index] : null;
-                    if (target) {
+                    if (target && String(target.status || '').toLowerCase() !== 'cancelled') {
                         target.status = 'cancelled';
                         target.kitchenStatus = 'cancelled';
                         target.cancelledAt = target.cancelledAt || new Date().toISOString();
@@ -2391,6 +2403,10 @@
                         target.paymentDisplayLabel = '주문취소됨';
                         // 💡 주문 취소 시 차감했던 정산금액을 복구
                         removeShopSettlementForOrder(target);
+                        if (window.MockData
+                            && typeof window.MockData.enqueueShopCancellationNotification === 'function') {
+                            window.MockData.enqueueShopCancellationNotification(target);
+                        }
                     }
                     break;
                 }
@@ -2966,7 +2982,7 @@ window.MockData = {
             baseAssets: 100000,
             settlementBalance: 100000,
             picture: "",
-            role: "MANAGER",          // 시스템 권한
+            role: "ROLE_MANAGER",     // 시스템 권한
             roleName: "매니저",         // 화면 표시용
             workedHours: 133,         // 통합된 근무 시간
             gender: "M",
@@ -2985,7 +3001,7 @@ window.MockData = {
             baseAssets: 100000,
             settlementBalance: 100000,
             picture: "",
-            role: "USER",
+            role: "ROLE_USER",
             roleName: "일반",
             workedHours: 22,
             gender: "F",
@@ -3004,7 +3020,7 @@ window.MockData = {
             baseAssets: 100000,
             settlementBalance: 100000,
             picture: "",
-            role: "USER",
+            role: "ROLE_USER",
             roleName: "일반",
             workedHours: 0,
             gender: "F",
@@ -3023,7 +3039,7 @@ window.MockData = {
             baseAssets: 100000,
             settlementBalance: 100000,
             picture: "",
-            role: "HELPER",
+            role: "ROLE_HELPER",
             roleName: "헬퍼",
             workedHours: 45,
             gender: "F",
@@ -4065,7 +4081,15 @@ window.MockData.storeProducts = [
     // 지갑공정 (workId: 3)
     { productId: 30001, productCode: "wallet_01", workId: 3, name: "천연소가죽 명함지갑", price: 25000, img: "./images/wallet_card.png", brand: "Persa", isDelivery: true, description: "고급 소가죽 원단을 사용하여 부드러운 터치감과 뛰어난 실용성을 갖춘 명함지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
     { productId: 30002, productCode: "wallet_02", workId: 3, name: "핸드메이드 반지갑", price: 45000, img: "./images/wallet_half.png", brand: "Persa", isDelivery: true, description: "클래식하고 실용적인 수제 반지갑입니다. 지폐 수납부 2곳과 카드 슬롯 6곳으로 수납력이 우수합니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
-    { productId: 30003, productCode: "wallet_03", workId: 3, name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa", isDelivery: true, description: "수제 가죽 명장의 바느질 기법으로 제작되어 오랜 내구성과 럭셔리한 실루엣을 자아내는 장지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" }
+    { productId: 30003, productCode: "wallet_03", workId: 3, name: "프리미엄 장지갑", price: 75000, img: "./images/wallet_long.png", brand: "Persa", isDelivery: true, description: "수제 가죽 명장의 바느질 기법으로 제작되어 오랜 내구성과 럭셔리한 실루엣을 자아내는 장지갑입니다.", category: "악세사리", ingredients: "천연소가죽", manufacturer: "Persa" },
+    // 불고기구이 공정 (workId: 6)
+    { productId: 60001, productCode: "bulgogi_01", workId: 6, name: "직화 양념 불고기 500g", price: 12000, img: "./images/beef_500g.png", brand: "K-Meat", isDelivery: true, description: "불향 가득한 프리미엄 직화 양념 불고기입니다.", category: "양념육", ingredients: "소고기, 특제 양념", manufacturer: "K-Meat" },
+    { productId: 60002, productCode: "bulgogi_02", workId: 6, name: "프리미엄 불고기 도시락", price: 8500, img: "./images/beef_dosirak.png", brand: "K-Meat", isDelivery: true, description: "불고기와 수제 반찬을 담은 한 끼 도시락입니다.", category: "즉석섭취식품", ingredients: "불고기, 쌀, 반찬", manufacturer: "K-Meat" },
+    { productId: 60003, productCode: "bulgogi_03", workId: 6, name: "가족용 불고기 밀키트 1.5kg", price: 32000, img: "./images/beef_kit.png", brand: "K-Meat", isDelivery: true, description: "온 가족이 즐기는 대용량 불고기 밀키트입니다.", category: "밀키트", ingredients: "양념소고기, 채소", manufacturer: "K-Meat" },
+    // 버거만들기 공정 (workId: 7)
+    { productId: 70001, productCode: "burger_01", workId: 7, name: "클래식 치즈버거 단품", price: 5500, img: "./images/burger_cheese.png", brand: "BurgerQueen", isDelivery: false, description: "소고기 패티와 체다치즈를 담은 클래식 버거입니다.", category: "버거", ingredients: "버거번, 소고기 패티, 치즈", manufacturer: "BurgerQueen" },
+    { productId: 70002, productCode: "burger_02", workId: 7, name: "더블 패티 시그니처 버거", price: 8000, img: "./images/burger_signature.png", brand: "BurgerQueen", isDelivery: false, description: "두 장의 패티를 올린 시그니처 버거입니다.", category: "버거", ingredients: "버거번, 소고기 패티, 채소", manufacturer: "BurgerQueen" },
+    { productId: 70003, productCode: "burger_03", workId: 7, name: "패밀리 버거 세트", price: 24000, img: "./images/burger_family.png", brand: "BurgerQueen", isDelivery: false, description: "버거, 감자튀김, 음료를 담은 가족용 세트입니다.", category: "버거 세트", ingredients: "버거, 감자튀김, 음료", manufacturer: "BurgerQueen" }
 ];
 
 window.MockData.utonFinanceAssumptions = {
@@ -6255,6 +6279,8 @@ window.MockData.createBurgerOrder = function(payload) {
         userName: p.userName || null,
         paymentMethod: p.paymentMethod || null,     // online_settlement | offline | null
         paymentStatus: p.paymentStatus || null,     // paid | offline_waiting | pending
+        paymentQrVerifiedAt: p.paymentQrVerifiedAt || null,
+        paymentQrType: p.paymentQrType || null,
         shopRecordId: p.shopRecordId || null,
         status: 'ordered',
         assignedTo: null,
@@ -6287,6 +6313,11 @@ window.MockData.updateBurgerOrder = function(id, updates) {
 
 // 작업자가 조리 착수
 window.MockData.startBurgerOrder = function(id, worker) {
+    var order = this.getBurgerOrder(id);
+    if (!order) return { ok: false, error: 'notfound' };
+    if (order.paymentMethod === 'offline' && order.paymentStatus !== 'paid') {
+        return { ok: false, error: 'payment_waiting', order: order };
+    }
     var w = worker || {};
     return this.updateBurgerOrder(id, {
         status: 'cooking',
@@ -6305,6 +6336,9 @@ window.MockData.completeBurgerOrder = function(id, worker) {
     if (!order) return { ok: false, error: 'notfound' };
     if (order.status === 'done' || order.status === 'received') return { ok: false, error: 'already', order: order };
     if (order.status === 'cancelled') return { ok: false, error: 'cancelled', order: order };
+    if (order.paymentMethod === 'offline' && order.paymentStatus !== 'paid') {
+        return { ok: false, error: 'payment_waiting', order: order };
+    }
 
     var need = this.getBurgerOrderBOM(order);
     var res = this.consumeBurgerInventory(need, '주문 완성 #' + (order.no || order.id));
@@ -6330,7 +6364,8 @@ window.MockData.cancelBurgerOrder = function(id, reason) {
 
 window.MockData.getBurgerActiveOrders = function() {
     return this.getBurgerOrders().filter(function(o) {
-        return o && (o.status === 'ordered' || o.status === 'cooking');
+        var paymentReady = !o || o.paymentMethod !== 'offline' || o.paymentStatus === 'paid';
+        return o && paymentReady && (o.status === 'ordered' || o.status === 'cooking');
     });
 };
 
@@ -6449,6 +6484,8 @@ window.MockData.createBurgerCartOrder = function(payload) {
             tableId: p.tableId || '픽업 카운터',
             paymentMethod: p.paymentMethod || null,
             paymentStatus: p.paymentStatus || null,
+            paymentQrVerifiedAt: p.paymentQrVerifiedAt || null,
+            paymentQrType: p.paymentQrType || null,
             groupNo: groupNo,
             shopRecordId: shopRecordId
         });
@@ -6477,6 +6514,9 @@ window.MockData.BURGER_SHOP_PREFIX = 'burger_';
 window.MockData.mapBurgerStatusToShop = function(order) {
     if (!order) return { status: 'pending', kitchenStatus: 'queued' };
     if (order.status === 'cancelled') return { status: 'cancelled', kitchenStatus: 'cancelled' };
+    if (order.paymentMethod === 'offline' && order.paymentStatus !== 'paid') {
+        return { status: 'pending', kitchenStatus: 'payment_waiting' };
+    }
     if (order.status === 'received') return { status: 'completed', kitchenStatus: 'received' };
     if (order.status === 'done') return { status: 'pending', kitchenStatus: 'ready' };
     if (order.status === 'cooking') return { status: 'pending', kitchenStatus: 'preparing' };
@@ -6508,10 +6548,18 @@ window.MockData.buildBurgerShopRecord = function(order) {
         tableId: order.tableId,
         paymentStatus: order.paymentStatus,
         paymentMethod: order.paymentMethod,
+        paymentQrVerifiedAt: order.paymentQrVerifiedAt || null,
+        paymentQrType: order.paymentQrType || null,
         userId: order.userId || null,
+        userName: order.userName || null,
         orderedAt: order.orderedAt,
         createdAt: order.orderedAt,
-        shouldShowSpendAmount: order.status !== 'cancelled'
+        paymentRequestedAt: order.paymentMethod === 'offline' ? order.orderedAt : null,
+        paymentCompletedAt: order.paymentCompletedAt || null,
+        shouldShowSpendAmount: order.status !== 'cancelled' && order.paymentMethod !== 'offline',
+        paymentDisplayLabel: order.paymentMethod === 'offline'
+            ? (order.paymentStatus === 'paid' ? '현장 결제 완료' : '현장 결제중')
+            : ''
     };
 };
 
@@ -6522,6 +6570,11 @@ window.MockData.mapBurgerGroupStatus = function(orders) {
 
     var alive = list.filter(function(o) { return o.status !== 'cancelled'; });
     if (alive.length === 0) return { status: 'cancelled', kitchenStatus: 'cancelled' };
+
+    var anyPaymentWaiting = alive.some(function(o) {
+        return o.paymentMethod === 'offline' && o.paymentStatus !== 'paid';
+    });
+    if (anyPaymentWaiting) return { status: 'pending', kitchenStatus: 'payment_waiting' };
 
     var allReceived = alive.every(function(o) { return o.status === 'received'; });
     if (allReceived) return { status: 'completed', kitchenStatus: 'received' };
@@ -6566,9 +6619,14 @@ window.MockData.buildBurgerGroupShopRecord = function(groupNo, orders) {
         tableId: first.tableId,
         paymentStatus: first.paymentStatus,
         paymentMethod: first.paymentMethod,
+        paymentQrVerifiedAt: first.paymentQrVerifiedAt || null,
+        paymentQrType: first.paymentQrType || null,
         userId: first.userId || null,
+        userName: first.userName || null,
         orderedAt: first.orderedAt,
         createdAt: first.orderedAt,
+        paymentRequestedAt: first.paymentMethod === 'offline' ? first.orderedAt : null,
+        paymentCompletedAt: first.paymentCompletedAt || null,
         items: list.map(function(o) {
             return {
                 name: o.menu + (o.isSet ? ' 세트' : ' 단품'),
@@ -6578,7 +6636,10 @@ window.MockData.buildBurgerGroupShopRecord = function(groupNo, orders) {
                 subtotal: Number(o.total) || 0
             };
         }),
-        shouldShowSpendAmount: map.status !== 'cancelled'
+        shouldShowSpendAmount: map.status !== 'cancelled' && first.paymentMethod !== 'offline',
+        paymentDisplayLabel: first.paymentMethod === 'offline'
+            ? (first.paymentStatus === 'paid' ? '현장 결제 완료' : '현장 결제중')
+            : ''
     };
 };
 
@@ -6598,6 +6659,122 @@ window.MockData.getShopHistoryRaw = function() {
 window.MockData.saveShopHistoryRaw = function(list) {
     try { localStorage.setItem('kimp_shop_history', JSON.stringify(list || [])); } catch (e) {}
     return list || [];
+};
+
+// test.html 등에서 쇼핑 기록만 만들어진 BurgerQueen 상품을 주방 주문으로 보정한다.
+window.MockData.ensureBurgerOrdersForShopRecord = function(record) {
+    var rec = record || {};
+    var isBurger = String(rec.workId || '') === '7'
+        || String(rec.brandName || '').toLowerCase() === 'burgerqueen';
+    if (!isBurger || !rec.id || rec.status === 'cancelled') return [];
+
+    var existing = this.getBurgerOrdersByShopRecord(rec.id);
+    if (existing.length) return existing;
+
+    var name = String(rec.productName || '');
+    var menu = name.indexOf('치즈') >= 0 ? '치즈버거'
+        : (name.indexOf('불고기') >= 0 ? '불고기버거'
+            : (name.indexOf('새우') >= 0 ? '새우버거' : '햄버거'));
+    var isSet = name.indexOf('세트') >= 0;
+    var qty = Math.max(1, Number(rec.qty) || 1);
+    var order = this.createBurgerOrder({
+        menu: menu,
+        isSet: isSet,
+        drink: rec.drink || '콜라',
+        qty: qty,
+        tableId: rec.tableId || '픽업 카운터',
+        source: 'customer',
+        userId: rec.userId,
+        userName: rec.userName || '고객',
+        paymentMethod: rec.paymentMethod || null,
+        paymentStatus: rec.paymentStatus || null,
+        paymentQrVerifiedAt: rec.paymentQrVerifiedAt || null,
+        paymentQrType: rec.paymentQrType || null,
+        groupNo: rec.orderNo || null,
+        shopRecordId: rec.id
+    });
+
+    var unitPrice = Number(rec.unitPrice) || ((Number(rec.price) || 0) / qty);
+    var total = Number(rec.price) || (unitPrice * qty);
+    this.updateBurgerOrder(order.id, {
+        no: rec.orderNo ? String(rec.orderNo) : order.no,
+        groupNo: rec.orderNo ? String(rec.orderNo) : order.groupNo,
+        unitPrice: unitPrice || order.unitPrice,
+        total: total || order.total,
+        orderedAt: rec.orderedAt || rec.createdAt || order.orderedAt,
+        paymentCompletedAt: rec.paymentCompletedAt || null,
+        paymentConfirmationMethod: rec.paymentConfirmationMethod || null
+    });
+    return this.getBurgerOrdersByShopRecord(rec.id);
+};
+
+/**
+ * 현장 결제 대기 주문을 결제 완료로 전환한다.
+ * 현장 결제는 paymentStatus만 갱신하며 사용자의 정산 자산은 차감하지 않는다.
+ */
+window.MockData.confirmBurgerOfflinePayment = function(recordId, manager) {
+    var history = this.getShopHistoryRaw();
+    var record = history.find(function(item) {
+        return item && String(item.id) === String(recordId);
+    });
+    if (record) this.ensureBurgerOrdersForShopRecord(record);
+
+    var orders = this.getBurgerOrders();
+    var targets = orders.filter(function(o) {
+        return o && String(o.shopRecordId) === String(recordId)
+            && o.status !== 'cancelled'
+            && o.paymentMethod === 'offline'
+            && o.paymentStatus === 'offline_waiting';
+    });
+    if (targets.length === 0) return { ok: false, error: 'notfound' };
+
+    var now = new Date().toISOString();
+    var by = manager || {};
+    var confirmationMethod = by.method || 'manager';
+    var confirmedName = by.name || (confirmationMethod === 'qr_demo' ? 'QR 현장결제' : '매니저');
+    targets.forEach(function(o) {
+        o.paymentStatus = 'paid';
+        o.paymentCompletedAt = now;
+        o.paymentConfirmationMethod = confirmationMethod;
+        if (confirmationMethod === 'qr_demo') {
+            o.paymentQrVerifiedAt = now;
+            o.paymentQrType = 'mypage_demo';
+        }
+        o.paymentConfirmedBy = by.id === undefined || by.id === null ? null : String(by.id);
+        o.paymentConfirmedName = confirmedName;
+    });
+    this.saveBurgerOrders(orders);
+
+    if (record) {
+        record.paymentStatus = 'paid';
+        record.paymentCompletedAt = now;
+        record.paymentConfirmationMethod = confirmationMethod;
+        if (confirmationMethod === 'qr_demo') {
+            record.paymentQrVerifiedAt = now;
+            record.paymentQrType = 'mypage_demo';
+        }
+        record.paymentConfirmedBy = by.id === undefined || by.id === null ? null : String(by.id);
+        record.paymentConfirmedName = confirmedName;
+        record.kitchenStatus = 'queued';
+        record.shouldShowSpendAmount = false;
+        record.paymentDisplayLabel = '현장 결제 완료';
+        this.saveShopHistoryRaw(history);
+    }
+
+    try {
+        if (window.FactoryStore && typeof window.FactoryStore.dispatch === 'function'
+            && !window.FactoryStore.isSaving()) {
+            window.FactoryStore.dispatch({ type: 'SYNC_FROM_STORAGE' });
+        }
+    } catch (e) {}
+
+    return {
+        ok: true,
+        recordId: String(recordId),
+        orders: targets,
+        total: targets.reduce(function(sum, o) { return sum + (Number(o.total) || 0); }, 0),
+        paymentCompletedAt: now
+    };
 };
 
 /**
@@ -6632,6 +6809,25 @@ window.MockData.syncBurgerShopRecords = function() {
         if (!rec) return;
 
         var map = self.mapBurgerGroupStatus(list);
+        var first = list[0] || {};
+        var paymentStatus = first.paymentStatus || null;
+        var paymentCompletedAt = first.paymentCompletedAt || null;
+        var paymentDisplayLabel = map.status === 'cancelled' || rec.status === 'cancelled'
+            ? '주문취소됨'
+            : (first.paymentMethod === 'offline'
+                ? (paymentStatus === 'paid' ? '현장 결제 완료' : '현장 결제중')
+                : '');
+
+        if (rec.paymentStatus !== paymentStatus
+            || rec.paymentCompletedAt !== paymentCompletedAt
+            || rec.paymentDisplayLabel !== paymentDisplayLabel) {
+            rec.paymentStatus = paymentStatus;
+            rec.paymentMethod = first.paymentMethod || rec.paymentMethod || null;
+            rec.paymentCompletedAt = paymentCompletedAt;
+            rec.shouldShowSpendAmount = first.paymentMethod !== 'offline' && map.status !== 'cancelled';
+            rec.paymentDisplayLabel = paymentDisplayLabel;
+            updatedShop++;
+        }
 
         // 1) 쇼핑 이력에서 먼저 취소된 경우 → 조리 착수 전 항목만 취소
         if (rec.status === 'cancelled' && map.status !== 'cancelled') {
@@ -8160,12 +8356,19 @@ window.MockData.getNotificationStorageKey = function(userLike) {
 
 /**
  * 알림 1건 추가.
- * @param {{userId, title, message, type, href, dedupeKey, createdAt}} input
+ * @param {{userId, title, message, type, href, dedupeKey, createdAt, workId, iconUrl}} input
  * @returns {{added:boolean, reason?:string}}
  */
 window.MockData.enqueueNotification = function(input) {
     const source = input || {};
     if (!source.title) return { added: false, reason: 'no_title' };
+    const workId = source.workId !== undefined && source.workId !== null
+        ? String(source.workId)
+        : '';
+    const workMeta = workId && typeof this.getWorkMeta === 'function'
+        ? this.getWorkMeta(workId)
+        : null;
+    const iconUrl = source.iconUrl || (workMeta && workMeta.iconUrl) || '';
 
     // 알림 모듈이 있는 페이지는 모듈 API 를 그대로 사용한다. (화면 즉시 갱신)
     if (window.AppNotifications && typeof window.AppNotifications.notify === 'function') {
@@ -8175,7 +8378,9 @@ window.MockData.enqueueNotification = function(input) {
             type: source.type || 'info',
             href: source.href || '',
             dedupeKey: source.dedupeKey || '',
-            createdAt: source.createdAt
+            createdAt: source.createdAt,
+            workId: workId,
+            iconUrl: iconUrl
         });
         return { added: !!created };
     }
@@ -8200,7 +8405,9 @@ window.MockData.enqueueNotification = function(input) {
         href: source.href ? String(source.href) : '',
         createdAt: source.createdAt || new Date().toISOString(),
         readAt: null,
-        dedupeKey: dedupeKey
+        dedupeKey: dedupeKey,
+        workId: workId,
+        iconUrl: iconUrl
     });
 
     try {
@@ -8213,6 +8420,41 @@ window.MockData.enqueueNotification = function(input) {
  * 근무 종료(퇴근/조퇴) 알림.
  * '일이 끝났습니다.' + 작업명/시간대 + 근로 이력 상세로 이동하는 링크.
  */
+window.MockData.enqueueShopCancellationNotification = function(order) {
+    const source = order || {};
+    const orderKey = source.id || source.orderNo;
+    if (!orderKey) return { added: false, reason: 'no_order' };
+
+    const workId = source.workId !== undefined && source.workId !== null
+        ? source.workId
+        : (typeof this.inferWorkId === 'function' ? this.inferWorkId(source) : '');
+    const meta = workId && typeof this.getWorkMeta === 'function'
+        ? this.getWorkMeta(workId)
+        : {};
+    const brandName = source.brandName || meta.brandName || '상품';
+    const productName = source.productName || source.name || '상품 주문';
+    const orderNo = source.orderNo || source.no || source.id;
+    const paymentMethod = String(source.paymentMethod || '').toLowerCase();
+    const isOffline = paymentMethod === 'offline';
+    const isSettlement = paymentMethod === 'online_settlement' || paymentMethod === 'settlement';
+    const paymentLabel = isOffline ? '현장결제' : (isSettlement ? '정산결제' : '결제 전');
+    const refundLabel = isOffline
+        ? '정산 자산 차감 없음'
+        : (isSettlement ? '결제 금액 복구' : '결제 없이 취소');
+
+    return this.enqueueNotification({
+        userId: source.userId,
+        title: brandName + ' · 주문 취소 완료',
+        message: productName + ' · 주문번호 #' + orderNo + ' · ' + paymentLabel + ' · ' + refundLabel,
+        type: 'shopping',
+        href: './explore2.html?tab=shopping',
+        dedupeKey: 'shop-order-cancelled:' + orderKey,
+        createdAt: source.cancelledAt || new Date().toISOString(),
+        workId: workId,
+        iconUrl: source.iconUrl || source.img || meta.iconUrl
+    });
+};
+
 window.MockData.notifyWorkFinished = function(input) {
     const source = input || {};
     const workId = source.workId !== undefined && source.workId !== null ? source.workId : 1;

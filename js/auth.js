@@ -106,6 +106,7 @@
         checkGuard() {
             const user = this.getCurrentUser();
             const currentPath = window.location.pathname;
+            const currentPage = currentPath.split("/").pop().toLowerCase();
 
             const isLoginPage = currentPath.includes("login.html");
             const isIndexPage = currentPath.includes("index.html") || currentPath.endsWith("/smart2/") || currentPath.endsWith("/smartf2-html/") || currentPath.endsWith("/");
@@ -127,13 +128,14 @@
 
                 // 역할/등급 기반 권한 검증
                 const role = user.role;
-                if (currentPath.includes("manager.html")) {
+                const managerPages = ["manager.html", "kmanager.html", "bmanager.html", "umanager.html", "admin.html"];
+                if (managerPages.includes(currentPage)) {
                     if (role !== "ROLE_MANAGER") {
                         alert("매니저 권한이 필요합니다. 메인 페이지로 이동합니다.");
                         window.location.href = "main.html";
                         return false;
                     }
-                } else if (currentPath.includes("kimp_helper.html")) {
+                } else if (currentPage === "kimp_helper.html") {
                     if (role !== "ROLE_HELPER" && role !== "ROLE_MANAGER") {
                         alert("헬퍼 권한이 필요합니다. 메인 페이지로 이동합니다.");
                         window.location.href = "main.html";

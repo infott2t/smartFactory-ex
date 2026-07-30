@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>불고기구이 K-Meat 오프라인 주문</title>
-    <script src="./js/store.js"></script>
+    <script src="./js/store.js?v=20260730d"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -1477,7 +1477,8 @@
                     message: paymentOrder.tableId + ' · 주문번호 ' + paymentOrder.orderNo + ' · ₩' + (paymentOrder.total || 0).toLocaleString() + ' · 준비되면 알려드립니다.',
                     type: 'shopping',
                     href: './explore2.html?tab=shopping',
-                    dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo
+                    dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo,
+                    workId: 6
                 });
             }
 
@@ -1515,7 +1516,8 @@
                         message: paymentOrder.tableId + ' · 주문번호 ' + paymentOrder.orderNo + ' · ₩' + (paymentOrder.total || 0).toLocaleString() + ' · 카운터에서 결제해 주세요.',
                         type: 'shopping',
                         href: './explore2.html?tab=shopping',
-                        dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo
+                        dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo,
+                        workId: 6
                     });
                 }
 
@@ -1563,7 +1565,8 @@
                     message: paymentOrder.tableId + ' · 주문번호 ' + paymentOrder.orderNo + ' · ₩' + (paymentOrder.total || 0).toLocaleString() + ' · 준비되면 알려드립니다.',
                     type: 'shopping',
                     href: './explore2.html?tab=shopping',
-                    dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo
+                    dedupeKey: 'bulgogi-order:' + paymentOrder.orderNo,
+                    workId: 6
                 });
             }
 
@@ -1581,6 +1584,21 @@
                 paymentMethod: null,
                 cancelledAt
             });
+            if (window.MockData
+                && typeof window.MockData.enqueueShopCancellationNotification === 'function') {
+                const firstItem = Array.isArray(paymentOrder.items) ? paymentOrder.items[0] : null;
+                window.MockData.enqueueShopCancellationNotification({
+                    id: 'bulgogi_' + paymentOrder.orderNo,
+                    orderNo: paymentOrder.orderNo,
+                    userId: paymentOrder.userId || getCurrentOrderUserId(),
+                    workId: 6,
+                    brandName: 'K-Meat',
+                    productName: firstItem && firstItem.name ? firstItem.name : '불고기구이 주문',
+                    paymentMethod: paymentOrder.paymentMethod,
+                    cancelledAt,
+                    iconUrl: './images/beef_500.png'
+                });
+            }
             closePaymentModal();
             alert(`주문이 취소되었습니다.\n${paymentOrder.tableId} · ${paymentOrder.orderNo}\n주문을 리셋합니다.`);
             paymentOrder = null;
