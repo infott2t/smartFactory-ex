@@ -44,6 +44,7 @@
             color: #212529;
             margin: 20px auto;
             max-width: 400px;
+            box-sizing: border-box;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
         .github-header {
@@ -67,6 +68,30 @@
         .github-btn:hover {
             background-color: #000000;
         }
+        .pwa-install-area {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #dee2e6;
+        }
+        .pwa-install-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            gap: 8px;
+        }
+        .pwa-install-btn i {
+            font-size: 20px;
+        }
+        .pwa-install-btn:hover {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        }
+        .pwa-install-btn.is-ready {
+            background: linear-gradient(135deg, #00b894, #008f73);
+        }
+        .pwa-install-note {
+            margin: 10px 4px 0;
+            color: #6c757d;
+            font-size: 13px;
+            line-height: 1.5;
+        }
     </style>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#09031f">
@@ -74,7 +99,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <script src="./js/pwa.js?v=20260731-pwa-v8" defer></script>
+    <script src="./js/pwa.js?v=20260801-pwa-install-v10" defer></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
 </head>
@@ -124,6 +149,13 @@
                                     <i class="bi bi-github" style="font-size: 20px; margin-right: 8px;"></i>
                                     GitHub 저장소 방문하기
                                 </button>
+                                <div class="pwa-install-area" data-pwa-install-container data-pwa-install-persistent aria-label="스마트 팩토리 앱 설치">
+                                    <button type="button" class="github-btn pwa-install-btn" data-pwa-install>
+                                        <i class="bi bi-download"></i>
+                                        PWA 앱 설치하기
+                                    </button>
+                                    <p class="pwa-install-note" data-pwa-install-note>버튼을 눌러 스마트 팩토리 앱을 설치하세요.</p>
+                                </div>
                                 <div class="github-footer" style="margin-top: 25px; color: #6c757d; font-size: 14px; line-height: 1.6;">
                                     본 프로젝트는 스마트 팩토리 공정 관리를 위한<br>오픈소스 HMI 웹 터미널입니다.<br>
                                     <span style="font-weight: bold; color: #6c757d;">Developed by infott2t</span>
