@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    var SERVICE_WORKER_URL = '/sw.js?v=20260731-pwa-v5';
+    var SERVICE_WORKER_URL = '/sw.js?v=20260731-pwa-v6';
     var refreshingForNewWorker = false;
 
     function activateWaitingWorker(registration) {

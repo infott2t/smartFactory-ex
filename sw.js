@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartfactory-pwa-v5-20260731';
+const CACHE_NAME = 'smartfactory-pwa-v6-20260731';
 
 const CORE_ASSETS = [
   '/',
@@ -151,7 +151,7 @@ self.addEventListener('fetch', (event) => {
         }
 
         if (request.mode === 'navigate') {
-          const shell = await caches.match('/main.html');
+          const shell = await caches.match('/index.html');
           if (shell) {
             return shell;
           }
