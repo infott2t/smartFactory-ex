@@ -180,7 +180,7 @@
       #tab-partner .texts > span:nth-child(1),
       #tab-reservation .texts > span:nth-child(1),
       #tab-history .texts > span:nth-child(1) {
-          font-size: 14px;
+          font-size: 16px;
           white-space: nowrap;
       }
 
