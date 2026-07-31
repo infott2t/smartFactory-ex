@@ -140,7 +140,7 @@
 
   /* 근로/예약 이력은 3개 정보 열을 함께 표시하므로 작은 화면에서는
      중앙 시간·등급과 여백을 먼저 압축해 업무명이 글자 단위로 줄바꿈되지 않게 합니다. */
-  @media (max-width: 407px) {
+  @media (max-width: 412px) {
       #tab-partner .task-item,
       #tab-reservation .task-item,
       #tab-history .task-item {
