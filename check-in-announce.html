@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="./css/mypage.css?v=1.0.1">
-    <link rel="stylesheet" href="./css/check-in.css?v=1.0.1">
+    <link rel="stylesheet" href="./css/check-in.css?v=20260731-entry-time">
     <link rel="stylesheet" href="./css/bottom2.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link
@@ -15,7 +15,7 @@
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
-    <script src="./js/store.js" type="text/javascript"></script>
+    <script src="./js/store.js?v=20260731-entry-time" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
     <title>입장하기 | 스마트팩토리</title>
     <link rel="manifest" href="/manifest.json">
@@ -116,6 +116,22 @@
     <script>
         let currentUser = null;
         let workerProfile = null;
+        let currentEntryReservation = null;
+
+        function escapeEntryText(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function getEntryTimeGate(reservation, now) {
+            if (window.MockData && typeof window.MockData.getReservationEntryStatus === 'function') {
+                return window.MockData.getReservationEntryStatus(reservation, now);
+            }
+            return { enabled: false, allowed: true, code: 'feature_disabled', message: '' };
+        }
 
         // Load initial user session
         $(document).ready(function () {
@@ -218,6 +234,8 @@
 
             // 오늘 나의 예약 렌더링 호출
             renderTodayReservation();
+            setInterval(renderTodayReservation, 1000);
+            window.addEventListener('storage', renderTodayReservation);
         }
 
         function renderTodayReservation() {
@@ -254,6 +272,7 @@
                 container.html('<div class="empty-state" style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 13px;">오늘 예약된 일정이 없습니다.</div>');
                 return;
             }
+            currentEntryReservation = res;
 
             const parts = res.date.split('-');
             let dayName = '';
@@ -367,6 +386,12 @@
                 .attr('src', workId === 2 ? './images/work-map-uton.svg' : './images/work-map-kimchi.svg')
                 .attr('alt', workId === 2 ? 'Uton Shop 실내 지도' : '김치 작업장 실내 지도');
 
+            const entryGate = getEntryTimeGate(res);
+            const entryBlocked = entryGate.enabled && !entryGate.allowed;
+            const entryButtonLabel = entryBlocked ? '입장 시간 아님' : '입장하기';
+            const entryGateHtml = entryGate.enabled
+                ? `<div class="entry-time-gate ${entryGate.allowed ? 'allowed' : 'blocked'}"><i class="bi ${entryGate.allowed ? 'bi-check-circle-fill' : 'bi-clock-fill'}"></i> ${escapeEntryText(entryGate.message)}</div>`
+                : '';
             let html = `
                 <div class="box-corp res-date-box">
                     <span class="res-date-time">${parts[1]}월 ${parts[2]}일</span>
@@ -385,9 +410,10 @@
                     </div>
                 </div>
                 <div class="box-value res-btn-box reverse">
-                    <button type="button" class="res-check-in-btn" onclick="enterWorkPlace('${expPage}', ${workId})">입장하기</button>
+                    <button type="button" class="res-check-in-btn" onclick="enterWorkPlace('${expPage}', ${workId})" ${entryBlocked ? 'disabled aria-disabled="true"' : ''}>${entryButtonLabel}</button>
                     <button type="button" class="res-cancel-btn" onclick="cancelReservationInAnnounce(${res.id})">예약 취소</button>
                 </div>
+                ${entryGateHtml}
             `;
             container.html(html);
         }
@@ -399,6 +425,47 @@
          * 실제 근무 페이지(kimp_ex1.html)로 가도록 한다.
          */
         function enterWorkPlace(page, workId) {
+            const reservation = currentEntryReservation;
+            const entryGate = getEntryTimeGate(reservation);
+            if (entryGate.enabled && !entryGate.allowed) {
+                alert(entryGate.message || '예약 시작 10분 전부터 입장할 수 있습니다.');
+                renderTodayReservation();
+                return;
+            }
+            if (entryGate.enabled && window.MockData && typeof window.MockData.grantRealWorkEntry === 'function') {
+                const grant = window.MockData.grantRealWorkEntry(reservation, workId || 1);
+                if (!grant.allowed) {
+                    alert(grant.message || '입장 권한을 확인하지 못했습니다.');
+                    return;
+                }
+                if (reservation && window.FactoryStore && typeof window.FactoryStore.dispatch === 'function') {
+                    const checkedInAt = new Date().toISOString();
+                    window.FactoryStore.dispatch({
+                        type: 'UPDATE_RESERVATION',
+                        payload: {
+                            id: reservation.id,
+                            match: {
+                                userId: reservation.userId,
+                                workId: reservation.workId,
+                                date: reservation.date,
+                                slot: reservation.slot
+                            },
+                            changes: {
+                                workStatus: 'ready',
+                                checkInAt: reservation.checkInAt || checkedInAt,
+                                workStartedAt: reservation.workStartedAt || checkedInAt,
+                                lastActivityAt: checkedInAt
+                            }
+                        }
+                    });
+                    const updated = window.FactoryStore.getReservations({ userId: reservation.userId })
+                        .find(item => String(item.id) === String(reservation.id));
+                    if (updated) {
+                        currentEntryReservation = updated;
+                        sessionStorage.setItem('selected_reservation', JSON.stringify(updated));
+                    }
+                }
+            }
             if (window.MockData && typeof window.MockData.setWorkEntryContext === 'function') {
                 window.MockData.setWorkEntryContext(workId || 1, 'real');
             }

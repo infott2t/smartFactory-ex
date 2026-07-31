@@ -4479,6 +4479,200 @@ window.MockData.getWorkTimeSlots = function(workId) {
     };
 };
 
+/* --- 관리자 예약 시간대·역할별 정원 설정 ------------------------------ */
+const WORK_RESERVATION_SETTINGS_STORAGE_KEY = 'work_reservation_settings';
+
+function getWorkScheduleType(workId) {
+    const wId = String(workId || '1');
+    let timeKey = '2h';
+    try {
+        const detailMap = window.MockData.workDetailJSON ? JSON.parse(window.MockData.workDetailJSON) : {};
+        const detail = detailMap[wId];
+        const workTime = detail && detail.workTime ? String(detail.workTime) : '';
+        if (workTime.includes('1시간 30분') || workTime.includes('1.5시간')) timeKey = '1.5h';
+        else if (workTime.includes('2시간 30분') || workTime.includes('2.5시간')) timeKey = '2.5h';
+        else if (workTime.includes('4시간')) timeKey = '4h';
+        else if (workTime.includes('3시간')) timeKey = '3h';
+        else if (workTime.includes('2시간')) timeKey = '2h';
+        else if (wId === '2') timeKey = '1.5h';
+        else if (wId === '3') timeKey = '3h';
+        else if (wId === '6') timeKey = '4h';
+        else if (wId === '7') timeKey = '2.5h';
+    } catch (e) {
+        if (wId === '2') timeKey = '1.5h';
+        else if (wId === '3') timeKey = '3h';
+        else if (wId === '6') timeKey = '4h';
+        else if (wId === '7') timeKey = '2.5h';
+    }
+    return timeKey;
+}
+
+function cloneWorkSchedule(value) {
+    return JSON.parse(JSON.stringify(value));
+}
+
+function getDefaultRoleCapacities(workId) {
+    return String(workId || '1') === '1'
+        ? { general: 2, helper: 2, manager: 1 }
+        : { general: 2, helper: 0, manager: 1 };
+}
+
+function parseScheduleTime(value) {
+    const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return { hour, minute };
+}
+
+function formatScheduleTime(hour, minute) {
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function getScheduleTimeRange(rawSlot) {
+    let start = parseScheduleTime(rawSlot && rawSlot.startTime);
+    let end = parseScheduleTime(rawSlot && rawSlot.endTime);
+    const timeText = String(rawSlot && rawSlot.time || '');
+    if ((!start || !end) && timeText.includes('~')) {
+        const parts = timeText.split('~');
+        start = start || parseScheduleTime(parts[0]);
+        end = end || parseScheduleTime(parts[1]);
+    }
+    return {
+        start: start || { hour: 10, minute: 0 },
+        end: end || { hour: 12, minute: 0 }
+    };
+}
+
+function normalizeScheduleSlot(rawSlot, index, workId, fallbackSlot) {
+    const raw = rawSlot && typeof rawSlot === 'object' ? rawSlot : {};
+    const range = getScheduleTimeRange(raw);
+    const fallback = fallbackSlot && fallbackSlot.capacity ? fallbackSlot.capacity : getDefaultRoleCapacities(workId);
+    const sourceCapacity = raw.capacity || raw.capacities || {};
+    const readCapacity = function(key) {
+        const candidates = [sourceCapacity[key], raw[`${key}Capacity`], fallback[key]];
+        const found = candidates.find(value => value !== undefined && value !== null && value !== '');
+        return Math.max(0, Math.floor(Number(found)) || 0);
+    };
+    const startTime = formatScheduleTime(range.start.hour, range.start.minute);
+    const endTime = formatScheduleTime(range.end.hour, range.end.minute);
+    return {
+        slot: index,
+        time: `${startTime} ~ ${endTime}`,
+        startTime,
+        endTime,
+        label: String(raw.label || (index === 0 ? '오전 시간대' : `${index + 1}번째 시간대`)),
+        startHour: range.start.hour,
+        startMin: range.start.minute,
+        endHour: range.end.hour,
+        endMin: range.end.minute,
+        capacity: {
+            general: readCapacity('general'),
+            helper: readCapacity('helper'),
+            manager: readCapacity('manager')
+        }
+    };
+}
+
+function getBaseWorkSchedule(workId) {
+    const type = getWorkScheduleType(workId);
+    const source = window.MockData.workTimeSlots[type] || window.MockData.workTimeSlots['2h'];
+    const defaults = getDefaultRoleCapacities(workId);
+    return {
+        workId: String(workId || '1'),
+        type,
+        slots: source.map((slot, index) => normalizeScheduleSlot({ ...slot, capacity: slot.capacity || defaults }, index, workId, { capacity: defaults }))
+    };
+}
+
+function readWorkReservationSettingsMap() {
+    try {
+        const value = JSON.parse(localStorage.getItem(WORK_RESERVATION_SETTINGS_STORAGE_KEY) || '{}');
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function normalizeWorkReservationSettings(workId, rawSettings) {
+    const base = getBaseWorkSchedule(workId);
+    const raw = rawSettings && typeof rawSettings === 'object' ? rawSettings : {};
+    const rawSlots = Array.isArray(raw.slots) && raw.slots.length ? raw.slots : base.slots;
+    return {
+        workId: String(workId || raw.workId || '1'),
+        type: String(raw.type || base.type),
+        slots: rawSlots.map((slot, index) => normalizeScheduleSlot(slot, index, workId, base.slots[index] || { capacity: getDefaultRoleCapacities(workId) }))
+    };
+}
+
+window.MockData.getDefaultWorkReservationSettings = function(workId) {
+    return cloneWorkSchedule(getBaseWorkSchedule(workId || 1));
+};
+
+window.MockData.getWorkReservationSettings = function(workId) {
+    const id = String(workId || '1');
+    const stored = readWorkReservationSettingsMap()[id];
+    return cloneWorkSchedule(normalizeWorkReservationSettings(id, stored));
+};
+
+window.MockData.setWorkReservationSettings = function(workId, settings) {
+    const id = String(workId || '1');
+    const normalized = normalizeWorkReservationSettings(id, settings);
+    const all = readWorkReservationSettingsMap();
+    all[id] = normalized;
+    localStorage.setItem(WORK_RESERVATION_SETTINGS_STORAGE_KEY, JSON.stringify(all));
+    try {
+        window.dispatchEvent(new StorageEvent('storage', { key: WORK_RESERVATION_SETTINGS_STORAGE_KEY, newValue: JSON.stringify(all) }));
+    } catch (e) {}
+    try { window.dispatchEvent(new Event('work-reservation-settings-changed')); } catch (e) {}
+    return cloneWorkSchedule(normalized);
+};
+
+// 기존 시간대 API를 유지하면서 관리자 저장값을 모든 예약 화면에 공급한다.
+window.MockData.getWorkTimeSlots = function(workId) {
+    const settings = this.getWorkReservationSettings(workId || 1);
+    return { type: settings.type, slots: cloneWorkSchedule(settings.slots) };
+};
+
+window.MockData.normalizeReservationRole = function(role) {
+    const value = String(role || '').trim().toLowerCase();
+    if (value.includes('manager') || value.includes('매니저')) return 'manager';
+    if (value.includes('helper') || value.includes('헬퍼')) return 'helper';
+    return 'general';
+};
+
+window.MockData.getWorkReservationCounts = function(workId, date, slotValue) {
+    const reservations = window.FactoryStore && typeof window.FactoryStore.getReservations === 'function'
+        ? window.FactoryStore.getReservations()
+        : [];
+    const counts = { general: 0, helper: 0, manager: 0 };
+    reservations.forEach(function(reservation) {
+        if (!reservation || String(reservation.date || '') !== String(date || '')) return;
+        if (String(reservation.workId || '1') !== String(workId || '1')) return;
+        if (String(reservation.slot) !== String(slotValue)) return;
+        const status = String(reservation.workStatus || reservation.status || 'reserved').toLowerCase();
+        if (['cancelled', 'canceled', 'rejected', 'deleted'].includes(status)) return;
+        counts[this.normalizeReservationRole(reservation.role)] += 1;
+    }, this);
+    return counts;
+};
+
+window.MockData.getWorkReservationAvailability = function(options) {
+    const source = options || {};
+    const workId = source.workId || 1;
+    const settings = this.getWorkReservationSettings(workId);
+    const slot = settings.slots.find(item => String(item.slot) === String(source.slot));
+    const role = this.normalizeReservationRole(source.role);
+    const capacity = slot && slot.capacity ? Number(slot.capacity[role]) || 0 : 0;
+    const counts = this.getWorkReservationCounts(workId, source.date, source.slot);
+    const count = counts[role] || 0;
+    return {
+        workId: String(workId), slot: slot ? cloneWorkSchedule(slot) : null, role,
+        capacity, count, available: Math.max(0, capacity - count), full: count >= capacity
+    };
+};
+
 window.MockData.getWorkSlot = function(workId, slotValue) {
     const slotData = this.getWorkTimeSlots(workId || 1);
     const slots = slotData && Array.isArray(slotData.slots) ? slotData.slots : [];
@@ -4616,7 +4810,8 @@ window.MockData.getMockWorkHistories = function(userObj) {
 // ==========================================
 window.MockData.kmeatOrderSettings = {
     intervalMinutes: 10,
-    maxQtyPerInterval: 1
+    maxQtyPerInterval: 1,
+    unlimited: false
 };
 
 // 반찬 및 쌈채소 기준량 정책
@@ -5269,32 +5464,92 @@ window.MockData.buildKmeatPlatingTask = function(servings, minutes) {
 window.MockData.KMEAT_ORDER_SETTINGS_KEY = 'kmeat_order_settings';
 
 window.MockData.getKmeatOrderSettings = function() {
-    var defaults = this.kmeatOrderSettings || { intervalMinutes: 10, maxQtyPerInterval: 1 };
+    var defaults = this.kmeatOrderSettings || { intervalMinutes: 10, maxQtyPerInterval: 1, unlimited: false };
+    var normalize = function(settings) {
+        var source = settings && typeof settings === 'object' ? settings : {};
+        return {
+            intervalMinutes: Math.max(1, Math.floor(Number(source.intervalMinutes) || defaults.intervalMinutes || 10)),
+            maxQtyPerInterval: Math.max(1, Math.floor(Number(source.maxQtyPerInterval) || defaults.maxQtyPerInterval || 1)),
+            unlimited: source.unlimited === true
+        };
+    };
     try {
         var stored = JSON.parse(localStorage.getItem(this.KMEAT_ORDER_SETTINGS_KEY) || 'null');
         if (stored && typeof stored === 'object') {
-            return {
-                intervalMinutes: Math.max(1, Math.floor(Number(stored.intervalMinutes) || defaults.intervalMinutes)),
-                maxQtyPerInterval: Math.max(1, Math.floor(Number(stored.maxQtyPerInterval) || defaults.maxQtyPerInterval))
-            };
+            return normalize(stored);
         }
     } catch (e) {}
-    return {
-        intervalMinutes: Math.max(1, Math.floor(Number(defaults.intervalMinutes) || 10)),
-        maxQtyPerInterval: Math.max(1, Math.floor(Number(defaults.maxQtyPerInterval) || 1))
-    };
+    return normalize(defaults);
 };
 
 window.MockData.setKmeatOrderSettings = function(settings) {
     var normalized = {
         intervalMinutes: Math.max(1, Math.floor(Number(settings && settings.intervalMinutes) || 10)),
-        maxQtyPerInterval: Math.max(1, Math.floor(Number(settings && settings.maxQtyPerInterval) || 1))
+        maxQtyPerInterval: Math.max(1, Math.floor(Number(settings && settings.maxQtyPerInterval) || 1)),
+        unlimited: Boolean(settings && settings.unlimited)
     };
     try {
         localStorage.setItem(this.KMEAT_ORDER_SETTINGS_KEY, JSON.stringify(normalized));
         window.dispatchEvent(new Event('storage'));
     } catch (e) {}
     return normalized;
+};
+
+// K-Meat 라스트오더 기능 테스트 설정 (기본 비활성, 오후 7시 30분 마감)
+window.MockData.KMEAT_LAST_ORDER_SETTINGS_KEY = 'kmeat_last_order_settings';
+window.MockData.KMEAT_LAST_ORDER_DEFAULTS = {
+    enabled: false,
+    hour: 19,
+    minute: 30
+};
+
+window.MockData.getKmeatLastOrderSettings = function() {
+    var defaults = this.KMEAT_LAST_ORDER_DEFAULTS || { enabled: false, hour: 19, minute: 30 };
+    var normalize = function(settings) {
+        var source = settings && typeof settings === 'object' ? settings : {};
+        return {
+            enabled: source.enabled === true,
+            hour: Math.min(23, Math.max(0, Math.floor(Number(source.hour) || defaults.hour))),
+            minute: Math.min(59, Math.max(0, Math.floor(Number(source.minute) || defaults.minute)))
+        };
+    };
+    try {
+        var stored = JSON.parse(localStorage.getItem(this.KMEAT_LAST_ORDER_SETTINGS_KEY) || 'null');
+        if (stored && typeof stored === 'object') return normalize(stored);
+    } catch (e) {}
+    return normalize(defaults);
+};
+
+window.MockData.setKmeatLastOrderSettings = function(settings) {
+    var normalized = {
+        enabled: Boolean(settings && settings.enabled),
+        hour: 19,
+        minute: 30
+    };
+    try {
+        localStorage.setItem(this.KMEAT_LAST_ORDER_SETTINGS_KEY, JSON.stringify(normalized));
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+    return normalized;
+};
+
+window.MockData.getKmeatLastOrderStatus = function(now) {
+    var settings = this.getKmeatLastOrderSettings();
+    var current = now instanceof Date ? now : new Date(now || Date.now());
+    if (Number.isNaN(current.getTime())) current = new Date();
+    var currentMinutes = current.getHours() * 60 + current.getMinutes();
+    var cutoffMinutes = settings.hour * 60 + settings.minute;
+    return {
+        enabled: settings.enabled,
+        closed: settings.enabled && currentMinutes >= cutoffMinutes,
+        hour: settings.hour,
+        minute: settings.minute,
+        label: '오후 7시 30분'
+    };
+};
+
+window.MockData.isKmeatLastOrderClosed = function(now) {
+    return this.getKmeatLastOrderStatus(now).closed;
 };
 
 // ==========================================
@@ -7379,6 +7634,200 @@ window.MockData.resolveWorkEntryPage = function(defaultMode, defaultWorkId) {
     var mode = context ? context.mode : this.normalizeWorkEntryMode(defaultMode);
     var workId = context ? context.workId : String(defaultWorkId || '1');
     return this.getWorkEntryPage(workId, mode);
+};
+
+/* ============================================================
+ * 실제 근무 입장 시간 현실화
+ *  - 기본값: 비활성(기존 동작 유지)
+ *  - 활성화: 예약 날짜와 예약 시간대 안에서 check-in-announce.html의
+ *    '입장하기' 버튼을 거친 경우에만 실제 근무 페이지 진입 허용
+ * ============================================================ */
+window.MockData.REALISTIC_WORK_ENTRY_SETTINGS_KEY = 'realistic_work_entry_settings';
+window.MockData.REALISTIC_WORK_ENTRY_PASS_KEY = 'realistic_work_entry_pass';
+
+window.MockData.getRealisticWorkEntrySettings = function() {
+    try {
+        var stored = JSON.parse(localStorage.getItem(this.REALISTIC_WORK_ENTRY_SETTINGS_KEY) || 'null');
+        if (stored && typeof stored === 'object') return { enabled: stored.enabled === true };
+    } catch (e) {}
+    return { enabled: false };
+};
+
+window.MockData.setRealisticWorkEntrySettings = function(settings) {
+    var normalized = { enabled: Boolean(settings && settings.enabled) };
+    try {
+        localStorage.setItem(this.REALISTIC_WORK_ENTRY_SETTINGS_KEY, JSON.stringify(normalized));
+        if (!normalized.enabled) sessionStorage.removeItem(this.REALISTIC_WORK_ENTRY_PASS_KEY);
+        window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+    return normalized;
+};
+
+window.MockData.getReservationEntryWindow = function(reservation) {
+    var source = reservation && typeof reservation === 'object' ? reservation : null;
+    if (!source) return null;
+    var dateMatch = String(source.date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateMatch) return null;
+
+    var slot = null;
+    if (typeof this.getWorkSlot === 'function') {
+        slot = this.getWorkSlot(source.workId || 1, source.slot);
+    }
+
+    var startHour = slot ? Number(slot.startHour) : NaN;
+    var startMin = slot ? Number(slot.startMin || 0) : NaN;
+    var endHour = slot ? Number(slot.endHour) : NaN;
+    var endMin = slot ? Number(slot.endMin || 0) : NaN;
+
+    if (!Number.isFinite(startHour) || !Number.isFinite(endHour)) {
+        var label = String(source.time || source.slotLabel || '');
+        var timeMatch = label.match(/(\d{1,2}):(\d{2})\s*~\s*(\d{1,2}):(\d{2})/);
+        if (!timeMatch) return null;
+        startHour = Number(timeMatch[1]);
+        startMin = Number(timeMatch[2]);
+        endHour = Number(timeMatch[3]);
+        endMin = Number(timeMatch[4]);
+    }
+
+    var year = Number(dateMatch[1]);
+    var month = Number(dateMatch[2]) - 1;
+    var day = Number(dateMatch[3]);
+    var startAt = new Date(year, month, day, startHour, startMin, 0, 0);
+    var endAt = new Date(year, month, day, endHour, endMin, 0, 0);
+    if (endAt <= startAt) endAt.setDate(endAt.getDate() + 1);
+    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) return null;
+
+    return {
+        startAt: startAt,
+        endAt: endAt,
+        label: [
+            String(startHour).padStart(2, '0') + ':' + String(startMin).padStart(2, '0'),
+            String(endHour).padStart(2, '0') + ':' + String(endMin).padStart(2, '0')
+        ].join(' ~ ')
+    };
+};
+
+window.MockData.getReservationEntryStatus = function(reservation, now) {
+    var settings = this.getRealisticWorkEntrySettings();
+    if (!settings.enabled) {
+        return { enabled: false, allowed: true, code: 'feature_disabled', message: '' };
+    }
+
+    if (!reservation || typeof reservation !== 'object') {
+        return {
+            enabled: true,
+            allowed: false,
+            code: 'reservation_required',
+            message: '예약 정보를 확인할 수 없습니다. 마이페이지에서 예약을 선택한 후 입장해주세요.'
+        };
+    }
+
+    var status = String(reservation.workStatus || reservation.status || 'reserved');
+    if (['early_left', 'completed', 'absent'].includes(status)) {
+        return {
+            enabled: true,
+            allowed: false,
+            code: 'reservation_closed',
+            message: '종료되었거나 미출근 처리된 예약에는 입장할 수 없습니다.'
+        };
+    }
+
+    var windowInfo = this.getReservationEntryWindow(reservation);
+    if (!windowInfo) {
+        return {
+            enabled: true,
+            allowed: false,
+            code: 'invalid_schedule',
+            message: '예약 날짜와 시간을 확인할 수 없어 입장할 수 없습니다.'
+        };
+    }
+
+    var current = now instanceof Date ? now : new Date(now || Date.now());
+    if (Number.isNaN(current.getTime())) current = new Date();
+    var dateLabel = String(reservation.date || '');
+    var entryOpenAt = new Date(windowInfo.startAt.getTime() - 10 * 60 * 1000);
+
+    if (current < entryOpenAt) {
+        return {
+            enabled: true,
+            allowed: false,
+            code: 'too_early',
+            startAt: windowInfo.startAt,
+            entryOpenAt: entryOpenAt,
+            endAt: windowInfo.endAt,
+            message: dateLabel + ' ' + windowInfo.label + ' 예약입니다. 예약 시작 10분 전부터 입장할 수 있습니다.'
+        };
+    }
+    if (current >= windowInfo.endAt) {
+        return {
+            enabled: true,
+            allowed: false,
+            code: 'too_late',
+            startAt: windowInfo.startAt,
+            endAt: windowInfo.endAt,
+            message: dateLabel + ' ' + windowInfo.label + ' 예약 시간이 종료되어 입장할 수 없습니다.'
+        };
+    }
+
+    return {
+        enabled: true,
+        allowed: true,
+        code: 'allowed',
+        startAt: windowInfo.startAt,
+        entryOpenAt: entryOpenAt,
+        endAt: windowInfo.endAt,
+        message: '입장 가능한 시간입니다. 예약 시작 10분 전부터 입장할 수 있습니다.'
+    };
+};
+
+window.MockData.getWorkEntryReservationKey = function(reservation) {
+    var source = reservation || {};
+    if (source.id !== undefined && source.id !== null && source.id !== '') return 'id:' + String(source.id);
+    return ['reservation', source.userId || source.userName || 'guest', source.workId || '', source.date || '', source.slot].join('|');
+};
+
+window.MockData.grantRealWorkEntry = function(reservation, workId, now) {
+    var gate = this.getReservationEntryStatus(reservation, now);
+    if (!gate.allowed) return gate;
+    var pass = {
+        reservationKey: this.getWorkEntryReservationKey(reservation),
+        workId: String(workId || reservation.workId || ''),
+        grantedAt: new Date(now || Date.now()).toISOString()
+    };
+    try {
+        sessionStorage.setItem(this.REALISTIC_WORK_ENTRY_PASS_KEY, JSON.stringify(pass));
+    } catch (e) {}
+    return Object.assign({}, gate, { pass: pass });
+};
+
+window.MockData.validateRealWorkEntry = function(input) {
+    var settings = this.getRealisticWorkEntrySettings();
+    if (!settings.enabled) return { enabled: false, allowed: true, code: 'feature_disabled', message: '' };
+
+    var source = input && typeof input === 'object' ? input : {};
+    var reservation = source.reservation;
+    if (!reservation) {
+        try { reservation = JSON.parse(sessionStorage.getItem('selected_reservation') || 'null'); } catch (e) { reservation = null; }
+    }
+
+    var gate = this.getReservationEntryStatus(reservation, source.now);
+    if (!gate.allowed) return gate;
+
+    var pass = null;
+    try { pass = JSON.parse(sessionStorage.getItem(this.REALISTIC_WORK_ENTRY_PASS_KEY) || 'null'); } catch (e) { pass = null; }
+    var expectedWorkId = String(source.workId || (reservation && reservation.workId) || '');
+    var matches = pass
+        && pass.reservationKey === this.getWorkEntryReservationKey(reservation)
+        && String(pass.workId || '') === expectedWorkId;
+    if (!matches) {
+        return {
+            enabled: true,
+            allowed: false,
+            code: 'check_in_required',
+            message: '마이페이지의 예약에서 출근하기를 누른 뒤 입장하기 절차를 완료해주세요.'
+        };
+    }
+    return Object.assign({}, gate, { code: 'allowed_with_check_in' });
 };
 
 /* ============================================================

@@ -29,7 +29,7 @@
     <title>일 상세 | 스마트팩토리</title>
     <link href="./css/styles2.css" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="./css/kimp_bot.css?v=1.0.1">
-    <link rel="stylesheet" href="./css/work_detail.css">
+    <link rel="stylesheet" href="./css/work_detail.css?v=20260731-reservation-settings">
     <link rel="stylesheet" href="./css/bottom2.css">
     <link href="./css/underCover.css" rel="stylesheet" type="text/css">
     <script src="./js/auth.js" type="text/javascript"></script>
@@ -37,7 +37,7 @@
     <!-- 개발 서버가 max-age=3600 을 보내므로, 목업 데이터(store.js)를 수정했을 때
          브라우저가 낡은 파일을 계속 쓰지 않도록 버전 쿼리를 붙인다.
          store.js 의 데이터를 바꿨는데 화면에 반영되지 않으면 이 값을 올린다. -->
-    <script src="./js/store.js?v=20260728c" type="text/javascript"></script>
+    <script src="./js/store.js?v=20260731-reservation-settings" type="text/javascript"></script>
     <script src="./js/engine.js" type="text/javascript"></script>
     <script src="./js/ratio-feed.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -221,6 +221,7 @@
                 <div class="categories mt-15">
                     <div><span>작업 시간</span></div>
                     <div><button class="btn-worktime"><i class="bi bi-clock"></i> 2시간 작업</button></div>
+                    <div id="reservation-schedule-summary" class="reservation-schedule-summary" aria-live="polite"></div>
                 </div>
 
                 <!-- 체험 상태 뱃지 -->
@@ -763,6 +764,30 @@
             }
         }
 
+        function renderReservationScheduleSummary() {
+            var target = document.getElementById('reservation-schedule-summary');
+            if (!target || !window.MockData || typeof window.MockData.getWorkTimeSlots !== 'function') return;
+            var workId = new URLSearchParams(window.location.search).get('id') || '1';
+            var slotData = window.MockData.getWorkTimeSlots(workId);
+            var slots = slotData && Array.isArray(slotData.slots) ? slotData.slots : [];
+            target.innerHTML = '<span class="schedule-summary-title">실제 예약 가능 시간</span>' +
+                slots.map(function (slot) {
+                    var capacity = slot.capacity || {};
+                    return '<span class="schedule-summary-time">' + slot.time + ' · 일반 ' + Number(capacity.general || 0) + '명 · 헬퍼 ' + Number(capacity.helper || 0) + '명 · 매니저 ' + Number(capacity.manager || 0) + '명</span>';
+                }).join('');
+        }
+
+        window.addEventListener('load', renderReservationScheduleSummary);
+        window.addEventListener('work-reservation-settings-changed', function () {
+            renderReservationScheduleSummary();
+            renderTimeSlots();
+        });
+        window.addEventListener('storage', function (event) {
+            if (event && event.key && event.key !== 'work_reservation_settings') return;
+            renderReservationScheduleSummary();
+            renderTimeSlots();
+        });
+
         function renderTimeSlots() {
             var container = document.getElementById('time-slots');
             if (!container) return;
@@ -811,6 +836,8 @@
                 { slot: 2, time: '15:00 ~ 17:00', label: '오후 둘째 타임', startHour: 15, startMin: 0, endHour: 17, endMin: 0 }
             ];
 
+            slotLabels = slotInfos.map(function (item) { return item.time; });
+
             function getMinRange(r) {
                 if (r.startHour !== undefined && r.endHour !== undefined) {
                     return { start: r.startHour * 60 + r.startMin, end: r.endHour * 60 + r.endMin };
@@ -842,9 +869,12 @@
 
             slotInfos.forEach(function (info, idx) {
                 // 헬퍼 정원 표시는 김치만들기에서만 (다른 공정은 일반/매니저만 예약)
-                var helperRoleAvailable = supportsHelperRole();
+                var roleCapacity = info.capacity || { general: 2, helper: 0, manager: 1 };
+                var helperRoleAvailable = Number(roleCapacity.helper) > 0;
                 var slotRes = db.filter(function (r) {
-                    return r.date === selectedDateString && parseInt(r.slot) === idx;
+                    var status = String(r.workStatus || r.status || 'reserved').toLowerCase();
+                    return r.date === selectedDateString && String(r.workId || '1') === String(currentWorkId) && parseInt(r.slot) === idx &&
+                        ['cancelled', 'canceled', 'rejected', 'deleted'].indexOf(status) < 0;
                 });
 
                 var generalRes = slotRes.filter(r => r.role === 'general' || !r.role);
@@ -855,9 +885,9 @@
                 var hCount = helperRes.length;
                 var mCount = managerRes.length;
 
-                var isGFull = gCount >= 2;
-                var isHFull = hCount >= 2;
-                var isMFull = mCount >= 1;
+                var isGFull = gCount >= Number(roleCapacity.general || 0);
+                var isHFull = hCount >= Number(roleCapacity.helper || 0);
+                var isMFull = mCount >= Number(roleCapacity.manager || 0);
 
                 var isPastTime = false;
                 if (isToday) {
@@ -961,9 +991,9 @@
                         <div class="time-slot-footer">
                             <span class="slot-label">${info.label}</span>
                             <div class="time-slot-quotas">
-                                <span style="color: ${gCount >= 2 ? '#ff6b6b' : '#a29bfe'};">일반 ${gCount}/2</span>
-                                ${helperRoleAvailable ? `<span style="color: ${hCount >= 2 ? '#ff6b6b' : '#55efc4'};">헬퍼 ${hCount}/2</span>` : ''}
-                                <span style="color: ${mCount >= 1 ? '#ff6b6b' : '#fdcb6e'};">매니저 ${mCount}/1</span>
+                                <span style="color: ${isGFull ? '#ff6b6b' : '#a29bfe'};">일반 ${gCount}/${Number(roleCapacity.general || 0)}</span>
+                                ${helperRoleAvailable ? `<span style="color: ${isHFull ? '#ff6b6b' : '#55efc4'};">헬퍼 ${hCount}/${Number(roleCapacity.helper || 0)}</span>` : ''}
+                                <span style="color: ${isMFull ? '#ff6b6b' : '#fdcb6e'};">매니저 ${mCount}/${Number(roleCapacity.manager || 0)}</span>
                             </div>
                         </div>
                     </div>
@@ -1135,6 +1165,12 @@
         function supportsHelperRole() {
             try {
                 var id = new URLSearchParams(window.location.search).get('id') || '1';
+                if (window.MockData && typeof window.MockData.getWorkReservationSettings === 'function') {
+                    var settings = window.MockData.getWorkReservationSettings(id);
+                    return settings.slots.some(function (slot) {
+                        return Number(slot.capacity && slot.capacity.helper || 0) > 0;
+                    });
+                }
                 return String(id) === '1';
             } catch (e) {
                 return false;
@@ -1923,10 +1959,13 @@
             }
 
             var db = JSON.parse(getPartitionedItem('app_reservations_db') || '[]');
+            var reservationWorkId = parseInt(new URLSearchParams(window.location.search).get('id') || '1', 10);
 
             // 2. 예약 한도 및 마감 확인
             var slotRes = db.filter(function (r) {
-                return r.date === selectedDateString && r.slot === selectedSlot;
+                var status = String(r.workStatus || r.status || 'reserved').toLowerCase();
+                return r.date === selectedDateString && String(r.workId || '1') === String(reservationWorkId) && String(r.slot) === String(selectedSlot) &&
+                    ['cancelled', 'canceled', 'rejected', 'deleted'].indexOf(status) < 0;
             });
 
             var generalRes = slotRes.filter(r => r.role === 'general' || !r.role);
@@ -1935,19 +1974,25 @@
             // 김치만들기 외 공정은 헬퍼 예약이 없으므로 일반으로 처리한다.
             if (selectedRole === 'helper' && !supportsHelperRole()) selectedRole = 'general';
 
+            var slotDataForCapacity = window.MockData.getWorkTimeSlots ? window.MockData.getWorkTimeSlots(reservationWorkId) : null;
+            var currentSlotForCapacity = slotDataForCapacity && slotDataForCapacity.slots ? slotDataForCapacity.slots[selectedSlot] : null;
+            var reservationCapacity = currentSlotForCapacity && currentSlotForCapacity.capacity
+                ? currentSlotForCapacity.capacity
+                : { general: 2, helper: supportsHelperRole() ? 2 : 0, manager: 1 };
+
             if (selectedRole === 'general') {
-                if (generalRes.length >= 2) {
+                if (generalRes.length >= Number(reservationCapacity.general || 0)) {
                     alert("해당 시간대는 일반 참가자 예약이 마감되었습니다.");
                     return;
                 }
             } else if (selectedRole === 'helper') {
-                if (helperRes.length >= 2) {
+                if (helperRes.length >= Number(reservationCapacity.helper || 0)) {
                     alert("해당 시간대는 헬퍼 예약이 마감되었습니다.");
                     return;
                 }
             } else if (selectedRole === 'manager') {
                 var managerRes = slotRes.filter(r => r.role === 'manager');
-                if (managerRes.length >= 1) {
+                if (managerRes.length >= Number(reservationCapacity.manager || 0)) {
                     alert("해당 시간대는 매니저 예약이 마감되었습니다.");
                     return;
                 }
@@ -2689,7 +2734,7 @@
             }
         }
     </script>
-    <script src="./js/work_detail.js?v=20260726-bulgogi-order"></script>
+    <script src="./js/work_detail.js?v=20260731-reservation-settings"></script>
 </body>
 
 </html>

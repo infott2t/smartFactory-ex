@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>관리자 콘솔 | 스마트팩토리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<script src="./js/store.js" type="text/javascript"></script>
+<script src="./js/store.js?v=20260731-reservation-settings" type="text/javascript"></script>
 <script src="./js/auth.js" type="text/javascript"></script>
 <script src="./js/auth-guard.js" type="text/javascript"></script>
 <style>
@@ -91,6 +91,16 @@ header a:hover{color:var(--txt)}
 .wf-row .rm{background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:4px}
 .add-row{background:none;border:1px dashed var(--border);border-radius:6px;padding:6px;color:var(--sub);cursor:pointer;font-size:12px;text-align:center;margin-top:6px}
 .add-row:hover{border-color:var(--accent);color:var(--accent)}
+
+/* reservation schedule editor */
+.schedule-help{font-size:12px;color:var(--sub);line-height:1.5;margin:-4px 0 12px}
+.schedule-list{display:flex;flex-direction:column;gap:8px}
+.schedule-head,.schedule-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) repeat(3,minmax(72px,.7fr)) 30px;gap:6px;align-items:center}
+.schedule-head{font-size:10px;color:var(--sub);padding:0 4px;text-align:center}
+.schedule-row input{width:100%;min-width:0;background:var(--input);border:1px solid var(--border);border-radius:7px;padding:8px 7px;color:var(--txt);font-size:12px}
+.schedule-row input:focus{border-color:var(--accent);outline:none}
+.schedule-row .schedule-remove{background:none;border:none;color:var(--danger);cursor:pointer;font-size:15px;padding:4px}
+@media(max-width:600px){.schedule-head,.schedule-row{grid-template-columns:repeat(5,minmax(50px,1fr)) 24px}.schedule-head{font-size:9px}}
 
 /* 순서 변경 */
 .sortable .work-item{cursor:grab}
@@ -344,7 +354,10 @@ function renderWorkForm(){
             <button class="btn btn-s" onclick="cancelEdit()"><i class="bi bi-x-lg"></i> 취소</button>
         </div>
     </div>`;
-    document.getElementById('work-form').scrollIntoView({behavior:'smooth'});
+    const form = document.getElementById('work-form');
+    const saveRow = form.querySelector('.btn-row');
+    if (saveRow) saveRow.insertAdjacentHTML('beforebegin', renderReservationScheduleEditor(editingWorkId || 0));
+    form.scrollIntoView({behavior:'smooth'});
 }
 
 function updateIconPreview(){
@@ -408,6 +421,82 @@ function addProduct(){
             <input class="prod-img" value="" placeholder="이미지URL" style="flex:1">
             <button class="rm" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
         </div>`);
+}
+
+function getReservationScheduleForAdmin(workId){
+    if(window.MockData&&typeof window.MockData.getWorkReservationSettings==='function'){
+        return window.MockData.getWorkReservationSettings(workId||1);
+    }
+    const slotData=window.MockData&&window.MockData.getWorkTimeSlots?window.MockData.getWorkTimeSlots(workId||1):null;
+    return {type:slotData&&slotData.type||'2h',slots:slotData&&slotData.slots||[]};
+}
+
+function renderReservationScheduleEditor(workId){
+    const schedule=getReservationScheduleForAdmin(workId||1);
+    const slots=Array.isArray(schedule.slots)&&schedule.slots.length?schedule.slots:[];
+    return `
+        <hr class="divider"><div class="section-title"><i class="bi bi-calendar2-week"></i> 예약 시간대 및 역할별 정원</div>
+        <p class="schedule-help">예약 화면에 표시될 실제 시작·종료 시각과 시간대별 예약 가능 인원을 설정합니다. 0명으로 설정한 역할은 해당 작업에서 예약할 수 없습니다.</p>
+        <div class="schedule-head"><span>시작</span><span>종료</span><span>일반</span><span>헬퍼</span><span>매니저</span><span></span></div>
+        <div class="schedule-list" id="reservation-schedule-list">${slots.map(renderReservationScheduleRow).join('')}</div>
+        <div class="add-row" onclick="addReservationScheduleRow()"><i class="bi bi-plus"></i> 예약 시간대 추가</div>
+    `;
+}
+
+function renderReservationScheduleRow(slot){
+    const capacity=slot.capacity||{};
+    const start=slot.startTime||((String(slot.startHour||10).padStart(2,'0'))+':'+String(slot.startMin||0).padStart(2,'0'));
+    const end=slot.endTime||((String(slot.endHour||12).padStart(2,'0'))+':'+String(slot.endMin||0).padStart(2,'0'));
+    return `<div class="schedule-row" data-schedule-row>
+        <input type="time" class="schedule-start" value="${esc(start)}" aria-label="시작 시간">
+        <input type="time" class="schedule-end" value="${esc(end)}" aria-label="종료 시간">
+        <input type="number" class="schedule-general" min="0" max="999" value="${Number(capacity.general)||0}" aria-label="일반 정원">
+        <input type="number" class="schedule-helper" min="0" max="999" value="${Number(capacity.helper)||0}" aria-label="헬퍼 정원">
+        <input type="number" class="schedule-manager" min="0" max="999" value="${Number(capacity.manager)||0}" aria-label="매니저 정원">
+        <button type="button" class="schedule-remove" onclick="this.closest('[data-schedule-row]').remove()" title="시간대 삭제"><i class="bi bi-x-lg"></i></button>
+    </div>`;
+}
+
+function addReservationScheduleRow(){
+    const list=document.getElementById('reservation-schedule-list');
+    if(!list)return;
+    list.insertAdjacentHTML('beforeend',renderReservationScheduleRow({startTime:'09:00',endTime:'11:00',capacity:{general:2,helper:0,manager:1}}));
+}
+
+function collectReservationSchedule(){
+    const rows=Array.from(document.querySelectorAll('#reservation-schedule-list [data-schedule-row]'));
+    if(!rows.length){alert('예약 시간대를 한 개 이상 설정해주세요.');return null}
+    const slots=[];
+    for(let i=0;i<rows.length;i++){
+        const row=rows[i];
+        const start=row.querySelector('.schedule-start').value;
+        const end=row.querySelector('.schedule-end').value;
+        if(!start||!end||start>=end){alert((i+1)+'번째 시간대의 시작·종료 시간을 확인해주세요.');return null}
+        const startHour=parseInt(start.split(':')[0],10);
+        slots.push({slot:i,startTime:start,endTime:end,time:start+' ~ '+end,label:(startHour<12?'오전 ':'오후 ')+(i+1)+'번째 시간대',capacity:{
+            general:Math.max(0,parseInt(row.querySelector('.schedule-general').value,10)||0),
+            helper:Math.max(0,parseInt(row.querySelector('.schedule-helper').value,10)||0),
+            manager:Math.max(0,parseInt(row.querySelector('.schedule-manager').value,10)||0)
+        }});
+    }
+    for(let i=0;i<slots.length;i++){
+        for(let j=i+1;j<slots.length;j++){
+            if(slots[i].startTime<slots[j].endTime&&slots[i].endTime>slots[j].startTime){
+                alert((i+1)+'번째와 '+(j+1)+'번째 예약 시간대가 겹칩니다.');
+                return null;
+            }
+        }
+    }
+    return slots;
+}
+
+function getScheduleTypeFromWorkTime(value){
+    const text=String(value||'');
+    if(text.includes('1시간 30분'))return '1.5h';
+    if(text.includes('2시간 30분'))return '2.5h';
+    if(text.includes('3시간'))return '3h';
+    if(text.includes('4시간'))return '4h';
+    return '2h';
 }
 
 function cancelEdit(){editingWorkId=null;document.getElementById('work-form-area').innerHTML='';renderWorkList()}
@@ -477,12 +566,19 @@ function saveWork(){
     };
     if(chart)detailData.chart=chart;
 
+    const reservationSlots=collectReservationSchedule();
+    if(!reservationSlots)return;
+    const reservationSchedule={type:getScheduleTypeFromWorkTime(detailData.workTime),slots:reservationSlots};
+
     if(editingWorkId){
         window.FactoryStore.dispatch({type:'UPDATE_WORK',payload:workData});
         window.FactoryStore.dispatch({type:'UPDATE_WORK_DETAIL',payload:{workId,data:detailData}});
     }else{
         window.FactoryStore.dispatch({type:'ADD_WORK',payload:workData});
         window.FactoryStore.dispatch({type:'SET_WORK_DETAIL',payload:{workId,data:detailData}});
+    }
+    if(window.MockData&&typeof window.MockData.setWorkReservationSettings==='function'){
+        window.MockData.setWorkReservationSettings(workId,reservationSchedule);
     }
     toast(editingWorkId?'✅ 수정 완료':'✅ 새 일 추가 완료');
     editingWorkId=null;document.getElementById('work-form-area').innerHTML='';renderWorkList();
@@ -619,6 +715,7 @@ function resetWorksData(){
     if(!confirm('관리자가 추가/수정한 일 데이터를 초기화합니다. 계속?'))return;
     localStorage.removeItem('admin_works_json');
     localStorage.removeItem('admin_work_detail_json');
+    localStorage.removeItem('work_reservation_settings');
     toast('🔄 일 데이터 초기화됨. 새로고침합니다.');
     setTimeout(()=>location.reload(),1500);
 }

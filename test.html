@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>통합 기능 테스트 | 스마트팩토리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<script src="./js/store.js?v=20260730d" type="text/javascript"></script>
+<script src="./js/store.js?v=20260731-entry-time" type="text/javascript"></script>
 <script src="./js/auth.js" type="text/javascript"></script>
 <style>
     :root { --bg:#080b18; --surface:#14192b; --surface2:#1d2540; --line:#2b3658; --text:#f7f8ff; --muted:#aab4d3; --primary:#7b5cf5; --success:#22c55e; --warning:#f59e0b; }
@@ -26,6 +26,14 @@
     .user-summary { padding:12px; border-radius:10px; background:var(--surface2); font-size:13px; line-height:1.55; }.role { display:inline-block; margin-left:6px; padding:2px 6px; border-radius:999px; background:rgba(124,92,245,.28); color:#ddd6fe; font-size:11px; font-weight:700; }
     .manager-links { display:flex; flex-wrap:wrap; gap:8px; }.manager-links button { background:#d97706; }.manager-links button:disabled { background:#4b5563; }
     .list { margin:0; padding:0; list-style:none; }.list li { display:flex; justify-content:space-between; gap:12px; padding:11px 0; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }.list li:first-child { border-top:0; }.list b { color:var(--text); text-align:right; }
+    .test-checklist { margin:0; padding:0; list-style:none; }
+    .test-check-item { display:flex; align-items:center; gap:12px; margin:0; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--surface2); cursor:pointer; }
+    .test-check-item input { width:20px; height:20px; margin:0; flex:0 0 auto; accent-color:var(--success); }
+    .test-check-copy { min-width:0; flex:1; }
+    .test-check-title { display:block; color:var(--text); font-size:14px; font-weight:800; }
+    .test-check-desc { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:500; line-height:1.45; }
+    .test-check-status { flex:0 0 auto; min-width:52px; padding:5px 9px; border-radius:999px; background:#374151; color:#d1d5db; text-align:center; font-size:12px; font-weight:900; }
+    .test-check-status.yes { background:rgba(34,197,94,.18); color:#86efac; }
     .empty { color:var(--muted); font-size:13px; }.toast { position:fixed; left:50%; bottom:20px; z-index:10; transform:translateX(-50%); display:none; max-width:calc(100% - 32px); padding:11px 14px; border-radius:10px; background:#ecfdf5; color:#065f46; box-shadow:0 8px 28px rgba(0,0,0,.3); font-size:13px; font-weight:700; }
     @media (max-width:720px) { .grid { grid-template-columns:1fr; }.span-2 { grid-column:auto; }.row { grid-template-columns:1fr; } }
 </style>
@@ -42,10 +50,41 @@
                 <span>서비스 관리 페이지</span>
                 <i class="bi bi-chevron-right" aria-hidden="true"></i>
             </a>
+            <a class="hero-admin-link" href="#test-buttons">
+                <i class="bi bi-ui-checks-grid" aria-hidden="true"></i>
+                <span>테스트 버튼</span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
         </div>
     </section>
 
     <div class="grid">
+        <section class="card span-2" id="test-buttons">
+            <h2><i class="bi bi-ui-checks-grid"></i> 테스트 버튼</h2>
+            <ul class="test-checklist">
+                <li>
+                    <label class="test-check-item" for="kmeat-last-order-enabled">
+                        <input type="checkbox" id="kmeat-last-order-enabled">
+                        <span class="test-check-copy">
+                            <span class="test-check-title">불고기 구이 라스트오더 기능 활성화</span>
+                            <span class="test-check-desc">예로 설정하면 오후 7시 30분 이후 고객 주문 버튼을 사용할 수 없습니다.</span>
+                        </span>
+                        <span class="test-check-status" id="kmeat-last-order-status">아니오</span>
+                    </label>
+                </li>
+                <li style="margin-top:10px;">
+                    <label class="test-check-item" for="realistic-work-entry-enabled">
+                        <input type="checkbox" id="realistic-work-entry-enabled">
+                        <span class="test-check-copy">
+                            <span class="test-check-title">입장하기 시간 현실화. 정확한 시간에 출근이 가능합니다.</span>
+                            <span class="test-check-desc">예로 설정하면 예약 날짜의 시작 10분 전부터 종료 시각 전까지만 입장하기와 실제 근무 화면 진입이 가능합니다.</span>
+                        </span>
+                        <span class="test-check-status" id="realistic-work-entry-status">아니오</span>
+                    </label>
+                </li>
+            </ul>
+        </section>
+
         <section class="card">
             <h2><i class="bi bi-person-check"></i> 실행 회원</h2>
             <label for="user-select">회원 선택</label>
@@ -120,6 +159,8 @@
     var slotSelect = document.getElementById('slot-select');
     var productSelect = document.getElementById('product-select');
     var reservationSelect = document.getElementById('reservation-select');
+    var kmeatLastOrderToggle = document.getElementById('kmeat-last-order-enabled');
+    var realisticWorkEntryToggle = document.getElementById('realistic-work-entry-enabled');
     var toastTimer = null;
     var TEST_WORK_IDS = ['1', '2', '6', '7'];
     var cartsByUser = {};
@@ -175,6 +216,87 @@
         toast.style.display = 'block';
         clearTimeout(toastTimer);
         toastTimer = setTimeout(function () { toast.style.display = 'none'; }, 4500);
+    }
+
+    function getKmeatLastOrderSettings() {
+        if (window.MockData && typeof window.MockData.getKmeatLastOrderSettings === 'function') {
+            return window.MockData.getKmeatLastOrderSettings();
+        }
+        try {
+            var stored = JSON.parse(localStorage.getItem('kmeat_last_order_settings') || 'null');
+            if (stored && typeof stored === 'object') return { enabled: stored.enabled === true, hour: 19, minute: 30 };
+        } catch (e) {}
+        return { enabled: false, hour: 19, minute: 30 };
+    }
+
+    function setKmeatLastOrderEnabled(enabled) {
+        if (window.MockData && typeof window.MockData.setKmeatLastOrderSettings === 'function') {
+            return window.MockData.setKmeatLastOrderSettings({ enabled: enabled });
+        }
+        var settings = { enabled: Boolean(enabled), hour: 19, minute: 30 };
+        try {
+            localStorage.setItem('kmeat_last_order_settings', JSON.stringify(settings));
+            window.dispatchEvent(new Event('storage'));
+        } catch (e) {}
+        return settings;
+    }
+
+    function renderKmeatLastOrderChecklist() {
+        var enabled = getKmeatLastOrderSettings().enabled === true;
+        var status = document.getElementById('kmeat-last-order-status');
+        if (kmeatLastOrderToggle) kmeatLastOrderToggle.checked = enabled;
+        if (status) {
+            status.textContent = enabled ? '예' : '아니오';
+            status.classList.toggle('yes', enabled);
+        }
+    }
+
+    function changeKmeatLastOrderSetting() {
+        var enabled = Boolean(kmeatLastOrderToggle && kmeatLastOrderToggle.checked);
+        setKmeatLastOrderEnabled(enabled);
+        renderKmeatLastOrderChecklist();
+        showToast('불고기 구이 라스트오더 기능: ' + (enabled ? '예' : '아니오'));
+    }
+
+    function getRealisticWorkEntrySettings() {
+        if (window.MockData && typeof window.MockData.getRealisticWorkEntrySettings === 'function') {
+            return window.MockData.getRealisticWorkEntrySettings();
+        }
+        try {
+            var stored = JSON.parse(localStorage.getItem('realistic_work_entry_settings') || 'null');
+            if (stored && typeof stored === 'object') return { enabled: stored.enabled === true };
+        } catch (e) {}
+        return { enabled: false };
+    }
+
+    function setRealisticWorkEntryEnabled(enabled) {
+        if (window.MockData && typeof window.MockData.setRealisticWorkEntrySettings === 'function') {
+            return window.MockData.setRealisticWorkEntrySettings({ enabled: enabled });
+        }
+        var settings = { enabled: Boolean(enabled) };
+        try {
+            localStorage.setItem('realistic_work_entry_settings', JSON.stringify(settings));
+            if (!settings.enabled) sessionStorage.removeItem('realistic_work_entry_pass');
+            window.dispatchEvent(new Event('storage'));
+        } catch (e) {}
+        return settings;
+    }
+
+    function renderRealisticWorkEntryChecklist() {
+        var enabled = getRealisticWorkEntrySettings().enabled === true;
+        var status = document.getElementById('realistic-work-entry-status');
+        if (realisticWorkEntryToggle) realisticWorkEntryToggle.checked = enabled;
+        if (status) {
+            status.textContent = enabled ? '예' : '아니오';
+            status.classList.toggle('yes', enabled);
+        }
+    }
+
+    function changeRealisticWorkEntrySetting() {
+        var enabled = Boolean(realisticWorkEntryToggle && realisticWorkEntryToggle.checked);
+        setRealisticWorkEntryEnabled(enabled);
+        renderRealisticWorkEntryChecklist();
+        showToast('입장하기 시간 현실화: ' + (enabled ? '예' : '아니오'));
     }
 
     function notifyProductOrder(user, summary) {
@@ -550,6 +672,10 @@
         workSelect.addEventListener('change', function () { renderSlots(); renderProducts(); renderOrderCart(); });
         productSelect.addEventListener('change', updateOrderTotal);
         document.getElementById('order-qty').addEventListener('input', updateOrderTotal);
+        if (kmeatLastOrderToggle) kmeatLastOrderToggle.addEventListener('change', changeKmeatLastOrderSetting);
+        if (realisticWorkEntryToggle) realisticWorkEntryToggle.addEventListener('change', changeRealisticWorkEntrySetting);
+        renderKmeatLastOrderChecklist();
+        renderRealisticWorkEntryChecklist();
         renderSlots(); renderProducts(); renderUserSummary();
     }
 

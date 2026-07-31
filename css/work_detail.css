@@ -1,3 +1,25 @@
+.reservation-schedule-summary {
+    margin-top: 8px;
+    color: #c7c4e8;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.reservation-schedule-summary .schedule-summary-title {
+    color: #9998dc;
+    font-weight: 700;
+    margin-right: 5px;
+}
+
+.reservation-schedule-summary .schedule-summary-time {
+    display: inline-block;
+    margin: 2px 4px 0 0;
+    padding: 3px 7px;
+    border: 1px solid rgba(123, 92, 245, .35);
+    border-radius: 6px;
+    color: #fff;
+}
+
 .time-slot {
     position: relative;
     display: flex;
@@ -136,4 +158,12 @@
 
 .offline-order-btn:hover {
     background: #8b6cff;
+}
+
+.offline-order-btn:disabled {
+    background: #4b5563;
+    color: #d1d5db;
+    cursor: not-allowed;
+    box-shadow: none;
+    filter: none;
 }

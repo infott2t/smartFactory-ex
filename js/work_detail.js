@@ -1,3 +1,31 @@
+function getBulgogiLastOrderStatus(now) {
+    if (window.MockData && typeof window.MockData.getKmeatLastOrderStatus === 'function') {
+        return window.MockData.getKmeatLastOrderStatus(now);
+    }
+    let enabled = false;
+    try {
+        const stored = JSON.parse(localStorage.getItem('kmeat_last_order_settings') || 'null');
+        enabled = Boolean(stored && stored.enabled === true);
+    } catch (error) {}
+    const current = now instanceof Date ? now : new Date(now || Date.now());
+    return {
+        enabled,
+        closed: enabled && (current.getHours() * 60 + current.getMinutes()) >= (19 * 60 + 30),
+        label: '오후 7시 30분'
+    };
+}
+
+function updateBulgogiOfflineOrderButtons() {
+    const status = getBulgogiLastOrderStatus();
+    document.querySelectorAll('.offline-order-btn').forEach(button => {
+        button.disabled = status.closed;
+        button.setAttribute('aria-disabled', String(status.closed));
+        button.title = status.closed ? `${status.label} 이후에는 주문을 받지 않습니다.` : '';
+        const label = button.querySelector('span');
+        if (label) label.textContent = status.closed ? '라스트 오더 마감' : '주문하기';
+    });
+}
+
 function renderOfflineOrderSections(workId, data) {
     document.querySelectorAll('.offline-order-section').forEach(section => section.remove());
 
@@ -31,15 +59,26 @@ function renderOfflineOrderSections(workId, data) {
         container.innerHTML = '';
         container.appendChild(section);
     });
+    updateBulgogiOfflineOrderButtons();
 }
 
 window.openBulgogiOfflineOrder = function() {
+    const status = getBulgogiLastOrderStatus();
+    if (status.closed) {
+        updateBulgogiOfflineOrderButtons();
+        alert(`${status.label} 라스트 오더가 마감되어 주문할 수 없습니다.`);
+        return;
+    }
     window.location.href = 'bulgogi_order.html?workId=6';
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const workId = urlParams.get('id') || '1';
+    if (String(workId) === '6') {
+        window.addEventListener('storage', updateBulgogiOfflineOrderButtons);
+        setInterval(updateBulgogiOfflineOrderButtons, 1000);
+    }
 
     // 관리자가 수정한 works 데이터가 있으면 복원
     if (window.MockData && !window.MockData._adminWorksRestored) {

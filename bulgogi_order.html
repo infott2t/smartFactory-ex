@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>불고기구이 K-Meat 오프라인 주문</title>
-    <script src="./js/store.js?v=20260730d"></script>
+    <script src="./js/store.js?v=20260731-last-order"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -665,20 +665,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="/js/pwa.js" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.4">
+    <script src="./js/app-notifications.js?v=1.0.3" defer></script>
     <script src="./js/auth.js" type="text/javascript"></script>
     <script src="./js/auth-guard.js" type="text/javascript"></script>
 </head>
 
 <body>
     <main class="page">
-        <div class="topbar">
+        <header class="topbar app-header">
             <button class="back-btn" type="button" onclick="history.back()" aria-label="뒤로가기">‹</button>
             <img class="brand-icon" src="./images/beef_500.png" alt="불고기구이 아이콘">
             <div class="brand-title">
                 <strong>불고기구이 K-Meat</strong>
                 <span>오프라인 매장 주문 메뉴판</span>
             </div>
-        </div>
+        </header>
 
         <section class="hero">
             <img src="./images/menu/samgyeopsal.png" alt="불고기구이 K-Meat 대표 메뉴">
@@ -985,7 +988,33 @@
 
             document.getElementById('summary-count').textContent = `선택한 메뉴 ${selectedCount}개 · 총 ${servingCount}개/인분`;
             document.getElementById('summary-total').textContent = `${currency.format(total)}원`;
-            document.getElementById('order-button').disabled = selectedCount === 0;
+            renderLastOrderButton(selectedCount);
+        }
+
+        function getKmeatLastOrderStatus(now) {
+            if (window.MockData && typeof window.MockData.getKmeatLastOrderStatus === 'function') {
+                return window.MockData.getKmeatLastOrderStatus(now);
+            }
+            let enabled = false;
+            try {
+                const stored = JSON.parse(localStorage.getItem('kmeat_last_order_settings') || 'null');
+                enabled = Boolean(stored && stored.enabled === true);
+            } catch (error) {}
+            const current = now instanceof Date ? now : new Date(now || Date.now());
+            return {
+                enabled,
+                closed: enabled && (current.getHours() * 60 + current.getMinutes()) >= (19 * 60 + 30),
+                label: '오후 7시 30분'
+            };
+        }
+
+        function renderLastOrderButton(selectedCount = selected.size) {
+            const button = document.getElementById('order-button');
+            if (!button) return;
+            const status = getKmeatLastOrderStatus();
+            button.disabled = selectedCount === 0 || status.closed;
+            button.textContent = status.closed ? '라스트 오더 마감' : '주문 확인';
+            button.title = status.closed ? `${status.label} 이후에는 주문을 받지 않습니다.` : '';
         }
 
         function changeQty(id, amount) {
@@ -1010,6 +1039,12 @@
         }
 
         function openOrderModal() {
+            const lastOrder = getKmeatLastOrderStatus();
+            if (lastOrder.closed) {
+                renderLastOrderButton();
+                alert(`${lastOrder.label} 라스트 오더가 마감되어 주문할 수 없습니다.`);
+                return;
+            }
             const limit = checkOrderLimit();
             if (!limit.allowed) {
                 alert(limit.message);
@@ -1148,7 +1183,7 @@
             if (window.MockData && typeof window.MockData.getKmeatOrderSettings === 'function') {
                 return window.MockData.getKmeatOrderSettings();
             }
-            return { intervalMinutes: 10, maxQtyPerInterval: 1 };
+            return { intervalMinutes: 10, maxQtyPerInterval: 1, unlimited: false };
         }
 
         function getRecentOrderCount() {
@@ -1180,6 +1215,7 @@
 
         function checkOrderLimit() {
             const { count, settings, resetAt } = getRecentOrderCount();
+            if (settings.unlimited) return { allowed: true };
             if (count < settings.maxQtyPerInterval) return { allowed: true };
             const remainMs = resetAt ? Math.max(0, resetAt - Date.now()) : settings.intervalMinutes * 60 * 1000;
             const mm = Math.floor(remainMs / 60000);
@@ -1194,6 +1230,12 @@
             const el = document.getElementById('order-limit-notice');
             if (!el) return;
             const { count, settings, resetAt } = getRecentOrderCount();
+            if (settings.unlimited) {
+                el.textContent = '';
+                el.style.display = 'none';
+                return;
+            }
+            el.style.display = '';
             const remaining = Math.max(0, settings.maxQtyPerInterval - count);
             if (remaining > 0) {
                 el.textContent = `주문 가능: ${settings.intervalMinutes}분당 ${settings.maxQtyPerInterval}건 · 남은 접수 ${remaining}건`;
@@ -1663,10 +1705,14 @@
         renderMenu('side', 'side-menu');
         updateSummary();
 
-        // 주문 제한 안내 실시간 갱신
-        renderOrderLimitNotice();
-        setInterval(renderOrderLimitNotice, 1000);
-        window.addEventListener('storage', renderOrderLimitNotice);
+        // 주문 제한 및 라스트오더 상태 실시간 갱신
+        function refreshOrderAvailability() {
+            renderOrderLimitNotice();
+            renderLastOrderButton();
+        }
+        refreshOrderAvailability();
+        setInterval(refreshOrderAvailability, 1000);
+        window.addEventListener('storage', refreshOrderAvailability);
 
         /* 하단 고정 요약바 높이를 --summary-h 에 반영한다.
            안내 문구(주문 가능/남은 접수) 유무에 따라 바 높이가 달라져
