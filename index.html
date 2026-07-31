@@ -36,9 +36,9 @@
     <meta name="twitter:image" content="https://infott2t.github.io/smartFactory-ex/images/kimchi_hero.png">
     <link href="./css/styles.css?v=20260614-2" rel="stylesheet" type="text/css">
     <link href="./css/underCover.css" rel="stylesheet" type="text/css">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#09031f">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>스마트팩토리</title>
     <style>
@@ -98,7 +98,45 @@
             color: #fff;
         }
 
+        .pwa-install-banner {
+            max-width: 920px;
+            margin: 12px auto 0;
+            padding: 12px 16px;
+            border: 1px solid rgba(123, 92, 245, .45);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(71, 32, 202, .24), rgba(123, 92, 245, .12));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            color: #fff;
+            box-sizing: border-box;
+        }
+
+        .pwa-install-copy { min-width: 0; }
+        .pwa-install-title { font-size: 14px; font-weight: 800; }
+        .pwa-install-note { margin-top: 3px; color: #c9c4e8; font-size: 11px; line-height: 1.4; }
+        .pwa-install-button {
+            flex-shrink: 0;
+            border: 0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #7b5cf5, #4720ca);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 5px 16px rgba(71, 32, 202, .35);
+        }
+
+        .pwa-install-button.is-ready { background: linear-gradient(135deg, #00b894, #008f73); }
+        .pwa-install-banner[hidden] { display: none !important; }
+        @media (display-mode: standalone) { .pwa-install-banner { display: none !important; } }
+
         @media (max-width: 480px) {
+            .pwa-install-banner { margin: 10px 12px 0; padding: 11px 12px; }
+            .pwa-install-title { font-size: 13px; }
+            .pwa-install-button { padding: 10px 12px; }
             .fab-reset-session {
                 left: 16px;
                 right: auto;
@@ -132,6 +170,16 @@
             </div>
         </header>
     </div>
+    <section class="pwa-install-banner" data-pwa-install-container aria-label="스마트 팩토리 앱 설치" hidden>
+        <div class="pwa-install-copy">
+            <div class="pwa-install-title"><i class="bi bi-phone"></i> 스마트 팩토리 앱 다운로드</div>
+            <div class="pwa-install-note" data-pwa-install-note>설치 준비가 완료되면 버튼을 눌러 앱으로 추가할 수 있습니다.</div>
+        </div>
+        <button type="button" class="pwa-install-button" data-pwa-install>
+            <i class="bi bi-download"></i> 앱 설치
+        </button>
+    </section>
+
     <div class="main-wrap">
         <main class="main">
             <div class="box">
@@ -256,7 +304,7 @@
         });
 
     </script>
-<script src="/js/pwa.js?v=20260731-pwa-v6" defer></script>
+<script src="./js/pwa.js?v=20260731-pwa-v8" defer></script>
 </body>
 
 </html>

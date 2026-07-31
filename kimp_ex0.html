@@ -253,7 +253,7 @@
         }
     </style>
     <link rel="manifest" href="./manifest.json">
-    <script src="/js/pwa.js?v=20260731-pwa-v6" defer></script>
+    <script src="./js/pwa.js?v=20260731-pwa-v8" defer></script>
     <meta name="theme-color" content="#7879e6">
     <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -3581,22 +3581,6 @@
             document.getElementById('active-help-modal').classList.remove('open');
             showHmiToast('<i class="bi bi-check-circle-fill" style="color: #10b981;"></i> 도움을 완료하고 복귀했습니다.');
             checkHelperQueue();
-        }
-
-        // ============================================================
-        // PWA 서비스 워커 등록
-        // ============================================================
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // 경로에 주의!
-                navigator.serviceWorker.register('/sw.js?v=20260731-pwa-v6', { scope: '/', updateViaCache: 'none' })
-                    .then(registration => {
-                        console.log('✅ Service Worker 등록 성공! 스코프:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('❌ Service Worker 등록 실패:', error);
-                    });
-            });
         }
 
         // document.addEventListener('DOMContentLoaded', () => {

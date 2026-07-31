@@ -1,19 +1,20 @@
-const CACHE_NAME = 'smartfactory-pwa-v6-20260731';
+const CACHE_NAME = 'smartfactory-pwa-v8-20260731';
+const APP_BASE_URL = new URL('./', self.location.href);
 
 const CORE_ASSETS = [
-  '/',
-  '/index.html',
-  '/main.html',
-  '/manifest.json',
-  '/css/styles2.css',
-  '/css/underCover.css',
-  '/js/auth.js',
-  '/js/auth-guard.js',
-  '/js/pwa.js',
-  '/js/ratio-feed.js',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
-];
+  '',
+  'index.html',
+  'main.html',
+  'manifest.json',
+  'css/styles2.css',
+  'css/underCover.css',
+  'js/auth.js',
+  'js/auth-guard.js',
+  'js/pwa.js',
+  'js/ratio-feed.js',
+  'icons/icon-192x192.png',
+  'icons/icon-512x512.png'
+].map((path) => new URL(path, APP_BASE_URL).toString());
 
 /*
  * 자산을 하나씩 캐시에 담는다.
@@ -151,7 +152,7 @@ self.addEventListener('fetch', (event) => {
         }
 
         if (request.mode === 'navigate') {
-          const shell = await caches.match('/index.html');
+          const shell = await caches.match(new URL('index.html', APP_BASE_URL).toString());
           if (shell) {
             return shell;
           }

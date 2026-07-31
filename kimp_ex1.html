@@ -331,7 +331,7 @@
         }
     </style>
     <link rel="manifest" href="./manifest.json">
-    <script src="/js/pwa.js?v=20260731-pwa-v6" defer></script>
+    <script src="./js/pwa.js?v=20260731-pwa-v8" defer></script>
     <meta name="theme-color" content="#7879e6">
     <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -6333,22 +6333,6 @@
                 showHmiToast('<i class="bi bi-magic" style="color:var(--primary);"></i> 헬퍼의 지원으로 현재 스텝이 완료되었습니다.');
                 nextStep();
             }
-        }
-
-        // ============================================================
-        // PWA 서비스 워커 등록
-        // ============================================================
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // 경로에 주의!
-                navigator.serviceWorker.register('/sw.js?v=20260731-pwa-v6', { scope: '/', updateViaCache: 'none' })
-                    .then(registration => {
-                        console.log('✅ Service Worker 등록 성공! 스코프:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('❌ Service Worker 등록 실패:', error);
-                    });
-            });
         }
 
         // 💡 [추가] 배추 뒤집기 공정용 헬퍼 함수들 정의
