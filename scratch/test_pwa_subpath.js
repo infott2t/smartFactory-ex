@@ -78,6 +78,14 @@ function createStaticServer() {
     }, null, { timeout: 15000 });
     await page.reload({ waitUntil: 'load', timeout: 30000 });
     const indexInstallEntryCount = await page.locator('[data-pwa-install-container]').count();
+    const indexCta = page.locator('#loginBtn');
+    const indexCtaTagName = await indexCta.evaluate((element) => element.tagName);
+    await Promise.all([
+      page.waitForURL(`${APP_URL}main.html`, { timeout: 10000 }),
+      indexCta.click()
+    ]);
+    const indexCtaNavigated = page.url() === `${APP_URL}main.html`;
+    await page.goto(APP_URL, { waitUntil: 'load', timeout: 30000 });
     await page.evaluate(() => {
       sessionStorage.setItem('user', JSON.stringify({
         id: 'pwa-test-user',
@@ -163,6 +171,8 @@ function createStaticServer() {
       confirmMessageOk: confirmMessage === '스마트 팩토리 PWA 앱을 설치하시겠습니까?',
       declineStoppedPrompt,
       directPromptTriggered,
+      indexCtaIsValidLink: indexCtaTagName === 'A',
+      indexCtaNavigated,
       installFunctionReady: state.installFunction === 'function',
       installEntryRemovedFromIndex: indexInstallEntryCount === 0,
       manifestPathOk: state.manifestHref === `${expectedBase}manifest.json`,
