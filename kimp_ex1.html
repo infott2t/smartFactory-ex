@@ -331,6 +331,7 @@
         }
     </style>
     <link rel="manifest" href="./manifest.json">
+    <script src="/js/pwa.js?v=20260731-pwa-v5" defer></script>
     <meta name="theme-color" content="#7879e6">
     <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -6340,7 +6341,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 // 경로에 주의!
-                navigator.serviceWorker.register('./sw.js')
+                navigator.serviceWorker.register('/sw.js?v=20260731-pwa-v5', { scope: '/', updateViaCache: 'none' })
                     .then(registration => {
                         console.log('✅ Service Worker 등록 성공! 스코프:', registration.scope);
                     })

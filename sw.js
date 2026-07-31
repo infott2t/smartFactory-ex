@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartfactory-pv-v4';
+const CACHE_NAME = 'smartfactory-pwa-v5-20260731';
 
 const CORE_ASSETS = [
   '/',
@@ -26,7 +26,7 @@ async function precache() {
   await Promise.all(
     CORE_ASSETS.map(async (url) => {
       try {
-        await cache.add(new Request(url, { cache: 'reload' }));
+        await cache.add(new Request(url, { cache: 'no-store' }));
       } catch (error) {
         console.warn('[sw] 사전 캐시 건너뜀:', url, error);
       }
@@ -73,13 +73,13 @@ function fetchFresh(request) {
    */
   if (request.mode === 'navigate') {
     return fetch(request.url, {
-      cache: 'reload',
+      cache: 'no-store',
       credentials: 'same-origin',
       redirect: 'follow'
     });
   }
   try {
-    return fetch(new Request(request, { cache: 'reload' }));
+    return fetch(new Request(request, { cache: 'no-store' }));
   } catch (error) {
     return fetch(request);
   }
@@ -90,6 +90,32 @@ function fetchFresh(request) {
  * 오프라인 상태의 문서 요청에는 캐시된 화면을 돌려주어, 설치형 앱으로서
  * 최소한의 오프라인 동작을 보장한다.
  */
+function getCacheKey(request) {
+  const url = new URL(request.url);
+  const canonicalDestinations = ['style', 'script', 'font', 'image', 'manifest'];
+  if (request.mode === 'navigate' || canonicalDestinations.includes(request.destination)) {
+    // ?v=... 값마다 오래된 사본이 쌓이지 않도록 정적 자산은 경로당 최신 한 개만 보관한다.
+    url.search = '';
+    return new Request(url.toString(), {
+      method: 'GET',
+      credentials: 'same-origin'
+    });
+  }
+  return request;
+}
+
+self.addEventListener('message', (event) => {
+  const type = event.data && event.data.type;
+  if (type === 'SKIP_WAITING') self.skipWaiting();
+  if (type === 'CLEAR_PWA_CACHES') {
+    event.waitUntil(
+      caches.keys().then((names) => Promise.all(
+        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+      ))
+    );
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
@@ -109,16 +135,17 @@ self.addEventListener('fetch', (event) => {
 
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
+          const cacheKey = getCacheKey(request);
           caches
             .open(CACHE_NAME)
-            .then((cache) => cache.put(request, responseToCache))
+            .then((cache) => cache.put(cacheKey, responseToCache))
             .catch(() => { });
         }
 
         return response;
       } catch (error) {
         // 쿼리스트링(?v=1.0.2) 이 붙은 정적 자산도 맞히도록 ignoreSearch 사용
-        const cached = await caches.match(request, { ignoreSearch: true });
+        const cached = await caches.match(getCacheKey(request));
         if (cached) {
           return cached;
         }

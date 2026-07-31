@@ -6,12 +6,43 @@
 (function () {
     'use strict';
 
+    var SERVICE_WORKER_URL = '/sw.js?v=20260731-pwa-v5';
+    var refreshingForNewWorker = false;
+
+    function activateWaitingWorker(registration) {
+        if (registration && registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+    }
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            navigator.serviceWorker.register(SERVICE_WORKER_URL, {
+                scope: '/',
+                updateViaCache: 'none'
+            })
+                .then(function (registration) {
+                    activateWaitingWorker(registration);
+                    registration.addEventListener('updatefound', function () {
+                        var installingWorker = registration.installing;
+                        if (!installingWorker) return;
+                        installingWorker.addEventListener('statechange', function () {
+                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                activateWaitingWorker(registration);
+                            }
+                        });
+                    });
+                    registration.update().catch(function () {});
+                })
                 .catch(function (error) {
                     console.warn('[pwa] 서비스 워커 등록 실패:', error);
                 });
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (refreshingForNewWorker) return;
+            refreshingForNewWorker = true;
+            window.location.reload();
         });
     }
 
