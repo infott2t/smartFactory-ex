@@ -149,7 +149,7 @@ function createStaticServer() {
 
     const requiredAssets = [
       'manifest.json',
-      'sw.js?v=20260731-pwa-v8',
+      'sw.js?v=20260801-pwa-v10-bulgogi',
       'icons/icon-192x192.png',
       'icons/icon-512x512.png'
     ];
@@ -179,7 +179,7 @@ function createStaticServer() {
       noLocalFailures: localFailures.length === 0,
       persistentInstallEntry: state.persistentInstallEntry,
       scriptPathOk: state.pwaScript === `${expectedBase}js/pwa.js?v=20260801-pwa-install-v10`,
-      serviceWorkerPathOk: state.serviceWorkerScript === `${expectedBase}sw.js?v=20260731-pwa-v8`,
+      serviceWorkerPathOk: state.serviceWorkerScript === `${expectedBase}sw.js?v=20260801-pwa-v10-bulgogi`,
       serviceWorkerScopeOk: state.serviceWorkerScope === expectedBase
     };
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartfactory-pwa-v8-20260731';
+const CACHE_NAME = 'smartfactory-pwa-v10-bulgogi-20260801';
 const APP_BASE_URL = new URL('./', self.location.href);
 
 const CORE_ASSETS = [

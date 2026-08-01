@@ -6,7 +6,7 @@
 (function () {
     'use strict';
 
-    var SERVICE_WORKER_URL = './sw.js?v=20260731-pwa-v8';
+    var SERVICE_WORKER_URL = './sw.js?v=20260801-pwa-v10-bulgogi';
     var SERVICE_WORKER_SCOPE = './';
     var refreshingForNewWorker = false;
     var deferredInstallPrompt = null;
