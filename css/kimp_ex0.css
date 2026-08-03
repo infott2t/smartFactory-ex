@@ -338,9 +338,9 @@ body {
 }
 
 /* =======================================================
-   💡 6. 반응형 대응 (모바일 화면 레이아웃 깨짐 해결)
+   💡 6. 반응형 대응 (모바일/태블릿 화면 레이아웃 깨짐 해결: 1093px 이하)
    ======================================================= */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1093px) {
 
     /* 헤더 간격 축소 */
     .global-header {
@@ -485,9 +485,9 @@ body {
 }
 
 /* =======================================================
-   반응형 대응 (모바일 화면 수정)
+   반응형 대응 (모바일/태블릿 화면 수정: 1093px 이하)
    ======================================================= */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1093px) {
     .header-top {
         flex-direction: column;
         align-items: stretch;
@@ -692,7 +692,8 @@ body {
 /* compact 클래스가 붙으면 메뉴와 상태창을 숨김 */
 .global-header.compact .header-actions,
 .global-header.compact .btn-toggle-status,
-.global-header.compact .status-grid {
+.global-header.compact .status-grid,
+.global-header.compact #login-btn {
     display: none !important;
 }
 
@@ -706,7 +707,8 @@ body {
 .global-header.compact .header-actions,
 .global-header.compact .btn-toggle-status,
 .global-header.compact .status-grid,
-.global-header.compact .compact-expand-bar {
+.global-header.compact .compact-expand-bar,
+.global-header.compact #login-btn {
     display: none !important;
 }
 
@@ -780,9 +782,9 @@ body {
     white-space: nowrap;
 }
 
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1093px) {
 
-    /* 모바일 컴팩트 모드 시 타이틀과 뱃지를 나란히 배치 */
+    /* 모바일/태블릿 컴팩트 모드 시 타이틀과 뱃지를 나란히 배치 */
     .global-header.compact .job-info-group {
         flex-direction: row;
         justify-content: space-between;
