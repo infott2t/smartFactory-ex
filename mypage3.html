@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>마이페이지 | 스마트팩토리 (Dark Dashboard)</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 기존 스크립트 유지 -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    <script src="./js/auth.js" type="text/javascript"></script>
+    <script src="./js/auth-guard.js" type="text/javascript"></script>
+    <script src="./js/store.js?v=20260730d" type="text/javascript"></script>
+    <script src="./js/shop-order-detail.js?v=20260728b" type="text/javascript"></script>
+    <script src="./js/engine.js" type="text/javascript"></script>
+
+    <style>
+        /* =========================================
+           ✨ Modern Dark Theme Variables
+           ========================================= */
+        :root {
+            --bg-base: #070320;      /* 깊은 네이비 배경 */
+            --bg-card: #272727;      /* 카드 배경 */
+            --bg-card-hover: #334155;
+            
+            --text-main: #f8fafc;    /* 밝은 흰색 */
+            --text-sub: #94a3b8;     /* 은은한 회색 */
+            
+            --accent-primary: #6366f1;   /* 인디고/보라 */
+            --accent-secondary: rgb(253, 132, 237); /* 보라 */
+            --accent-pink: #fd79a8;      /* 핫핑크 강조 색상 */
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --accent-money: #10b981;     /* 수입용 에메랄드 그린 */
+            --border-light: rgba(255, 255, 255, 0.08);
+            
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .main-wrap {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        /* --- Header (Glassmorphism) --- */
+        .fixed-header-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .menu-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .menu-bar i.back {
+            margin-right: 12px;
+            cursor: pointer;
+            color: var(--text-sub);
+            transition: color 0.2s;
+        }
+        .menu-bar i.back:hover { color: var(--text-main); }
+        
+        .header-icon {
+            cursor: pointer;
+            color: var(--text-sub);
+            font-size: 20px;
+        }
+
+        main.main-mypage { padding: 0px 20px; }
+
+        /* --- 🚀 통합 Hero Card (프로필 + 수입) --- */
+        .hero-card {
+            background: var(--accent-gradient);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 12px 30px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 카드 내 장식용 원형 패턴 */
+        .hero-card::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 1;
+        }
+        body:not(.user-session-ready) .profile-section { visibility: hidden; }
+
+        .moji-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .mypage-info1 { display: flex; flex-direction: column; gap: 4px; z-index: 1; }
+        #user-name-display { font-size: 20px; font-weight: 700; }
+        #user-email-display { font-size: 13px; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;}
+
+        .manager-test-link {
+            margin-left: auto;
+            padding: 10px 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(8, 11, 24, 0.22);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background 0.2s ease, transform 0.2s ease;
+            z-index: 2;
+        }
+        .manager-test-link:hover {
+            background: rgba(8, 11, 24, 0.36);
+            transform: translateY(-1px);
+        }
+        .manager-test-link[hidden] { display: none; }
+
+        .earnings-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .earnings-section { cursor: pointer; transition: background 0.2s ease; }
+        .earnings-section:hover { background: rgba(0, 0, 0, 0.32); }
+        .earnings-section .label { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.8); }
+        .earnings-section .amount {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        .earnings-section .earnings-arrow {
+            margin-left: 6px;
+            font-size: 18px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.7);
+            vertical-align: middle;
+        }
+
+        /* --- Section Titles --- */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0 16px 0;
+        }
+        .section-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-header a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* --- 🧩 파트너 등급 (Dashboard Grid) --- */
+        .partner-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .partner-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform 0.2s;
+        }
+        .partner-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); }
+
+        .partner-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .partner-card-header img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
+        .partner-info { display: flex; flex-direction: column; }
+        .partner-info .brand { font-size: 12px; color: var(--text-sub); font-family: 'Outfit', sans-serif; font-weight: 600;}
+        .partner-info .job { font-size: 14px; font-weight: 700; }
+
+        .partner-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .partner-card.full-width { grid-column: span 2; }
+
+        /* --- 🏷️ JS가 동적으로 주입하는 클래스 재정의 (다크모드용) --- */
+        /* JS에서 쓰는 .badge01, .box-time, .box-partner 등 오버라이딩 */
+        .badge01, .badge02, .badge03 {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .badge01 { background: rgba(148, 163, 184, 0.2); color: var(--text-main); }
+        .badge02 { background: rgba(99, 102, 241, 0.2); color: #818cf8; } /* 헬퍼 */
+        .badge03 { background: rgba(16, 185, 129, 0.2); color: #34d399; } /* 매니저 */
+        .badge-health-warning { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+        .box-time { font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-main); }
+
+        /* 예약 및 히스토리 리스트 컨테이너 */
+        #reservations-container, #history-container {
+            display: flex;
+            flex-direction: column;
+           
+        }
+
+        /* JS 주입용 카드 (.box-partner를 공유함) */
+        .box-partner.reservation-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .box-partner.history-item {
+            background: rgba(22, 24, 34, 0.75) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-left: 4px solid var(--accent-pink) !important;
+            border-radius: 14px !important;
+            padding: 14px 16px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        /* 예약 카드 내부 스타일 */
+        .res-date-box, .res-time-box {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-sub);
+            font-size: 13px;
+        }
+        .res-job-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 12px;
+        }
+        .res-job-box2 { display: flex; align-items: center; gap: 8px; font-weight: 600;}
+        .res-job-box2 img { width: 24px; height: 24px; border-radius: 6px; }
+
+        .res-btn-box {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .res-check-in-btn, .res-cancel-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+        }
+        .res-check-in-btn { background: var(--accent-primary); color: white; }
+        .res-check-in-btn:hover { background: #4f46e5; }
+        .res-check-in-btn:disabled { opacity: 0.55; cursor: not-allowed; background: #475569; }
+        .res-cancel-btn { background: transparent; border: 1px solid var(--border-light); color: var(--text-sub); }
+        .res-cancel-btn:hover { background: rgba(255,255,255,0.05); color: white;}
+
+        .offline-qr-payment-label-short { display: none; }
+
+        @media (max-width: 544px) {
+            .offline-qr-payment-label-full { display: none; }
+            .offline-qr-payment-label-short { display: inline; }
+        }
+
+        /* 히스토리 카드 내부 스타일 */
+        .hist-date {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-sub);
+            font-size: 13px;
+            border-bottom: 1px dashed var(--border-light);
+            padding-bottom: 8px;
+        }
+        .history-item .box-corp {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0;
+        }
+        .history-item img { width: 36px; height: 36px; border-radius: 8px; }
+        .hist-job-title { font-weight: 600; font-size: 16px; }
+        .hist-pay {
+            text-align: right;
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-money);
+        }
+
+        /* --- ⚙️ 시뮬레이션 패널 (Developer Terminal Style) --- */
+        .sim-panel-toggle {
+            display: none;
+            background: #000;
+            color: #34d399;
+            font-family: monospace;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 40px;
+            cursor: pointer;
+            border: 1px dashed #34d399;
+        }
+        .sim-panel-content {
+            display: none;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 10px;
+        }
+        .sim-group label {
+            display: block;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .sim-flex { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;}
+        .sim-btn {
+            background: #111;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .sim-btn.active { background: #34d399; color: #000; font-weight: bold; }
+        .btn-logout-mypage {
+            width: 100%;
+            background: #7f1d1d;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* 모달 오버라이딩 */
+        .modal-overlay-custom { background: rgba(0,0,0,0.8); }
+        .modal-content-custom { background: var(--bg-base); border: 1px solid var(--border-light); }
+        .mypage-qr-modal {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0, 0, 0, 0.82); padding: 20px;
+            align-items: center; justify-content: center;
+        }
+        .mypage-qr-modal.show { display: flex; }
+        .mypage-qr-card {
+            width: 100%; max-width: 390px; padding: 20px; border-radius: 20px;
+            background: #17152b; border: 1px solid var(--border-light);
+            box-shadow: 0 22px 60px rgba(0,0,0,.45);
+        }
+        .mypage-qr-demo {
+            width: 100%; min-height: 220px; margin-top: 14px; border-radius: 16px;
+            border: 2px dashed #fbbf24; background: rgba(245, 158, 11, .08);
+            color: var(--text-main); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 8px;
+            font: inherit; cursor: pointer;
+        }
+        .mypage-qr-demo i { font-size: 58px; color: #fbbf24; }
+        .mypage-qr-demo:active { transform: scale(.99); }
+        .mypage-qr-status { margin-top: 12px; text-align: center; color: var(--text-sub); font-size: 12px; line-height: 1.6; }
+        .mypage-qr-status.ok { color: #34d399; font-weight: 800; }
+        .mypage-qr-actions { display: flex; gap: 8px; margin-top: 14px; }
+        .mypage-qr-actions button {
+            flex: 1; min-height: 44px; border: 1px solid var(--border-light);
+            border-radius: 12px; background: rgba(255,255,255,.06);
+            color: var(--text-main); font: inherit; font-weight: 800; cursor: pointer;
+        }
+
+        @media (max-width: 463px) {
+            .moji-icon { display: none; }
+        }
+        @media (max-width: 375px) {
+            .earnings-section .label { display: none; }
+            .earnings-section .amount {
+                margin-left: auto;
+                justify-content: flex-end;
+            }
+        }
+        @media (max-width: 361px) {
+            .manager-test-link {
+                padding: 7px 9px;
+                gap: 4px;
+                border-radius: 10px;
+                font-size: 11px;
+            }
+            .manager-test-link i { font-size: 12px; }
+        }
+    </style>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#09031f">
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="./js/pwa.js?v=20260731-pwa-v8" defer></script>
+    <link rel="stylesheet" href="./css/app-footer.css?v=1.0.0">
+    <link rel="stylesheet" href="./css/app-notifications.css?v=1.0.3">
+    <script src="./js/app-footer.js?v=1.0.0" defer></script>
+    <script src="./js/app-notifications.js?v=1.0.3" defer></script>
+</head>
+
+<body>
+    <div class="main-wrap">
+        <main class="main-mypage">
+            <!-- Header -->
+            <div class="fixed-header-wrap">
+                <div class="menu-bar">
+                    <div><i class="bi bi-chevron-left back"></i> <span style="margin-left:4px;">마이페이지</span></div>
+                    <div class="header-icon" onclick="toggleSettings()"><i class="bi bi-gear"></i></div>
+                </div>
+            </div>
+
+            <!-- 🚀 1. Hero Card (프로필 + 수입 통합) -->
+            <div class="hero-card">
+                <div class="profile-section">
+                    <div class="moji-icon" id="user-avatar-initials">US</div>
+                    <div class="mypage-info1">
+                        <div id="user-name-display">사용자 님</div>
+                        <div id="user-email-display">user@example.com</div>
+                    </div>
+                    <a class="manager-test-link" id="manager-test-link" href="./test.html" hidden>
+                        <i class="bi bi-tools" aria-hidden="true"></i>
+                        <span>관리자 테스트</span>
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="earnings-section" onclick="location.href='./settlement_log.html'">
+                    <span class="label">나의 정산 자산</span>
+                    <div class="amount">₩ <span id="total-earnings-display">0</span><i class="bi bi-chevron-right earnings-arrow"></i></div>
+                </div>
+            </div>
+
+            <!-- 🧩 2. 파트너 등급 (Grid 형태 위젯) -->
+            <div class="section-header">
+                <h3><i class="bi bi-award-fill" style="color:var(--accent-primary);"></i> 나의 파트너 등급</h3>
+                <a href="./explore2.html?tab=partner">전체보기 <i class="bi bi-chevron-right"></i></a>
+            </div>
+            
+            <div class="partner-grid">
+                <!-- 김치만들기 (가로 풀 사이즈) -->
+                <div class="partner-card full-width">
+                    <div class="partner-card-header">
+                        <img src="./images/k-icon_150x150.png" alt="AFood">
+                        <div class="partner-info">
+                            <span class="brand">AFood</span>
+                            <span class="job">김치만들기</span>
+                        </div>
+                    </div>
+                    <div class="partner-value" id="grade-row-kimchi">
+                        <!-- JS Inject: <span class="box-time">14h</span><span class="badge01">일반</span> -->
+                    </div>
+                </div>
+
+                <!-- 우동만들기 -->
+                <div class="partner-card">
+                    <div class="partner-card-header">
+                        <img src="./images/Uton_150x150.png" alt="Uton">
+                        <div class="partner-info">
+                            <span class="brand">Uton</span>
+                            <span class="job">우동만들기</span>
+                        </div>
+                    </div>
+                    <div class="partner-value" id="grade-row-udon"></div>
+                </div>
+
+                <!-- 지갑만들기 -->
+                <div class="partner-card">
+                    <div class="partner-card-header">
+                        <img src="./images/fancy_150x150.png" alt="Persa">
+                        <div class="partner-info">
+                            <span class="brand">Persa</span>
+                            <span class="job">지갑만들기</span>
+                        </div>
+                    </div>
+                    <div class="partner-value" id="grade-row-wallet"></div>
+                </div>
+            </div>
+
+            <!-- 🛍️ 2.5. 나의 쇼핑 -->
+            <div class="section-header" style="margin-top: 30px;">
+                <h3><i class="bi bi-bag-check-fill" style="color:var(--accent-secondary);"></i> 나의 쇼핑</h3>
+                <a href="./explore2.html?tab=shopping">전체보기 <i class="bi bi-chevron-right"></i></a>
+            </div>
+            <div id="shop-history-container"></div>
+
+            <!-- 📅 3. 나의 일 예약 내역 -->
+            <div class="section-header">
+                <h3><i class="bi bi-calendar-check-fill" style="color:#10b981;"></i> 예약 내역</h3>
+                <a href="./explore2.html?tab=reservation">전체보기 <i class="bi bi-chevron-right"></i></a>
+            </div>
+            <!-- JS가 이곳에 .box-partner .reservation-item HTML을 주입함 -->
+            <div id="reservations-container"></div>
+
+            <!-- 🕒 4. 내가 했던 일 (History) -->
+            <div class="section-header" style="margin-top: 40px;">
+                <h3><i class="bi bi-clock-history" style="color:#f59e0b;"></i> 내가 했던 일</h3>
+                <a href="./explore2.html?tab=history">전체보기 <i class="bi bi-chevron-right"></i></a>
+            </div>
+            <!-- JS가 이곳에 .box-partner .history-item HTML을 주입함 -->
+            <div id="history-container"></div>
+
+
+            <!-- ⚙️ Simulation / Dev Tool -->
+            <div class="sim-panel-toggle" onclick="toggleSimPanel()">
+                <i class="bi bi-terminal"></i> [DEV] 테스트 데이터 조정 패널
+            </div>
+            <div class="sim-panel-content" id="sim-panel">
+                <div class="sim-group">
+                    <label>> 하드코딩 모드</label>
+                    <div class="sim-flex">
+                        <button class="sim-btn" id="btn-hardcoding-on" onclick="setHardcodingMode(true)">hardcoding=true (목업 데이터 O)</button>
+                        <button class="sim-btn" id="btn-hardcoding-off" onclick="setHardcodingMode(false)">hardcoding=false (목업 데이터 X)</button>
+                    </div>
+                </div>
+                <div class="sim-group">
+                    <label>> 김치만들기 근무시간 조정</label>
+                    <div class="sim-flex">
+                        <button class="sim-btn" onclick="setWorkedHours(0)">0h (김수민)</button>
+                        <button class="sim-btn" onclick="setWorkedHours(22)">22h (최수아)</button>
+                        <button class="sim-btn" onclick="setWorkedHours(45)">45h (김영희)</button>
+                        <button class="sim-btn" onclick="setWorkedHours(133)">133h (최현일)</button>
+                    </div>
+                </div>
+                <div class="sim-group">
+                    <label>> 보건증 상태</label>
+                    <div class="sim-flex">
+                        <button class="sim-btn" onclick="setHealthStatus(null)">미등록</button>
+                        <button class="sim-btn" onclick="setHealthStatus('approved')">승인완료</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-logout-mypage" onclick="resetSession()">Session Clear & Logout</button>
+            </div>
+        </main>
+    </div>
+
+    <div class="mypage-qr-modal" id="mypage-offline-qr-modal"
+        onclick="if(event.target===this)closeMypageOfflineQr()">
+        <div class="mypage-qr-card">
+            <div style="font-size:17px;font-weight:800"><i class="bi bi-qr-code-scan" style="color:#fbbf24"></i> 현장결제 QR</div>
+            <div id="mypage-qr-order-info" style="margin-top:10px;color:var(--text-sub);font-size:12px;line-height:1.7"></div>
+            <button type="button" class="mypage-qr-demo" id="mypage-qr-demo" onclick="simulateMypageOfflineQrPayment()">
+                <i class="bi bi-qr-code-scan"></i>
+                <b>데모: QR코드 찍기</b>
+                <span style="font-size:12px;color:var(--text-sub)">클릭하면 현장결제가 완료됩니다.</span>
+            </button>
+            <div class="mypage-qr-status" id="mypage-qr-status">QR코드를 찍기 전에는 주문이 접수되지 않습니다.</div>
+            <div class="mypage-qr-actions">
+                <button type="button" onclick="closeMypageOfflineQr()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크립트단: 제공해주신 원본 JS 코드를 100% 동일하게 유지 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/simulator.js" type="text/javascript"></script>
+    <script>
+        let currentUser = null;
+        let workerProfile = null;
+        let isReconcilingReservationStatus = false;
+        let pendingOfflineQrOrderId = null;
+        let mypageQrSubmitting = false;
+
+        // ── hardcoding 모드 제어 ──
+        // URL 파라미터 ?hardcoding=false 이면 목업 데이터를 주입하지 않고 빈 상태로 시작합니다.
+        const _urlParams = new URLSearchParams(window.location.search);
+        const HARDCODING_MODE = _urlParams.get('hardcoding') !== 'false'; // 기본값: true
+
+        // Load initial user session
+        $(document).ready(function () {
+            // Back Navigation
+            $('.bi-chevron-left.back').click(function () {
+                window.location.href = './main.html';
+            });
+
+            // Initialize user details
+            initUserSession();
+        });
+
+        function initUserSession() {
+            currentUser = window.AuthManager ? window.AuthManager.getCurrentUser() : null;
+            if (!currentUser) {
+                const userJson = sessionStorage.getItem("user");
+                if (userJson) {
+                    currentUser = JSON.parse(userJson);
+                }
+            }
+            if (!currentUser) {
+                alert("로그인이 필요합니다.");
+                window.location.href = "./login.html";
+                return;
+            }
+
+            // Render basic profile info
+            $('#user-name-display').text(currentUser.name + ' 님');
+            $('#user-email-display').text(currentUser.email);
+            const normalizedRole = String(currentUser.role || '')
+                .trim()
+                .toUpperCase()
+                .replace(/^ROLE_/, '');
+            $('#manager-test-link').prop('hidden', normalizedRole !== 'MANAGER');
+
+            // Avatar initials
+            const initials = currentUser.name ? currentUser.name.substring(0, 2) : 'US';
+            $('#user-avatar-initials').text(initials);
+            document.body.classList.add('user-session-ready');
+
+            // Sync worker profile workedHours from FactoryStore userWorkHours table
+            const currentUserId = currentUser.id || currentUser.name || "2";
+            const currentKimchiHours = FactoryStore.getWorkHours(currentUserId, 1);
+
+            let profileStr = sessionStorage.getItem("kimp_worker_profile");
+            if (profileStr) {
+                workerProfile = JSON.parse(profileStr);
+            } else {
+                workerProfile = getDefaultProfileByName(currentUser.name);
+            }
+            workerProfile.workedHours = currentKimchiHours;
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+
+            if (HARDCODING_MODE && FactoryStore.getState().history.length === 0) {
+                const defaultHistory = getDefaultHistoryByName(currentUser.name);
+                FactoryStore.dispatch({ type: 'SET_HISTORY', payload: defaultHistory });
+            }
+
+            // Subscribe to store updates to dynamically trigger re-renders
+            FactoryStore.subscribe(function () {
+                renderAll();
+            });
+
+            // Initial render
+            renderAll();
+        }
+
+        // 작업자 프로필은 store.js 의 users 테이블에서 조회한다.
+        function getDefaultProfileByName(name) {
+            if (window.MockData && typeof window.MockData.getWorkerProfileByName === 'function') {
+                return window.MockData.getWorkerProfileByName(name);
+            }
+            return { userId: 'guest', userName: name || '손님', healthCertificateImage: null, healthCertificateStatus: null, workedHours: 5 };
+        }
+
+        // 기본 근로 이력 목업은 store.js 의 getMockWorkHistories 를 사용한다.
+        function getDefaultHistoryByName(name) {
+            if (window.MockData && typeof window.MockData.getMypageDefaultHistories === 'function') {
+                return window.MockData.getMypageDefaultHistories({ id: sessionStorage.getItem("user-id"), name: name });
+            }
+            return [];
+        }
+
+        function renderAll() {
+            renderEarnings();
+            renderPartnerGrades();
+            renderShopHistory();
+            renderReservations();
+            renderHistory();
+            updateSimControls();
+        }
+
+        function getCurrentUserShopHistory() {
+            const state = window.FactoryStore ? window.FactoryStore.getState() : { shopHistory: [], utonShopHistory: [] };
+            const shopHistory = window.FactoryStore && typeof window.FactoryStore.getShopOrders === 'function'
+                ? window.FactoryStore.getShopOrders()
+                : ([]
+                    .concat(Array.isArray(state.shopHistory) ? state.shopHistory : [])
+                    .concat(Array.isArray(state.utonShopHistory) ? state.utonShopHistory : []));
+            const currentUserId = currentUser && currentUser.id !== undefined && currentUser.id !== null
+                ? String(currentUser.id)
+                : null;
+
+            return shopHistory.filter(item => {
+                if (!item) return false;
+
+                const hasOrderUserId = item.userId !== undefined &&
+                    item.userId !== null &&
+                    String(item.userId).trim() !== '';
+
+                // userId가 없던 기존 주문은 이전처럼 표시한다.
+                if (!hasOrderUserId) return true;
+                if (currentUserId === null) return false;
+
+                return String(item.userId) === currentUserId;
+            }).sort((a, b) => getShopOrderSortTime(b) - getShopOrderSortTime(a));
+        }
+
+        function getShopOrderSortTime(item) {
+            const candidates = [
+                item.orderedAt,
+                item.createdAt,
+                item.updatedAt,
+                item.completedAt,
+                item.cancelledAt,
+                item.dateStr,
+                [item.orderDate, item.orderTime].filter(Boolean).join(' ')
+            ];
+
+            for (const value of candidates) {
+                const time = Date.parse(value);
+                if (Number.isFinite(time)) return time;
+            }
+
+            const orderNo = Number.parseInt(item.orderNo, 10);
+            if (Number.isFinite(orderNo)) return orderNo;
+
+            const id = Number.parseInt(item.id, 10);
+            return Number.isFinite(id) ? id : 0;
+        }
+
+        function renderEarnings() {
+            const userId = currentUser ? (currentUser.id || currentUser.name || currentUser.email) : "2";
+            let settlementBalance = 0;
+            if (HARDCODING_MODE) {
+                settlementBalance = (window.MockData && window.MockData.getUserSettlementBalance) ? window.MockData.getUserSettlementBalance(userId) : 100000;
+            } else {
+                // hardcoding=false: 초기 목업 정산금액을 제외하고, 실제 로그 기반 잔액만 표시
+                const logs = (window.MockData && window.MockData.getSettlementLogs) ? window.MockData.getSettlementLogs(userId) : [];
+                settlementBalance = Math.max(0, logs.reduce(function(sum, log) { return sum + (Number(log.amount) || 0); }, 0));
+            }
+
+            $('#total-earnings-display').text(settlementBalance.toLocaleString());
+        }
+
+        function renderPartnerGrades() {
+            const userId = currentUser ? (currentUser.id || currentUser.name) : "2";
+            let kimchiHours, udonHours, walletHours;
+
+            if (HARDCODING_MODE) {
+                kimchiHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 1) : 0;
+                udonHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 2) : 0;
+                walletHours = (window.FactoryStore && window.FactoryStore.getWorkHours) ? window.FactoryStore.getWorkHours(userId, 3) : 0;
+            } else {
+                // hardcoding=false: localStorage에 사용자가 직접 누적한 시간만 표시 (기본 목업값 제외)
+                try {
+                    const saved = JSON.parse(localStorage.getItem('kimp_user_work_hours') || '{}');
+                    kimchiHours = Number(saved[userId + '_1']) || 0;
+                    udonHours = Number(saved[userId + '_2']) || 0;
+                    walletHours = Number(saved[userId + '_3']) || 0;
+                } catch(e) {
+                    kimchiHours = 0; udonHours = 0; walletHours = 0;
+                }
+            }
+
+            function getGradeBadgeHtml(hours, isKimchi) {
+                let label = "일반";
+                let badgeClass = "badge01";
+
+                if (hours >= 50) {
+                    label = "매니저";
+                    badgeClass = "badge03";
+                } else if (hours >= 30) {
+                    label = "헬퍼";
+                    badgeClass = "badge02";
+                } else {
+                    label = "일반";
+                    badgeClass = "badge01";
+                }
+
+                let html = `<span class="box-time">${Math.floor(hours)}h</span><span class="${badgeClass}">${label}</span>`;
+
+                if (isKimchi && workerProfile.healthCertificateStatus !== 'approved') {
+                    html += ` <span class="badge01 badge-health-warning">보건증 필요</span>`;
+                }
+
+                return html;
+            }
+
+            $('#grade-row-kimchi').html(getGradeBadgeHtml(kimchiHours, true));
+            $('#grade-row-udon').html(getGradeBadgeHtml(udonHours, false));
+
+            if (walletHours === 0) {
+                $('#grade-row-wallet').html('<span class="box-time">-</span>');
+            } else {
+                $('#grade-row-wallet').html(getGradeBadgeHtml(walletHours, false));
+            }
+        }
+
+        function getReservationIdentityKey(reservation) {
+            if (!reservation) return null;
+            const user = reservation.userId !== undefined && reservation.userId !== null
+                ? reservation.userId
+                : reservation.userName;
+            const hasComposite = reservation.date && reservation.slot !== undefined && reservation.slot !== null &&
+                reservation.workId !== undefined && reservation.workId !== null && user;
+            if (hasComposite) {
+                return ['reservation', user, reservation.workId, reservation.date, reservation.slot]
+                    .map(value => String(value).trim().toLowerCase()).join('|');
+            }
+            if (reservation.id !== undefined && reservation.id !== null && reservation.id !== '') {
+                return 'id|' + String(reservation.id).trim().toLowerCase();
+            }
+            return null;
+        }
+
+        function mergeReservationRecords(records) {
+            const merged = new Map();
+            (records || []).forEach(record => {
+                if (!record) return;
+                const key = getReservationIdentityKey(record) || ('anonymous|' + JSON.stringify(record));
+                const existing = merged.get(key);
+                if (!existing) {
+                    merged.set(key, record);
+                    return;
+                }
+                const existingLogs = Array.isArray(existing.workLogs) ? existing.workLogs.length : 0;
+                const currentLogs = Array.isArray(record.workLogs) ? record.workLogs.length : 0;
+                const existingScore = (existing.checkInAt ? 4 : 0) + (existing.workStatus && existing.workStatus !== 'reserved' ? 3 : 0) + existingLogs;
+                const currentScore = (record.checkInAt ? 4 : 0) + (record.workStatus && record.workStatus !== 'reserved' ? 3 : 0) + currentLogs;
+                if (currentScore >= existingScore) merged.set(key, record);
+            });
+            return Array.from(merged.values());
+        }
+
+        function getWorkEntryPage(reservation) {
+            const workId = String((reservation && reservation.workId) || '1');
+            if (workId === '2') return 'uton_real.html';
+
+            try {
+                const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                    ? window.FactoryStore.getWorkDetails()
+                    : JSON.parse(window.MockData.workDetailJSON);
+                const detail = detailMap[workId] || {};
+                return detail.workPage || detail.realPage || detail.expPage || 'work_detail.html?id=' + encodeURIComponent(workId);
+            } catch (e) {
+                return 'work_detail.html?id=' + encodeURIComponent(workId);
+            }
+        }
+
+        function formatReservationSlotTime(reservation) {
+            const fallbackSlotLabels = ['10:00 ~ 12:00', '13:00 ~ 15:00', '15:00 ~ 17:00'];
+            const fallback = reservation.time || reservation.slotLabel || fallbackSlotLabels[Number(reservation.slot)] || '지정 시간';
+            if (window.MockData && typeof window.MockData.formatWorkSlotTime === 'function') {
+                return window.MockData.formatWorkSlotTime(reservation.workId || 1, reservation.slot, fallback);
+            }
+            return fallback;
+        }
+
+        function renderReservations() {
+            const container = $('#reservations-container');
+            container.empty();
+
+            if (!isReconcilingReservationStatus && FactoryStore && typeof FactoryStore.markExpiredReservationsAbsent === 'function') {
+                isReconcilingReservationStatus = true;
+                try {
+                    FactoryStore.markExpiredReservationsAbsent(new Date());
+                } finally {
+                    isReconcilingReservationStatus = false;
+                }
+            }
+
+            // FactoryStore가 app_reservations_db를 이미 로드하므로 화면에서는 Store 목록만 사용합니다.
+            let db = mergeReservationRecords(FactoryStore.getState().reservations || []);
+
+            const myReservations = db.filter(r =>
+                (String(r.userId) === String(currentUser.id) || r.userName === currentUser.name) &&
+                !['early_left', 'completed', 'absent'].includes(String(r.workStatus || 'reserved'))
+            );
+
+            if (myReservations.length === 0) {
+                container.html('<div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 14px; background: rgba(0,0,0,0.2); border-radius: 12px;">예약된 일정이 없습니다.</div>');
+                return;
+            }
+
+            myReservations.forEach(r => {
+                const parts = r.date.split('-');
+                let dayName = '';
+                if (parts.length === 3) {
+                    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                    dayName = dayNames[d.getDay()];
+                }
+
+                const roleLabel = r.role === 'helper' ? '헬퍼' : (r.role === 'manager' ? '매니저' : '일반');
+                const badgeClass = r.role === 'helper' ? 'badge02' : (r.role === 'manager' ? 'badge03' : 'badge01');
+                const displayRatio = r.ratio ? Number(r.ratio).toFixed(1) : '1.2';
+                const slotText = formatReservationSlotTime(r);
+                const reservationStatus = String(r.workStatus || 'reserved');
+                const canCheckIn = reservationStatus === 'reserved';
+                const canEnterWork = ['ready', 'working'].includes(reservationStatus);
+                const statusLabel = reservationStatus === 'checked_in'
+                    ? '출근 완료'
+                    : (reservationStatus === 'ready' || reservationStatus === 'working'
+                        ? '근무 진행 중'
+                        : (reservationStatus === 'early_leave_waiting' ? '조퇴 대기 중' : '출근하기'));
+                const primaryButtonAttr = canCheckIn
+                    ? `onclick="goToCheckIn(${r.id})"`
+                    : (canEnterWork ? `onclick="goToWorkPage(${r.id})"` : 'disabled');
+
+                // workId 기반으로 동적 데이터 매핑
+                const workId = r.workId || 1;
+                let workTitle = r.workName || "김치만들기";
+                let brandName = r.brandName || "AFood";
+                let iconUrl = r.iconUrl || "./images/k-icon_150x150.png";
+                let workHoursLabel = "2h";
+
+                try {
+                    const worksList = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                        ? window.FactoryStore.getWorks()
+                        : JSON.parse(window.MockData.worksJSON);
+                    const workObj = worksList.find(w => w.workId == workId);
+                    if (workObj) {
+                        if (!r.workName) workTitle = workObj.workName;
+                        if (!r.brandName) brandName = workObj.brandName;
+                        if (!r.iconUrl) iconUrl = workObj.iconUrl;
+                    }
+
+                    const detailMap = (window.FactoryStore && typeof window.FactoryStore.getWorkDetails === 'function')
+                        ? window.FactoryStore.getWorkDetails()
+                        : JSON.parse(window.MockData.workDetailJSON);
+                    const detail = detailMap[String(workId)];
+                    if (detail && detail.workTime) {
+                        const workTime = detail.workTime;
+                        if (workTime.includes("1시간 30분")) {
+                            workHoursLabel = "1.5h";
+                        } else if (workTime.includes("1시간")) {
+                            workHoursLabel = "1h";
+                        } else if (workTime.includes("2시간")) {
+                            workHoursLabel = "2h";
+                        }
+                    }
+                } catch(e) {}
+
+                let row = `
+                <div class="box-partner reservation-item">
+                    <div style="font-weight:700; color:var(--accent-secondary);"><span style="font-size:12px;">x</span>${displayRatio}배</div> 
+                    <div class="res-date-box">
+                        <span>${parts[1]}월 ${parts[2]}일</span>
+                        <span>${dayName}</span>
+                    </div>
+                    <div class="res-time-box">
+                        <span>${slotText}</span>
+                    </div>
+                    <div class="res-job-box">
+                        <div class="res-job-box2">
+                         <img src="${iconUrl}"> 
+                         <span>${brandName}</span> 
+                         <span>${workTitle}</span>
+                        </div>
+                        <div>
+                        <span class="box-time" style="margin-right:8px;">${workHoursLabel}</span>
+                        <span class="${badgeClass}">${roleLabel}</span>
+                        </div>
+                    </div>
+                    <div class="res-btn-box">
+                        <button type="button" class="res-check-in-btn" ${primaryButtonAttr}>${statusLabel}</button>
+                        <button type="button" class="res-cancel-btn" onclick="cancelReservation(${r.id})">취소</button>
+                    </div>
+                </div>
+                `;
+                container.append(row);
+            });
+        }
+
+        function goToCheckIn(id) {
+            let db = mergeReservationRecords(FactoryStore.getState().reservations || []);
+
+            const selected = db.find(r => r.id === id);
+            if (selected) {
+                if (['checked_in', 'ready', 'working', 'early_leave_waiting', 'early_left', 'completed', 'absent'].includes(String(selected.workStatus || 'reserved'))) {
+                    alert('이미 출근했거나 종료된 예약은 다시 출근할 수 없습니다.');
+                    return;
+                }
+                sessionStorage.setItem('selected_reservation', JSON.stringify(selected));
+            }
+            window.location.href = 'check-in-announce.html';
+        }
+
+        function goToWorkPage(id) {
+            let db = mergeReservationRecords(FactoryStore.getState().reservations || []);
+            const selected = db.find(r => String(r.id) === String(id));
+            if (!selected) return;
+
+            const status = String(selected.workStatus || 'reserved');
+            if (!['ready', 'working'].includes(status)) {
+                goToCheckIn(id);
+                return;
+            }
+
+            sessionStorage.setItem('selected_reservation', JSON.stringify(selected));
+            window.location.href = getWorkEntryPage(selected);
+        }
+
+        function cancelReservation(id) {
+            if (!confirm("해당 예약을 정말 취소하시겠습니까?")) return;
+
+            let db = FactoryStore.getState().reservations;
+            const targetRes = db.find(r => r.id === id);
+
+            const updatedReservations = db.filter(r => r.id !== id);
+            FactoryStore.dispatch({ type: 'SET_RESERVATIONS', payload: updatedReservations });
+
+            if (targetRes && typeof window.addAppLog === 'function') {
+                const slotText = formatReservationSlotTime(targetRes);
+                
+                let workTitle = "김치만들기";
+                try {
+                    const worksList = (window.FactoryStore && typeof window.FactoryStore.getWorks === 'function')
+                        ? window.FactoryStore.getWorks()
+                        : JSON.parse(window.MockData.worksJSON);
+                    const workObj = worksList.find(w => w.workId == (targetRes.workId || 1));
+                    if (workObj) workTitle = workObj.workName;
+                } catch(e) {}
+
+                window.addAppLog(`${workTitle} 공정 예약을 취소하였습니다. (${targetRes.date} ${slotText})`);
+            }
+
+            alert("예약이 정상적으로 취소되었습니다.");
+        }
+
+        function renderHistory() {
+            const container = $('#history-container');
+            container.empty();
+
+            let history = FactoryStore.getState().history || [];
+
+            if (history.length === 0) {
+                container.html('<div style="padding: 20px; text-align: center; color: var(--text-sub); font-size: 14px; background: rgba(0,0,0,0.2); border-radius: 12px;">참여 이력이 없습니다.</div>');
+                return;
+            }
+
+            function parseDate(dateStr) {
+                if (!dateStr) return new Date(0);
+                if (dateStr.includes('년') && dateStr.includes('월')) {
+                    const cleaned = dateStr.replace(/년|월|일/g, '').trim().split(/\s+/);
+                    if (cleaned.length === 3) {
+                        return new Date(parseInt(cleaned[0], 10), parseInt(cleaned[1], 10) - 1, parseInt(cleaned[2], 10));
+                    }
+                }
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                }
+                return new Date(dateStr);
+            }
+
+            history = [...history].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+
+            function formatDisplayDate(dateStr) {
+                if (!dateStr) return '';
+                if (dateStr.includes('년') && dateStr.includes('월')) {
+                    return dateStr.replace(/^\d+년\s*/, '');
+                }
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    const month = parseInt(parts[1], 10);
+                    const day = parseInt(parts[2], 10);
+                    return `${month}월 ${day}일`;
+                }
+                return dateStr;
+            }
+
+            function roundTimeStr(timeStr, method = 'floor') {
+                if (!timeStr) return "";
+                const parts = timeStr.trim().split(':');
+                if (parts.length < 2) return timeStr.trim();
+
+                let h = parseInt(parts[0], 10);
+                let m = parseInt(parts[1], 10);
+                let s = parts.length === 3 ? parseInt(parts[2], 10) : 0;
+
+                if (method === 'ceil' && s > 0) m += 1;
+                else if (method === 'round' && s >= 30) m += 1;
+
+                if (m >= 60) {
+                    h += Math.floor(m / 60);
+                    m = m % 60;
+                }
+                if (h >= 24) h = h % 24;
+
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+
+            function roundTimeRange(rangeStr, method = 'floor') {
+                if (!rangeStr) return "10:00 ~ 12:00";
+                return rangeStr.split('~').map(t => roundTimeStr(t, method)).join(' ~ ');
+            }
+
+            // 역할 라벨 변환은 store.js 의 roleLabelMap / formatRoleLabel 을 사용한다.
+            const formatRoleLabel = role => (window.MockData && typeof window.MockData.formatRoleLabel === 'function')
+                ? window.MockData.formatRoleLabel(role)
+                : (role || '일반');
+
+            history.forEach(item => {
+                let brandLogo = './images/k-icon_150x150.png';
+                let brandName = 'AFood';
+
+                if (item.job && item.job.includes('우동')) {
+                    brandLogo = './images/Uton_150x150.png';
+                    brandName = 'Uton';
+                } else if (item.job && item.job.includes('지갑')) {
+                    brandLogo = './images/fancy_150x150.png';
+                    brandName = 'Persa';
+                }
+                // 버거만들기·불고기구이처럼 위 목록에 없는 일은 store.js 의 작업 메타(브랜드/아이콘)를 쓴다.
+                if (window.MockData && typeof window.MockData.getWorkMeta === 'function') {
+                    const meta = window.MockData.getWorkMeta(
+                        typeof window.MockData.inferWorkId === 'function' ? window.MockData.inferWorkId(item) : item.workId
+                    ) || {};
+                    brandName = item.brandName || meta.brandName || brandName;
+                    brandLogo = item.iconUrl || meta.iconUrl || brandLogo;
+                }
+
+                let displayTime = roundTimeRange(item.time, 'floor');
+                // 표시 급여는 store.js 공통 계산(순위 보너스 포함)으로 통일 → 상세 화면과 금액 일치
+                const historyPayInfo = (window.MockData && typeof window.MockData.getHistoryDisplayPay === 'function')
+                    ? window.MockData.getHistoryDisplayPay(item, currentUser ? currentUser.name : null)
+                    : { pay: Number(item.pay) || 0 };
+
+                let row = `
+                <div class="box-partner history-item" onclick="showHistoryDetail(${item.id})">
+                    <div class="hist-date">
+                        <span>${formatDisplayDate(item.date)}</span>
+                        <span style="font-family:'Outfit', sans-serif;">${displayTime}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="box-corp">
+                            <img src="${brandLogo}">
+                            <div>
+                                <div style="font-size:12px; color:var(--text-sub);">${brandName}</div>
+                                <div class="hist-job-title">${item.job || ''} (${formatRoleLabel(item.role)})</div>
+                            </div>
+                        </div>
+                        <div class="hist-pay">+₩ ${historyPayInfo.pay.toLocaleString()}</div>
+                    </div>
+                </div>
+                `;
+                container.append(row);
+            });
+        }
+
+        function renderShopHistory() {
+            const shopHistory = getCurrentUserShopHistory();
+            const container = $('#shop-history-container');
+            container.empty();
+
+            if (shopHistory.length === 0) {
+                container.html(`
+                    <div style="padding: 30px 20px; text-align: center; background: linear-gradient(135deg, rgba(253, 132, 237, 0.03) 0%, rgba(99, 102, 241, 0.03) 100%); border: 1px dashed rgba(253, 132, 237, 0.2); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                        <div style="font-size: 36px; margin-bottom: 4px; filter: drop-shadow(0 0 8px rgba(253, 132, 237, 0.3));">🛍️</div>
+                        <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">아직 주문한 내역이 없습니다</div>
+                        <div style="font-size: 11px; color: var(--text-sub); max-width: 260px; line-height: 1.5; margin-bottom: 6px;">라운지 쉼터에서 정성 가득한 우동과 간장 비빔면을 주문해 보세요!</div>
+                        <a href="./main.html" style="background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary)); color: #000; border: none; padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(253, 132, 237, 0.3); transition: all 0.2s;">
+                            <span>🍜 주문하러 바로가기</span> <i class="bi bi-chevron-right" style="font-size: 10px; font-weight: bold;"></i>
+                        </a>
+                    </div>
+                `);
+                return;
+            }
+
+            const displayHistory = shopHistory.slice(0, 2);
+            displayHistory.forEach(item => {
+                const orderStatus = item.status || 'pending';
+                const allowedKitchenStatuses = ['payment_waiting', 'queued', 'preparing', 'ready'];
+                const kitchenStatus = allowedKitchenStatuses.includes(item.kitchenStatus)
+                    ? item.kitchenStatus
+                    : 'queued';
+                const isOfflinePaymentWaiting = item.paymentMethod === 'offline'
+                    && item.paymentStatus === 'offline_waiting';
+                const priceValue = Number.isFinite(Number(item.price)) ? Number(item.price) : 0;
+                const amountHtml = item.shouldShowSpendAmount === false
+                    ? `<div style="font-size: 13px; font-weight: 800; color: var(--text-sub); white-space: nowrap;">${item.paymentDisplayLabel || '주문취소됨'}</div>`
+                    : `<div style="font-size: 15px; font-weight: 800; color: #ffffff; white-space: nowrap;">-₩ ${priceValue.toLocaleString()}</div>`;
+                const quantityValue = Math.max(1, Number.parseInt(item.qty, 10) || 1);
+                const orderNumber = item.orderNo !== undefined &&
+                    item.orderNo !== null &&
+                    String(item.orderNo).trim() !== ''
+                    ? String(item.orderNo)
+                    : '확인 중';
+                const itemId = item.id !== undefined && item.id !== null ? String(item.id) : '';
+                let statusBadgeHtml = "";
+                let btnHtml = "";
+
+                if (orderStatus === 'pending') {
+                    if (isOfflinePaymentWaiting || kitchenStatus === 'payment_waiting') {
+                        statusBadgeHtml = `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">현장 결제중</span>`;
+                        btnHtml = `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-check-in-btn" style="background:#fbbf24;color:#271b02;" onclick="event.stopPropagation(); openMypageOfflineQr('${itemId}')"><i class="bi bi-qr-code-scan"></i> <span class="offline-qr-payment-label-full">QR 찍고 현장결제</span><span class="offline-qr-payment-label-short">현장결제</span></button>
+                            <button type="button" class="res-cancel-btn" onclick="event.stopPropagation(); cancelShopOrder('${itemId}')">주문 취소</button>
+                        </div>`;
+                    } else if (kitchenStatus === 'ready') {
+                        statusBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">준비 완료</span>`;
+                        btnHtml = `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-check-in-btn" style="background: var(--accent-money); color: #07130f;" onclick="event.stopPropagation(); completeShopOrder('${itemId}')">🔔 알림 확인 · 수령하기</button>
+                        </div>`;
+                    } else {
+                        const isPreparing = kitchenStatus === 'preparing';
+                        statusBadgeHtml = isPreparing
+                            ? `<span style="background: rgba(99, 102, 241, 0.16); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 중</span>`
+                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">조리 대기</span>`;
+                        // 버거 주문(workId 7)은 조리가 시작되면 취소할 수 없습니다.
+                        const burgerCookingLocked = String(item.workId || '') === '7' && isPreparing;
+                        btnHtml = burgerCookingLocked
+                            ? `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-cancel-btn" disabled style="opacity:0.5; cursor:not-allowed;">조리 중 · 취소 불가</button>
+                        </div>`
+                            : `
+                        <div class="res-btn-box" style="margin-top: 12px;">
+                            <button type="button" class="res-cancel-btn" onclick="event.stopPropagation(); cancelShopOrder('${itemId}')">주문 취소</button>
+                        </div>`;
+                    }
+                } else if (orderStatus === 'cancelled') {
+                    statusBadgeHtml = `<span style="background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">주문 취소</span>`;
+                } else if (orderStatus === 'completed') {
+                    statusBadgeHtml = `<span style="background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.16); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">수령 완료</span>`;
+                } else {
+                    statusBadgeHtml = `<span style="background: rgba(148, 163, 184, 0.12); color: var(--text-sub); border: 1px solid rgba(148, 163, 184, 0.24); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">상태 확인 중</span>`;
+                }
+
+                // 자세히는 항상 왼쪽, 주문 취소·수령은 기존처럼 오른쪽에 배치한다.
+                const detailButtonHtml = `<button type="button" class="shop-order-detail-trigger" onclick="event.stopPropagation(); openShopOrderDetail('${itemId}', this)"><i class="bi bi-list-ul"></i> 자세히</button>`;
+                if (btnHtml) {
+                    btnHtml = btnHtml.replace(/(<div class="res-btn-box"[^>]*>)/, '$1' + detailButtonHtml);
+                } else {
+                    btnHtml = `<div class="res-btn-box" style="margin-top: 12px;">${detailButtonHtml}</div>`;
+                }
+
+                // 상품 썸네일 이미지 및 브랜드 탐색
+                let pImg = './images/kimchi_300g.png';
+                let brandName = item.brandName || 'AFood';
+                const pIdStr = String(item.productId || '');
+                const pNameStr = item.productName || '상품명 확인 중';
+
+                // Uton 간장비빔면(상품번호 20002)은 주문 이력에서도 완성 제품 사진을 사용합니다.
+                if (pIdStr === '20002' || pIdStr === 'p2' || pNameStr.includes('간장') && pNameStr.includes('비빔면')) {
+                    pImg = './images/somyeon_complete.png';
+                    brandName = 'Uton';
+                }
+
+                const products = (window.FactoryStore && typeof window.FactoryStore.getProducts === 'function')
+                    ? window.FactoryStore.getProducts()
+                    : ((window.MockData && window.MockData.storeProducts) || []);
+                if (products.length) {
+                    const found = products.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
+                    if (found) {
+                        pImg = found.img || pImg;
+                        brandName = found.brand || brandName;
+                    }
+                }
+                if (item.img) {
+                    pImg = item.img;
+                }
+                // 상품 마스터가 늦게 로드되거나 과거 주문 데이터인 경우에도 이미지가 흔들리지 않게 고정합니다.
+                if (pIdStr === '20002' || pIdStr === 'p2' || pNameStr.includes('간장') && pNameStr.includes('비빔면')) {
+                    pImg = './images/somyeon_complete.png';
+                    brandName = 'Uton';
+                }
+
+                const qtyText = quantityValue + '개';
+                const orderDateText = item.dateStr ||
+                    [item.orderDate, item.orderTime].filter(Boolean).join(' ') ||
+                    '주문 시각 확인 중';
+
+                let isDelivery = true;
+                if (products.length) {
+                    const found = products.find(p => p.productCode === pIdStr || String(p.productId) === pIdStr || p.name === pNameStr);
+                    if (found && found.isDelivery !== undefined) {
+                        isDelivery = found.isDelivery;
+                    }
+                }
+                if ((pNameStr.includes("우동") && !pNameStr.includes("수제")) || pNameStr.includes("비빔면")) {
+                    isDelivery = false;
+                }
+
+                if (item.fulfillmentType === 'pickup' || item.orderType === 'dine_in') {
+                    isDelivery = false;
+                }
+
+                if (orderStatus === 'completed' && isDelivery) {
+                    const deliveryStatus = item.deliveryStatus || item.shippingStatus || 'ordered';
+                    if (['delivered', 'received', 'completed'].includes(deliveryStatus)) {
+                        // 배달 상품은 '수령 완료'가 아니라 '배송 완료'로 표기한다.
+                        statusBadgeHtml = `<span style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송 완료</span>`;
+                    } else {
+                        const isShipping = deliveryStatus === 'shipping' || deliveryStatus === 'in_transit';
+                        statusBadgeHtml = isShipping
+                            ? `<span style="background: rgba(59, 130, 246, 0.14); color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">배송중</span>`
+                            : `<span style="background: rgba(245, 158, 11, 0.14); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 999px;">${item.deliveryStatusLabel && item.deliveryStatusLabel !== '주문 완료' ? item.deliveryStatusLabel : '배송 준비중'}</span>`;
+                    }
+                }
+
+                let deliveryBadgeHtml = isDelivery ? `<span style="background: rgba(0, 184, 148, 0.15); color: #00b894; border: 1px solid rgba(0, 184, 148, 0.3); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">배달 상품</span>` : '';
+                const deliveryLinkHtml = isDelivery
+                    ? `<div style="font-size: 10px; color: #94a3b8; font-weight: 600; cursor: pointer; margin-top: 3px;">배송조회 / 상세보기 <i class="bi bi-chevron-right"></i></div>`
+                    : '';
+                const topRightHtml = `
+                    <div style="text-align: right; flex-shrink: 0;">
+                        <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(253, 132, 237, 0.12); border: 1px solid rgba(253, 132, 237, 0.3); color: var(--accent-secondary); padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 800;">
+                            주문번호 <span style="font-family: 'Outfit', sans-serif; font-size: 13px;">#${orderNumber}</span>
+                        </div>
+                        ${deliveryLinkHtml}
+                    </div>`;
+
+                let clickAttr = isDelivery ? `onclick="window.location.href='delivery_detail.html?orderNo=${item.orderNo || ''}&productId=${item.productId || ''}'"` : '';
+                let cursorStyle = isDelivery ? 'cursor: pointer;' : '';
+
+                let row = `
+                <div class="box-partner history-item" ${clickAttr} style="${cursorStyle} margin-bottom: 12px; display: block; padding: 14px 16px; background: rgba(22, 24, 34, 0.75) !important; border-radius: 14px; border-top: 1px solid rgba(255,255,255,0.08) !important; border-right: 1px solid rgba(255,255,255,0.08) !important; border-bottom: 1px solid rgba(255,255,255,0.08) !important; border-left: 4px solid #fd79a8 !important; min-height: 105px; box-sizing: border-box;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; font-size: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; color: var(--text-sub);">
+                            <span>${orderDateText} 주문</span>
+                            ${deliveryBadgeHtml}
+                            ${statusBadgeHtml}
+                        </div>
+                        ${topRightHtml}
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${pImg}" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover; border: 1px solid var(--card-border);" alt="${pNameStr}">
+                            <div style="text-align: left;">
+                                <div style="font-size: 11px; color: var(--accent-primary); font-weight: bold;">${brandName}</div>
+                                <div style="font-size: 14px; font-weight: bold; color: var(--text-main); margin-top: 3px;">${pNameStr} (${qtyText})</div>
+                            </div>
+                        </div>
+                        ${amountHtml}
+                    </div>
+                    ${btnHtml}
+                </div>
+                `;
+                container.append(row);
+            });
+        }
+
+        function openMypageOfflineQr(id) {
+            const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+            if (!target || target.paymentMethod !== 'offline' || target.paymentStatus !== 'offline_waiting') {
+                alert('현장결제 대기 주문을 찾을 수 없습니다.');
+                renderShopHistory();
+                return;
+            }
+            pendingOfflineQrOrderId = String(id);
+            mypageQrSubmitting = false;
+            $('#mypage-qr-order-info').html(
+                `<b style="color:var(--text-main)">${target.productName || '주문 상품'}</b><br>`
+                + `주문번호 ${target.orderNo || '-'} · 결제금액 ₩${Number(target.price || 0).toLocaleString()}`
+            );
+            $('#mypage-qr-status').removeClass('ok').text('QR코드를 찍기 전에는 주문이 접수되지 않습니다.');
+            $('#mypage-qr-demo').prop('disabled', false).css('opacity', '1');
+            $('#mypage-offline-qr-modal').addClass('show');
+        }
+
+        function closeMypageOfflineQr() {
+            if (mypageQrSubmitting) return;
+            pendingOfflineQrOrderId = null;
+            $('#mypage-offline-qr-modal').removeClass('show');
+        }
+
+        function simulateMypageOfflineQrPayment() {
+            if (!pendingOfflineQrOrderId || mypageQrSubmitting) return;
+            const target = getCurrentUserShopHistory()
+                .find(item => String(item.id) === String(pendingOfflineQrOrderId));
+            if (!target || target.paymentMethod !== 'offline' || target.paymentStatus !== 'offline_waiting') {
+                alert('이미 결제되었거나 취소된 주문입니다.');
+                pendingOfflineQrOrderId = null;
+                $('#mypage-offline-qr-modal').removeClass('show');
+                renderShopHistory();
+                return;
+            }
+
+            mypageQrSubmitting = true;
+            const now = new Date().toISOString();
+            const isBurgerOrder = String(target.workId || '') === '7'
+                || String(target.brandName || '').toLowerCase() === 'burgerqueen';
+            const isKmeatOrder = String(target.workId || '') === '6'
+                || String(target.brandName || '').toLowerCase() === 'k-meat';
+            if (isBurgerOrder && window.MockData
+                && typeof window.MockData.ensureBurgerOrdersForShopRecord === 'function') {
+                window.MockData.ensureBurgerOrdersForShopRecord(target);
+            }
+            if (isKmeatOrder && window.MockData
+                && typeof window.MockData.updateKmeatOrder === 'function') {
+                window.MockData.updateKmeatOrder(target.orderNo, {
+                    paymentStatus: 'paid',
+                    paymentMethod: 'offline',
+                    paidAt: now,
+                    paymentCompletedAt: now,
+                    kitchenStage: 'ordered'
+                });
+            }
+            const burgerOrders = window.MockData && typeof window.MockData.getBurgerOrdersByShopRecord === 'function'
+                ? window.MockData.getBurgerOrdersByShopRecord(target.id)
+                : [];
+            let result = { ok: true };
+
+            if (burgerOrders.length && window.MockData && typeof window.MockData.confirmBurgerOfflinePayment === 'function') {
+                result = window.MockData.confirmBurgerOfflinePayment(target.id, {
+                    id: currentUser && currentUser.id,
+                    name: (currentUser && currentUser.name ? currentUser.name : '고객') + ' QR 결제',
+                    method: 'qr_demo'
+                });
+            } else if (window.FactoryStore) {
+                window.FactoryStore.dispatch({
+                    type: 'UPDATE_SHOP_ORDER',
+                    payload: {
+                        id: target.id,
+                        changes: {
+                            paymentStatus: 'paid',
+                            paymentCompletedAt: now,
+                            paymentConfirmationMethod: 'qr_demo',
+                            paymentQrVerifiedAt: now,
+                            paymentQrType: 'mypage_demo',
+                            kitchenStatus: 'queued',
+                            shouldShowSpendAmount: false,
+                            paymentDisplayLabel: '현장 결제 완료'
+                        }
+                    }
+                });
+            } else {
+                result = { ok: false };
+            }
+
+            if (!result.ok) {
+                mypageQrSubmitting = false;
+                alert('현장결제를 완료하지 못했습니다. 주문 상태를 다시 확인해주세요.');
+                renderShopHistory();
+                return;
+            }
+
+            if (window.MockData && typeof window.MockData.syncBurgerShopRecords === 'function') {
+                window.MockData.syncBurgerShopRecords();
+            }
+            $('#mypage-qr-status').addClass('ok').html('<i class="bi bi-patch-check-fill"></i> QR 현장결제 완료 · 주문 접수됨');
+            $('#mypage-qr-demo').prop('disabled', true).css('opacity', '.65');
+
+            setTimeout(function () {
+                const orderNo = target.orderNo || '-';
+                pendingOfflineQrOrderId = null;
+                mypageQrSubmitting = false;
+                $('#mypage-offline-qr-modal').removeClass('show');
+                renderEarnings();
+                renderShopHistory();
+                alert(`현장결제가 완료되었습니다.\n주문번호 ${orderNo}\n이제 주문이 조리 대기 목록에 접수됩니다.`);
+            }, 350);
+        }
+
+        function cancelShopOrder(id) {
+            if (!confirm("정말로 주문을 취소하시겠습니까?")) return;
+
+            const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+            if (target) {
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'CANCEL_SHOP_ORDER', payload: target.id });
+                }
+
+                // 세션 및 로컬 카운트 대기열 연동 해제
+                const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                const matchesActiveProduct = activeProduct !== null &&
+                    target.productId !== undefined &&
+                    target.productId !== null &&
+                    String(activeProduct) === String(target.productId);
+                const matchesActiveOrder = activeNo !== null &&
+                    target.orderNo !== undefined &&
+                    target.orderNo !== null &&
+                    String(activeNo) === String(target.orderNo);
+                if (matchesActiveProduct || matchesActiveOrder) {
+                    try {
+                        sessionStorage.removeItem('activeOrderProduct');
+                        sessionStorage.removeItem('activeOrderNo');
+                        sessionStorage.removeItem('activeOrderQty');
+                        localStorage.removeItem('activeOrderProduct_local');
+                        localStorage.removeItem('activeOrderNo_local');
+                        localStorage.removeItem('activeOrderQty_local');
+                        localStorage.removeItem('activeOrderNo_current');
+                        
+                        let orderCount10Min = parseInt(sessionStorage.getItem('orderCount10Min') || "0");
+                        orderCount10Min -= Math.max(1, Number.parseInt(target.qty, 10) || 1);
+                        if (orderCount10Min < 0) orderCount10Min = 0;
+                        sessionStorage.setItem('orderCount10Min', orderCount10Min.toString());
+
+                        if (orderCount10Min < 2) {
+                            sessionStorage.removeItem('orderLimitExpireTime');
+                        }
+
+                        const isUdon = String(target.productName || '').includes("우동");
+                        if (isUdon) {
+                            let udonOrderCount = parseInt(sessionStorage.getItem('udonOrderCount') || '0');
+                            udonOrderCount -= Math.max(1, Number.parseInt(target.qty, 10) || 1);
+                            if (udonOrderCount < 0) udonOrderCount = 0;
+                            sessionStorage.setItem('udonOrderCount', udonOrderCount.toString());
+                        } else {
+                            let bibimOrderCount = parseInt(sessionStorage.getItem('bibimOrderCount') || '0');
+                            bibimOrderCount -= Math.max(1, Number.parseInt(target.qty, 10) || 1);
+                            if (bibimOrderCount < 0) bibimOrderCount = 0;
+                            sessionStorage.setItem('bibimOrderCount', bibimOrderCount.toString());
+                        }
+
+                        // 로그 기록 추가
+                        let loungeLogs = [];
+                        const savedLogs = sessionStorage.getItem('udonBibimLoungeLogs');
+                        if (savedLogs) loungeLogs = JSON.parse(savedLogs);
+                        const now = new Date();
+                        const hh = String(now.getHours()).padStart(2, '0');
+                        const mm = String(now.getMinutes()).padStart(2, '0');
+                        loungeLogs.push(`[${hh}시 ${mm}분] 주문 ${Math.max(1, Number.parseInt(target.qty, 10) || 1)}그릇을 취소하였습니다.`);
+                        sessionStorage.setItem('udonBibimLoungeLogs', JSON.stringify(loungeLogs));
+                    } catch(e){}
+                }
+                
+                alert("주문이 성공적으로 취소되었습니다.");
+            }
+        }
+
+        function completeShopOrder(id) {
+            const target = getCurrentUserShopHistory().find(item => String(item.id) === String(id));
+            if (target) {
+                const kitchenStatus = target.kitchenStatus || 'queued';
+                if (target.status !== 'pending' || kitchenStatus !== 'ready') return;
+
+                if (window.FactoryStore) {
+                    window.FactoryStore.dispatch({ type: 'COMPLETE_SHOP_ORDER', payload: target.id });
+                }
+
+                // 수령 완료했으므로 활성화된 활성 주문 상태 제거
+                const activeProduct = sessionStorage.getItem('activeOrderProduct') || localStorage.getItem('activeOrderProduct_local');
+                const activeNo = sessionStorage.getItem('activeOrderNo') || localStorage.getItem('activeOrderNo_local');
+                const matchesActiveProduct = activeProduct !== null &&
+                    target.productId !== undefined &&
+                    target.productId !== null &&
+                    String(activeProduct) === String(target.productId);
+                const matchesActiveOrder = activeNo !== null &&
+                    target.orderNo !== undefined &&
+                    target.orderNo !== null &&
+                    String(activeNo) === String(target.orderNo);
+                if (matchesActiveProduct || matchesActiveOrder) {
+                    try {
+                        sessionStorage.removeItem('activeOrderProduct');
+                        sessionStorage.removeItem('activeOrderNo');
+                        sessionStorage.removeItem('activeOrderQty');
+                        localStorage.removeItem('activeOrderProduct_local');
+                        localStorage.removeItem('activeOrderNo_local');
+                        localStorage.removeItem('activeOrderQty_local');
+                        localStorage.removeItem('activeOrderNo_current');
+                    } catch(e){}
+                }
+
+                renderEarnings();
+                renderShopHistory();
+                alert(`🔔 주문번호 #${target.orderNo || '-'} 수령 완료\n음식을 정상적으로 수령하였습니다. 맛있게 드세요! 😀`);
+            }
+        }
+
+        function toggleSimPanel() {
+            $('#sim-panel').slideToggle();
+        }
+
+        function setHardcodingMode(value) {
+            const url = new URL(window.location.href);
+            if (value) {
+                url.searchParams.delete('hardcoding');
+            } else {
+                url.searchParams.set('hardcoding', 'false');
+            }
+            window.location.href = url.toString();
+        }
+
+        function updateSimControls() {
+            const curHours = FactoryStore.getState().workedHours || 0;
+            $('.sim-btn').each(function () {
+                const text = $(this).text();
+                if (text.includes(curHours + 'h')) {
+                    $(this).addClass('active');
+                } else {
+                    $(this).removeClass('active');
+                }
+            });
+
+            // 하드코딩 모드 버튼 active 표시
+            $('#btn-hardcoding-on').toggleClass('active', HARDCODING_MODE);
+            $('#btn-hardcoding-off').toggleClass('active', !HARDCODING_MODE);
+        }
+
+        function setWorkedHours(hours) {
+            FactoryStore.dispatch({ type: 'SET_WORKED_HOURS', payload: hours });
+
+            if (workerProfile) {
+                workerProfile.workedHours = hours;
+                sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+            }
+
+            if (typeof window.addAppLog === 'function') {
+                window.addAppLog(`김치만들기 시뮬레이션 근무 시간을 ${hours}시간으로 설정했습니다.`);
+            }
+
+            renderAll();
+        }
+
+        function setHealthStatus(status) {
+            workerProfile.healthCertificateStatus = status;
+            workerProfile.healthCertificateImage = status ? "simulated_cert.png" : null;
+            sessionStorage.setItem("kimp_worker_profile", JSON.stringify(workerProfile));
+
+            if (typeof window.addAppLog === 'function') {
+                const statusText = status === 'approved' ? '승인완료' : '미등록/필요';
+                window.addAppLog(`시뮬레이션 보건증 상태를 [${statusText}]로 설정했습니다.`);
+            }
+
+            renderAll();
+        }
+
+        function resetSession() {
+            if (confirm("세션을 초기화하시겠습니까? 로그인 정보 및 진행 데이터가 모두 삭제됩니다.")) {
+                FactoryStore.dispatch({ type: 'RESET_ALL_DATA' });
+
+                if (typeof window.addAppLog === 'function') {
+                    window.addAppLog("세션을 초기화(로그아웃) 하였습니다.");
+                }
+
+                sessionStorage.clear();
+                alert("로그아웃 되었습니다. 로그인 페이지로 이동합니다.");
+                window.location.href = "./login.html";
+            }
+        }
+
+        function toggleSettings() {
+            window.location.href = "settings.html";
+        }
+
+        function showHistoryDetail(id) {
+            // Explore2 혹은 Detail 화면 연계 코드로, 기존 JS 원본 유지용 껍데기 함수
+            window.location.href = `explore_detail.html?id=${id}`;
+        }
+    </script>
+</body>
+
+</html>

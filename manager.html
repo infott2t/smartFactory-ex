@@ -700,7 +700,27 @@
 
         .badge-green {
             background-color: var(--accent-green-bg);
-            color: var(--accent-green);
+            color: #007961;
+            font-weight: 700;
+        }
+
+        .badge-completed-pill {
+            background-color: #e6f4ea !important;
+            color: #0d652d !important;
+            border: 1.5px solid #1e8e3e !important;
+            padding: 3px 12px !important;
+            border-radius: 20px !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            display: inline-block !important;
+            text-align: center !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+        }
+
+        body.dark-mode .badge-completed-pill {
+            background-color: rgba(16, 185, 129, 0.22) !important;
+            color: #34d399 !important;
+            border: 1.5px solid #10b981 !important;
         }
 
         .badge-blue {
@@ -8026,7 +8046,7 @@
 
                     const neededBadge = needed > 0
                         ? `<span class="badge" style="background-color: var(--accent-purple); color: #fff; padding: 2px 6px; border-radius: 4px; font-size:10px;">${needed}개 생산 필요</span>`
-                        : `<span class="badge" style="background-color: var(--neon-green); color: black; padding: 2px 6px; border-radius: 4px; font-size:10px;">충족됨</span>`;
+                        : `<span class="badge badge-completed-pill" style="background-color: #e6f4ea; color: #0d652d; border: 1.5px solid #1e8e3e; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; display: inline-block; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">완료</span>`;
 
                     let rowStyle = "";
                     let feedbackMsg = "";

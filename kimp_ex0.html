@@ -2361,9 +2361,49 @@
         // ============================================================
         // 6. Stage 1 세부 공정 프로세스 (Wizard UI)
         // ============================================================
+        function getMaxQtyForCurrentStage() {
+            const stageId = appData.activeStageId;
+            if (stageId === 6) {
+                return 10;
+            } else if (stageId === 1 || stageId === 2) {
+                if (appData.loadedQty !== undefined && appData.loadedQty !== null) {
+                    return parseInt(appData.loadedQty) || 15;
+                }
+                return (appData.currentOrder ? parseInt(appData.currentOrder.qty) : 15) || 15;
+            } else {
+                return 15;
+            }
+        }
+
         function changeValue(inputId, delta) {
             const input = document.getElementById(inputId);
             if (!input) return;
+
+            if (inputId === 'input-good' || inputId === 'input-defect') {
+                const goodInput = document.getElementById('input-good');
+                const defectInput = document.getElementById('input-defect');
+                if (!goodInput || !defectInput) return;
+
+                const maxQty = getMaxQtyForCurrentStage();
+                let goodVal = parseInt(goodInput.value) || 0;
+                let defectVal = parseInt(defectInput.value) || 0;
+
+                if (inputId === 'input-good') {
+                    goodVal += delta;
+                    if (goodVal < 0) goodVal = 0;
+                    if (goodVal > maxQty) goodVal = maxQty;
+                    defectVal = maxQty - goodVal;
+                } else if (inputId === 'input-defect') {
+                    defectVal += delta;
+                    if (defectVal < 0) defectVal = 0;
+                    if (defectVal > maxQty) defectVal = maxQty;
+                    goodVal = maxQty - defectVal;
+                }
+
+                goodInput.value = goodVal;
+                defectInput.value = defectVal;
+                return;
+            }
 
             let val = parseFloat(input.value) || 0;
             val += delta;
@@ -2520,13 +2560,14 @@
             `;
             }
             else if (step.type === 'report') {
+                const initMaxQty = getMaxQtyForCurrentStage();
                 visualElement = `
                 <div class="hmi-input-group">
                     <div class="input-row">
                         <label>양품 (정상)</label>
                         <div class="number-stepper">
                             <button onclick="changeValue('input-good', -1)"><i class="bi bi-dash"></i></button>
-                            <input type="number" id="input-good" value="0" readonly />
+                            <input type="number" id="input-good" value="${initMaxQty}" readonly />
                             <button onclick="changeValue('input-good', 1)"><i class="bi bi-plus"></i></button>
                         </div>
                     </div>
@@ -2724,7 +2765,9 @@
             } else if (step.type === 'info' && step.title.includes('자재 창고')) {
                 addLog(`${logPrefix}자재 상차(싣기)를 완료했습니다.`);
             } else if (step.type === 'input') {
-                const qty = document.getElementById('input-single').value;
+                const qtyInput = document.getElementById('input-single');
+                const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
+                appData.loadedQty = qty;
                 if (step.title.includes('수량확인')) {
                     addLog(`${logPrefix}수량 ${qty}포기 확인 완료.`);
                 } else {
